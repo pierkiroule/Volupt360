@@ -1,3 +1,6 @@
+uniform sampler2D uBrushMask;
+uniform float uHasMask,uMaskAspect;
+uniform float uAge;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
 float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -5,6 +8,8 @@ float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h
 float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+vec2(13.1,7.7);a*=.49;}return v;}
 void main(){
 vec2 uv=vUv;float across=abs(uv.x*2.-1.);
+float wet=exp(-uAge*.035);
+uv+=vec2(sin(uv.y*13.+uSeed+uTime*.22),cos(uv.x*11.+uSeed+uTime*.17))*.018*wet;
 vec2 q=uv*vec2(3.7,2.9)+vec2(uSeed*1.71,uSeed*.37);
 float macro=fbm(q),middle=noise2(q*3.4+9.7),micro=noise2(q*18.3+2.3);
 float fibres=noise2(vec2(q.x*62.,q.y*4.))*.55+noise2(q*vec2(16.,130.))*.45;
@@ -49,7 +54,27 @@ col*=light;
 float alpha=body*clamp((.27+.49*pool+.31*sediment+.23*tide+.08*vein-.18*dry)*uPigment,0.,1.)*uOpacity;
 alpha*=mix(1.,.86,botanical);alpha*=mix(1.,.95,engraving);
 if(uLayer>0.5){alpha*=.42;col=mix(col,vec3(.95,.92,.86),.34);}
+// Brush-specific transparency, independent from the geometric silhouette.
+if(abs(uStyle-1.)<.1){float mist=length((uv-.5)*vec2(1.7,1.8));alpha*=1.-smoothstep(.15,.65,mist);col=mix(col,vec3(.94,.92,.88),.22);}
+if(abs(uStyle-2.)<.1){float rim=pow(1.-abs(dot(normalize(vNormal),normalize(vView))),2.);alpha*=.28+rim*.9;col=mix(col,vec3(.72,.88,.84),.25+rim*.2);}
+if(abs(uStyle-3.)<.1){alpha*=.75+.25*sediment;col*=.91+.09*sin(uv.y*45.+middle*4.);}
+// Broken pigment, dark pools and paper reserves evolve as each deposit dries.
+float bloom=noise2(q*7.+vec2(uTime*.045*wet));
+alpha*=mix(.38,1.35,smoothstep(.22,.7,bloom));
+col*=mix(.62,1.12,middle);
+if(uStyle>13.5){
+  float stain=length((uv-.5)*2.);
+  float silhouette=1.-smoothstep(.48+macro*.35,.72+macro*.3,stain);
+  alpha*=silhouette;
+  col=mix(vec3(.018,.016,.023),vec3(.19,.16,.19),sediment*.6+dry*.2);
+}
 alpha*=uFade*(1.-smoothstep(40.,90.,length(vView))*.28);
+if(uHasMask>.5){
+  vec2 maskUv=vec2(uv.x,uv.y*4.*uMaskAspect);
+  float imageAlpha=texture2D(uBrushMask,maskUv).a;
+  alpha*=imageAlpha;
+  col*=.88+.12*imageAlpha;
+}
 if(alpha<.012)discard;
 gl_FragColor=vec4(col,alpha);
 #include <colorspace_fragment>
