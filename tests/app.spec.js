@@ -71,7 +71,7 @@ test("rhythmic and silent analysis partition the complete file without gaps", ()
   expect(short.loops[0]).toEqual({ id: 0, start: 0, end: 2 });
 });
 
-test("six brushes, two camera modes and rotation without touch painting", async ({
+test("nine brushes, two camera modes and rotation without touch painting", async ({
   page,
 }) => {
   const errors = [];
@@ -85,9 +85,9 @@ test("six brushes, two camera modes and rotation without touch painting", async 
   await expect(canvas).toHaveCount(1);
   await expect(page.getByRole("alert")).toHaveCount(0);
   const palette = page.getByRole("group", {
-    name: "Palette aquarelle : six brosses",
+    name: "Palette aquarelle : neuf brosses",
   });
-  await expect(palette.getByRole("button")).toHaveCount(6);
+  await expect(palette.getByRole("button")).toHaveCount(9);
   for (const name of [
     "Voiles",
     "Falaises",
@@ -95,6 +95,9 @@ test("six brushes, two camera modes and rotation without touch painting", async 
     "Filaments",
     "Encres",
     "Éclats",
+    "Bulles",
+    "Aurore",
+    "Calligraphie",
   ]) {
     await palette.getByRole("button", { name, exact: true }).click();
     await expect(
@@ -130,7 +133,7 @@ test("six brushes, two camera modes and rotation without touch painting", async 
   expect(errors).toEqual([]);
 });
 
-test("audio paints with all six brushes, pauses, loops a phrase and restores whole-song playback", async ({
+test("audio paints with all nine brushes, pauses, loops a phrase and restores whole-song playback", async ({
   page,
 }) => {
   test.setTimeout(60000);
@@ -155,6 +158,9 @@ test("audio paints with all six brushes, pauses, loops a phrase and restores who
     "Filaments",
     "Encres",
     "Éclats",
+    "Bulles",
+    "Aurore",
+    "Calligraphie",
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
     const count = Number(await canvas.getAttribute("data-painted-samples"));
@@ -294,6 +300,9 @@ test.describe("mobile", () => {
       "Filaments",
       "Encres",
       "Éclats",
+      "Bulles",
+      "Aurore",
+      "Calligraphie",
       "FPV drone",
       "FPV 360° gyro",
     ]) {
@@ -377,6 +386,9 @@ test("each brush long press imports an independent contour/alpha texture", async
     "Filaments",
     "Encres",
     "Éclats",
+    "Bulles",
+    "Aurore",
+    "Calligraphie",
   ];
   for (const [i, name] of names.entries()) {
     const button = page.getByRole("button", { name, exact: true });

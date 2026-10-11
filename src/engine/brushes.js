@@ -57,6 +57,33 @@ export const BRUSHES = [
     style: 15,
     opacity: 0.88,
   },
+  {
+    id: "bulles",
+    name: "Bulles",
+    detail: "Sphères translucides · reflets arc-en-ciel",
+    color: "#3cbbc3",
+    glyph: "◉",
+    style: 16,
+    opacity: 0.82,
+  },
+  {
+    id: "aurore",
+    name: "Aurore",
+    detail: "Voiles torsadés · irisations boréales",
+    color: "#769ad3",
+    glyph: "✧",
+    style: 17,
+    opacity: 0.72,
+  },
+  {
+    id: "calligraphie",
+    name: "Calligraphie",
+    detail: "Pleins et déliés · arabesques hypnotiques",
+    color: "#5a477c",
+    glyph: "❦",
+    style: 18,
+    opacity: 0.95,
+  },
 ];
 
 function watercolor(brush, color, seed, opacity = 1, texture = null) {
@@ -87,7 +114,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
 
 /** A brush grows along the painter's actual XYZ samples. Ribbons use dynamic
  * buffers; cloud and lens brushes leave volumetric deposits along that same
- * journey. All six keep their own cross-section, texture and audio response.
+ * journey. All nine keep their own cross-section, texture and audio response.
  */
 export function createBrushStroke(
   id,
@@ -99,8 +126,15 @@ export function createBrushStroke(
   const capacity = 52;
   let count = 0,
     finished = false;
-  const ribbon = !["brumes", "lagons"].includes(id);
-  const layers = id === "filaments" ? 4 : id === "corolles" ? 3 : 2;
+  const ribbon = !["brumes", "lagons", "bulles"].includes(id);
+  const layers =
+    id === "filaments"
+      ? 4
+      : ["corolles", "aurore"].includes(id)
+        ? 3
+        : id === "calligraphie"
+          ? 1
+          : 2;
   const columns = id === "filaments" ? 6 : 10;
   const meshes = [];
   const warm = new THREE.Color("#e6d3b2");
@@ -153,7 +187,42 @@ export function createBrushStroke(
         id !== "lagons" ||
         (sample.accent ?? sample.motion) > 0.12 ||
         count === 0;
-      if (count % 3 === 0 && accented) {
+      if (id === "bulles") {
+        if (count % 6 === 0)
+          for (let layer = 0; layer < 2; layer++) {
+            const geometry = new THREE.SphereGeometry(1, 12, 8);
+            const colors = new Float32Array(
+              geometry.attributes.position.count * 3,
+            );
+            for (let i = 0; i < geometry.attributes.position.count; i++)
+              color.toArray(colors, i * 3);
+            geometry.setAttribute(
+              "color",
+              new THREE.BufferAttribute(colors, 3),
+            );
+            const material = watercolor(
+              brush,
+              color,
+              seed + count * 0.13 + layer,
+              sample.density ?? 1,
+              textureBinding,
+            );
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position
+              .copy(sample.position)
+              .addScaledVector(
+                sample.side,
+                Math.sin(count * 0.7 + seed + layer * 2) * 2.2,
+              )
+              .addScaledVector(sample.up, Math.cos(count * 0.6 + layer) * 1.7);
+            mesh.scale.setScalar(
+              0.35 +
+                sample.energy * 0.6 +
+                Math.sin(seed + count * 0.5 + layer) ** 2 * 0.7,
+            );
+            group.add(mesh);
+          }
+      } else if (count % 3 === 0 && accented) {
         for (let layer = 0; layer < (id === "brumes" ? 2 : 6); layer++) {
           const isMist = id === "brumes";
           const geometry = new THREE.PlaneGeometry(1, 1, 6, 6);
@@ -237,7 +306,25 @@ export function createBrushStroke(
             across = u * 2 - 1;
           let lateral = across * width,
             vertical = 0;
-          if (id === "filaments") {
+          if (id === "aurore") {
+            const roll = sample.time * 0.45 + layer * 2.1;
+            const curl = Math.sin(sample.time * 0.7 + seed + u * 4) * 0.9;
+            lateral = across * width * 1.8 * Math.cos(roll) + curl;
+            vertical =
+              across * width * 1.8 * Math.sin(roll) +
+              Math.sin(u * 9 + sample.time) * width * 0.5;
+          } else if (id === "calligraphie") {
+            const pressure =
+              0.055 +
+              Math.pow(0.5 + 0.5 * Math.sin(sample.time * 2.2 + seed), 3) * 1.4;
+            const roll = sample.time * 0.8 + Math.sin(sample.time * 0.65) * 1.1;
+            lateral =
+              across * width * pressure * Math.cos(roll) +
+              Math.sin(sample.time * 1.4) * 0.9;
+            vertical =
+              across * width * pressure * Math.sin(roll) +
+              Math.cos(sample.time * 1.1) * 0.7;
+          } else if (id === "filaments") {
             const angle = u * Math.PI * 2;
             const radius = 0.024 + sample.energy * 0.048 + sample.low * 0.015;
             lateral =

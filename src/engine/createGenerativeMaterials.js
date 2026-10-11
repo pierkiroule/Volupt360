@@ -8,11 +8,14 @@ const styles = {
   filaments: "thread",
   brumes: "ink",
   lagons: "splatter",
+  bulles: "bubble",
+  aurore: "aurora",
+  calligraphie: "calligraphy",
 };
 
-/** Twelve shared masks, prepared once outside rendering. No texture per mark. */
+/** Eighteen shared masks, prepared once outside rendering. No texture per mark. */
 export function createGenerativeMaterials() {
-  const factory = new TextureFactory({ size: 128, maxEntries: 12 });
+  const factory = new TextureFactory({ size: 128, maxEntries: 18 });
   const keys = new Map(
     Object.entries(styles).map(([id, style]) => [
       id,

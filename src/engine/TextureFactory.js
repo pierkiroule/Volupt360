@@ -19,7 +19,7 @@ const clamp = (value, fallback) =>
 export class TextureFactory {
   constructor({ size = 128, maxEntries = 4 } = {}) {
     this.size = Math.max(32, Math.min(256, Math.round(size) || 128));
-    this.maxEntries = Math.max(1, Math.min(16, Math.round(maxEntries) || 4));
+    this.maxEntries = Math.max(1, Math.min(24, Math.round(maxEntries) || 4));
     this.entries = new Map();
     this.closed = false;
     this.serial = 0;
@@ -29,9 +29,17 @@ export class TextureFactory {
   prepare({ seed, params = {} }) {
     if (this.closed) throw new Error("TextureFactory is disposed");
     const normalized = {
-      style: ["wash", "mineral", "petal", "thread", "ink", "splatter"].includes(
-        params.style,
-      )
+      style: [
+        "wash",
+        "mineral",
+        "petal",
+        "thread",
+        "ink",
+        "splatter",
+        "bubble",
+        "aurora",
+        "calligraphy",
+      ].includes(params.style)
         ? params.style
         : "ink",
       spread: clamp(params.spread, 0.6),
@@ -92,6 +100,17 @@ export class TextureFactory {
         } else if (normalized.style === "thread") {
           shape = 0.35 + 0.65 * Math.sin(dy * 38 + harmonics[4].phase) ** 2;
           pigment = 0.5 + 0.5 * grain;
+        } else if (normalized.style === "bubble") {
+          shape = 1;
+          pigment =
+            0.8 + 0.2 * Math.sin(dx * 7 + dy * 5 + harmonics[0].phase) ** 2;
+        } else if (normalized.style === "aurora") {
+          shape = Math.max(0.3, 1 - Math.abs(dx) ** 4);
+          pigment =
+            0.45 + 0.55 * Math.sin(dx * 18 + dy * 6 + harmonics[1].phase) ** 2;
+        } else if (normalized.style === "calligraphy") {
+          shape = Math.max(0.25, 1 - Math.abs(dx) ** 6);
+          pigment = 0.7 + 0.3 * grain;
         } else if (normalized.style === "splatter") {
           pigment = grain > 0.92 ? 0.12 : granule;
         }

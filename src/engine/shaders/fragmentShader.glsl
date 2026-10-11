@@ -34,7 +34,7 @@ float veins=pow(1.-abs(sin(q.x*12.+q.y*3.+middle*8.)),16.);
 float organic=mix(cellular,veins,step(2.5,mod(floor(uStyle+0.5),5.)));
 // Matières spécifiques : Botanique nervures ramifiées, Gravure traits fins encre.
 float botanical=step(5.5,uStyle)*(1.-step(11.5,uStyle));
-float engraving=step(11.5,uStyle);
+float engraving=step(11.5,uStyle)*(1.-step(15.5,uStyle));
 float midrib=pow(1.-abs(uv.x*2.-1.),18.);
 float sideVeins=pow(1.-abs(sin(uv.y*18.+abs(uv.x-.5)*21.+middle*2.)),24.);
 float etching=pow(1.-abs(sin(uv.x*88.+uv.y*7.+middle*1.8)),30.);
@@ -69,11 +69,21 @@ float dryPigment=clamp(tide*.65+sediment*.55+granules*.3,0.,1.);
 col=mix(col,col*(.65+.3*micro),settled*dryPigment);
 alpha*=mix(1.,.85+dryPigment*.3,settled);
 col=mix(col,base,.12*wet*(1.-pool));
-if(uStyle>13.5){
+if(uStyle>13.5 && uStyle<15.5){
   float stain=length((uv-.5)*2.);
   float silhouette=1.-smoothstep(.48+macro*.35,.72+macro*.3,stain);
   alpha*=silhouette;
   col=mix(vec3(.018,.016,.023),vec3(.19,.16,.19),sediment*.6+dry*.2);
+}
+if(abs(uStyle-16.)<.1){
+  float rim=pow(1.-abs(dot(normalize(vNormal),normalize(vView))),2.);
+  vec3 spectrum=.5+.5*cos(6.283*(uv.y+uv.x*.3+uSeed*.11)+vec3(0.,2.1,4.2));
+  col=mix(base,spectrum,.85);alpha=(.045+rim*.72)*uOpacity;
+}else if(abs(uStyle-17.)<.1){
+  vec3 spectrum=.5+.5*cos(uv.x*4.+uv.y*7.+uSeed+vec3(0.,2.,4.));
+  col=mix(base,spectrum,.55);alpha*=.6+.4*sin(uv.x*35.+middle*3.)*sin(uv.x*35.+middle*3.);
+}else if(abs(uStyle-18.)<.1){
+  col=mix(base*.24,base,.35+sediment*.3);alpha*=1.15;
 }
 alpha*=uFade*(1.-smoothstep(40.,90.,length(vView))*.28);
 // Brief, localized botanical lace, pigment halos and amber constellations.
