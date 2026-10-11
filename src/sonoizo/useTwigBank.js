@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BRUSHES } from "../engine/brushes.js";
 import { createTwigBank, emptyTwigSnapshot } from "./createTwigBank.js";
+import { createDefaultMelody } from "./createDefaultMelodies.js";
 import { ENABLE_SONOIZO } from "./config.js";
 
 const ids = BRUSHES.map((brush) => brush.id);
@@ -13,6 +14,10 @@ export function useTwigBank() {
     let mounted = true;
     const owner = createTwigBank({
       ids,
+      initialSamples:
+        new URLSearchParams(location.search).get("samples") === "empty"
+          ? []
+          : ids.map((id, index) => [id, createDefaultMelody(index)]),
       onChange: (state) => {
         if (mounted) setSnapshot(state);
       },
@@ -21,6 +26,7 @@ export function useTwigBank() {
       },
     });
     bank.current = owner;
+    setSnapshot(owner.getSnapshot());
     const interrupt = () => {
       owner.cancelRecording();
       owner.stopAll();

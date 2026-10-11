@@ -49,7 +49,7 @@ test("lot 1 maps twelve slots to the brushes and keeps navigation and MP3 availa
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   await expect(
     page.getByRole("heading", { name: "L’Oizodio•°" }),
   ).toBeVisible();
@@ -57,7 +57,7 @@ test("lot 1 maps twelve slots to the brushes and keeps navigation and MP3 availa
     page.getByText("Le chant qui sculpte l’espace des possibles", {
       exact: true,
     }),
-  ).toBeVisible();
+  ).toBeHidden();
   const pads = page.getByRole("group", {
     name: "Douze brindilles, douze brosses",
   });
@@ -88,7 +88,7 @@ test("lot 1 maps twelve slots to the brushes and keeps navigation and MP3 availa
     "data-camera-mode",
     "gyro",
   );
-  await page.goto("/?atelier=mp3");
+  await page.goto("/?atelier=mp3&samples=empty");
   await expect(
     page
       .getByRole("group", { name: "Palette aquarelle : douze brosses" })
@@ -113,7 +113,7 @@ test("native microphone records, stops tracks, replaces locally, plays polyphoni
       return stream;
     };
   });
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   await capture(page, "Voiles");
   await capture(page, "Echo");
   await expect(page.getByLabel("Nombre de brindilles")).toHaveText("2 / 12");
@@ -203,7 +203,7 @@ test("native microphone records, stops tracks, replaces locally, plays polyphoni
 test("native recording stops automatically after five seconds and stores a capped sample", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   await page.getByRole("button", { name: "Enregistrer Voiles" }).click();
   await expect(page.getByRole("progressbar")).toBeVisible();
   await expect(
@@ -240,7 +240,7 @@ test("permission denial is recoverable and microphone capture has no network upl
       return original(...args);
     };
   });
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   await page.getByRole("button", { name: "Enregistrer Voiles" }).click();
   await expect(page.getByRole("alert")).toContainText(
     "Microphone non autorisé",
@@ -253,7 +253,7 @@ test("permission denial is recoverable and microphone capture has no network upl
 test("late permission grants are discarded and disposal stops the released microphone", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   const result = await page.evaluate(async () => {
     const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
     let resolvePermission,
@@ -291,7 +291,7 @@ test("late permission grants are discarded and disposal stops the released micro
 test("switching acts cancels a recording without replacing a previous twig", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   await capture(page, "Voiles");
   const before = await page
     .getByRole("button", { name: "Brindille Voiles", exact: true })
@@ -310,7 +310,7 @@ test("switching acts cancels a recording without replacing a previous twig", asy
 test("synthetic eleven-second capture is capped exactly, twelve voices stay bounded and pending resumes cannot restart", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   const result = await page.evaluate(async () => {
     const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
     const { BRUSHES } = await import("/src/engine/brushes.js");
@@ -463,8 +463,8 @@ test("leaving MP3 while a file decodes prevents late playback in the microphone 
       return buffer;
     };
   });
-  await page.goto("/");
-  await page.goto("/?atelier=mp3");
+  await page.goto("/?samples=empty");
+  await page.goto("/?atelier=mp3&samples=empty");
   const canvas = page.locator("#stage canvas"),
     samples = await canvas.getAttribute("data-painted-samples");
   await page
@@ -481,7 +481,7 @@ test("leaving MP3 while a file decodes prevents late playback in the microphone 
   await expect(
     page.getByRole("button", { name: "Enregistrer Voiles" }),
   ).toBeEnabled();
-  await page.goto("/?atelier=mp3");
+  await page.goto("/?atelier=mp3&samples=empty");
   await expect(
     page.getByText("Votre musique, un paysage", { exact: true }),
   ).toBeVisible();

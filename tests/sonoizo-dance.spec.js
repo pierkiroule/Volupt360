@@ -105,7 +105,7 @@ test("per-pad MP3 and WAV imports are capped at five seconds and only pad playba
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-oizo", "true");
   await expect(canvas).toHaveAttribute("data-painted-samples", "0");
@@ -199,7 +199,7 @@ test("all twelve pad identities deposit their original brushes through the bird 
     if (message.type() === "error" && /WebGL|THREE|Shader/.test(message.text()))
       errors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   const file = wav(0.4, 1);
   for (const name of names) {
     await page
@@ -240,7 +240,7 @@ test("all twelve pad identities deposit their original brushes through the bird 
 test("acoustic analysis distinguishes soft and strong pads before mix gain normalization", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   await page
     .getByRole("button", { name: "Brindille Voiles", exact: true })
     .click();
@@ -273,7 +273,7 @@ test("portrait drone keeps the flying nozzle visible before any sound is played"
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?samples=empty");
   const canvas = page.locator("#stage canvas");
   await expect
     .poll(async () => {

@@ -18,6 +18,7 @@ export function createTwigBank({
   ids,
   onChange = () => {},
   onError = () => {},
+  initialSamples = [],
 }) {
   if (ids.length > 12 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
@@ -31,6 +32,17 @@ export function createTwigBank({
     playbackRevision = 0,
     triggerSerial = 0,
     disposed = false;
+  // AudioBuffer construction stays silent and does not create an audio context.
+  for (const [id, sample] of initialSamples) {
+    if (!ids.includes(id)) continue;
+    const buffer = new AudioBuffer({
+      length: sample.data.length,
+      sampleRate: sample.sampleRate,
+      numberOfChannels: 1,
+    });
+    buffer.copyToChannel(sample.data, 0);
+    buffers.set(id, buffer);
+  }
   function snapshot() {
     return {
       recording: recording

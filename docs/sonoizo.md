@@ -2,6 +2,8 @@
 
 ## Expérience
 
+À l’ouverture, douze mélodies procédurales de 3,8 secondes sont prêtes à jouer. Elles partagent la gamme pentatonique de ré majeur, avec des enveloppes douces et des harmoniques amorties. Aucune lecture ni création d’AudioContext avant une interaction. Le canevas occupe tout l’écran ; seuls le nom discret, deux glyphes carrés de vue, le dépliage et la ligne de pads restent visibles. Le bouton + ouvre les fonctionnalités ; − referme l’atelier en revenant aux pads jouables.
+
 Deux actions, dans une seule application : **Mes sons** permet de remplir les douze pads au microphone ou par import audio ; **Jouer** permet de sculpter en jouant ces sons. Chaque pad correspond à l’une des douze brosses existantes. La buse ailée vole continuellement, y compris lorsque les pads sont silencieux. Seuls les sons joués sur les pads déposent leurs matières sur son trajet ; écouter un sample dans Mes sons ne peint pas.
 
 Microphone et imports sont limités à **cinq secondes par pad**. Pour un fichier plus long, les cinq premières secondes sont conservées. Une brindille peut être remplacée ou supprimée. Les fichiers restent dans la mémoire de l’onglet ; ils ne sont pas envoyés et disparaissent au rechargement. Les imports sont limités à douze mégaoctets avant décodage.
@@ -10,6 +12,7 @@ Un tap joue le sample jusqu’à son terme ; maintenir au moins 300 ms le prolon
 
 ## Architecture
 
+- `createDefaultMelodies.js` synthétise le PCM déterministe des douze mélodies une seule fois au montage, hors boucle de rendu. Les buffers initiaux peuvent être remplacés par un enregistrement ou un import ; supprimer un son laisse volontairement son pad vide pendant la session. `/?samples=empty` ouvre une banque vide pour les tests et pour composer entièrement ses propres sons.
 - `createTwigBank.js` gère capture, import, conversion mono 24 kHz, enveloppes courtes, lecture et annulation. Chaque voix possède son analyseur propre, placé avant le réglage du volume commun, pour conserver les différences acoustiques entre pads. Le maximum est douze buffers de 120 000 frames, soit 5,76 Mo de PCM conservé, hors mémoire transitoire du décodeur et du navigateur. Une écoute de préparation n’est pas transmise à la danse.
 - `SonoizoDance.js` réutilise les trajectoires continues de `createPainterFlight.js`, avec une impulsion sonore amortie à chaque déclenchement et un biais déterministe par pad et graine. Les sons modulent le vol sans réinitialiser sa position ou sa tangente. Le vol continue en silence.
 - `createOizo.js` produit une buse ailée minimaliste, alignée sur la direction du vol, avec une animation légère des ailes. Ses géométries et matières sont libérées à la destruction.
@@ -29,3 +32,5 @@ La banque est testée avec un microphone factice natif Chromium, MediaRecorder e
 Les tests WebGL logiciels et la capture mobile ne remplacent pas des essais sur téléphone physique ; Safari/iOS, les micros matériels et le profilage complet du heap restent à vérifier. Un import audio est décodé entièrement avant découpe : sa mémoire transitoire dépend de sa durée et de son codec, malgré la limite de taille du fichier. Les formats disponibles dépendent des décodeurs du navigateur. L’export PNG était absent du dépôt audité et ne fait pas partie de cette correction.
 
 Résultats exécutés : suite de 39 tests réussie sous Chromium, puis test supplémentaire de cadrage portrait réussi après ajustement des bornes de vol à vide, soit 40 tests distincts vérifiés. Build actif et formatage réussis. Build avec `VITE_ENABLE_SONOIZO=false` réussi, puis vérification du build servi : atelier NID SONORE, douze brosses, buse désactivée et aucun AudioContext créé. Le build actif a ensuite été régénéré. Captures desktop et mobile examinées : buse ailée et dépôt simultané de Voiles et Aurore, pads accessibles. Les essais sur téléphone physique ne sont pas déclarés exécutés.
+
+Mise à jour mélodies et interface repliable : 40 contrôles de la suite passent ; deux attentes historiques sont adaptées au slogan masqué et à la banque initiale, puis les quatre tests ciblés concernés passent, soit 42 tests distincts vérifiés. Build et formatage validés ; captures Chromium portrait de l’interface repliée et dépliée examinées.

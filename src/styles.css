@@ -841,3 +841,78 @@ label:focus-visible {
     letter-spacing: 0.025em;
   }
 }
+
+/* The performance surface: only the two viewpoints, a fold toggle and pads. */
+.immersive .brand {
+  top: max(18px, env(safe-area-inset-top));
+  left: 18px;
+  transform: none;
+  text-align: left;
+}
+.immersive .brand h1 {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.65;
+}
+.immersive .brand p,
+.immersive .landscape-caption,
+.immersive.tools-closed .view-hint {
+  display: none;
+}
+.camera-views.is-compact {
+  top: max(12px, env(safe-area-inset-top));
+  right: 60px;
+  width: auto;
+  flex-wrap: nowrap;
+  left: auto;
+  transform: none;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.camera-views.is-compact button,
+.atelier-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #385a5520;
+  border-radius: 7px;
+  background: #faf7efb3;
+  opacity: 0.7;
+}
+.camera-views.is-compact button[aria-pressed="true"] {
+  background: #385a55;
+  color: #faf7ed;
+}
+.camera-views.is-compact .drone-distance {
+  position: absolute;
+  top: 46px;
+  right: -44px;
+  left: auto;
+  transform: none;
+  width: min(285px, calc(100vw - 36px));
+}
+.atelier-toggle {
+  position: fixed;
+  z-index: 5;
+  top: max(12px, env(safe-area-inset-top));
+  right: 16px;
+  font-size: 22px;
+}
+.immersive .atelier-nav {
+  top: 108px;
+}
+.immersive .view-hint {
+  top: 155px;
+}
+@media (max-width: 360px) {
+  .immersive .brand h1 {
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+}

@@ -18,8 +18,14 @@ export default function App() {
     !ENABLE_SONOIZO ||
     new URLSearchParams(location.search).get("atelier") === "mp3"
       ? "mp3"
-      : "cueillir",
+      : new URLSearchParams(location.search).get("samples") === "empty"
+        ? "cueillir"
+        : "jouer",
   );
+  const [toolsOpen, setToolsOpen] = useState(
+    new URLSearchParams(location.search).get("samples") === "empty",
+  );
+  const immersive = ENABLE_SONOIZO && atelier !== "mp3";
   const stage = useRef(null),
     engine = useRef(null),
     player = useRef(null),
@@ -148,6 +154,7 @@ export default function App() {
     if (player.current) setPlayback(player.current.getState());
   }
   function chooseAtelier(next) {
+    if (next === "cueillir") setToolsOpen(true);
     twigs.bank.current?.cancelRecording();
     twigs.bank.current?.stopAll();
     twigs.clearError();
@@ -161,10 +168,18 @@ export default function App() {
     setAtelier(next);
   }
   return (
-    <main>
+    <main
+      className={
+        immersive
+          ? `immersive ${toolsOpen ? "tools-open" : "tools-closed"}`
+          : undefined
+      }
+    >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
       <CameraViews
+        compact={immersive}
+        expanded={!immersive || toolsOpen}
         mode={mode}
         onChange={chooseCamera}
         distance={distance}
@@ -180,8 +195,27 @@ export default function App() {
         <span>UN VOYAGE DANS LA MATIÈRE</span>
         <span>Glisser pour tourner · le son pour peindre</span>
       </div>
-      {ENABLE_SONOIZO && (
+      {immersive && (
+        <button
+          className="atelier-toggle"
+          aria-label={
+            toolsOpen
+              ? "Replier les fonctionnalités"
+              : "Déplier les fonctionnalités"
+          }
+          aria-expanded={toolsOpen}
+          aria-controls="atelier-tools"
+          onClick={() => {
+            if (toolsOpen) chooseAtelier("jouer");
+            setToolsOpen(!toolsOpen);
+          }}
+        >
+          <span aria-hidden="true">{toolsOpen ? "−" : "+"}</span>
+        </button>
+      )}
+      {ENABLE_SONOIZO && (!immersive || toolsOpen) && (
         <nav
+          id="atelier-tools"
           className={`atelier-nav ${atelier !== "mp3" ? "with-twigs" : ""}`}
           aria-label="Atelier sonore"
         >
