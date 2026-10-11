@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { droneIntent } from "./artDirection.js";
 
 /** Three viewpoints share an extended sculpture and a moving painter.
  * Pointer input rotates only the landscape. Every rotation reanchors the FPV
@@ -186,6 +187,12 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
             .multiplyScalar(18),
         );
     } else {
+      const intent = droneIntent(
+        state.phrase || 0,
+        state.progress || 0,
+        state.energy,
+      );
+      canvas.dataset.droneIntent = intent.name;
       // Film the bird-painter from behind and alongside its actual tangent.
       // Velocity supplies look-ahead; audio controls dolly distance and lift.
       lateral.crossVectors(direction, up);
@@ -195,8 +202,11 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       follow
         .copy(painter)
         .addScaledVector(direction, -near)
-        .addScaledVector(lateral, 3.2 + Math.sin(phase) * 2)
-        .addScaledVector(up, 2.2 + state.energy * 2);
+        .addScaledVector(
+          lateral,
+          3.2 + Math.sin(phase) * 2 - intent.passage * 5,
+        )
+        .addScaledVector(up, 2.2 + state.energy * 2 + intent.passage * 1.5);
       overview
         .copy(center)
         .lerp(painter, 0.45)
@@ -215,11 +225,18 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           behind.copy(direction).negate().addScaledVector(up, 0.45).normalize(),
           (state.bounds.radius * 1.2) / Math.sin(halfFov),
         );
-      desired.copy(overview).lerp(follow, tracking * (1 - distanceSetting));
+      const intimacy =
+        tracking * (1 - distanceSetting) * (1 - intent.contemplation * 0.7);
+      desired.copy(overview).lerp(follow, intimacy);
       focus.copy(painter).addScaledVector(velocity, 0.4);
       target
         .copy(center)
-        .lerp(focus, (0.4 + tracking * 0.6) * (1 - distanceSetting));
+        .lerp(
+          focus,
+          (0.4 + tracking * 0.6) *
+            (1 - distanceSetting) *
+            (1 - intent.contemplation * 0.7),
+        );
     }
     const positionBlend = mix(mode === "drone" ? 1.1 : 2.8);
     camera.position.lerp(desired, positionBlend);

@@ -28,7 +28,7 @@ export function createPainterFlight() {
   function plan(features) {
     // Orbit a fixed sanctuary, with changing radius, altitude and inclination.
     // Bézier tangents keep the passage fluid rather than snapping to a ring.
-    const angle = (phrase + 1) * 0.82;
+    const angle = (phrase + 1) * 0.82 + Math.sin(phrase * 0.9) * 0.2;
     const radius = 25 + 11 * Math.sin(phrase * 0.63) + smoothLow * 13;
     const end = new THREE.Vector3(
       Math.cos(angle) * radius,
@@ -93,6 +93,9 @@ export function createPainterFlight() {
       high: smoothHigh,
       motion: smoothMotion,
       time: clock,
+      phrase: phrase - 1,
+      progress,
+      accent: novelty,
     };
   }
   return {

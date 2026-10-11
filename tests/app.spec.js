@@ -587,3 +587,47 @@ test("drone distance reveals the whole work and gyro stays at the sanctuary", as
   await page.getByRole("button", { name: "FPV drone", exact: true }).click();
   await expect(slider).toHaveValue("1");
 });
+
+test("art direction preserves windows and a limited stable track palette", async () => {
+  const { compositionAt, createTrackPalette } =
+    await import("../src/engine/artDirection.js");
+  const point = (angle) => ({
+    x: Math.cos(angle) * 30,
+    z: Math.sin(angle) * 30,
+  });
+  expect(compositionAt(point(3.05)).density).toBeLessThan(0.24);
+  expect(compositionAt(point(0.8)).density).toBeGreaterThan(0.4);
+  const analysis = { bpm: 120, waveform: [0.1, 0.6, 0.2, 0.8] };
+  const a = createTrackPalette(analysis),
+    b = createTrackPalette(analysis);
+  expect(a.colors).toHaveLength(3);
+  expect(a.colors).toEqual(b.colors);
+  expect(a.colorFor("voiles", 0).getHex()).toBe(
+    b.colorFor("voiles", 0).getHex(),
+  );
+  expect(a.colorFor("brumes", 0).getHex()).toBe(
+    a.colorFor("lagons", 1).getHex(),
+  );
+  expect(a.colorFor("corolles", 2).getHex()).not.toBe(
+    a.colorFor("voiles", 2).getHex(),
+  );
+});
+
+test("camera phrasing blends continuously and artistic memory favors strong forms", async () => {
+  const { droneIntent } = await import("../src/engine/artDirection.js");
+  const { dissolvePigment } = await import("../src/engine/dissolvePigment.js");
+  const modes = new Set();
+  for (let phrase = 0; phrase < 6; phrase++) {
+    modes.add(droneIntent(phrase, 0.95, 0.4).name);
+    expect(droneIntent(phrase, 1, 0.4)).toEqual(
+      droneIntent(phrase + 1, 0, 0.4),
+    );
+  }
+  expect([...modes].sort()).toEqual(["contemplation", "passage", "suivi"]);
+  const args = { age: 90, count: 40, neighbors: 5, fade: 1, dt: 0.1 };
+  const ordinary = dissolvePigment(args);
+  expect(dissolvePigment({ ...args, significance: 0.85 })).toBeGreaterThan(
+    ordinary,
+  );
+  expect(dissolvePigment({ ...args, opening: 1 })).toBeLessThan(ordinary);
+});

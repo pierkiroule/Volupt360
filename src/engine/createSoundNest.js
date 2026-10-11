@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { BRUSHES, createBrushStroke, disposeMark } from "./brushes.js";
 import { createCameraRig } from "./createCameraRig.js";
+import { compositionAt, createTrackPalette } from "./artDirection.js";
 import { dissolvePigment } from "./dissolvePigment.js";
 import { createPainterFlight } from "./createPainterFlight.js";
 
@@ -47,6 +48,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     active: false,
     energy: 0,
     motion: 0,
+    phrase: 0,
+    progress: 0,
     bounds: { center: new THREE.Vector3(), radius: 10 },
   };
   const rig = createCameraRig(
@@ -71,6 +74,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     lastReport = 0,
     reportState = null,
     boundsDirty = false;
+  let palette = createTrackPalette();
   const textures = new Map();
   const marks = [],
     totalBounds = new THREE.Box3(),
@@ -90,13 +94,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   function beginStroke(id, pose) {
     closeStroke();
-    const definition = BRUSHES.find((item) => item.id === id);
-    const color = new THREE.Color(definition.color);
-    color.offsetHSL(
-      Math.sin(serial * 1.73) * 0.032,
-      pose.energy * 0.12,
-      Math.sin(serial * 0.91) * 0.06,
-    );
+    const color = palette.colorFor(id, serial);
+    const region = compositionAt(pose.position);
     const stroke = createBrushStroke(id, {
       seed: serial++ * 1.37,
       color,
@@ -109,6 +108,11 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       brush: id,
       born: elapsed,
       fade: 1,
+      significance:
+        (id === "falaises" || id === "corolles") && serial % 5 === 0
+          ? 0.85
+          : 0.15,
+      opening: region.opening,
       bounds: new THREE.Box3(),
     };
     marks.push(activeStroke);
@@ -121,6 +125,13 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     renderer.domElement.dataset.markCount = String(marks.length);
   }
   function addSample(pose) {
+    const region = compositionAt(pose.position);
+    if (region.density < 0.24) {
+      closeStroke();
+      lastSample = null;
+      return;
+    }
+    pose = { ...pose, density: region.density };
     paintedSamples++;
     if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
     activeStroke.stroke.append(pose);
@@ -219,6 +230,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       navigation.velocity.copy(pose.velocity);
       navigation.energy = pose.energy;
       navigation.motion = pose.motion;
+      navigation.phrase = pose.phrase;
+      navigation.progress = pose.progress;
       tip.position.copy(pose.position);
       if (sampleClock >= 0.12) {
         addSample(pose);
@@ -246,6 +259,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           neighbors,
           fade: item.fade,
           dt,
+          significance: item.significance,
+          opening: item.opening,
         });
         const fade = item.fade;
         item.object.traverse((object) => {
@@ -306,6 +321,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   frameId = requestAnimationFrame(frame);
   return {
+    setTrackComposition(analysis) {
+      palette = createTrackPalette(analysis);
+      renderer.domElement.dataset.trackPalette = palette.colors.join(",");
+    },
     setBrush(id) {
       if (BRUSHES.some((item) => item.id === id) && id !== brush) {
         brush = id;

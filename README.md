@@ -11,6 +11,12 @@ Un voyage en drone dans une œuvre aquarelle étendue en trois dimensions. La mu
 
 **Une seule palette, six brosses :** Voiles (rubans translucides), Falaises (strates minérales), Corolles (pétales nervurés), Filaments (encre fine), Encres (taches noires irrégulières), Éclats (éclaboussures et satellites d’encre). Leur géométrie, texture, épaisseur, couleur et opacité varient avec l’énergie et le spectre du son. Les rubans se construisent progressivement sur des courbes XYZ reliées, avec une orientation continue même dans les montées et les plongées. Les taches et éclaboussures se déposent à différentes échelles le long du voyage. Le chemin tisse des orbites déformées autour d’un centre fixe, avec des rayons et des altitudes variables. Le centre reste dégagé pour la contemplation panoramique. Le chemin continue à évoluer quand une boucle musicale se répète. Les pigments diffusent et se fragmentent lentement, puis sèchent ; l’évolution est suspendue avec la musique.
 
+**Composition et respiration :** des régions de densité différente alternent avec deux fenêtres dégagées dans l’enveloppe. Le pinceau cesse d’y déposer du pigment et reprend sans relier les deux bords. Les passages successifs revisitent les régions à des rayons et hauteurs variables. Chaque morceau détermine une gamme de trois couleurs à partir de sa waveform et de son tempo : dominante, secondaire et accent rare. Les encres gardent leurs noirs.
+
+**Drone musical :** le mouvement alterne suivi, passage latéral et contemplation sur des phrases spatiales modulées par le son. Les transitions restent progressives et le slider de distance conserve la priorité sur la proximité. La vue gyro reste indépendante de cette mise en scène.
+
+**Matières et mémoire :** les lavis sèchent lentement, les dépôts minéraux plus vite et l’encre se stabilise rapidement. La diffusion laisse place aux bords pigmentés et à la granulation. Les éclaboussures ponctuent surtout les variations sonores. Certaines formes structurantes persistent plus longtemps ; les traces autour des fenêtres dégagées se dissolvent plus vite. L’effacement demeure progressif et irréversible.
+
 **Appui long sur une brosse :** maintenir environ une demi-seconde puis relâcher pour ouvrir l’import d’image. Au clavier, utiliser **Majuscule + Entrée**. L’image est transformée localement en masque alpha : seuil automatique de luminance, contours Sobel, conservation de la transparence et interprétation du fond clair ou sombre. Le masque module le pigment et découpe la transparence des surfaces 3D. Chaque brosse conserve sa propre texture, applicable aux traits déjà présents et aux traits futurs. Un aperçu apparaît dans sa vignette ; un nouvel import remplace son masque. Les textures restent en mémoire pendant la session, y compris lors d’un changement de morceau ; elles ne sont pas sauvegardées entre rechargements.
 
 **Une piste en bas :** importer un MP3 ou un autre format audio décodable par le navigateur, puis sélectionner une phrase délimitée par les marqueurs ou **MP3 entier**. Lecture/pause reste intégré à la piste. Le scratch, le micro et la peinture tactile ont été retirés.
@@ -42,6 +48,8 @@ WebGL et Web Audio sont nécessaires. L’orientation mobile nécessite HTTPS (o
 - `src/audio/analyzeLoops.js` : estimation rythmique, découpage et waveform.
 - `src/audio/createLoopPlayer.js` : lecture, pause et limites natives de boucle.
 - `src/audio/audioGraph.js` : analyse du spectre et de l’énergie.
+- `src/engine/artDirection.js` : palette par morceau, densité spatiale et intentions du drone.
+- `src/engine/dissolvePigment.js` : dissolution selon densité, importance et ouvertures.
 - `src/engine/createSoundNest.js` : construction progressive du tracé spatial et peinture réactive.
 - `src/engine/brushes.js` : six géométries de traits, buffers progressifs, matières aquarelle et masques alpha.
 - `src/engine/createPainterFlight.js` : phrases spatiales reliées et orientation continue du pinceau.

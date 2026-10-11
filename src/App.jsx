@@ -97,6 +97,7 @@ export default function App() {
       const analysis = analyzeLoops(buffer);
       player.current.setBuffer(buffer);
       engine.current?.reset();
+      engine.current?.setTrackComposition(analysis);
       setTrack({ name: file.name, duration: buffer.duration, ...analysis });
       setSelected(null);
       try {

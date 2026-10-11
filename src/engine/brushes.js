@@ -143,7 +143,11 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
     if (!ribbon) {
       // Volumes are spaced by movement samples, with changing scale and depth.
       // They follow the path rather than occupying repeated radial positions.
-      if (count % 3 === 0) {
+      const accented =
+        id !== "lagons" ||
+        (sample.accent ?? sample.motion) > 0.12 ||
+        count === 0;
+      if (count % 3 === 0 && accented) {
         for (let layer = 0; layer < (id === "brumes" ? 2 : 6); layer++) {
           const isMist = id === "brumes";
           const geometry = new THREE.PlaneGeometry(1, 1, 6, 6);
@@ -155,7 +159,7 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
             brush,
             color,
             seed + count * 0.17 + layer,
-            0.6 + sample.energy * 0.7,
+            (0.6 + sample.energy * 0.7) * (sample.density ?? 1),
             textureBinding,
           );
           const mesh = new THREE.Mesh(geometry, material);
@@ -272,6 +276,7 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
         for (const attr of Object.values(g.attributes)) attr.needsUpdate = true;
         mesh.material.uniforms.uOpacity.value =
           brush.opacity *
+          (sample.density ?? 1) *
           (0.65 + sample.energy * 0.6) *
           (layer && id === "voiles" ? 0.35 : 1);
       });
