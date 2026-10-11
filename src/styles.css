@@ -675,26 +675,43 @@ label:focus-visible {
   margin-bottom: 10px;
 }
 .twig-pads {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 7px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 2px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #385a5540 transparent;
 }
 .twig-pad {
-  position: relative;
   display: flex;
-  flex-direction: column;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   align-items: center;
-  gap: 3px;
-  min-height: 76px;
-  border: 1px solid color-mix(in srgb, var(--twig-color) 25%, transparent);
-  border-radius: 15px;
-  padding: 6px 2px;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--twig-color) 40%, transparent);
+  border-radius: 50%;
+  padding: 0;
   color: var(--ink);
-  background: color-mix(in srgb, var(--twig-color) 7%, #faf7ef);
-  font-size: 10px;
-  touch-action: none;
+  background: color-mix(in srgb, var(--twig-color) 12%, #faf7ef);
+  opacity: 0.7;
+  touch-action: pan-x;
   user-select: none;
   -webkit-touch-callout: none;
+}
+.twig-workshop.is-playing-mode {
+  padding: 4px 8px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.twig-workshop.is-playing-mode .twig-heading,
+.twig-workshop.is-playing-mode .twig-note {
+  display: none;
 }
 .twig-pad.is-filled {
   background: color-mix(in srgb, var(--twig-color) 16%, #faf7ef);
@@ -708,23 +725,13 @@ label:focus-visible {
     0 0 18px color-mix(in srgb, var(--twig-color) 28%, transparent);
 }
 .twig-pad:disabled {
-  opacity: 0.5;
-}
-.twig-index {
-  position: absolute;
-  top: 6px;
-  left: 7px;
-  font-size: 8px;
-  opacity: 0.6;
+  opacity: 0.7;
+  filter: grayscale(0.65);
 }
 .twig-glyph {
   color: var(--twig-color);
   font-size: 25px;
   line-height: 28px;
-}
-.twig-pad small {
-  font-size: 8px;
-  color: #6d7c72;
 }
 .twig-network .twig-glyph {
   transform: rotate(-15deg);
@@ -797,11 +804,7 @@ label:focus-visible {
     max-height: 49dvh;
   }
   .twig-pads {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 5px;
-  }
-  .twig-pad {
-    min-height: 68px;
+    gap: 8px;
   }
   .twig-glyph {
     font-size: 22px;
@@ -837,10 +840,4 @@ label:focus-visible {
     white-space: nowrap;
     letter-spacing: 0.025em;
   }
-}
-
-.twig-glyph img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
 }

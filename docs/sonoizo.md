@@ -1,4 +1,4 @@
-# SONOÏZO•° — Les pads sculptent le vol
+# L’Oizodio•° — Les pads sculptent le vol
 
 ## Expérience
 

@@ -50,7 +50,9 @@ test("lot 1 maps twelve slots to the brushes and keeps navigation and MP3 availa
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "SONOÏZO•°" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "L’Oizodio•°" }),
+  ).toBeVisible();
   await expect(
     page.getByText("Le chant qui sculpte l’espace des possibles", {
       exact: true,
@@ -60,10 +62,14 @@ test("lot 1 maps twelve slots to the brushes and keeps navigation and MP3 availa
     name: "Douze brindilles, douze brosses",
   });
   await expect(pads.getByRole("button")).toHaveCount(12);
-  for (const name of names)
-    await expect(
-      page.getByRole("button", { name: `Brindille ${name}`, exact: true }),
-    ).toBeInViewport();
+  for (const name of names) {
+    const pad = page.getByRole("button", {
+      name: `Brindille ${name}`,
+      exact: true,
+    });
+    await pad.scrollIntoViewIfNeeded();
+    await expect(pad).toBeInViewport();
+  }
   await expect(
     page.getByRole("button", { name: "Enregistrer Voiles" }),
   ).toBeInViewport();
@@ -113,14 +119,12 @@ test("native microphone records, stops tracks, replaces locally, plays polyphoni
   await expect(page.getByLabel("Nombre de brindilles")).toHaveText("2 / 12");
   const originalDuration = await page
     .getByRole("button", { name: "Brindille Voiles", exact: true })
-    .locator("small")
-    .innerText();
+    .getAttribute("data-duration");
   await capture(page, "Voiles", 1.2);
   expect(
     await page
       .getByRole("button", { name: "Brindille Voiles", exact: true })
-      .locator("small")
-      .innerText(),
+      .getAttribute("data-duration"),
   ).not.toBe(originalDuration);
   expect(
     await page.evaluate(() =>
@@ -157,8 +161,8 @@ test("native microphone records, stops tracks, replaces locally, plays polyphoni
     type: "touchStart",
     touchPoints: [first, second],
   });
-  await expect(voice.locator("small")).toHaveText("en boucle");
-  await expect(echo.locator("small")).toHaveText("en boucle");
+  await expect(voice).toHaveAttribute("data-looping", "true");
+  await expect(echo).toHaveAttribute("data-looping", "true");
   await page.waitForTimeout(1400);
   await expect(voice).toHaveAttribute("aria-pressed", "true");
   await expect(echo).toHaveAttribute("aria-pressed", "true");
@@ -178,7 +182,7 @@ test("native microphone records, stops tracks, replaces locally, plays polyphoni
   await expect(voice).toHaveAttribute("aria-pressed", "false");
   await voice.focus();
   await page.keyboard.down("Space");
-  await expect(voice.locator("small")).toHaveText("en boucle");
+  await expect(voice).toHaveAttribute("data-looping", "true");
   await page.keyboard.up("Space");
   await expect(voice).toHaveAttribute("aria-pressed", "false");
   expect(
@@ -208,8 +212,7 @@ test("native recording stops automatically after five seconds and stores a cappe
   const duration = parseFloat(
     await page
       .getByRole("button", { name: "Brindille Voiles", exact: true })
-      .locator("small")
-      .innerText(),
+      .getAttribute("data-duration"),
   );
   expect(duration).toBeGreaterThanOrEqual(4.5);
   expect(duration).toBeLessThanOrEqual(5);
@@ -292,17 +295,14 @@ test("switching acts cancels a recording without replacing a previous twig", asy
   await capture(page, "Voiles");
   const before = await page
     .getByRole("button", { name: "Brindille Voiles", exact: true })
-    .locator("small")
-    .innerText();
+    .getAttribute("data-duration");
   await page.getByRole("button", { name: "Remplacer Voiles" }).click();
   await expect(page.getByRole("progressbar")).toBeVisible();
   await page.getByRole("button", { name: "Jouer", exact: true }).click();
   await page.getByRole("button", { name: "Mes sons", exact: true }).click();
   await expect(
-    page
-      .getByRole("button", { name: "Brindille Voiles", exact: true })
-      .locator("small"),
-  ).toHaveText(before);
+    page.getByRole("button", { name: "Brindille Voiles", exact: true }),
+  ).toHaveAttribute("data-duration", before);
   await expect(page.getByLabel("Nombre de brindilles")).toHaveText("1 / 12");
   await expect(page.getByRole("progressbar")).toHaveCount(0);
 });

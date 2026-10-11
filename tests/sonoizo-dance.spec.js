@@ -119,16 +119,12 @@ test("per-pad MP3 and WAV imports are capped at five seconds and only pad playba
     page.getByRole("button", { name: "Remplacer Voiles", exact: true }),
   ).toBeEnabled();
   await expect(
-    page
-      .getByRole("button", { name: "Brindille Voiles", exact: true })
-      .locator("small"),
-  ).toHaveText("3.0 s");
+    page.getByRole("button", { name: "Brindille Voiles", exact: true }),
+  ).toHaveAttribute("data-duration", "3.0");
   await page.getByLabel("Importer un son pour Voiles").setInputFiles(wav());
   await expect(
-    page
-      .getByRole("button", { name: "Brindille Voiles", exact: true })
-      .locator("small"),
-  ).toHaveText("5.0 s");
+    page.getByRole("button", { name: "Brindille Voiles", exact: true }),
+  ).toHaveAttribute("data-duration", "5.0");
   await page.getByRole("button", { name: "Écouter Voiles" }).click();
   await page.waitForTimeout(300);
   await expect(canvas).toHaveAttribute("data-painted-samples", "0");
@@ -141,10 +137,8 @@ test("per-pad MP3 and WAV imports are capped at five seconds and only pad playba
     "Import audio impossible",
   );
   await expect(
-    page
-      .getByRole("button", { name: "Brindille Voiles", exact: true })
-      .locator("small"),
-  ).toHaveText("5.0 s");
+    page.getByRole("button", { name: "Brindille Voiles", exact: true }),
+  ).toHaveAttribute("data-duration", "5.0");
   await page.getByRole("button", { name: "Jouer", exact: true }).click();
   const pad = page.getByRole("button", {
     name: "Jouer la brindille Voiles",

@@ -2,7 +2,7 @@ export default function Header({ sonoizo = false }) {
   return (
     <header className="brand">
       <h1>
-        {sonoizo ? "SONOÏZO" : "NID SONORE"}
+        {sonoizo ? "L’Oizodio" : "NID SONORE"}
         <span>•°</span>
       </h1>
       <p className={sonoizo ? "sonoizo-tagline" : undefined}>

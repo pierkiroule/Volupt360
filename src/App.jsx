@@ -39,7 +39,7 @@ export default function App() {
 
   useEffect(() => {
     document.title = ENABLE_SONOIZO
-      ? "SONOÏZO•° — Le chant qui sculpte l’espace des possibles"
+      ? "L’Oizodio•° — Le chant qui sculpte l’espace des possibles"
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {

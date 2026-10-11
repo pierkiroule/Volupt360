@@ -8,7 +8,6 @@ export default function TwigWorkshop({
   snapshot,
   error,
   clearError,
-  textures = {},
   onTexture,
 }) {
   const audioInput = useRef(null),
@@ -52,7 +51,10 @@ export default function TwigWorkshop({
       event.currentTarget.releasePointerCapture(event.pointerId);
   }
   return (
-    <section className="twig-workshop" aria-label="Bouquet sonore">
+    <section
+      className={`twig-workshop ${mode === "jouer" ? "is-playing-mode" : ""}`}
+      aria-label="Bouquet sonore"
+    >
       <div className="twig-heading">
         <span>
           {mode === "cueillir"
@@ -66,7 +68,7 @@ export default function TwigWorkshop({
         role="group"
         aria-label="Douze brindilles, douze brosses"
       >
-        {BRUSHES.map((brush, index) => {
+        {BRUSHES.map((brush) => {
           const item = snapshot.slots[brush.id];
           const listening = mode === "jouer";
           return (
@@ -75,6 +77,9 @@ export default function TwigWorkshop({
               className={`twig-pad twig-${brush.id} ${item.duration ? "is-filled" : ""} ${item.playing ? "is-playing" : ""}`}
               style={{ "--twig-color": brush.color }}
               aria-label={`${listening ? "Jouer la brindille" : "Brindille"} ${brush.name}`}
+              title={`${brush.name} · ${item.duration ? `${item.duration.toFixed(1)} s` : "à cueillir"}`}
+              data-duration={item.duration.toFixed(1)}
+              data-looping={Boolean(item.looping)}
               aria-pressed={listening ? item.playing : current.id === brush.id}
               disabled={Boolean(recording) || (listening && !item.duration)}
               onClick={(event) => {
@@ -122,24 +127,9 @@ export default function TwigWorkshop({
                   : undefined
               }
             >
-              <span className="twig-index" aria-hidden="true">
-                {String(index + 1).padStart(2, "0")}
-              </span>
               <span className="twig-glyph" aria-hidden="true">
-                {textures[brush.id]?.preview ? (
-                  <img src={textures[brush.id].preview} alt="" />
-                ) : (
-                  brush.glyph
-                )}
+                {brush.glyph}
               </span>
-              <span>{brush.name}</span>
-              <small>
-                {item.looping
-                  ? "en boucle"
-                  : item.duration
-                    ? `${item.duration.toFixed(1)} s`
-                    : "à cueillir"}
-              </small>
             </button>
           );
         })}

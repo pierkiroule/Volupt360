@@ -1,4 +1,4 @@
-# SONOÏZO•° — Le chant qui sculpte l’espace des possibles
+# L’Oizodio•° — Le chant qui sculpte l’espace des possibles
 
 **1. Créez vos sons.** Douze pads, chacun associé à sa brosse. Enregistrez au microphone ou importez un MP3 : chaque son dure **cinq secondes maximum**. Un import conserve les cinq premières secondes du fichier. Vous pouvez écouter, remplacer et supprimer vos sons, et personnaliser la texture de chaque brosse.
 
