@@ -1,69 +1,77 @@
 import * as THREE from "three";
 
-/** A lightweight, winged nozzle. Forward is +Z, aligned with the brush tangent. */
+/** A tiny tapered V. Forward is +Z; the existing flight remains the nozzle. */
 export function createOizo() {
   const group = new THREE.Group();
-  const feather = new THREE.MeshBasicMaterial({
-    color: "#476b70",
+  const material = new THREE.MeshBasicMaterial({
+    color: "#284c55",
     side: THREE.DoubleSide,
   });
-  const warm = new THREE.MeshBasicMaterial({ color: "#d2a772" });
-  const eye = new THREE.MeshBasicMaterial({ color: "#171f27" });
-  function sphere(material, size, position) {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), material);
-    mesh.scale.set(...size);
-    mesh.position.set(...position);
-    group.add(mesh);
-    return mesh;
-  }
-  sphere(feather, [0.3, 0.25, 0.65], [0, 0, 0]);
-  sphere(warm, [0.23, 0.23, 0.25], [0, 0.16, 0.52]);
-  for (const x of [-0.2, 0.2])
-    sphere(eye, [0.032, 0.032, 0.032], [x, 0.22, 0.65]);
-  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.26, 6), warm);
-  beak.rotation.x = Math.PI / 2;
-  beak.position.set(0, 0.14, 0.83);
-  group.add(beak);
-  const wingGeometry = new THREE.BufferGeometry();
-  wingGeometry.setAttribute(
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
     "position",
     new THREE.Float32BufferAttribute(
-      [0, 0, 0, 1.3, 0.08, -0.42, 0.48, 0.02, 0.38],
+      [0, 0, 0.15, 0.48, 0, -0.19, 0.06, 0, 0.02],
       3,
     ),
   );
   const wings = [-1, 1].map((side) => {
-    const wing = new THREE.Mesh(wingGeometry, feather);
+    const wing = new THREE.Mesh(geometry, material);
     wing.scale.x = side;
-    wing.position.set(side * 0.16, 0.05, -0.05);
     group.add(wing);
     return wing;
   });
-  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.6, 3), feather);
-  tail.rotation.x = -Math.PI / 2;
-  tail.position.z = -0.68;
-  group.add(tail);
-  const forward = new THREE.Vector3(0, 0, 1);
+  const previousDirection = new THREE.Vector3();
+  const cross = new THREE.Vector3();
+  const basis = new THREE.Matrix4();
+  const orientation = new THREE.Quaternion();
+  const right = new THREE.Vector3();
+  let previousTime,
+    turn = 0,
+    bank = 0,
+    burst = 0,
+    cooldown = 0;
   return {
     group,
     update(pose) {
+      const first = previousTime === undefined;
+      const dt = first
+        ? 0
+        : Math.max(0, Math.min(0.1, pose.time - previousTime));
+      if (!first && dt > 0) {
+        cross.crossVectors(previousDirection, pose.direction);
+        const curvature = cross.length() / dt;
+        turn += (curvature - turn) * (1 - Math.exp(-dt * 5));
+        const targetBank = THREE.MathUtils.clamp(
+          (-cross.dot(pose.up) / dt) * 0.65,
+          -0.4,
+          0.4,
+        );
+        bank += (targetBank - bank) * (1 - Math.exp(-dt * 4));
+        cooldown = Math.max(0, cooldown - dt);
+        // A short, two-beat burst only during a turn, separated by long glides.
+        if (turn > 0.18 && cooldown === 0 && burst === 0) {
+          burst = 1.1;
+          cooldown = 3.8;
+        }
+        burst = Math.max(0, burst - dt);
+      }
+      right.copy(pose.side).negate();
+      basis.makeBasis(right, pose.up, pose.direction);
+      orientation.setFromRotationMatrix(basis);
       group.position.copy(pose.position);
-      group.quaternion.setFromUnitVectors(forward, pose.direction);
+      group.quaternion.copy(orientation);
+      const progress = burst > 0 ? (1.1 - burst) / 1.1 : 0;
       const flap =
-        Math.sin(pose.time * (4 + pose.energy * 3)) *
-        (0.18 + pose.energy * 0.2);
-      wings[0].rotation.z = -flap;
-      wings[1].rotation.z = flap;
+        Math.sin(progress * Math.PI * 4) * Math.sin(progress * Math.PI) * 0.3;
+      wings[0].rotation.z = bank - flap;
+      wings[1].rotation.z = bank + flap;
+      previousDirection.copy(pose.direction);
+      previousTime = pose.time;
     },
     dispose() {
-      const geometries = new Set();
-      group.traverse((object) => {
-        if (object.geometry) geometries.add(object.geometry);
-      });
-      geometries.forEach((geometry) => geometry.dispose());
-      feather.dispose();
-      warm.dispose();
-      eye.dispose();
+      geometry.dispose();
+      material.dispose();
       group.removeFromParent();
     },
   };
