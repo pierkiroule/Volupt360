@@ -1,10 +1,15 @@
-export default function Header() {
+export default function Header({ sonoizo = false }) {
   return (
     <header className="brand">
       <h1>
-        NID SONORE<span>•°</span>
+        {sonoizo ? "L’Oizodio" : "NID SONORE"}
+        <span>•°</span>
       </h1>
-      <p>Paysages d’aquarelle · habiter le son</p>
+      <p className={sonoizo ? "sonoizo-tagline" : undefined}>
+        {sonoizo
+          ? "Le chant qui sculpte l’espace des possibles"
+          : "Paysages d’aquarelle · habiter le son"}
+      </p>
     </header>
   );
 }
