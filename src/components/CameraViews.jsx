@@ -1,17 +1,9 @@
-import ViewEffects from "./ViewEffects.jsx";
 const views = [
   ["drone", "FPV drone", "Voyage en drone dans le sillage du pinceau"],
   ["gyro", "FPV 360° gyro", "Regard panoramique avec le gyroscope"],
 ];
 
-export default function CameraViews({
-  mode,
-  onChange,
-  distance,
-  onDistance,
-  effects,
-  onEffects,
-}) {
+export default function CameraViews({ mode, onChange, distance, onDistance }) {
   return (
     <nav className="camera-views" aria-label="Vues caméra">
       {views.map(([id, label, title], index) => (
@@ -42,7 +34,6 @@ export default function CameraViews({
           <span aria-hidden="true">Proche · Ensemble</span>
         </label>
       )}
-      <ViewEffects values={effects} onChange={onEffects} />
     </nav>
   );
 }

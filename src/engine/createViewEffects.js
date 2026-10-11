@@ -1,5 +1,10 @@
 import * as THREE from "three";
 
+export const DEFAULT_VIEW = Object.freeze({
+  contrast: 1.6,
+  saturation: 1.2,
+  threshold: 0.04,
+});
 export const NATURAL_VIEW = { contrast: 1, saturation: 1, threshold: 0 };
 const clamp = (v, min, max, fallback) =>
   Number.isFinite(Number(v))
@@ -25,9 +30,9 @@ export function createViewEffects(renderer) {
     depthWrite: false,
     uniforms: {
       image: { value: target.texture },
-      contrast: { value: 1 },
-      saturation: { value: 1 },
-      threshold: { value: 0 },
+      contrast: { value: DEFAULT_VIEW.contrast },
+      saturation: { value: DEFAULT_VIEW.saturation },
+      threshold: { value: DEFAULT_VIEW.threshold },
     },
     vertexShader: `varying vec2 vUv; void main(){vUv=position.xy*.5+.5;gl_Position=vec4(position,1.);}`,
     fragmentShader: `uniform sampler2D image;
@@ -37,11 +42,14 @@ export function createViewEffects(renderer) {
         vec3 original=pow(max(linear,vec3(0.)),vec3(1./2.2));
         float luma=dot(original,vec3(.2126,.7152,.0722));
         vec3 color=mix(vec3(luma),original,saturation);
-        color=(color-.5)*contrast+.5;
+        vec3 paper=vec3(.95686,.94118,.90980);
+        color=paper+(color-paper)*contrast;
         float ink=smoothstep(.42,.58,dot(color,vec3(.2126,.7152,.0722)));
-        color=mix(color,mix(vec3(.055,.045,.06),vec3(.96,.94,.9),ink),threshold);
+        float inkStrength=threshold*(1.-smoothstep(.55,.88,luma));
+        color=mix(color,mix(vec3(.055,.045,.06),paper,ink),inkStrength);
         // Preserve pale paper and distant washes; concentrate edits on pigment.
-        color=mix(original,clamp(color,0.,1.),1.-smoothstep(.8,.96,luma));
+        float pigment=smoothstep(.004,.025,length(original-paper));
+        color=mix(original,clamp(color,0.,1.),pigment);
         gl_FragColor=vec4(pow(max(color,vec3(0.)),vec3(2.2)),1.);
         #include <colorspace_fragment>
       }`,
@@ -51,7 +59,7 @@ export function createViewEffects(renderer) {
   quad.frustumCulled = false;
   scene.add(quad);
   const camera = new THREE.Camera();
-  let settings = { ...NATURAL_VIEW };
+  let settings = { ...DEFAULT_VIEW };
   return {
     set(next) {
       settings = {

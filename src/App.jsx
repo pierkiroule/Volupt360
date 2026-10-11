@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header.jsx";
-import { NATURAL_VIEW } from "./engine/createViewEffects.js";
 import CameraViews from "./components/CameraViews.jsx";
 import ControlPanel from "./components/ControlPanel.jsx";
 import { createSoundNest } from "./engine/createSoundNest.js";
@@ -16,7 +15,6 @@ export default function App() {
     player = useRef(null),
     loadRequest = useRef(0);
   const textureRequests = useRef({});
-  const [effects, setEffects] = useState({ ...NATURAL_VIEW });
   const [distance, setDistance] = useState(0.25);
   const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
@@ -137,11 +135,6 @@ export default function App() {
       <div id="stage" ref={stage} />
       <Header />
       <CameraViews
-        effects={effects}
-        onEffects={(values) => {
-          setEffects(values);
-          engine.current?.setViewEffects(values);
-        }}
         mode={mode}
         onChange={chooseCamera}
         distance={distance}

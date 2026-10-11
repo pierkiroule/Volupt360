@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { createViewEffects } from "./createViewEffects.js";
+import { createViewEffects, DEFAULT_VIEW } from "./createViewEffects.js";
 import { graphicSurprise } from "./graphicSurprises.js";
 import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
 import { createGenerativeMaterials } from "./createGenerativeMaterials.js";
@@ -26,6 +26,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#f4f0e8");
   const effects = createViewEffects(renderer);
+  renderer.domElement.dataset.viewEffects = JSON.stringify(DEFAULT_VIEW);
   const camera = new THREE.PerspectiveCamera(
     80,
     innerWidth / innerHeight,
@@ -383,11 +384,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           mark.textureLease = null;
         });
       previous?.texture.dispose();
-    },
-    setViewEffects(values) {
-      renderer.domElement.dataset.viewEffects = JSON.stringify(
-        effects.set(values),
-      );
     },
     setCameraMode: rig.setMode,
     setDroneDistance: rig.setDistance,

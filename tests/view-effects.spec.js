@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("camera rendering controls work in both views and reset to natural", async ({
+test("fixed watercolor grading stays active in both views without rendering controls", async ({
   page,
 }) => {
   const errors = [];
@@ -10,38 +10,27 @@ test("camera rendering controls work in both views and reset to natural", async 
       errors.push(m.text());
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Rendu", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Rendu", exact: true }),
+  ).toHaveCount(0);
   const canvas = page.locator("#stage canvas");
-  await page
-    .getByRole("slider", { name: "Contraste", exact: true })
-    .fill("1.5");
-  await page
-    .getByRole("slider", { name: "Saturation", exact: true })
-    .fill("1.3");
-  await page
-    .getByRole("slider", { name: "Seuil d’encre", exact: true })
-    .fill("0.4");
-  await expect(canvas).toHaveAttribute(
-    "data-view-effects",
-    JSON.stringify({ contrast: 1.5, saturation: 1.3, threshold: 0.4 }),
-  );
+  const preset = JSON.stringify({
+    contrast: 1.6,
+    saturation: 1.2,
+    threshold: 0.04,
+  });
+  await expect(canvas).toHaveAttribute("data-view-effects", preset);
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })
     .click();
-  await expect(
-    page.getByRole("slider", { name: "Contraste", exact: true }),
-  ).toHaveValue("1.5");
+  await expect(canvas).toHaveAttribute("data-view-effects", preset);
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const name of ["Contraste", "Saturation", "Seuil d’encre"])
-    await expect(
-      page.getByRole("slider", { name, exact: true }),
-    ).toBeInViewport();
+  await expect(page.getByRole("slider")).toHaveCount(0);
+  await page.getByRole("button", { name: "FPV drone", exact: true }).click();
+  await expect(
+    page.getByRole("slider", { name: "Distance du drone" }),
+  ).toBeInViewport();
   await page.waitForTimeout(300);
-  await page.getByRole("button", { name: "Naturel", exact: true }).click();
-  await expect(canvas).toHaveAttribute(
-    "data-view-effects",
-    JSON.stringify({ contrast: 1, saturation: 1, threshold: 0 }),
-  );
   expect(errors).toEqual([]);
 });
 
@@ -51,7 +40,7 @@ test("postprocessing changes actual pigment pixels, preserves paper and restores
   await page.goto("/");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
-    const { createViewEffects } =
+    const { createViewEffects, DEFAULT_VIEW } =
       await import("/src/engine/createViewEffects.js");
     const renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
     renderer.setSize(32, 32);
@@ -67,7 +56,10 @@ test("postprocessing changes actual pigment pixels, preserves paper and restores
       gl.readPixels(16, 16, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
       return Array.from(pixels);
     };
+    effects.set({ contrast: 1, saturation: 1, threshold: 0 });
     const original = read();
+    effects.set(DEFAULT_VIEW);
+    const calibrated = read();
     effects.set({ contrast: 1.6, saturation: 1.4, threshold: 0.5 });
     const edited = read();
     renderer.setSize(48, 48);
@@ -82,9 +74,20 @@ test("postprocessing changes actual pigment pixels, preserves paper and restores
     effects.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
-    return { original, edited, restored, resized, paper, filteredPaper };
+    return {
+      original,
+      edited,
+      restored,
+      resized,
+      paper,
+      filteredPaper,
+      calibrated,
+    };
   });
   expect(result.edited).not.toEqual(result.original);
+  expect(
+    result.calibrated[0] + result.calibrated[1] + result.calibrated[2],
+  ).toBeLessThan(result.original[0] + result.original[1] + result.original[2]);
   expect(result.restored).toEqual(result.original);
   expect(result.resized).toEqual(result.edited);
   expect(
