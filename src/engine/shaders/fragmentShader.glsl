@@ -8,8 +8,10 @@ float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h
 float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+vec2(13.1,7.7);a*=.49;}return v;}
 void main(){
 vec2 uv=vUv;float across=abs(uv.x*2.-1.);
-float wet=exp(-uAge*.035);
-uv+=vec2(sin(uv.y*13.+uSeed+uTime*.22),cos(uv.x*11.+uSeed+uTime*.17))*.018*wet;
+float dryingRate=uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085));
+float wet=exp(-uAge*dryingRate);
+float settled=1.-wet;
+uv+=vec2(sin(uv.y*13.+uSeed+uAge*.22),cos(uv.x*11.+uSeed+uAge*.17))*.018*wet;
 vec2 q=uv*vec2(3.7,2.9)+vec2(uSeed*1.71,uSeed*.37);
 float macro=fbm(q),middle=noise2(q*3.4+9.7),micro=noise2(q*18.3+2.3);
 float fibres=noise2(vec2(q.x*62.,q.y*4.))*.55+noise2(q*vec2(16.,130.))*.45;
@@ -59,9 +61,14 @@ if(abs(uStyle-1.)<.1){float mist=length((uv-.5)*vec2(1.7,1.8));alpha*=1.-smooths
 if(abs(uStyle-2.)<.1){float rim=pow(1.-abs(dot(normalize(vNormal),normalize(vView))),2.);alpha*=.28+rim*.9;col=mix(col,vec3(.72,.88,.84),.25+rim*.2);}
 if(abs(uStyle-3.)<.1){alpha*=.75+.25*sediment;col*=.91+.09*sin(uv.y*45.+middle*4.);}
 // Broken pigment, dark pools and paper reserves evolve as each deposit dries.
-float bloom=noise2(q*7.+vec2(uTime*.045*wet));
+float bloom=noise2(q*7.+vec2((1.-wet)*1.3));
 alpha*=mix(.38,1.35,smoothstep(.22,.7,bloom));
 col*=mix(.62,1.12,middle);
+// Wet diffusion settles into dark tide lines and dry granular deposits.
+float dryPigment=clamp(tide*.65+sediment*.55+granules*.3,0.,1.);
+col=mix(col,col*(.65+.3*micro),settled*dryPigment);
+alpha*=mix(1.,.85+dryPigment*.3,settled);
+col=mix(col,base,.12*wet*(1.-pool));
 if(uStyle>13.5){
   float stain=length((uv-.5)*2.);
   float silhouette=1.-smoothstep(.48+macro*.35,.72+macro*.3,stain);
