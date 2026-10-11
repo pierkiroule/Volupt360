@@ -9,7 +9,7 @@ test("six added brushes have distinct bounded geometry, visible WebGL pigment an
     if (m.type() === "error" && /WebGL|THREE|Shader/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const results = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { BRUSHES, createBrushStroke, disposeMark } =

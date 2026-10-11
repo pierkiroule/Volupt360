@@ -1,4 +1,16 @@
-# Volupt360 — NID SONORE•°
+# L’Oizodio•° — Le chant qui sculpte l’espace des possibles
+
+Douze courtes mélodies douces et harmonieuses sont prêtes dès l’ouverture, sans lecture automatique. Les deux vues se choisissent par des glyphes carrés ; le bouton **+** déplie les fonctionnalités, le bouton **−** revient au canevas et aux pads discrets.
+
+**1. Créez vos sons.** Douze pads, chacun associé à sa brosse. Enregistrez au microphone ou importez un MP3 : chaque son dure **cinq secondes maximum**. Un import conserve les cinq premières secondes du fichier. Vous pouvez écouter, remplacer et supprimer vos sons, et personnaliser la texture de chaque brosse.
+
+**2. Jouez.** La buse ailée virevolte continuellement en trois dimensions. Un tap joue le son et dépose la brosse du pad sur son sillage, avec une réaction à l’intensité et aux variations du son. Un maintien prolonge le son en boucle jusqu’au relâchement ; les pads peuvent jouer ensemble, chacun avec sa propre matière et son analyse acoustique. Pendant les silences, la buse continue de voler et la sculpture reste visible.
+
+Les sons restent **en mémoire pendant la session**, sans transmission ni sauvegarde après rechargement. Le microphone nécessite HTTPS (ou localhost) et une autorisation. Les imports sont limités à 12 Mo ; ils sont décodés localement puis réduits en mono 24 kHz. L’interface principale propose seulement **Mes sons / Jouer**, avec les deux vues 3D existantes.
+
+Désactivation : `VITE_ENABLE_SONOIZO=false npm run build`, puis redéployer. L’ancien atelier MP3 est aussi accessible à `/?atelier=mp3` pour les contrôles de régression. Voir [l’architecture et les vérifications](docs/sonoizo.md). Le moteur des douze brosses, les textures et leurs optimisations sont conservés.
+
+## Atelier MP3 existant
 
 Un voyage en drone dans une œuvre aquarelle étendue en trois dimensions. La musique anime un pinceau qui avance dans l’espace et laisse des matières dans son sillage ; la caméra accompagne ce mouvement, anticipe les courbes et révèle l’œuvre dans les moments calmes. React + Vite + Three.js, sans serveur applicatif ni service audio externe.
 

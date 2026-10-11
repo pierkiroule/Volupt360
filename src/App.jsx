@@ -6,16 +6,32 @@ import { createSoundNest } from "./engine/createSoundNest.js";
 import { createLoopPlayer } from "./audio/createLoopPlayer.js";
 import { importBrushTexture } from "./engine/importBrushTexture.js";
 import { analyzeLoops } from "./audio/analyzeLoops.js";
+import { ENABLE_SONOIZO } from "./sonoizo/config.js";
+import { useTwigBank } from "./sonoizo/useTwigBank.js";
+import TwigWorkshop from "./components/TwigWorkshop.jsx";
 
 const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
+  const twigs = useTwigBank();
+  const [atelier, setAtelier] = useState(() =>
+    !ENABLE_SONOIZO ||
+    new URLSearchParams(location.search).get("atelier") === "mp3"
+      ? "mp3"
+      : new URLSearchParams(location.search).get("samples") === "empty"
+        ? "cueillir"
+        : "jouer",
+  );
+  const [toolsOpen, setToolsOpen] = useState(
+    new URLSearchParams(location.search).get("samples") === "empty",
+  );
+  const immersive = ENABLE_SONOIZO && atelier !== "mp3";
   const stage = useRef(null),
     engine = useRef(null),
     player = useRef(null),
     loadRequest = useRef(0);
   const textureRequests = useRef({});
-  const [distance, setDistance] = useState(0.25);
+  const [distance, setDistance] = useState(atelier === "mp3" ? 0.25 : 0.55);
   const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
@@ -28,11 +44,18 @@ export default function App() {
     [sceneError, setSceneError] = useState("");
 
   useEffect(() => {
+    document.title = ENABLE_SONOIZO
+      ? "L’Oizodio•° — Le chant qui sculpte l’espace des possibles"
+      : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
         onHint: setHint,
         onError: setSceneError,
       });
+      if (ENABLE_SONOIZO && atelier !== "mp3") {
+        engine.current.setPadSource(twigs.bank.current);
+        engine.current.setDroneDistance(0.55);
+      }
     } catch (cause) {
       setSceneError(
         `La scène ne peut pas démarrer. Vérifiez WebGL : ${cause.message}`,
@@ -130,11 +153,33 @@ export default function App() {
     player.current?.selectLoop(index === null ? null : track.loops[index]);
     if (player.current) setPlayback(player.current.getState());
   }
+  function chooseAtelier(next) {
+    if (next === "cueillir") setToolsOpen(true);
+    twigs.bank.current?.cancelRecording();
+    twigs.bank.current?.stopAll();
+    twigs.clearError();
+    if (next !== "mp3") {
+      loadRequest.current++;
+      setLoading(false);
+      player.current?.pause();
+      if (player.current) setPlayback(player.current.getState());
+    }
+    engine.current?.setPadSource(next === "mp3" ? null : twigs.bank.current);
+    setAtelier(next);
+  }
   return (
-    <main>
+    <main
+      className={
+        immersive
+          ? `immersive ${toolsOpen ? "tools-open" : "tools-closed"}`
+          : undefined
+      }
+    >
       <div id="stage" ref={stage} />
-      <Header />
+      <Header sonoizo={ENABLE_SONOIZO} />
       <CameraViews
+        compact={immersive}
+        expanded={!immersive || toolsOpen}
         mode={mode}
         onChange={chooseCamera}
         distance={distance}
@@ -150,20 +195,67 @@ export default function App() {
         <span>UN VOYAGE DANS LA MATIÈRE</span>
         <span>Glisser pour tourner · le son pour peindre</span>
       </div>
-      <ControlPanel
-        brush={brush}
-        onBrush={chooseBrush}
-        textures={textures}
-        onTexture={loadTexture}
-        track={track}
-        playback={playback}
-        selected={selected}
-        loading={loading}
-        error={error}
-        onFile={loadFile}
-        onToggle={togglePlayback}
-        onLoop={chooseLoop}
-      />
+      {immersive && (
+        <button
+          className="atelier-toggle"
+          aria-label={
+            toolsOpen
+              ? "Replier les fonctionnalités"
+              : "Déplier les fonctionnalités"
+          }
+          aria-expanded={toolsOpen}
+          aria-controls="atelier-tools"
+          onClick={() => {
+            if (toolsOpen) chooseAtelier("jouer");
+            setToolsOpen(!toolsOpen);
+          }}
+        >
+          <span aria-hidden="true">{toolsOpen ? "−" : "+"}</span>
+        </button>
+      )}
+      {ENABLE_SONOIZO && (!immersive || toolsOpen) && (
+        <nav
+          id="atelier-tools"
+          className={`atelier-nav ${atelier !== "mp3" ? "with-twigs" : ""}`}
+          aria-label="Atelier sonore"
+        >
+          {[
+            ["cueillir", "Mes sons"],
+            ["jouer", "Jouer"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              aria-pressed={atelier === id}
+              onClick={() => chooseAtelier(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+      {atelier !== "mp3" ? (
+        <TwigWorkshop
+          mode={atelier}
+          {...twigs}
+          textures={textures}
+          onTexture={loadTexture}
+        />
+      ) : (
+        <ControlPanel
+          brush={brush}
+          onBrush={chooseBrush}
+          textures={textures}
+          onTexture={loadTexture}
+          track={track}
+          playback={playback}
+          selected={selected}
+          loading={loading}
+          error={error}
+          onFile={loadFile}
+          onToggle={togglePlayback}
+          onLoop={chooseLoop}
+        />
+      )}
       {sceneError && (
         <p role="alert" className="startup-error">
           {sceneError}

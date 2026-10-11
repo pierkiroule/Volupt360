@@ -625,3 +625,294 @@ label:focus-visible {
 .brush-echo .brush-swatch {
   color: #9963a8;
 }
+
+.atelier-nav {
+  position: fixed;
+  top: 132px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 24px;
+  background: #faf7efed;
+  backdrop-filter: blur(12px);
+}
+.atelier-nav button {
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  padding: 9px 16px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.atelier-nav button[aria-pressed="true"] {
+  background: #385a55;
+  color: #faf7ed;
+}
+.twig-workshop {
+  position: fixed;
+  z-index: 3;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 28px));
+  max-height: 48dvh;
+  overflow-y: auto;
+  padding: 14px;
+  border-radius: 24px;
+  background: #faf7efe0;
+  border: 1px solid #ffffffc0;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px #385a5514;
+}
+.twig-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.twig-pads {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 2px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #385a5540 transparent;
+}
+.twig-pad {
+  display: flex;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--twig-color) 40%, transparent);
+  border-radius: 50%;
+  padding: 0;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--twig-color) 12%, #faf7ef);
+  opacity: 0.7;
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.twig-workshop.is-playing-mode {
+  padding: 4px 8px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.twig-workshop.is-playing-mode .twig-heading,
+.twig-workshop.is-playing-mode .twig-note {
+  display: none;
+}
+.twig-pad.is-filled {
+  background: color-mix(in srgb, var(--twig-color) 16%, #faf7ef);
+}
+.twig-pad[aria-pressed="true"] {
+  border-color: var(--twig-color);
+}
+.twig-pad.is-playing {
+  box-shadow:
+    inset 0 0 0 2px var(--twig-color),
+    0 0 18px color-mix(in srgb, var(--twig-color) 28%, transparent);
+}
+.twig-pad:disabled {
+  opacity: 0.7;
+  filter: grayscale(0.65);
+}
+.twig-glyph {
+  color: var(--twig-color);
+  font-size: 25px;
+  line-height: 28px;
+}
+.twig-network .twig-glyph {
+  transform: rotate(-15deg);
+}
+.twig-dilution .twig-glyph {
+  filter: blur(0.35px);
+}
+.twig-bulles .twig-glyph {
+  background: linear-gradient(120deg, #3cbbc3, #b579bf, #dca657);
+  background-clip: text;
+  color: transparent;
+}
+.twig-editor {
+  margin-top: 12px;
+}
+.twig-editor-caption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.twig-editor-caption span {
+  color: #6d7c72;
+  font-size: 10px;
+}
+.twig-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.twig-actions button {
+  border: 1px solid #718f8133;
+  border-radius: 18px;
+  padding: 9px 12px;
+  background: #faf7ed;
+  font-size: 11px;
+}
+.twig-actions .twig-record {
+  background: #385a55;
+  color: #faf7ed;
+}
+.twig-actions .is-recording {
+  background: #aa685d;
+}
+.twig-editor progress {
+  width: 100%;
+  height: 5px;
+  accent-color: #aa685d;
+}
+.twig-note {
+  margin: 10px 0 0;
+  font-size: 9px;
+  color: #7b8780;
+}
+.twig-error {
+  margin: 8px 0;
+  font-size: 11px;
+  color: #99483e;
+}
+@media (max-width: 600px) {
+  .atelier-nav {
+    top: 160px;
+  }
+  .atelier-nav button {
+    padding: 8px 13px;
+  }
+  .twig-workshop {
+    padding: 10px;
+    max-height: 49dvh;
+  }
+  .twig-pads {
+    gap: 8px;
+  }
+  .twig-glyph {
+    font-size: 22px;
+    line-height: 23px;
+  }
+  .twig-heading {
+    font-size: 10px;
+  }
+  .twig-editor-caption {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+}
+@media (max-height: 600px) {
+  .atelier-nav {
+    top: 108px;
+  }
+  .twig-workshop {
+    max-height: 48dvh;
+  }
+}
+
+.brand p.sonoizo-tagline {
+  display: block;
+}
+@media (max-width: 760px) {
+  .brand:has(.sonoizo-tagline) {
+    text-align: center;
+  }
+  .brand p.sonoizo-tagline {
+    margin-top: 5px;
+    font-size: 8px;
+    white-space: nowrap;
+    letter-spacing: 0.025em;
+  }
+}
+
+/* The performance surface: only the two viewpoints, a fold toggle and pads. */
+.immersive .brand {
+  top: max(18px, env(safe-area-inset-top));
+  left: 18px;
+  transform: none;
+  text-align: left;
+}
+.immersive .brand h1 {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.65;
+}
+.immersive .brand p,
+.immersive .landscape-caption,
+.immersive.tools-closed .view-hint {
+  display: none;
+}
+.camera-views.is-compact {
+  top: max(12px, env(safe-area-inset-top));
+  right: 60px;
+  width: auto;
+  flex-wrap: nowrap;
+  left: auto;
+  transform: none;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.camera-views.is-compact button,
+.atelier-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #385a5520;
+  border-radius: 7px;
+  background: #faf7efb3;
+  opacity: 0.7;
+}
+.camera-views.is-compact button[aria-pressed="true"] {
+  background: #385a55;
+  color: #faf7ed;
+}
+.camera-views.is-compact .drone-distance {
+  position: absolute;
+  top: 46px;
+  right: -44px;
+  left: auto;
+  transform: none;
+  width: min(285px, calc(100vw - 36px));
+}
+.atelier-toggle {
+  position: fixed;
+  z-index: 5;
+  top: max(12px, env(safe-area-inset-top));
+  right: 16px;
+  font-size: 22px;
+}
+.immersive .atelier-nav {
+  top: 108px;
+}
+.immersive .view-hint {
+  top: 155px;
+}
+@media (max-width: 360px) {
+  .immersive .brand h1 {
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+}

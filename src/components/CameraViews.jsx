@@ -3,23 +3,63 @@ const views = [
   ["gyro", "FPV 360° gyro", "Regard panoramique avec le gyroscope"],
 ];
 
-export default function CameraViews({ mode, onChange, distance, onDistance }) {
+export default function CameraViews({
+  mode,
+  onChange,
+  distance,
+  onDistance,
+  compact = false,
+  expanded = true,
+}) {
   return (
-    <nav className="camera-views" aria-label="Vues caméra">
+    <nav
+      className={`camera-views ${compact ? "is-compact" : ""}`}
+      aria-label="Vues caméra"
+    >
       {views.map(([id, label, title], index) => (
         <button
           key={id}
+          aria-label={label}
           aria-pressed={mode === id}
           title={title}
           onClick={() => onChange(id)}
         >
-          <span className="view-number" aria-hidden="true">
-            0{index + 1}
-          </span>
-          {label}
+          {compact ? (
+            <svg
+              aria-hidden="true"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {id === "drone" ? (
+                <>
+                  <path d="M5 16 12 8 19 16M12 8v11" />
+                  <path d="M3 6h4M17 6h4M5 4v4M19 4v4" />
+                </>
+              ) : (
+                <>
+                  <circle cx="12" cy="12" r="8" />
+                  <ellipse cx="12" cy="12" rx="3.5" ry="8" />
+                  <path d="M4 12h16" />
+                </>
+              )}
+            </svg>
+          ) : (
+            <>
+              <span className="view-number" aria-hidden="true">
+                0{index + 1}
+              </span>
+              {label}
+            </>
+          )}
         </button>
       ))}
-      {mode === "drone" && (
+      {mode === "drone" && expanded && (
         <label className="drone-distance">
           <span>Distance</span>
           <input
