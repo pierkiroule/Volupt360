@@ -2,13 +2,13 @@
 
 Douze courtes mélodies douces et harmonieuses sont prêtes dès l’ouverture, sans lecture automatique. Les vues se choisissent par des glyphes carrés ; le bouton **+** déplie les fonctionnalités, le bouton **−** revient au canevas et aux pads discrets.
 
-**1. Créez vos sons.** Douze pads, chacun associé à sa brosse. Enregistrez au microphone ou importez un MP3 : chaque son dure **cinq secondes maximum**. Un import conserve les cinq premières secondes du fichier. Vous pouvez écouter, remplacer et supprimer vos sons, et personnaliser la texture de chaque brosse.
+**1. Créez vos sons.** Douze pads, chacun associé à sa brosse. Enregistrez au microphone ou importez un MP3 : chaque son dure **cinq secondes maximum**. Un import conserve les cinq premières secondes du fichier. Vous pouvez écouter, remplacer et supprimer vos sons, et choisir parmi cinq textures organiques contrastées pour chaque brosse.
 
 **2. Jouez.** La buse ailée virevolte continuellement en trois dimensions. Un tap joue le son et dépose la brosse du pad sur son sillage, avec une réaction à l’intensité et aux variations du son. Un maintien prolonge le son en boucle jusqu’au relâchement ; les pads peuvent jouer ensemble, chacun avec sa propre matière et son analyse acoustique. Pendant les silences, la buse continue de voler et la sculpture reste visible.
 
 Les sons restent **en mémoire pendant la session**, sans transmission ni sauvegarde après rechargement. Le microphone nécessite HTTPS (ou localhost) et une autorisation. Les imports sont limités à 12 Mo ; ils sont décodés localement puis réduits en mono 24 kHz. L’interface principale propose seulement **Mes sons / Jouer**, avec les deux vues 3D existantes.
 
-La vue **Photo** fige la sculpture pour la tourner et zoomer. Elle exporte une **vidéodio de 10 secondes** : 4 secondes du cadrage choisi puis les 6 dernières secondes du voyage avec son audio. Les vidéos se téléchargent localement. Voir [le fonctionnement et les limites](docs/videodio.md).
+La vue **Photo** fige la sculpture pour la tourner et zoomer. Elle exporte une **vidéodio de 10 secondes** : uniquement le dernier voyage **FPV drone**, avec son audio synchronisé (une prise courte boucle avec son audio). La photo cadrée se télécharge en **PNG HD, jusqu’à 2 560 pixels**. Photos et vidéos se téléchargent localement. Voir [le fonctionnement et les limites](docs/videodio.md).
 
 Désactivation : `VITE_ENABLE_SONOIZO=false npm run build`, puis redéployer. L’ancien atelier MP3 est aussi accessible à `/?atelier=mp3` pour les contrôles de régression. Voir [l’architecture et les vérifications](docs/sonoizo.md). Le moteur des douze brosses, les textures et leurs optimisations sont conservés.
 
@@ -33,7 +33,7 @@ Un voyage en drone dans une œuvre aquarelle étendue en trois dimensions. La mu
 
 **Matières et mémoire :** les lavis sèchent lentement, les dépôts minéraux plus vite et l’encre se stabilise rapidement. La diffusion laisse place aux bords pigmentés et à la granulation. Les éclaboussures ponctuent surtout les variations sonores. Certaines formes structurantes persistent plus longtemps ; les traces autour des fenêtres dégagées se dissolvent plus vite. L’effacement demeure progressif et irréversible.
 
-**Appui long sur une brosse :** maintenir environ une demi-seconde puis relâcher pour ouvrir l’import d’image. Au clavier, utiliser **Majuscule + Entrée**. L’image est transformée localement en masque alpha : seuil automatique de luminance, contours Sobel, conservation de la transparence et interprétation du fond clair ou sombre. Le masque module le pigment et découpe la transparence des surfaces 3D. Chaque brosse conserve sa propre texture, applicable aux traits déjà présents et aux traits futurs. Un aperçu apparaît dans sa vignette ; un nouvel import remplace son masque. Les textures restent en mémoire pendant la session, y compris lors d’un changement de morceau ; elles ne sont pas sauvegardées entre rechargements.
+**Textures :** le bouton Texture dans Mes sons propose **Mycélium, Cellules, Nervures, Encre éclatée et Écailles**. Dans l’atelier MP3, maintenir une brosse environ une demi-seconde ou utiliser **Majuscule + Entrée** ouvre cette même palette. Ces cinq motifs RGBA contrastés remplacent le masque des traits existants et futurs ; aucun fichier image ne peut être sélectionné. Les textures restent locales à la session.
 
 **Une piste en bas :** importer un MP3 ou un autre format audio décodable par le navigateur, puis sélectionner une phrase délimitée par les marqueurs ou **MP3 entier**. Lecture/pause reste intégré à la piste. Le scratch, le micro et la peinture tactile ont été retirés.
 
@@ -45,13 +45,13 @@ La répétition utilise les limites natives de `AudioBufferSourceNode`, indépen
 
 ## Matières génératives optionnelles
 
-La version consolidée conserve les douze brosses, les deux vues caméra, les boucles audio et l’import de textures par appui long. Un générateur Canvas aquarelle fournit un masque propre à chacune des douze brosses, sans changer les gestes ou le pipeline audio.
+La version consolidée conserve les douze brosses, les deux vues caméra, les boucles audio et le choix de textures par appui long. Un générateur Canvas aquarelle fournit un masque propre à chacune des douze brosses, sans changer les gestes ou le pipeline audio.
 
-Il est **activé pour les douze brosses** : `ENABLE_GENERATIVE_TEXTURES = true` dans `src/engine/generativeConfig.js`. Importer un morceau et choisir une brosse pour voir sa matière générée. Une image importée par appui long a priorité, y compris sur les traces déjà présentes. Revenir à `false` puis recompiler/recharger pour le désactiver. Vingt-quatre masques déterministes (deux variantes par brosse) sont préparés à l’initialisation, avec cache borné et références libérées au retrait des tracés. Aucune génération de pixels pendant le rendu.
+Il est **activé pour les douze brosses** : `ENABLE_GENERATIVE_TEXTURES = true` dans `src/engine/generativeConfig.js`. Importer un morceau et choisir une brosse pour voir sa matière générée. Une texture prédéfinie choisie par appui long a priorité, y compris sur les traces déjà présentes. Revenir à `false` puis recompiler/recharger pour le désactiver. Vingt-quatre masques déterministes (deux variantes par brosse) sont préparés à l’initialisation, avec cache borné et références libérées au retrait des tracés. Aucune génération de pixels pendant le rendu.
 
 Des surprises rares accompagnent certains accents sonores : halos ambrés, constellations de pigment et petites dentelles. Elles restent locales, ne clignotent pas et n’ajoutent aucune géométrie.
 
-Voir [l’audit, l’architecture et les limites](docs/generative-materials.md). Le dépôt actuel ne propose pas microphone, scratch, peinture par tap ni export PNG.
+Voir [l’audit, l’architecture et les limites](docs/generative-materials.md). L’atelier MP3 conserve ses boucles ; l’atelier principal ajoute le microphone, les pads et l’export PNG HD.
 
 ## Développement
 
@@ -80,7 +80,7 @@ WebGL et Web Audio sont nécessaires. L’orientation mobile nécessite HTTPS (o
 - `src/engine/brushes.js` : douze géométries de traits, buffers progressifs, matières aquarelle et masques alpha.
 - `src/engine/createPainterFlight.js` : phrases spatiales reliées et orientation continue du pinceau.
 - `src/engine/createCameraRig.js` : poursuite du pinceau, cadrage global, rotation et orientation gyroscopique.
-- `src/engine/importBrushTexture.js` : décodage local des images, seuil et contours.
+- `src/engine/predefinedTextures.js` : cinq masques alpha organiques, sans import d’images.
 - `src/engine/shaders/` : shaders GLSL importés par Vite, sans CDN à l’exécution.
 
 Le démontage arrête le rendu et l’audio, retire les écouteurs de pointeur et de capteur et libère les ressources WebGL. Les imports successifs ignorent les résultats de décodage devenus obsolètes.
@@ -98,7 +98,7 @@ Dans cet environnement cloud, Chromium est déjà installé :
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test
 ```
 
-Les tests couvrent le découpage rythmique et silencieux, les douze brosses, les deux vues, la rotation sans peinture tactile, la peinture audio, les limites de boucle, la pause, le morceau entier, un fichier invalide, les autorisations du gyroscope, l’interface mobile, le déplacement XYZ et le suivi du drone, les appuis longs sur les douze brosses et les textures invalides ou transparentes. Ils utilisent une fixture WAV locale et le rendu logiciel WebGL. La précision musicale du découpage sur vos propres morceaux et le gyroscope physique nécessitent une vérification sur les appareils visés.
+Les tests couvrent le découpage rythmique et silencieux, les douze brosses, les deux vues, la rotation sans peinture tactile, la peinture audio, les limites de boucle, la pause, le morceau entier, un fichier invalide, les autorisations du gyroscope, l’interface mobile, le déplacement XYZ et le suivi du drone, les appuis longs sur les douze brosses et les cinq textures alpha et leurs régions transparentes. Ils utilisent une fixture WAV locale et le rendu logiciel WebGL. La précision musicale du découpage sur vos propres morceaux et le gyroscope physique nécessitent une vérification sur les appareils visés.
 
 ## Vercel
 

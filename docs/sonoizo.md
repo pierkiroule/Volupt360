@@ -8,7 +8,7 @@ Deux actions, dans une seule application : **Mes sons** permet de remplir les do
 
 Microphone et imports sont limités à **cinq secondes par pad**. Pour un fichier plus long, les cinq premières secondes sont conservées. Une brindille peut être remplacée ou supprimée. Les fichiers restent dans la mémoire de l’onglet ; ils ne sont pas envoyés et disparaissent au rechargement. Les imports sont limités à douze mégaoctets avant décodage.
 
-Un tap joue le sample jusqu’à son terme ; maintenir au moins 300 ms le prolonge en boucle jusqu’au relâchement. Les accords conservent chaque brosse et chaque analyse acoustique. Les deux vues existantes, la rotation tactile de la scène et les textures personnelles restent disponibles ; l’éditeur du pad expose une action Texture, distincte du maintien sonore.
+Un tap joue le sample jusqu’à son terme ; maintenir au moins 300 ms le prolonge en boucle jusqu’au relâchement. Les accords conservent chaque brosse et chaque analyse acoustique. Les deux vues existantes, la rotation tactile de la scène et les cinq textures organiques prédéfinies sont disponibles ; l’éditeur du pad expose une action Texture, distincte du maintien sonore.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Un tap joue le sample jusqu’à son terme ; maintenir au moins 300 ms le prolon
 - `BrushBridge.js` transmet la position et le repère du vol à chaque brosse audible, avec ses caractéristiques acoustiques propres. Les déclenchements courts disposent de deux premiers échantillons rapprochés, puis les dépôts sont espacés à 120 ms. Les streams se ferment à l’arrêt du son ou au retrigger, sans relier les portions de trajet parcourues en silence.
 - `createSoundNest.js` conserve la construction, les textures, la dissolution et la destruction des douze brosses. Un état de tracé par pad permet les dépôts simultanés. Le plafond de quatre-vingts tracés protège les tracés actifs ; les fenêtres spatiales diminuent leur densité sans annuler la réponse d’un pad. La sculpture cesse de vieillir lorsque plus aucun pad sonore ne joue, tandis que la buse continue de voler.
 
-La palette, les shaders des brosses, le cache de vingt-quatre masques et le module de textures importées sont conservés. Aucun framework ou backend ajouté. Aucun sélecteur de canevas ou déroulement en quatre lots dans l’interface principale.
+La palette, les shaders des brosses, le cache de vingt-quatre masques et les masques procéduraux sont conservés ; les textures choisies utilisent désormais cinq motifs prédéfinis. Aucun framework ou backend ajouté. Aucun sélecteur de canevas ou déroulement en quatre lots dans l’interface principale.
 
 ## Réversibilité
 
@@ -29,7 +29,7 @@ Branche `feature/sonoizo`. `VITE_ENABLE_SONOIZO=false npm run build` restaure l�
 
 La banque est testée avec un microphone factice natif Chromium, MediaRecorder et Web Audio réels. Les tests couvrent la limite exacte de cinq secondes, les imports MP3/WAV, les erreurs d’import sans perte du sample précédent, les annulations, douze voix bornées, le maintien multitouch et le clavier. Les tests de danse vérifient un trajet reproductible et continu en XYZ, le vol en silence, les douze brosses déposées par les pads, l’arrêt des dépôts après le son et la distinction acoustique entre un pad faible et un pad fort. Les tests historiques gardent l’atelier MP3 explicite pour contrôler les régressions.
 
-Les tests WebGL logiciels et la capture mobile ne remplacent pas des essais sur téléphone physique ; Safari/iOS, les micros matériels et le profilage complet du heap restent à vérifier. Un import audio est décodé entièrement avant découpe : sa mémoire transitoire dépend de sa durée et de son codec, malgré la limite de taille du fichier. Les formats disponibles dépendent des décodeurs du navigateur. L’export PNG était absent du dépôt audité et ne fait pas partie de cette correction.
+Les tests WebGL logiciels et la capture mobile ne remplacent pas des essais sur téléphone physique ; Safari/iOS, les micros matériels et le profilage complet du heap restent à vérifier. Un import audio est décodé entièrement avant découpe : sa mémoire transitoire dépend de sa durée et de son codec, malgré la limite de taille du fichier. Les formats disponibles dépendent des décodeurs du navigateur. L’export PNG HD et les vidéodios FPV sont décrits dans [videodio.md](videodio.md).
 
 Résultats exécutés : suite de 39 tests réussie sous Chromium, puis test supplémentaire de cadrage portrait réussi après ajustement des bornes de vol à vide, soit 40 tests distincts vérifiés. Build actif et formatage réussis. Build avec `VITE_ENABLE_SONOIZO=false` réussi, puis vérification du build servi : atelier NID SONORE, douze brosses, buse désactivée et aucun AudioContext créé. Le build actif a ensuite été régénéré. Captures desktop et mobile examinées : buse ailée et dépôt simultané de Voiles et Aurore, pads accessibles. Les essais sur téléphone physique ne sont pas déclarés exécutés.
 

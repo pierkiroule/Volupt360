@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import TexturePalette from "./TexturePalette.jsx";
 import { BRUSHES } from "../engine/brushes.js";
 
 export default function BrushSelector({
@@ -7,8 +8,8 @@ export default function BrushSelector({
   textures = {},
   onTexture,
 }) {
-  const inputs = useRef({}),
-    gesture = useRef(null),
+  const [textureBrush, setTextureBrush] = useState(null);
+  const gesture = useRef(null),
     timer = useRef(null),
     suppressClick = useRef(null);
   const [held, setHeld] = useState(null);
@@ -52,8 +53,8 @@ export default function BrushSelector({
       aria-label="Palette aquarelle : douze brosses"
     >
       <span id="texture-help" className="sr-only">
-        Maintenir puis relâcher pour importer une image de texture. Au clavier :
-        Majuscule et Entrée.
+        Maintenir puis relâcher pour choisir une texture. Au clavier : Majuscule
+        et Entrée.
       </span>
       {BRUSHES.map((brush) => (
         <div className="brush-slot" key={brush.id}>
@@ -62,7 +63,7 @@ export default function BrushSelector({
             aria-label={brush.name}
             aria-describedby="texture-help"
             aria-pressed={selected === brush.id}
-            title={`${brush.detail} · Maintenir pour importer une texture${textures[brush.id] ? ` · ${textures[brush.id].name}` : ""}`}
+            title={`${brush.detail} · Maintenir pour choisir une texture${textures[brush.id] ? ` · ${textures[brush.id].name}` : ""}`}
             style={{ "--pigment": brush.color }}
             onPointerDown={(event) => start(event, brush.id)}
             onPointerMove={(event) => {
@@ -82,15 +83,13 @@ export default function BrushSelector({
               suppressClick.current = null;
               if (event.key === "Enter" && event.shiftKey) {
                 event.preventDefault();
-                inputs.current[brush.id]?.click();
+                setTextureBrush(brush.id);
               }
             }}
             onClick={() => {
               if (suppressClick.current === brush.id) {
                 suppressClick.current = null;
-                // The trusted click following a long hold opens the picker.
-                // A timer only arms it; it never consumes user activation.
-                inputs.current[brush.id]?.click();
+                setTextureBrush(brush.id);
                 return;
               }
               onChange(brush.id);
@@ -108,22 +107,26 @@ export default function BrushSelector({
               <span className="texture-dot" aria-hidden="true" />
             )}
           </button>
-          <input
-            ref={(node) => {
-              inputs.current[brush.id] = node;
-            }}
-            type="file"
-            accept="image/*"
-            hidden
-            aria-label={`Texture de ${brush.name}`}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) onTexture(brush.id, file);
-            }}
-          />
         </div>
       ))}
+      {textureBrush && (
+        <div className="brush-texture-popover">
+          <TexturePalette
+            brush={BRUSHES.find((item) => item.id === textureBrush).name}
+            selected={textures[textureBrush]?.id}
+            onSelect={(id) => {
+              onTexture(textureBrush, id);
+              setTextureBrush(null);
+            }}
+          />
+          <button
+            onClick={() => setTextureBrush(null)}
+            aria-label="Fermer les textures"
+          >
+            Fermer
+          </button>
+        </div>
+      )}
     </div>
   );
 }

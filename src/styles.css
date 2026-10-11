@@ -956,3 +956,57 @@ label:focus-visible {
   margin-top: 12px;
   color: #385a55;
 }
+.texture-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.texture-presets button {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  padding: 8px;
+  flex: 1;
+  border: 1px solid #385a5530;
+  border-radius: 10px;
+  background: #faf7ef;
+  min-width: 50px;
+}
+.texture-presets button[aria-pressed="true"] {
+  border-color: #385a55;
+  background: #e1e9e1;
+}
+.texture-presets span {
+  font-size: 24px;
+  color: #183832;
+}
+.texture-presets small {
+  font-size: 8px;
+  white-space: nowrap;
+}
+.brush-texture-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  border-radius: 18px;
+  background: #faf7ef;
+  z-index: 5;
+}
+.photo-download {
+  margin-top: 10px;
+  border: 1px solid #385a5530;
+  border-radius: 10px;
+  background: #faf7ef;
+  padding: 10px 14px;
+}
+
+.texture-presets img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #172b28;
+}

@@ -375,9 +375,10 @@ test("the painter travels through XYZ while its drone follows and reframes the g
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
-test("each brush long press imports an independent contour/alpha texture", async ({
+test("each brush long press chooses an independent predefined alpha texture", async ({
   page,
 }) => {
+  test.setTimeout(60000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
@@ -385,9 +386,6 @@ test("each brush long press imports an independent contour/alpha texture", async
       errors.push(message.text());
   });
   await page.goto("/?atelier=mp3");
-  // Keep interception active across repeated native pickers; attaching a
-  // transient listener just before a raw mouse-up can race Chromium's toggle.
-  page.on("filechooser", () => {});
   const names = [
     "Voiles",
     "Falaises",
@@ -408,21 +406,14 @@ test("each brush long press imports an independent contour/alpha texture", async
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.waitForTimeout(650);
-    const chooser = page.waitForEvent("filechooser");
     await page.mouse.up();
-    await (
-      await chooser
-    ).setFiles({
-      name: `nervures-${i}.svg`,
-      mimeType: "image/svg+xml",
-      buffer: Buffer.from(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" fill="white"/><path d="M10 80Q80 5 150 80M10 60Q80 90 150 20M80 10V90" fill="none" stroke="black" stroke-width="12"/></svg>',
-      ),
-    });
-    await expect(button).toHaveAttribute(
-      "title",
-      new RegExp(`nervures-${i}.svg`),
-    );
+    await page
+      .getByRole("button", {
+        name: `Texture Nervures pour ${name}`,
+        exact: true,
+      })
+      .click();
+    await expect(button).toHaveAttribute("title", /Nervures/);
     await expect(button.locator("img")).toHaveCount(1);
   }
   await expect(
@@ -455,35 +446,28 @@ test("each brush long press imports an independent contour/alpha texture", async
   expect(errors).toEqual([]);
 });
 
-test("invalid texture preserves the previous brush and import remains usable", async ({
+test("texture palette replaces the previous mask without exposing image uploads", async ({
   page,
 }) => {
   await page.goto("/?atelier=mp3");
-  await page.getByLabel("Texture de Voiles", { exact: true }).setInputFiles({
-    name: "broken.png",
-    mimeType: "image/png",
-    buffer: Buffer.from("broken image"),
-  });
-  await expect(page.locator(".track-caption")).toContainText("Texture :");
   await expect(
-    page.getByRole("button", { name: "Voiles", exact: true }).locator("img"),
+    page.locator('input[type="file"][accept="image/*"]'),
   ).toHaveCount(0);
-  await page.getByLabel("Texture de Voiles", { exact: true }).setInputFiles({
-    name: "alpha.svg",
-    mimeType: "image/svg+xml",
-    buffer: Buffer.from(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="20" fill="white"/></svg>',
-    ),
-  });
-  await expect(
-    page.getByRole("button", { name: "Voiles", exact: true }).locator("img"),
-  ).toHaveCount(1);
-  await expect(page.locator(".track-caption")).not.toContainText("Texture :");
+  const brush = page.getByRole("button", { name: "Voiles", exact: true });
+  for (const name of ["Mycélium", "Cellules", "Encre éclatée"]) {
+    await brush.focus();
+    await page.keyboard.press("Shift+Enter");
+    await page
+      .getByRole("button", { name: `Texture ${name} pour Voiles`, exact: true })
+      .click();
+    await expect(brush).toHaveAttribute("title", new RegExp(name));
+    await expect(brush.locator("img")).toHaveCount(1);
+  }
 });
 
 test.describe("mobile texture gesture", () => {
   test.use({ hasTouch: true });
-  test("touch hold opens a brush image picker without selecting another brush", async ({
+  test("touch hold opens five predefined textures without selecting another brush", async ({
     page,
     context,
   }) => {
@@ -492,7 +476,6 @@ test.describe("mobile texture gesture", () => {
     const button = page.getByRole("button", { name: "Corolles", exact: true });
     const box = await button.boundingBox();
     const session = await context.newCDPSession(page);
-    const chooser = page.waitForEvent("filechooser");
     await session.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }],
@@ -502,15 +485,17 @@ test.describe("mobile texture gesture", () => {
       type: "touchEnd",
       touchPoints: [],
     });
-    await (
-      await chooser
-    ).setFiles({
-      name: "mobile-alpha.svg",
-      mimeType: "image/svg+xml",
-      buffer: Buffer.from(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="20" fill="white"/></svg>',
-      ),
-    });
+    await expect(
+      page
+        .getByRole("group", { name: "Textures de Corolles" })
+        .getByRole("button"),
+    ).toHaveCount(5);
+    await page
+      .getByRole("button", {
+        name: "Texture Cellules pour Corolles",
+        exact: true,
+      })
+      .click();
     await expect(button.locator("img")).toHaveCount(1);
     await expect(
       page.getByRole("button", { name: "Voiles", exact: true }),

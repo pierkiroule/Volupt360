@@ -303,7 +303,7 @@ test("graphic surprises are rare, varied and silent passages stay quiet", async 
   expect(graphicSurprise(5, { energy: 1, flux: 1, silence: true })).toBe(0);
 });
 
-test("imported images replace existing and future generated textures on every brush", async ({
+test("predefined alpha masks replace existing and future generated textures on every brush", async ({
   page,
 }) => {
   await page.goto("/?atelier=mp3");
@@ -337,18 +337,16 @@ test("imported images replace existing and future generated textures on every br
     "echo",
   ];
   for (let i = 0; i < names.length; i++) {
+    const button = page.getByRole("button", { name: names[i], exact: true });
+    await button.focus();
+    await page.keyboard.press("Shift+Enter");
     await page
-      .getByLabel(`Texture de ${names[i]}`, { exact: true })
-      .setInputFiles({
-        name: "personal.svg",
-        mimeType: "image/svg+xml",
-        buffer: Buffer.from(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path fill="black" d="M8 8h48v16H8zm16 16h16v32H24z"/></svg>',
-        ),
-      });
-    await expect(
-      page.getByRole("button", { name: names[i], exact: true }),
-    ).toHaveAttribute("title", /personal.svg/);
+      .getByRole("button", {
+        name: `Texture Mycélium pour ${names[i]}`,
+        exact: true,
+      })
+      .click();
+    await expect(button).toHaveAttribute("title", /Mycélium/);
     await expect
       .poll(async () =>
         (await canvas.getAttribute("data-imported-brushes"))

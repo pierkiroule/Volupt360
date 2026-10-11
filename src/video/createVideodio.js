@@ -1,4 +1,4 @@
-const HISTORY = 6000;
+const HISTORY = 10000;
 
 /** A bounded JPEG + mono PCM ring; export uses native browser encoders. */
 export function createVideodio() {
@@ -40,9 +40,12 @@ export function createVideodio() {
         0.82,
       );
     },
-    audio(data, sampleRate) {
+    audio(data, sampleRate, startTime) {
       if (disposed || frozen) return;
-      const time = performance.now();
+      const time =
+        startTime === undefined
+          ? performance.now()
+          : startTime + (data.length / sampleRate) * 1000;
       audio.push({ time, sampleRate, data: new Float32Array(data) });
       trim(audio, time);
     },
@@ -69,21 +72,21 @@ export function createVideodio() {
         "video/webm",
       ].find((type) => MediaRecorder.isTypeSupported(type));
       if (!mime) throw new Error("Aucun encodeur vidéo compatible.");
+      if (!frames.length)
+        throw new Error(
+          "Jouez d’abord en FPV drone pour enregistrer votre voyage sonore.",
+        );
       exporting = true;
       const history = frames.slice(),
         sound = audio.slice();
-      const end = history.at(-1)?.time ?? performance.now(),
-        start = end - HISTORY;
+      const end = history.at(-1).time + 1000 / 12;
+      const start = Math.max(end - HISTORY, history[0].time);
+      const span = Math.max(1000 / 12, end - start);
       const output = document.createElement("canvas");
       const scale = Math.min(1, 640 / Math.max(source.width, source.height));
       output.width = Math.max(2, Math.round((source.width * scale) / 2) * 2);
       output.height = Math.max(2, Math.round((source.height * scale) / 2) * 2);
       const paint = output.getContext("2d");
-      const still = document.createElement("canvas");
-      still.width = output.width;
-      still.height = output.height;
-      still.getContext("2d").drawImage(source, 0, 0, still.width, still.height);
-      paint.drawImage(still, 0, 0);
       const stream = output.captureStream(24);
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       let recorder, timer, bitmap;
@@ -91,7 +94,11 @@ export function createVideodio() {
         await ctx.resume();
         const destination = ctx.createMediaStreamDestination();
         const rate = sound[0]?.sampleRate || 24000;
-        const buffer = ctx.createBuffer(1, rate * 6, rate);
+        const buffer = ctx.createBuffer(
+          1,
+          Math.ceil((rate * span) / 1000),
+          rate,
+        );
         const pcm = buffer.getChannelData(0);
         for (const chunk of sound) {
           const chunkStart =
@@ -104,6 +111,7 @@ export function createVideodio() {
         }
         const voice = ctx.createBufferSource();
         voice.buffer = buffer;
+        voice.loop = true;
         voice.connect(destination);
         for (const track of destination.stream.getAudioTracks())
           stream.addTrack(track);
@@ -121,19 +129,24 @@ export function createVideodio() {
           recorder.onerror = () =>
             reject(new Error("L’encodeur vidéo a été interrompu."));
         });
+        const wallStart = performance.now();
         recorder.start(250);
-        const began = performance.now();
-        voice.start(ctx.currentTime + 4);
+        // The export's audio clock drives both playback and image selection.
+        const began = ctx.currentTime + 0.06;
+        voice.start(began);
+        voice.stop(began + 10);
         let previous = -1;
-        while (performance.now() - began < 10000) {
+        while (
+          (ctx.currentTime - began) * 1000 < 10000 &&
+          performance.now() - wallStart < 10060
+        ) {
           if (disposed || document.hidden)
             throw new Error(
               "Export interrompu : gardez l’application visible.",
             );
-          const elapsed = performance.now() - began;
-          if (elapsed < 4000) paint.drawImage(still, 0, 0);
-          if (elapsed >= 4000 && history.length) {
-            const target = start + elapsed - 4000;
+          const elapsed = Math.max(0, (ctx.currentTime - began) * 1000);
+          if (history.length) {
+            const target = start + (elapsed % span);
             let index = history.findLastIndex((frame) => frame.time <= target);
             if (index < 0) index = 0;
             if (index !== previous) {
@@ -141,13 +154,15 @@ export function createVideodio() {
               bitmap = await createImageBitmap(history[index].blob);
               paint.drawImage(bitmap, 0, 0, output.width, output.height);
               previous = index;
-            }
+            } else if (bitmap)
+              paint.drawImage(bitmap, 0, 0, output.width, output.height);
           }
           onProgress(Math.min(1, elapsed / 10000));
           await new Promise((resolve) => {
             timer = setTimeout(resolve, 1000 / 24);
           });
         }
+        voice.stop();
         recorder.stop();
         const blob = await finished;
         onProgress(1);

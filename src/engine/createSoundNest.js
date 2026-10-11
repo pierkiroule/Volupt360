@@ -89,6 +89,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     ? createGenerativeMaterials()
     : null;
   const textures = new Map();
+  let cameraMode = "drone";
   let photo = false,
     videodio = null;
   let padSource = null,
@@ -366,11 +367,15 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     rig.update(dt);
     try {
       effects.render(scene, camera);
-      if (!photo) videodio?.frame(renderer.domElement, now);
+      if (!photo && cameraMode === "drone")
+        videodio?.frame(renderer.domElement, now);
     } catch (error) {
       onError?.(error.message);
     }
     if (now - lastReport > 80) {
+      renderer.domElement.dataset.videoFrames = String(
+        videodio?.getHistory().frames || 0,
+      );
       renderer.domElement.dataset.oizo = String(Boolean(padSource));
       if (padSource) {
         oizo.group.getWorldPosition(oizoScreen);
@@ -450,9 +455,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       padSource?.setCaptureTap(null);
       bridge.close();
       if (source && !videodio) videodio = createVideodio();
-      source?.setCaptureTap((data, sampleRate) =>
-        videodio?.audio(data, sampleRate),
-      );
+      source?.setCaptureTap((data, sampleRate, startTime) => {
+        if (!photo && cameraMode === "drone")
+          videodio?.audio(data, sampleRate, startTime);
+      });
       padSource = source;
       if (source) {
         if (!padInitialized) {
@@ -490,6 +496,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     },
     setCameraMode(next) {
       const wasPhoto = photo;
+      const previousMode = cameraMode;
+      cameraMode = next;
       photo = next === "photo";
       if (photo && !wasPhoto) {
         padSource?.stopAll();
@@ -497,8 +505,48 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         bridge.close();
         closeStroke();
       }
-      if (photo !== wasPhoto) videodio?.freeze(photo);
+      // Keep the most recent FPV take while framing or contemplating.
+      if (next !== "drone") videodio?.freeze(true);
+      else if (previousMode !== "drone") videodio?.freeze(false);
       return rig.setMode(next);
+    },
+    async exportPhoto() {
+      if (!photo) throw new Error("Cadrez votre photo dans la vue Photo.");
+      rig.update(0);
+      const size = renderer.getSize(new THREE.Vector2()),
+        ratio = renderer.getPixelRatio();
+      const aspect = camera.aspect;
+      const longSide = Math.min(2560, renderer.capabilities.maxTextureSize);
+      const scale = longSide / Math.max(size.x, size.y);
+      const width = Math.round(size.x * scale),
+        height = Math.round(size.y * scale);
+      const output = document.createElement("canvas");
+      output.width = width;
+      output.height = height;
+      try {
+        renderer.setPixelRatio(1);
+        renderer.setSize(width, height, false);
+        effects.resize();
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        effects.render(scene, camera);
+        output.getContext("2d").drawImage(renderer.domElement, 0, 0);
+      } finally {
+        renderer.setPixelRatio(ratio);
+        renderer.setSize(size.x, size.y, false);
+        effects.resize();
+        camera.aspect = aspect;
+        camera.updateProjectionMatrix();
+      }
+      return new Promise((resolve, reject) =>
+        output.toBlob(
+          (blob) =>
+            blob
+              ? resolve(blob)
+              : reject(new Error("La photo n’a pas pu être encodée.")),
+          "image/png",
+        ),
+      );
     },
     setPhotoZoom: rig.setPhotoZoom,
     exportVideodio(onProgress) {

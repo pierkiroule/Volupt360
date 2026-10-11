@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import TexturePalette from "./TexturePalette.jsx";
 import { BRUSHES } from "../engine/brushes.js";
 import { MAX_TWIG_SECONDS } from "../sonoizo/createTwigBank.js";
 
@@ -9,9 +10,10 @@ export default function TwigWorkshop({
   error,
   clearError,
   onTexture,
+  textures = {},
 }) {
-  const audioInput = useRef(null),
-    textureInput = useRef(null);
+  const audioInput = useRef(null);
+  const [textureOpen, setTextureOpen] = useState(false);
   const [selected, setSelected] = useState(BRUSHES[0].id);
   const [elapsed, setElapsed] = useState(0);
   const recording = snapshot.recording;
@@ -166,19 +168,6 @@ export default function TwigWorkshop({
               }
             }}
           />
-          <input
-            ref={textureInput}
-            className="sr-only"
-            type="file"
-            accept="image/*"
-            aria-label={`Texture de ${current.name}`}
-            disabled={Boolean(recording)}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) void onTexture?.(current.id, file);
-            }}
-          />
           <div className="twig-actions">
             <button
               disabled={Boolean(recording)}
@@ -230,7 +219,8 @@ export default function TwigWorkshop({
             <button
               disabled={Boolean(recording)}
               aria-label={`Modifier la texture ${current.name}`}
-              onClick={() => textureInput.current?.click()}
+              aria-expanded={textureOpen}
+              onClick={() => setTextureOpen(!textureOpen)}
             >
               Texture
             </button>
@@ -242,6 +232,14 @@ export default function TwigWorkshop({
               Supprimer
             </button>
           </div>
+          {textureOpen && (
+            <TexturePalette
+              brush={current.name}
+              selected={textures[current.id]?.id}
+              disabled={Boolean(recording)}
+              onSelect={(id) => onTexture(current.id, id)}
+            />
+          )}
           {recording?.status === "recording" && (
             <progress
               aria-label="Durée de l’enregistrement"
