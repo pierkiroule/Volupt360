@@ -8,7 +8,7 @@ float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h
 float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+vec2(13.1,7.7);a*=.49;}return v;}
 void main(){
 vec2 uv=vUv;float across=abs(uv.x*2.-1.);
-float dryingRate=uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085));
+float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085)));
 float wet=exp(-uAge*dryingRate);
 float settled=1.-wet;
 uv+=vec2(sin(uv.y*13.+uSeed+uAge*.22),cos(uv.x*11.+uSeed+uAge*.17))*.018*wet;
@@ -84,6 +84,14 @@ if(abs(uStyle-16.)<.1){
   col=mix(base,spectrum,.55);alpha*=.6+.4*sin(uv.x*35.+middle*3.)*sin(uv.x*35.+middle*3.);
 }else if(abs(uStyle-18.)<.1){
   col=mix(base*.24,base,.35+sediment*.3);alpha*=1.15;
+}else if(abs(uStyle-19.)<.1){
+  col=mix(base*.32,base,.5+.3*micro);alpha=uOpacity*(.68+.25*micro);
+}else if(abs(uStyle-20.)<.1){
+  float diffusion=1.-smoothstep(.2,.98,across+(macro-.5)*.15);
+  float bloomRing=exp(-pow((across-.55-middle*.12)/.1,2.));
+  col=mix(base*.65,base,.35+.4*macro);alpha*=diffusion*(.65+bloomRing*.55);
+}else if(abs(uStyle-21.)<.1){
+  col=mix(base*.5,base,.4+.35*middle);alpha*=.72+.28*pow(abs(sin(uv.y*24.+uSeed)),2.);
 }
 // Strengthen translucent pigment before fading; preserve bubble centers.
 if(abs(uStyle-16.)>.1)alpha=1.-pow(1.-pow(clamp(alpha,0.,1.),.8),1.65);

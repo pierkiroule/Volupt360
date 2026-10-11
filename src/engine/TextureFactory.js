@@ -39,6 +39,9 @@ export class TextureFactory {
         "bubble",
         "aurora",
         "calligraphy",
+        "network",
+        "dilution",
+        "echo",
       ].includes(params.style)
         ? params.style
         : "ink",
@@ -111,6 +114,19 @@ export class TextureFactory {
         } else if (normalized.style === "calligraphy") {
           shape = Math.max(0.25, 1 - Math.abs(dx) ** 6);
           pigment = 0.7 + 0.3 * grain;
+        } else if (normalized.style === "network") {
+          shape = 1;
+          pigment = 0.85 + 0.15 * grain;
+        } else if (normalized.style === "dilution") {
+          shape = Math.max(0, 1 - Math.abs(dx + waviness * 0.4) ** 2);
+          pigment =
+            (0.5 + 0.5 * Math.sin(dy * 10 + dx * 3 + harmonics[0].phase) ** 2) *
+            granule;
+        } else if (normalized.style === "echo") {
+          shape = Math.max(0.2, 1 - Math.abs(dx) ** 4);
+          pigment =
+            (0.65 + 0.35 * Math.cos(dy * 22 + harmonics[2].phase) ** 2) *
+            granule;
         } else if (normalized.style === "splatter") {
           pigment = grain > 0.92 ? 0.12 : granule;
         }

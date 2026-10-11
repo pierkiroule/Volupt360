@@ -11,11 +11,14 @@ const styles = {
   bulles: "bubble",
   aurore: "aurora",
   calligraphie: "calligraphy",
+  network: "network",
+  dilution: "dilution",
+  echo: "echo",
 };
 
-/** Eighteen shared masks, prepared once outside rendering. No texture per mark. */
+/** Twenty-four shared masks, prepared once outside rendering. No texture per mark. */
 export function createGenerativeMaterials() {
-  const factory = new TextureFactory({ size: 128, maxEntries: 18 });
+  const factory = new TextureFactory({ size: 128, maxEntries: 24 });
   const keys = new Map(
     Object.entries(styles).map(([id, style]) => [
       id,

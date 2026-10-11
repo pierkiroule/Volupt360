@@ -199,7 +199,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     rig.reanchor(true);
   }
   // A finite opening study surrounds the sanctuary with an irregular envelope.
-  for (let i = 0; i < 630; i++) {
+  for (let i = 0; i < BRUSHES.length * 70; i++) {
     const pose = flight.update(0.12, {
       energy: 0.45,
       low: 0.25,
@@ -208,17 +208,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       freq: 1100 + Math.sin(i * 0.11) * 700,
     });
     if (i % 70 === 0) {
-      brush = [
-        "voiles",
-        "corolles",
-        "falaises",
-        "filaments",
-        "brumes",
-        "lagons",
-        "bulles",
-        "aurore",
-        "calligraphie",
-      ][Math.floor(i / 70)];
+      brush = BRUSHES[Math.floor(i / 70)].id;
       closeStroke();
     }
     addSample(pose);

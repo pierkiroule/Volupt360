@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("bubbles, aurora and calligraphy have distinct bounded geometry and visible WebGL pigment", async ({
+test("six added brushes have distinct bounded geometry, visible WebGL pigment and complete fading", async ({
   page,
 }) => {
   const errors = [];
@@ -24,7 +24,14 @@ test("bubbles, aurora and calligraphy have distinct bounded geometry and visible
     camera.position.set(0, 0, 15);
     camera.lookAt(0, 0, 0);
     const output = [];
-    for (const id of ["bulles", "aurore", "calligraphie"]) {
+    for (const id of [
+      "bulles",
+      "aurore",
+      "calligraphie",
+      "network",
+      "dilution",
+      "echo",
+    ]) {
       const definition = BRUSHES.find((b) => b.id === id),
         lease = adapter.acquire(id, { energy: 0.9, flux: 0.6, freq: 3000 });
       const stroke = createBrushStroke(id, {
@@ -73,8 +80,38 @@ test("bubbles, aurora and calligraphy have distinct bounded geometry and visible
         type: stroke.group.children[0].geometry.type,
         visible,
         colorful,
+        vertices: stroke.group.children[0].geometry.attributes.position.count,
+        finite: stroke.group.children.every((mesh) =>
+          Array.from(mesh.geometry.attributes.position.array).every(
+            Number.isFinite,
+          ),
+        ),
+        echoSeparation:
+          id === "echo"
+            ? new THREE.Vector3()
+                .fromBufferAttribute(
+                  stroke.group.children[0].geometry.attributes.position,
+                  200,
+                )
+                .distanceTo(
+                  new THREE.Vector3().fromBufferAttribute(
+                    stroke.group.children[2].geometry.attributes.position,
+                    200,
+                  ),
+                )
+            : 0,
       });
+      stroke.group.traverse((object) => {
+        if (object.material?.uniforms) object.material.uniforms.uFade.value = 0;
+      });
+      renderer.render(scene, camera);
+      renderer.readRenderTargetPixels(target, 0, 0, 192, 192, pixels);
+      output[output.length - 1].fullyFaded = pixels.every(
+        (value) => value === 255,
+      );
       disposeMark(stroke.group);
+      output[output.length - 1].remainingGeometries =
+        renderer.info.memory.geometries;
       lease.release();
     }
     adapter.dispose();
@@ -83,12 +120,23 @@ test("bubbles, aurora and calligraphy have distinct bounded geometry and visible
     renderer.forceContextLoss();
     return output;
   });
-  for (const result of results) expect(result.visible).toBeGreaterThan(100);
+  for (const result of results) {
+    expect(result.visible).toBeGreaterThan(100);
+    expect(result.finite).toBe(true);
+    expect(result.fullyFaded).toBe(true);
+    expect(result.remainingGeometries).toBe(0);
+  }
   expect(results[0].type).toBe("SphereGeometry");
   expect(results[0].meshes).toBe(8);
   expect(results[0].colorful).toBeGreaterThan(30);
   expect(results[1].meshes).toBe(3);
   expect(results[1].colorful).toBeGreaterThan(100);
   expect(results[2].meshes).toBe(1);
+  expect(results[3].meshes).toBe(1);
+  expect(results[3].vertices).toBeGreaterThan(500);
+  expect(results[3].vertices).toBeLessThanOrEqual(2808);
+  expect(results[4].meshes).toBe(2);
+  expect(results[5].meshes).toBe(3);
+  expect(results[5].echoSeparation).toBeGreaterThan(0.5);
   expect(errors).toEqual([]);
 });

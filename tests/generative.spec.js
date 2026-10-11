@@ -87,7 +87,7 @@ test("seeded RGBA cache never evicts live masks, stays bounded and disposes reso
   expect(result.key3).toBe(true);
 });
 
-test("nine brush masks differ and their shared leases remain bounded", async ({
+test("twelve brush masks differ and their shared leases remain bounded", async ({
   page,
 }) => {
   const errors = [];
@@ -107,6 +107,9 @@ test("nine brush masks differ and their shared leases remain bounded", async ({
       "bulles",
       "aurore",
       "calligraphie",
+      "network",
+      "dilution",
+      "echo",
     ];
     const samples = ids.map((id) =>
       adapter.acquire(id, { energy: 1, flux: 0.7, freq: 4000 }),
@@ -131,10 +134,10 @@ test("nine brush masks differ and their shared leases remain bounded", async ({
     adapter.dispose();
     return { distinct, unknown, before, after: adapter.stats };
   });
-  expect(result.distinct).toBe(9);
+  expect(result.distinct).toBe(12);
   expect(result.unknown).toBeNull();
-  expect(result.before.entries).toBe(18);
-  expect(result.before.generated).toBe(18);
+  expect(result.before.entries).toBe(24);
+  expect(result.before.generated).toBe(24);
   expect(result.before.leases).toBe(1000);
   expect(result.after.entries).toBe(0);
   expect(result.after.generated).toBe(result.after.disposed);
@@ -173,8 +176,8 @@ test("real MP3 playback preserves disabled behavior and releases generated masks
     const stats = JSON.parse(
       await canvas.getAttribute("data-generative-textures"),
     );
-    expect(stats.generated).toBe(18);
-    expect(stats.entries).toBe(18);
+    expect(stats.generated).toBe(24);
+    expect(stats.entries).toBe(24);
     await page.getByRole("button", { name: "Voiles", exact: true }).click();
     await page
       .getByLabel("Importer un fichier audio")
@@ -315,6 +318,9 @@ test("imported images replace existing and future generated textures on every br
     "Bulles",
     "Aurore",
     "Calligraphie",
+    "Network",
+    "Dilution",
+    "Echo",
   ];
   const ids = [
     "voiles",
@@ -326,6 +332,9 @@ test("imported images replace existing and future generated textures on every br
     "bulles",
     "aurore",
     "calligraphie",
+    "network",
+    "dilution",
+    "echo",
   ];
   for (let i = 0; i < names.length; i++) {
     await page
@@ -366,6 +375,6 @@ test("imported images replace existing and future generated textures on every br
     await canvas.getAttribute("data-generative-textures"),
   );
   expect(stats.leases).toBe(0);
-  expect(stats.entries).toBe(18);
-  expect(stats.generated).toBe(18);
+  expect(stats.entries).toBe(24);
+  expect(stats.generated).toBe(24);
 });

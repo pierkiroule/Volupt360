@@ -146,7 +146,7 @@ label:focus-visible {
 }
 .brush-palette {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
   padding: 0 30px 14px;
 }
@@ -601,7 +601,7 @@ label:focus-visible {
 }
 @media (max-width: 600px) {
   .brush-palette {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 0 0 10px;
   }
@@ -614,4 +614,14 @@ label:focus-visible {
     height: 24px;
     font-size: 22px;
   }
+}
+
+.brush-network .brush-swatch {
+  color: #398b87;
+}
+.brush-dilution .brush-swatch {
+  color: #568bae;
+}
+.brush-echo .brush-swatch {
+  color: #9963a8;
 }

@@ -14,11 +14,11 @@ Mobile : ratio de pixels plafonné à 1,5 ; coût des nombreux dépôts transpar
 
 ## Architecture
 
-- `TextureFactory.js` : pixels RGBA Canvas 2D, contours organiques diffus, accumulation au bord et granulation ; générateur pseudo-aléatoire déterministe par seed. Taille plafonnée à 256, capacité plafonnée à 24 ; l’adaptateur utilise **18 textures de 128 × 128**, deux par brosse.
+- `TextureFactory.js` : pixels RGBA Canvas 2D, contours organiques diffus, accumulation au bord et granulation ; générateur pseudo-aléatoire déterministe par seed. Taille plafonnée à 256, capacité plafonnée à 24 ; l’adaptateur utilise **24 textures de 128 × 128**, deux par brosse.
 - `prepare()` : génération explicite hors rendu. Une texture en cours d’utilisation ne peut pas être évincée. Un cache saturé de références actives refuse une préparation supplémentaire. Les entrées inutilisées sont évincées selon leur dernière acquisition.
 - `acquire()` : accès sans génération, avec une référence à libérer une seule fois. Éviction et fermeture appellent `Texture.dispose()` et libèrent le stockage Canvas. La fermeture refuse les références encore actives.
 - `MaterialGrammar.js` : fonction pure de traduction acoustique en étalement, irrégularité, granulation et opacité. Aucune correspondance psychologique. Entrées invalides normalisées ; silence explicite ou RMS faible.
-- `createGenerativeMaterials.js` : prépare deux variantes par brosse au démarrage et les sélectionne selon le son pour les **neuf brosses**. Les variations sont quantifiées ; aucune fabrication dans une frame.
+- `createGenerativeMaterials.js` : prépare deux variantes par brosse au démarrage et les sélectionne selon le son pour les **douze brosses**. Les variations sont quantifiées ; aucune fabrication dans une frame.
 - `createSoundNest.js` : raccord minimal, acquisition à la naissance d’un tracé et libération à son effacement, à la limite de ressources, au reset et au démontage. Les images importées ont priorité sur les masques générés, pour les traces existantes et futures. Le remplacement libère les références générées sans détruire les textures encore partagées.
 
 Pas de changement UI, bibliothèque, pipeline audio ou gestes. Le shader permet désormais un masque unique pour chaque dépôt généré ; les images importées gardent leur répétition précédente. Les textures générées sont des masques alpha ; le shader existant garde la couleur de l’encre. Pas de variation continue de texture à chaque échantillon sonore. Les lavis, strates, nervures, filaments, taches et éclaboussures ont des motifs alpha distincts.
@@ -47,7 +47,7 @@ Résultats exécutés : build réussi avec le drapeau désactivé et activé ; f
 
 Le MP3 de test est un sinus de trois secondes généré localement avec FFmpeg ; aucun son externe ni dépendance FFmpeg pour exécuter les tests.
 
-Les tests couvrent les neuf brosses actuelles, fichiers WAV et MP3, boucles et pause, caméra et gyro simulé, gestes et mise en page mobile, dissolution, imports de masques, erreurs JavaScript/WebGL, reproductibilité RGBA, éviction protégée, 1 000 acquisitions sans génération, libération et cache borné.
+Les tests couvrent les douze brosses actuelles, fichiers WAV et MP3, boucles et pause, caméra et gyro simulé, gestes et mise en page mobile, dissolution, imports de masques, erreurs JavaScript/WebGL, reproductibilité RGBA, éviction protégée, 1 000 acquisitions sans génération, libération et cache borné.
 
 Les contrôles de références et de cache ne constituent pas un profilage exhaustif du heap ou du pilote GPU. Fluidité sur téléphone physique et gyro réel restent à vérifier. Microphone, scratch avant/arrière, tap-splatch et export PNG ne sont pas testés : fonctions absentes du point de départ. Aucune restauration de ces fonctions dans cette PR.
 
@@ -58,3 +58,7 @@ Validation de l’extension aux six brosses : build et formatage réussis ; suit
 Extension de la palette : Bulles (sphères à centre transparent et reflets multicolores), Aurore (trois voiles torsadés irisés), Calligraphie (arabesques à pleins et déliés). Chaque nouvelle brosse dispose de deux masques dédiés, accepte les images importées et suit le cycle de dissolution existant. Les bulles sont espacées à deux sphères tous les six échantillons de déplacement pour limiter les dépôts ; la palette mobile affiche deux rangées.
 
 Validation de la palette à neuf brosses : compilation et formatage réussis ; 26 tests Playwright réussis sous Chromium avec WebGL logiciel. Vérifications supplémentaires : géométries distinctes, pigments visibles et multicolores, neuf masques différents, imports sur les neuf brosses et cache limité à dix-huit textures. La fluidité et les capteurs sur téléphone physique restent à vérifier.
+
+Network regroupe ses liens et nœuds dans une seule géométrie bornée par tracé ; Dilution utilise deux rubans diffus et Echo trois rubans avec retards de quatre et huit échantillons. Les trois acceptent les masques importés. Le cache reste plafonné à vingt-quatre textures préparées au démarrage. Persistance : 200 secondes de base et 48 secondes de dissolution, modulées par densité et importance, avec plafond inchangé de 80 tracés.
+
+Validation de la palette à douze brosses : build et formatage réussis ; 26 tests Playwright réussis sous Chromium avec WebGL logiciel. Tests étendus aux douze imports et à la lecture audio sur toutes les brosses, aux vingt-quatre textures, à la persistance prolongée et à l’effacement irréversible. Rendu GPU : six nouvelles brosses visibles, séparation spatiale des échos, géométrie Network bornée, disparition complète à fade nul et géométries GPU libérées après destruction. Fluidité sur téléphone physique encore à vérifier.
