@@ -1,31 +1,131 @@
 import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header.jsx";
+import CameraViews from "./components/CameraViews.jsx";
 import ControlPanel from "./components/ControlPanel.jsx";
 import { createSoundNest } from "./engine/createSoundNest.js";
+import { createLoopPlayer } from "./audio/createLoopPlayer.js";
+import { analyzeLoops } from "./audio/analyzeLoops.js";
+
+const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
-  const root = useRef(null);
-  const [error, setError] = useState("");
+  const stage = useRef(null),
+    engine = useRef(null),
+    player = useRef(null),
+    loadRequest = useRef(0);
+  const [mode, setMode] = useState("drone"),
+    [brush, setBrush] = useState("voiles");
+  const [hint, setHint] = useState("Au cœur du paysage · vol doux");
+  const [track, setTrack] = useState(null),
+    [selected, setSelected] = useState(null);
+  const [playback, setPlayback] = useState(initialPlayback);
+  const [loading, setLoading] = useState(false),
+    [error, setError] = useState(""),
+    [sceneError, setSceneError] = useState("");
 
   useEffect(() => {
     try {
-      return createSoundNest(root.current);
+      engine.current = createSoundNest(stage.current, {
+        onHint: setHint,
+        onError: setSceneError,
+      });
     } catch (cause) {
-      setError(
-        `La scène 3D ne peut pas démarrer. Vérifiez que WebGL est activé dans votre navigateur. ${cause.message}`,
+      setSceneError(
+        `La scène ne peut pas démarrer. Vérifiez WebGL : ${cause.message}`,
       );
     }
+    return () => {
+      loadRequest.current++;
+      engine.current?.dispose();
+      engine.current = null;
+      player.current?.dispose();
+      player.current = null;
+    };
   }, []);
 
+  function chooseBrush(id) {
+    setBrush(id);
+    engine.current?.setBrush(id);
+  }
+  function chooseCamera(id) {
+    setMode(id);
+    void engine.current?.setCameraMode(id);
+  }
+  async function loadFile(file) {
+    const request = ++loadRequest.current;
+    setLoading(true);
+    setError("");
+    try {
+      if (!player.current) {
+        player.current = createLoopPlayer();
+        engine.current?.setPlayer(player.current, setPlayback);
+      }
+      player.current.pause();
+      setPlayback(player.current.getState());
+      const buffer = await player.current.decode(file);
+      if (request !== loadRequest.current) return;
+      const analysis = analyzeLoops(buffer);
+      player.current.setBuffer(buffer);
+      engine.current?.reset();
+      setTrack({ name: file.name, duration: buffer.duration, ...analysis });
+      setSelected(null);
+      try {
+        await player.current.play();
+      } catch {
+        if (request === loadRequest.current)
+          setError("Appuyez sur lecture pour démarrer la musique.");
+      }
+      if (request === loadRequest.current)
+        setPlayback(player.current.getState());
+    } catch (cause) {
+      if (request === loadRequest.current)
+        setError(`Ce fichier audio ne peut pas être ouvert. ${cause.message}`);
+    } finally {
+      if (request === loadRequest.current) setLoading(false);
+    }
+  }
+  async function togglePlayback() {
+    try {
+      if (player.current?.getState().playing) player.current.pause();
+      else await player.current?.play();
+      if (player.current) setPlayback(player.current.getState());
+      setError("");
+    } catch (cause) {
+      setError(`Lecture indisponible : ${cause.message}`);
+    }
+  }
+  function chooseLoop(index) {
+    setSelected(index);
+    player.current?.selectLoop(index === null ? null : track.loops[index]);
+    if (player.current) setPlayback(player.current.getState());
+  }
   return (
-    <main ref={root}>
-      <div id="stage" aria-label="Scène de peinture sonore 3D" />
+    <main>
+      <div id="stage" ref={stage} />
       <Header />
-      <div id="gyroHint" />
-      <ControlPanel />
-      {error && (
+      <CameraViews mode={mode} onChange={chooseCamera} />
+      <p className="view-hint" role="status">
+        {hint}
+      </p>
+      <div className="landscape-caption" aria-hidden="true">
+        <span>UN MONDE AUTOUR DE VOUS</span>
+        <span>Glisser pour tourner · le son pour peindre</span>
+      </div>
+      <ControlPanel
+        brush={brush}
+        onBrush={chooseBrush}
+        track={track}
+        playback={playback}
+        selected={selected}
+        loading={loading}
+        error={error}
+        onFile={loadFile}
+        onToggle={togglePlayback}
+        onLoop={chooseLoop}
+      />
+      {sceneError && (
         <p role="alert" className="startup-error">
-          {error}
+          {sceneError}
         </p>
       )}
     </main>

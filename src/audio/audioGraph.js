@@ -10,20 +10,6 @@ export function createAudioGraph() {
   return { ctx, analyser, bins, wave, prev };
 }
 
-export function reverseAudioBuffer(ctx, buffer) {
-  const reversed = ctx.createBuffer(
-    buffer.numberOfChannels,
-    buffer.length,
-    buffer.sampleRate,
-  );
-  for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
-    const from = buffer.getChannelData(channel);
-    const to = reversed.getChannelData(channel);
-    for (let i = 0; i < from.length; i++) to[i] = from[from.length - 1 - i];
-  }
-  return reversed;
-}
-
 export function readAudioFeatures({ analyser, bins, wave, prev, ctx }) {
   analyser.getByteFrequencyData(bins);
   analyser.getByteTimeDomainData(wave);

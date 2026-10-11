@@ -1,24 +1,26 @@
-const brushes = [
-  ["danse", "〰 Voiles"],
-  ["vegetal", "✺ Pigments"],
-  ["calligraphie", "✒ Filaments"],
-  ["bulles", "◌ Bulles légères"],
-  ["splatch", "✱ Splatch noir"],
-];
+import { BRUSHES } from "../engine/brushes.js";
 
-export default function BrushSelector() {
+export default function BrushSelector({ selected, onChange }) {
   return (
-    <div className="styles" role="group" aria-label="Style de tracé">
-      <span className="style-label">Pinceau</span>
-      {brushes.map(([style, label]) => (
+    <div
+      className="brush-palette"
+      role="group"
+      aria-label="Palette aquarelle : six brosses"
+    >
+      {BRUSHES.map((brush) => (
         <button
-          key={style}
-          type="button"
-          className="style-btn"
-          data-style={style}
-          aria-pressed={style === "danse"}
+          key={brush.id}
+          className={`brush brush-${brush.id}`}
+          aria-label={brush.name}
+          aria-pressed={selected === brush.id}
+          title={brush.detail}
+          onClick={() => onChange(brush.id)}
+          style={{ "--pigment": brush.color }}
         >
-          {label}
+          <span className="brush-swatch" aria-hidden="true">
+            {brush.glyph}
+          </span>
+          <span>{brush.name}</span>
         </button>
       ))}
     </div>
