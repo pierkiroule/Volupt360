@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
+import { createGenerativeMaterials } from "./createGenerativeMaterials.js";
 import { BRUSHES, createBrushStroke, disposeMark } from "./brushes.js";
 import { createCameraRig } from "./createCameraRig.js";
 import { compositionAt, createTrackPalette } from "./artDirection.js";
@@ -75,6 +77,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     reportState = null,
     boundsDirty = false;
   let palette = createTrackPalette();
+  const generative = ENABLE_GENERATIVE_TEXTURES
+    ? createGenerativeMaterials()
+    : null;
   const textures = new Map();
   const marks = [],
     totalBounds = new THREE.Box3(),
@@ -88,6 +93,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     velocity: sample.velocity.clone(),
   });
 
+  function destroyStroke(mark) {
+    disposeMark(mark.object);
+    mark.textureLease?.release();
+  }
   function closeStroke() {
     activeStroke?.stroke.finish();
     activeStroke = null;
@@ -96,14 +105,16 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     closeStroke();
     const color = palette.colorFor(id, serial);
     const region = compositionAt(pose.position);
+    const textureLease = generative?.acquire(id, pose.acoustic || pose);
     const stroke = createBrushStroke(id, {
       seed: serial++ * 1.37,
       color,
-      texture: textures.get(id),
+      texture: textureLease?.binding || textures.get(id),
     });
     landscape.add(stroke.group);
     activeStroke = {
       stroke,
+      textureLease,
       object: stroke.group,
       brush: id,
       born: elapsed,
@@ -121,7 +132,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       stroke.append(lastSample);
       activeStroke.bounds.expandByPoint(lastSample.position);
     }
-    while (marks.length > 80) disposeMark(marks.shift().object);
+    while (marks.length > 80) destroyStroke(marks.shift());
     renderer.domElement.dataset.markCount = String(marks.length);
   }
   function addSample(pose) {
@@ -158,7 +169,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   function reset() {
     closeStroke();
-    marks.forEach((mark) => disposeMark(mark.object));
+    marks.forEach(destroyStroke);
     marks.length = 0;
     flight.reset();
     serial = 0;
@@ -234,7 +245,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       navigation.progress = pose.progress;
       tip.position.copy(pose.position);
       if (sampleClock >= 0.12) {
-        addSample(pose);
+        addSample(generative ? { ...pose, acoustic: f } : pose);
         sampleClock %= 0.12;
       }
     } else {
@@ -271,7 +282,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           }
         });
         if (fade < 0.012 && item !== activeStroke) {
-          disposeMark(item.object);
+          destroyStroke(item);
           marks.splice(i, 1);
           boundsDirty = true;
         }
@@ -286,6 +297,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       onError?.(error.message);
     }
     if (now - lastReport > 80) {
+      if (generative) {
+        renderer.domElement.dataset.generativeTextures = JSON.stringify(
+          generative.stats,
+        );
+        renderer.domElement.dataset.generativeStrokes = String(
+          marks.filter((mark) => mark.textureLease).length,
+        );
+      }
       renderer.domElement.dataset.paintedSamples = String(paintedSamples);
       renderer.domElement.dataset.texturedStrokes = String(
         marks.filter((mark) =>
@@ -335,7 +354,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const previous = textures.get(id);
       textures.set(id, binding);
       marks
-        .filter((mark) => mark.brush === id)
+        .filter((mark) => mark.brush === id && !mark.textureLease)
         .forEach((mark) => mark.stroke.setTexture(binding));
       previous?.texture.dispose();
     },
@@ -352,7 +371,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       rig.dispose();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
-      marks.forEach((mark) => disposeMark(mark.object));
+      marks.forEach(destroyStroke);
+      generative?.dispose();
       textures.forEach((binding) => binding.texture.dispose());
       tip.geometry.dispose();
       tip.material.dispose();
