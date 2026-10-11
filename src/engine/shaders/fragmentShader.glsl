@@ -1,5 +1,5 @@
 uniform sampler2D uBrushMask;
-uniform float uHasMask,uMaskAspect;
+uniform float uHasMask,uMaskAspect,uMaskRepeat;
 uniform float uAge;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
@@ -77,7 +77,7 @@ if(uStyle>13.5){
 }
 alpha*=uFade*(1.-smoothstep(40.,90.,length(vView))*.28);
 if(uHasMask>.5){
-  vec2 maskUv=vec2(uv.x,uv.y*4.*uMaskAspect);
+  vec2 maskUv=vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
   float imageAlpha=texture2D(uBrushMask,maskUv).a;
   alpha*=imageAlpha;
   col*=.88+.12*imageAlpha;

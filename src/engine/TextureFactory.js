@@ -88,7 +88,7 @@ export class TextureFactory {
     texture.wrapS = texture.wrapT = RepeatWrapping;
     texture.minFilter = texture.magFilter = LinearFilter;
     const entry = {
-      binding: { texture, aspect: 1 },
+      binding: { texture, aspect: 1, repeat: 1 },
       refs: 0,
       used: ++this.serial,
     };

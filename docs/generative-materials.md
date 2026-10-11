@@ -21,17 +21,17 @@ Mobile : ratio de pixels plafonné à 1,5 ; coût des nombreux dépôts transpar
 - `createGenerativeMaterials.js` : prépare quatre profils au démarrage et les sélectionne selon le son pour **Éclats seulement**. Les variations sont quantifiées ; aucune fabrication dans une frame.
 - `createSoundNest.js` : raccord minimal, acquisition à la naissance d’un tracé et libération à son effacement, à la limite de ressources, au reset et au démontage. Les cinq autres brosses ne reçoivent jamais de masque généré. Les images importées restent disponibles ; pour Éclats, le masque généré a priorité lorsqu’il est activé.
 
-Pas de changement UI, shader, bibliothèque, pipeline audio ou gestes. Les textures générées sont des masques alpha ; le shader existant garde la couleur de l’encre. Pas de variation continue de texture à chaque échantillon sonore.
+Pas de changement UI, bibliothèque, pipeline audio ou gestes. Le shader permet désormais un masque unique pour chaque dépôt généré ; les images importées gardent leur répétition précédente. Les textures générées sont des masques alpha ; le shader existant garde la couleur de l’encre. Pas de variation continue de texture à chaque échantillon sonore.
 
 ## Activation et désactivation
 
 Dans `src/engine/generativeConfig.js` :
 
 ```js
-export const ENABLE_GENERATIVE_TEXTURES = false;
+export const ENABLE_GENERATIVE_TEXTURES = true;
 ```
 
-La livraison reste désactivée. Passer à `true`, puis relancer/recompiler pour essayer. Pour désactiver immédiatement : remettre `false`, recompiler et recharger. Une modification de source ne modifie pas les assets déjà déployés.
+La génération est désormais activée pour Éclats, à la demande de rendre les textures visibles. Sélectionner Éclats puis importer un morceau. Pour désactiver immédiatement : remettre `false`, recompiler et recharger. Une modification de source ne modifie pas les assets déjà déployés.
 
 Désactivé : aucune fabrique n’est créée et les textures existantes sont utilisées. Les tests existants restent inchangés.
 
@@ -39,7 +39,7 @@ Désactivé : aucune fabrique n’est créée et les textures existantes sont ut
 
 Commandes : `npm run build`, `npm run format:check`, `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test`.
 
-Résultats exécutés : build réussi avec le drapeau désactivé et activé ; formatage réussi ; 19 tests de suite + le test MP3 supplémentaire réussis avec `false`, puis suite complète de 20 tests réussie avec `true`. Le drapeau a ensuite été restauré à `false`.
+Résultats exécutés : build réussi avec le drapeau désactivé et activé ; formatage réussi ; 19 tests de suite + le test MP3 supplémentaire réussis avec `false`, puis suite complète de 20 tests réussie avec `true`. Ce sont les résultats de la livraison initiale. Après activation et correction du masque unique : build et formatage réussis, 20 tests de suite réussis et un test WebGL supplémentaire réussi, comparant les pixels avec/sans masque tout en vérifiant la présence d’encre visible.
 
 Le MP3 de test est un sinus de trois secondes généré localement avec FFmpeg ; aucun son externe ni dépendance FFmpeg pour exécuter les tests.
 

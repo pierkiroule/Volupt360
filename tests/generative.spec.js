@@ -174,3 +174,79 @@ test("real MP3 playback preserves disabled behavior and releases generated masks
   await expect(page.getByRole("alert")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test("generated ink mask visibly changes actual WebGL pixels without affecting other brushes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { createBrushStroke, disposeMark } =
+      await import("/src/engine/brushes.js");
+    const { createGenerativeMaterials } =
+      await import("/src/engine/createGenerativeMaterials.js");
+    const adapter = createGenerativeMaterials();
+    const lease = adapter.acquire("lagons", {
+      energy: 1,
+      flux: 0.8,
+      freq: 4000,
+    });
+    const renderer = new THREE.WebGLRenderer({ antialias: false });
+    const target = new THREE.WebGLRenderTarget(192, 192);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#f4f0e8");
+    const camera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 30);
+    camera.position.set(0, 0, 12);
+    camera.lookAt(0, 0, 0);
+    renderer.setRenderTarget(target);
+    const stroke = createBrushStroke("lagons", {
+      seed: 1,
+      color: new THREE.Color("#211f25"),
+    });
+    stroke.append({
+      position: new THREE.Vector3(),
+      side: new THREE.Vector3(1, 0, 0),
+      up: new THREE.Vector3(0, 1, 0),
+      direction: new THREE.Vector3(0, 0, 1),
+      energy: 1,
+      motion: 1,
+      time: 1,
+    });
+    scene.add(stroke.group);
+    const read = () => {
+      renderer.render(scene, camera);
+      const pixels = new Uint8Array(192 * 192 * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, 192, 192, pixels);
+      return pixels;
+    };
+    const before = read();
+    stroke.setTexture(lease.binding);
+    const repeat = stroke.group.children[0].material.uniforms.uMaskRepeat.value;
+    const after = read();
+    let changed = 0,
+      inkBefore = 0,
+      inkAfter = 0;
+    for (let i = 0; i < before.length; i += 4) {
+      if (
+        Math.abs(before[i] - after[i]) +
+          Math.abs(before[i + 1] - after[i + 1]) +
+          Math.abs(before[i + 2] - after[i + 2]) >
+        8
+      )
+        changed++;
+      if (before[i] < 210) inkBefore++;
+      if (after[i] < 210) inkAfter++;
+    }
+    disposeMark(stroke.group);
+    lease.release();
+    adapter.dispose();
+    target.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    return { changed, inkBefore, inkAfter, repeat };
+  });
+  expect(result.repeat).toBe(1);
+  expect(result.changed).toBeGreaterThan(100);
+  expect(result.inkBefore).toBeGreaterThan(100);
+  expect(result.inkAfter).toBeGreaterThan(20);
+});

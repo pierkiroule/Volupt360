@@ -65,6 +65,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uBrushMask: { value: texture?.texture || null },
       uHasMask: { value: texture ? 1 : 0 },
       uMaskAspect: { value: texture?.aspect || 1 },
+      uMaskRepeat: { value: texture?.repeat ?? 4 },
       uTime: { value: 0 },
       uAge: { value: 0 },
       uPigment: { value: 0.88 },
@@ -318,6 +319,7 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
       uniforms.uBrushMask.value = next?.texture || null;
       uniforms.uHasMask.value = next ? 1 : 0;
       uniforms.uMaskAspect.value = next?.aspect || 1;
+      uniforms.uMaskRepeat.value = next?.repeat ?? 4;
     });
   }
   return {
