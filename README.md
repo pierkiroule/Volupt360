@@ -29,9 +29,11 @@ La répétition utilise les limites natives de `AudioBufferSourceNode`, indépen
 
 ## Matières génératives optionnelles
 
-La version consolidée conserve les six brosses, les deux vues caméra, les boucles audio et l’import de textures par appui long. Un générateur Canvas aquarelle peut remplacer le masque d’Éclats uniquement, sans changer les gestes ou le pipeline audio.
+La version consolidée conserve les six brosses, les deux vues caméra, les boucles audio et l’import de textures par appui long. Un générateur Canvas aquarelle fournit un masque propre à chacune des six brosses, sans changer les gestes ou le pipeline audio.
 
-Il est **activé pour Éclats** : `ENABLE_GENERATIVE_TEXTURES = true` dans `src/engine/generativeConfig.js`. Sélectionner **Éclats** et importer un morceau pour voir les taches générées. Revenir à `false` puis recompiler/recharger pour le désactiver. Quatre masques déterministes sont préparés à l’initialisation, avec cache borné et références libérées au retrait des tracés. Aucune génération de pixels pendant le rendu.
+Il est **activé pour les six brosses** : `ENABLE_GENERATIVE_TEXTURES = true` dans `src/engine/generativeConfig.js`. Importer un morceau et choisir une brosse pour voir sa matière générée. Une image importée par appui long a priorité, y compris sur les traces déjà présentes. Revenir à `false` puis recompiler/recharger pour le désactiver. Douze masques déterministes (deux variantes par brosse) sont préparés à l’initialisation, avec cache borné et références libérées au retrait des tracés. Aucune génération de pixels pendant le rendu.
+
+Des surprises rares accompagnent certains accents sonores : halos ambrés, constellations de pigment et petites dentelles. Elles restent locales, ne clignotent pas et n’ajoutent aucune géométrie.
 
 Voir [l’audit, l’architecture et les limites](docs/generative-materials.md). Le dépôt actuel ne propose pas microphone, scratch, peinture par tap ni export PNG.
 

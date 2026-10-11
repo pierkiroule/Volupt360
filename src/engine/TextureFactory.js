@@ -29,6 +29,11 @@ export class TextureFactory {
   prepare({ seed, params = {} }) {
     if (this.closed) throw new Error("TextureFactory is disposed");
     const normalized = {
+      style: ["wash", "mineral", "petal", "thread", "ink", "splatter"].includes(
+        params.style,
+      )
+        ? params.style
+        : "ink",
       spread: clamp(params.spread, 0.6),
       irregularity: clamp(params.irregularity, 0.25),
       granulation: clamp(params.granulation, 0.4),
@@ -64,7 +69,32 @@ export class TextureFactory {
           contour += Math.sin(angle * (i + 2) + wave.phase) * wave.amplitude;
         });
         const feather = Math.min(1, Math.max(0, (contour - radius) / 0.14));
-        const granule = 1 - normalized.granulation * random() * 0.8;
+        const grain = random();
+        const granule = 1 - normalized.granulation * grain * 0.8;
+        const waviness = Math.sin(dy * 13 + harmonics[0].phase) * 0.09;
+        let shape = feather * feather * (3 - 2 * feather);
+        let pigment = granule;
+        if (normalized.style === "wash") {
+          shape = Math.max(0, 1 - Math.abs(dx + waviness) ** 3);
+          pigment =
+            0.65 + 0.3 * Math.sin(dy * 6 + dx * 3 + harmonics[1].phase) ** 2;
+        } else if (normalized.style === "mineral") {
+          shape = Math.max(0.18, 1 - Math.abs(dx) ** 4);
+          pigment =
+            (0.25 + 0.75 * grain ** 0.7) *
+            (0.5 + 0.5 * Math.sin(dy * 45 + dx * 9 + harmonics[2].phase) ** 2);
+        } else if (normalized.style === "petal") {
+          shape = Math.max(0.12, 1 - Math.abs(dx + waviness) ** 2);
+          const vein = Math.abs(
+            Math.sin(dy * 27 + Math.abs(dx) * 16 + harmonics[3].phase),
+          );
+          pigment = (0.35 + 0.65 * Math.exp(-vein * 9)) * granule;
+        } else if (normalized.style === "thread") {
+          shape = 0.35 + 0.65 * Math.sin(dy * 38 + harmonics[4].phase) ** 2;
+          pigment = 0.5 + 0.5 * grain;
+        } else if (normalized.style === "splatter") {
+          pigment = grain > 0.92 ? 0.12 : granule;
+        }
         const edgePool =
           0.65 +
           0.35 * Math.exp(-Math.pow((radius - contour + 0.1) / 0.065, 2));
@@ -74,13 +104,7 @@ export class TextureFactory {
         pixels.data[k + 1] = tone;
         pixels.data[k + 2] = tone + 3;
         pixels.data[k + 3] = Math.round(
-          feather *
-            feather *
-            (3 - 2 * feather) *
-            granule *
-            edgePool *
-            normalized.opacity *
-            255,
+          shape * pigment * edgePool * normalized.opacity * 255,
         );
       }
     ctx.putImageData(pixels, 0, 0);
@@ -88,7 +112,11 @@ export class TextureFactory {
     texture.wrapS = texture.wrapT = RepeatWrapping;
     texture.minFilter = texture.magFilter = LinearFilter;
     const entry = {
-      binding: { texture, aspect: 1, repeat: 1 },
+      binding: {
+        texture,
+        aspect: 1,
+        repeat: ["ink", "splatter"].includes(normalized.style) ? 1 : 3,
+      },
       refs: 0,
       used: ++this.serial,
     };

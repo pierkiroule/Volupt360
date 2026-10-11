@@ -4,7 +4,7 @@
 
 Point de départ : `b4182bd`, branche `feat/react-vite-vercel`. React 19, Vite 7, Three.js 0.164.1 ; aucune nouvelle dépendance.
 
-La mission décrit cinq brosses et des fonctions d’une autre version. Le dépôt contient six brosses dans `src/engine/brushes.js` : Voiles (`voiles`), Falaises (`falaises`), Corolles (`corolles`), Filaments (`filaments`), Encres (`brumes`), Éclats (`lagons`). Éclats est l’équivalent retenu pour « Splatch noir ». Pigments et Bulles ne sont pas présents sous ces noms. Les gestes ne sont pas réintroduits : les pointeurs tournent la sculpture, un tap ne peint pas, et l’appui long sur une brosse importe une image.
+La mission décrit cinq brosses et des fonctions d’une autre version. Le dépôt contient six brosses dans `src/engine/brushes.js` : Voiles (`voiles`), Falaises (`falaises`), Corolles (`corolles`), Filaments (`filaments`), Encres (`brumes`), Éclats (`lagons`). Éclats était la cible de l’intégration initiale, équivalent de « Splatch noir ». La nouvelle demande étend les matières générées aux six brosses. Pigments et Bulles ne sont pas présents sous ces noms. Les gestes ne sont pas réintroduits : les pointeurs tournent la sculpture, un tap ne peint pas, et l’appui long sur une brosse importe une image.
 
 `createSoundNest.js` possède les tracés, leur dissolution et le cycle de vie WebGL. `createCameraRig.js` possède les interactions de scène et le gyro. `createLoopPlayer.js` et `audioGraph.js` décodent les fichiers locaux, lisent des boucles natives et mesurent RMS, énergie, centroïde spectral et flux. Le champ `freq` est un centroïde approximatif, pas une estimation de fondamentale. Le microphone, le scratch et l’export PNG sont absents.
 
@@ -14,14 +14,18 @@ Mobile : ratio de pixels plafonné à 1,5 ; coût des nombreux dépôts transpar
 
 ## Architecture
 
-- `TextureFactory.js` : pixels RGBA Canvas 2D, contours organiques diffus, accumulation au bord et granulation ; générateur pseudo-aléatoire déterministe par seed. Taille plafonnée à 256, capacité plafonnée à 16 ; l’adaptateur utilise **4 textures de 128 × 128**.
+- `TextureFactory.js` : pixels RGBA Canvas 2D, contours organiques diffus, accumulation au bord et granulation ; générateur pseudo-aléatoire déterministe par seed. Taille plafonnée à 256, capacité plafonnée à 16 ; l’adaptateur utilise **12 textures de 128 × 128**, deux par brosse.
 - `prepare()` : génération explicite hors rendu. Une texture en cours d’utilisation ne peut pas être évincée. Un cache saturé de références actives refuse une préparation supplémentaire. Les entrées inutilisées sont évincées selon leur dernière acquisition.
 - `acquire()` : accès sans génération, avec une référence à libérer une seule fois. Éviction et fermeture appellent `Texture.dispose()` et libèrent le stockage Canvas. La fermeture refuse les références encore actives.
 - `MaterialGrammar.js` : fonction pure de traduction acoustique en étalement, irrégularité, granulation et opacité. Aucune correspondance psychologique. Entrées invalides normalisées ; silence explicite ou RMS faible.
-- `createGenerativeMaterials.js` : prépare quatre profils au démarrage et les sélectionne selon le son pour **Éclats seulement**. Les variations sont quantifiées ; aucune fabrication dans une frame.
-- `createSoundNest.js` : raccord minimal, acquisition à la naissance d’un tracé et libération à son effacement, à la limite de ressources, au reset et au démontage. Les cinq autres brosses ne reçoivent jamais de masque généré. Les images importées restent disponibles ; pour Éclats, le masque généré a priorité lorsqu’il est activé.
+- `createGenerativeMaterials.js` : prépare deux variantes par brosse au démarrage et les sélectionne selon le son pour les **six brosses**. Les variations sont quantifiées ; aucune fabrication dans une frame.
+- `createSoundNest.js` : raccord minimal, acquisition à la naissance d’un tracé et libération à son effacement, à la limite de ressources, au reset et au démontage. Les images importées ont priorité sur les masques générés, pour les traces existantes et futures. Le remplacement libère les références générées sans détruire les textures encore partagées.
 
-Pas de changement UI, bibliothèque, pipeline audio ou gestes. Le shader permet désormais un masque unique pour chaque dépôt généré ; les images importées gardent leur répétition précédente. Les textures générées sont des masques alpha ; le shader existant garde la couleur de l’encre. Pas de variation continue de texture à chaque échantillon sonore.
+Pas de changement UI, bibliothèque, pipeline audio ou gestes. Le shader permet désormais un masque unique pour chaque dépôt généré ; les images importées gardent leur répétition précédente. Les textures générées sont des masques alpha ; le shader existant garde la couleur de l’encre. Pas de variation continue de texture à chaque échantillon sonore. Les lavis, strates, nervures, filaments, taches et éclaboussures ont des motifs alpha distincts.
+
+## Surprises graphiques
+
+`graphicSurprises.js` réserve un tracé éligible sur neuf aux accents audibles, avec alternance déterministe de trois motifs : halo ambré, constellation et dentelle. Intensité faible et silence ne déclenchent rien. Le shader localise le motif dans une petite partie du tracé, sans nouveau mesh ni texture. Les masques personnels restent appliqués en dernier pour préserver leurs découpes. Ces motifs ne sont pas des flashes ou des réactions psychologiques.
 
 ## Activation et désactivation
 
@@ -31,7 +35,7 @@ Dans `src/engine/generativeConfig.js` :
 export const ENABLE_GENERATIVE_TEXTURES = true;
 ```
 
-La génération est désormais activée pour Éclats, à la demande de rendre les textures visibles. Sélectionner Éclats puis importer un morceau. Pour désactiver immédiatement : remettre `false`, recompiler et recharger. Une modification de source ne modifie pas les assets déjà déployés.
+La génération est désormais activée pour les six brosses. Importer un morceau et choisir une brosse. Pour désactiver immédiatement : remettre `false`, recompiler et recharger. Une modification de source ne modifie pas les assets déjà déployés.
 
 Désactivé : aucune fabrique n’est créée et les textures existantes sont utilisées. Les tests existants restent inchangés.
 
@@ -48,3 +52,5 @@ Les tests couvrent les six brosses actuelles, fichiers WAV et MP3, boucles et pa
 Les contrôles de références et de cache ne constituent pas un profilage exhaustif du heap ou du pilote GPU. Fluidité sur téléphone physique et gyro réel restent à vérifier. Microphone, scratch avant/arrière, tap-splatch et export PNG ne sont pas testés : fonctions absentes du point de départ. Aucune restauration de ces fonctions dans cette PR.
 
 L’intégration initiale a été fusionnée par la PR #4 dans `feat/react-vite-vercel`. La consolidation synchronise cette branche avec `main`, qui contient les évolutions applicatives de la PR #3. Les changements restants vers `main` concernent les matières génératives et leur documentation. Aucune fusion automatique dans `main`.
+
+Validation de l’extension aux six brosses : build et formatage réussis ; suite de 23 tests réussie, dont distinction des six masques, priorité des images importées et références libérées. Les surprises sont vérifiées pour leur rareté, leur diversité et leur absence en silence.

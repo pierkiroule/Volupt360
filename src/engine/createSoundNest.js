@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { graphicSurprise } from "./graphicSurprises.js";
 import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
 import { createGenerativeMaterials } from "./createGenerativeMaterials.js";
 import { BRUSHES, createBrushStroke, disposeMark } from "./brushes.js";
@@ -105,11 +106,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     closeStroke();
     const color = palette.colorFor(id, serial);
     const region = compositionAt(pose.position);
-    const textureLease = generative?.acquire(id, pose.acoustic || pose);
+    const textureLease = textures.has(id)
+      ? null
+      : generative?.acquire(id, pose.acoustic || pose);
     const stroke = createBrushStroke(id, {
       seed: serial++ * 1.37,
       color,
-      texture: textureLease?.binding || textures.get(id),
+      texture: textures.get(id) || textureLease?.binding,
+      surprise: graphicSurprise(serial - 1, pose.acoustic || pose),
     });
     landscape.add(stroke.group);
     activeStroke = {
@@ -305,6 +309,21 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           marks.filter((mark) => mark.textureLease).length,
         );
       }
+      renderer.domElement.dataset.importedBrushes = [
+        ...new Set(
+          marks
+            .filter(
+              (mark) =>
+                textures.has(mark.brush) &&
+                mark.object.children.some(
+                  (child) =>
+                    child.material?.uniforms?.uBrushMask?.value ===
+                    textures.get(mark.brush).texture,
+                ),
+            )
+            .map((mark) => mark.brush),
+        ),
+      ].join(",");
       renderer.domElement.dataset.paintedSamples = String(paintedSamples);
       renderer.domElement.dataset.texturedStrokes = String(
         marks.filter((mark) =>
@@ -354,8 +373,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const previous = textures.get(id);
       textures.set(id, binding);
       marks
-        .filter((mark) => mark.brush === id && !mark.textureLease)
-        .forEach((mark) => mark.stroke.setTexture(binding));
+        .filter((mark) => mark.brush === id)
+        .forEach((mark) => {
+          mark.stroke.setTexture(binding);
+          mark.textureLease?.release();
+          mark.textureLease = null;
+        });
       previous?.texture.dispose();
     },
     setCameraMode: rig.setMode,

@@ -1,6 +1,6 @@
 uniform sampler2D uBrushMask;
 uniform float uHasMask,uMaskAspect,uMaskRepeat;
-uniform float uAge;
+uniform float uAge,uSurprise;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
 float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -76,6 +76,18 @@ if(uStyle>13.5){
   col=mix(vec3(.018,.016,.023),vec3(.19,.16,.19),sediment*.6+dry*.2);
 }
 alpha*=uFade*(1.-smoothstep(40.,90.,length(vView))*.28);
+// Brief, localized botanical lace, pigment halos and amber constellations.
+float window=1.-smoothstep(.12,.3,abs(vUv.y-.55));
+if(uSurprise>.5 && uSurprise<1.5){
+  float halo=exp(-pow((length((vUv-.5)*vec2(1.2,2.))-.22)/.025,2.))*window;
+  col=mix(col,vec3(.65,.38,.12),halo*.65);alpha=max(alpha,halo*.22*uFade*uOpacity);
+}else if(uSurprise>1.5 && uSurprise<2.5){
+  float stars=step(.985,hash21(floor(vUv*vec2(29.,53.))+uSeed))*window;
+  col=mix(col,vec3(.8,.54,.2),stars*.85);alpha=max(alpha,stars*.45*uFade*uOpacity);
+}else if(uSurprise>2.5){
+  float lace=pow(1.-abs(sin(vUv.x*32.+vUv.y*17.+middle*3.)),18.)*window;
+  alpha*=1.-lace*.75;col=mix(col,vec3(.85,.79,.64),lace*.45);
+}
 if(uHasMask>.5){
   vec2 maskUv=vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
   float imageAlpha=texture2D(uBrushMask,maskUv).a;

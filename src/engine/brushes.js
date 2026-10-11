@@ -66,6 +66,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uHasMask: { value: texture ? 1 : 0 },
       uMaskAspect: { value: texture?.aspect || 1 },
       uMaskRepeat: { value: texture?.repeat ?? 4 },
+      uSurprise: { value: 0 },
       uTime: { value: 0 },
       uAge: { value: 0 },
       uPigment: { value: 0.88 },
@@ -88,7 +89,10 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
  * buffers; cloud and lens brushes leave volumetric deposits along that same
  * journey. All six keep their own cross-section, texture and audio response.
  */
-export function createBrushStroke(id, { seed, color, texture = null }) {
+export function createBrushStroke(
+  id,
+  { seed, color, texture = null, surprise = 0 },
+) {
   const brush = BRUSHES.find((item) => item.id === id) || BRUSHES[0];
   const group = new THREE.Group();
   let textureBinding = texture;
@@ -133,6 +137,7 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
         layer && id === "voiles" ? 0.35 : 1,
         textureBinding,
       );
+      material.uniforms.uSurprise.value = surprise;
       const mesh = new THREE.Mesh(geometry, material);
       mesh.frustumCulled = false;
       group.add(mesh);
@@ -163,6 +168,7 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
             (0.6 + sample.energy * 0.7) * (sample.density ?? 1),
             textureBinding,
           );
+          material.uniforms.uSurprise.value = surprise;
           const mesh = new THREE.Mesh(geometry, material);
           mesh.position
             .copy(sample.position)

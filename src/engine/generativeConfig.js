@@ -1,2 +1,2 @@
-// Visible on Éclats only. Set false, rebuild and reload for immediate rollback.
+// Procedural materials for all six brushes. Set false, rebuild and reload to disable.
 export const ENABLE_GENERATIVE_TEXTURES = true;

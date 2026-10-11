@@ -87,7 +87,7 @@ test("seeded RGBA cache never evicts live masks, stays bounded and disposes reso
   expect(result.key3).toBe(true);
 });
 
-test("generative adapter affects only Éclats and all its leases are releasable", async ({
+test("six brush masks differ and their shared leases remain bounded", async ({
   page,
 }) => {
   const errors = [];
@@ -97,24 +97,41 @@ test("generative adapter affects only Éclats and all its leases are releasable"
     const { createGenerativeMaterials } =
       await import("/src/engine/createGenerativeMaterials.js");
     const adapter = createGenerativeMaterials();
-    const unaffected = [
+    const ids = [
       "voiles",
       "falaises",
       "corolles",
       "filaments",
       "brumes",
-    ].every((id) => adapter.acquire(id, { energy: 1 }) === null);
+      "lagons",
+    ];
+    const samples = ids.map((id) =>
+      adapter.acquire(id, { energy: 1, flux: 0.7, freq: 4000 }),
+    );
+    const signatures = samples.map((lease) =>
+      JSON.stringify(
+        Array.from(
+          lease.binding.texture.image
+            .getContext("2d")
+            .getImageData(0, 0, 128, 128).data,
+        ),
+      ),
+    );
+    const distinct = new Set(signatures).size;
+    samples.forEach((lease) => lease.release());
+    const unknown = adapter.acquire("unknown", {});
     const leases = Array.from({ length: 1000 }, (_, i) =>
       adapter.acquire("lagons", { energy: (i % 4) / 3, flux: 0.4, freq: 1200 }),
     );
     const before = adapter.stats;
     leases.forEach((l) => l.release());
     adapter.dispose();
-    return { unaffected, before, after: adapter.stats };
+    return { distinct, unknown, before, after: adapter.stats };
   });
-  expect(result.unaffected).toBe(true);
-  expect(result.before.entries).toBe(4);
-  expect(result.before.generated).toBe(4);
+  expect(result.distinct).toBe(6);
+  expect(result.unknown).toBeNull();
+  expect(result.before.entries).toBe(12);
+  expect(result.before.generated).toBe(12);
   expect(result.before.leases).toBe(1000);
   expect(result.after.entries).toBe(0);
   expect(result.after.generated).toBe(result.after.disposed);
@@ -153,19 +170,22 @@ test("real MP3 playback preserves disabled behavior and releases generated masks
     const stats = JSON.parse(
       await canvas.getAttribute("data-generative-textures"),
     );
-    expect(stats.generated).toBe(4);
-    expect(stats.entries).toBe(4);
+    expect(stats.generated).toBe(12);
+    expect(stats.entries).toBe(12);
     await page.getByRole("button", { name: "Voiles", exact: true }).click();
     await page
       .getByLabel("Importer un fichier audio")
       .setInputFiles("tests/fixtures/tone.mp3");
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-mark-count")))
+      .toBe(1);
     await expect
       .poll(
         async () =>
           JSON.parse(await canvas.getAttribute("data-generative-textures"))
             .leases,
       )
-      .toBe(0);
+      .toBe(1);
   } else {
     await expect(canvas).not.toHaveAttribute("data-generative-textures");
     await expect(canvas).toHaveAttribute("data-textured-strokes", "0");
@@ -175,7 +195,7 @@ test("real MP3 playback preserves disabled behavior and releases generated masks
   expect(errors).toEqual([]);
 });
 
-test("generated ink mask visibly changes actual WebGL pixels without affecting other brushes", async ({
+test("generated ink mask visibly changes actual WebGL pixels", async ({
   page,
 }) => {
   await page.goto("/");
@@ -223,6 +243,20 @@ test("generated ink mask visibly changes actual WebGL pixels without affecting o
     stroke.setTexture(lease.binding);
     const repeat = stroke.group.children[0].material.uniforms.uMaskRepeat.value;
     const after = read();
+    stroke.group.children.forEach((mesh) => {
+      mesh.material.uniforms.uSurprise.value = 1;
+    });
+    const ornamented = read();
+    let surprisePixels = 0;
+    for (let i = 0; i < after.length; i += 4) {
+      if (
+        Math.abs(after[i] - ornamented[i]) +
+          Math.abs(after[i + 1] - ornamented[i + 1]) +
+          Math.abs(after[i + 2] - ornamented[i + 2]) >
+        8
+      )
+        surprisePixels++;
+    }
     let changed = 0,
       inkBefore = 0,
       inkAfter = 0;
@@ -243,10 +277,86 @@ test("generated ink mask visibly changes actual WebGL pixels without affecting o
     target.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
-    return { changed, inkBefore, inkAfter, repeat };
+    return { changed, inkBefore, inkAfter, repeat, surprisePixels };
   });
   expect(result.repeat).toBe(1);
+  expect(result.surprisePixels).toBeGreaterThan(10);
   expect(result.changed).toBeGreaterThan(100);
   expect(result.inkBefore).toBeGreaterThan(100);
   expect(result.inkAfter).toBeGreaterThan(20);
+});
+
+test("graphic surprises are rare, varied and silent passages stay quiet", async () => {
+  const { graphicSurprise } = await import("../src/engine/graphicSurprises.js");
+  const motifs = Array.from({ length: 90 }, (_, serial) =>
+    graphicSurprise(serial, { energy: 0.8, flux: 0.5 }),
+  );
+  expect(motifs.filter(Boolean)).toHaveLength(10);
+  expect(new Set(motifs.filter(Boolean)).size).toBe(3);
+  expect(graphicSurprise(5, { energy: 0.1, flux: 0.8 })).toBe(0);
+  expect(graphicSurprise(5, { energy: 1, flux: 1, silence: true })).toBe(0);
+});
+
+test("imported images replace existing and future generated textures on every brush", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const canvas = page.locator("canvas");
+  const names = [
+    "Voiles",
+    "Falaises",
+    "Corolles",
+    "Filaments",
+    "Encres",
+    "Éclats",
+  ];
+  const ids = [
+    "voiles",
+    "falaises",
+    "corolles",
+    "filaments",
+    "brumes",
+    "lagons",
+  ];
+  for (let i = 0; i < names.length; i++) {
+    await page
+      .getByLabel(`Texture de ${names[i]}`, { exact: true })
+      .setInputFiles({
+        name: "personal.svg",
+        mimeType: "image/svg+xml",
+        buffer: Buffer.from(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path fill="black" d="M8 8h48v16H8zm16 16h16v32H24z"/></svg>',
+        ),
+      });
+    await expect(
+      page.getByRole("button", { name: names[i], exact: true }),
+    ).toHaveAttribute("title", /personal.svg/);
+    await expect
+      .poll(async () =>
+        (await canvas.getAttribute("data-imported-brushes"))
+          .split(",")
+          .includes(ids[i]),
+      )
+      .toBe(true);
+  }
+  await expect
+    .poll(async () =>
+      Number(await canvas.getAttribute("data-generative-strokes")),
+    )
+    .toBe(0);
+  await page.getByRole("button", { name: "Éclats", exact: true }).click();
+  await page
+    .getByLabel("Importer un fichier audio")
+    .setInputFiles("tests/fixtures/tone.mp3");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
+    .toBeGreaterThan(5);
+  await expect(canvas).toHaveAttribute("data-imported-brushes", "lagons");
+  await expect(canvas).toHaveAttribute("data-generative-strokes", "0");
+  const stats = JSON.parse(
+    await canvas.getAttribute("data-generative-textures"),
+  );
+  expect(stats.leases).toBe(0);
+  expect(stats.entries).toBe(12);
+  expect(stats.generated).toBe(12);
 });
