@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createViewEffects } from "./createViewEffects.js";
 import { graphicSurprise } from "./graphicSurprises.js";
 import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
 import { createGenerativeMaterials } from "./createGenerativeMaterials.js";
@@ -24,6 +25,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   container.append(renderer.domElement);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#f4f0e8");
+  const effects = createViewEffects(renderer);
   const camera = new THREE.PerspectiveCamera(
     80,
     innerWidth / innerHeight,
@@ -296,7 +298,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     if (boundsDirty) updateBounds();
     rig.update(dt);
     try {
-      renderer.render(scene, camera);
+      effects.render(scene, camera);
     } catch (error) {
       onError?.(error.message);
     }
@@ -348,6 +350,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    effects.resize();
   };
   const contextLost = (event) => {
     event.preventDefault();
@@ -381,6 +384,11 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         });
       previous?.texture.dispose();
     },
+    setViewEffects(values) {
+      renderer.domElement.dataset.viewEffects = JSON.stringify(
+        effects.set(values),
+      );
+    },
     setCameraMode: rig.setMode,
     setDroneDistance: rig.setDistance,
     setPlayer(next, callback) {
@@ -399,6 +407,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       textures.forEach((binding) => binding.texture.dispose());
       tip.geometry.dispose();
       tip.material.dispose();
+      effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
