@@ -27,6 +27,9 @@ export function createTwigBank({
     gestures = new Map();
   let ctx,
     master,
+    captureProcessor,
+    captureSink,
+    captureTap,
     recording = null,
     revision = 0,
     playbackRevision = 0,
@@ -72,8 +75,20 @@ export function createTwigBank({
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
       master.connect(ctx.destination);
+      connectCapture();
     }
     return ctx;
+  }
+  function connectCapture() {
+    if (!ctx || !captureTap || captureProcessor) return;
+    captureProcessor = ctx.createScriptProcessor(2048, 1, 1);
+    captureSink = ctx.createGain();
+    captureSink.gain.value = 0;
+    master.connect(captureProcessor);
+    captureProcessor.connect(captureSink);
+    captureSink.connect(ctx.destination);
+    captureProcessor.onaudioprocess = (event) =>
+      captureTap?.(event.inputBuffer.getChannelData(0), ctx.sampleRate);
   }
   function balance() {
     master?.gain.setTargetAtTime(
@@ -335,6 +350,10 @@ export function createTwigBank({
     emit();
   }
   return {
+    setCaptureTap(tap) {
+      captureTap = tap;
+      connectCapture();
+    },
     getSnapshot: snapshot,
     record,
     importSample,
@@ -404,6 +423,10 @@ export function createTwigBank({
       stopAll();
       disposed = true;
       buffers.clear();
+      captureTap = null;
+      if (captureProcessor) captureProcessor.onaudioprocess = null;
+      captureProcessor?.disconnect();
+      captureSink?.disconnect();
       master?.disconnect();
       if (ctx && ctx.state !== "closed") void ctx.close();
     },

@@ -845,7 +845,7 @@ label:focus-visible {
 /* The performance surface: only the two viewpoints, a fold toggle and pads. */
 .immersive .brand {
   top: max(18px, env(safe-area-inset-top));
-  left: 18px;
+  left: 12px;
   transform: none;
   text-align: left;
 }
@@ -915,4 +915,44 @@ label:focus-visible {
     font-size: 10px;
     letter-spacing: 0;
   }
+}
+
+.photo-panel {
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: min(470px, calc(100vw - 28px));
+  padding: 12px;
+  border-radius: 18px;
+  background: #faf7efe0;
+  text-align: center;
+  font-size: 11px;
+}
+.photo-panel p {
+  margin: 0 0 10px;
+}
+.photo-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.photo-actions button {
+  border: 1px solid #385a5530;
+  background: #faf7ef;
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 8px 12px;
+}
+.photo-panel small {
+  display: block;
+  margin-top: 10px;
+  color: #70827a;
+  font-size: 9px;
+}
+.photo-panel a {
+  display: inline-block;
+  margin-top: 12px;
+  color: #385a55;
 }

@@ -22,6 +22,23 @@ export default function App() {
         ? "cueillir"
         : "jouer",
   );
+  const [video, setVideo] = useState(null);
+  const [videoBusy, setVideoBusy] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoError, setVideoError] = useState("");
+  const videoRequest = useRef(0);
+  useEffect(
+    () => () => {
+      videoRequest.current++;
+    },
+    [],
+  );
+  useEffect(
+    () => () => {
+      if (video) URL.revokeObjectURL(video.url);
+    },
+    [video],
+  );
   const [toolsOpen, setToolsOpen] = useState(
     new URLSearchParams(location.search).get("samples") === "empty",
   );
@@ -100,7 +117,34 @@ export default function App() {
     setBrush(id);
     engine.current?.setBrush(id);
   }
+  async function exportVideo() {
+    if (videoBusy) return;
+    const ticket = ++videoRequest.current;
+    setVideoBusy(true);
+    setVideoError("");
+    setVideoProgress(0);
+    try {
+      const result = await engine.current.exportVideodio((value) => {
+        if (ticket === videoRequest.current) setVideoProgress(value);
+      });
+      if (ticket !== videoRequest.current) return;
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      setVideo({
+        url: URL.createObjectURL(result.blob),
+        name: `Oizodio-${stamp}.${result.extension}`,
+      });
+    } catch (cause) {
+      if (ticket === videoRequest.current) setVideoError(cause.message);
+    } finally {
+      if (ticket === videoRequest.current) setVideoBusy(false);
+    }
+  }
   function chooseCamera(id) {
+    if (id === "photo") {
+      twigs.bank.current?.cancelRecording();
+      setToolsOpen(false);
+      setAtelier("jouer");
+    }
     setMode(id);
     void engine.current?.setCameraMode(id);
   }
@@ -178,6 +222,7 @@ export default function App() {
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
       <CameraViews
+        disabled={videoBusy}
         compact={immersive}
         expanded={!immersive || toolsOpen}
         mode={mode}
@@ -195,7 +240,7 @@ export default function App() {
         <span>UN VOYAGE DANS LA MATIÈRE</span>
         <span>Glisser pour tourner · le son pour peindre</span>
       </div>
-      {immersive && (
+      {immersive && mode !== "photo" && (
         <button
           className="atelier-toggle"
           aria-label={
@@ -233,7 +278,51 @@ export default function App() {
           ))}
         </nav>
       )}
-      {atelier !== "mp3" ? (
+      {mode === "photo" && immersive ? (
+        <section className="photo-panel" aria-label="Cadrer une vidéodio">
+          <p>Glisser pour tourner · pincer ou molette pour zoomer</p>
+          <div className="photo-actions">
+            <button
+              aria-label="Dézoomer la photo"
+              disabled={videoBusy}
+              onClick={() => {
+                const zoom = Number(
+                  stage.current.querySelector("canvas").dataset.photoZoom || 1,
+                );
+                engine.current?.setPhotoZoom(zoom * 1.2);
+              }}
+            >
+              −
+            </button>
+            <button
+              aria-label="Zoomer la photo"
+              disabled={videoBusy}
+              onClick={() => {
+                const zoom = Number(
+                  stage.current.querySelector("canvas").dataset.photoZoom || 1,
+                );
+                engine.current?.setPhotoZoom(zoom / 1.2);
+              }}
+            >
+              +
+            </button>
+            <button onClick={exportVideo} disabled={videoBusy}>
+              {videoBusy
+                ? `Création… ${Math.round(videoProgress * 100)} %`
+                : "Créer ma vidéodio · 10 s"}
+            </button>
+          </div>
+          <small>
+            4 s de votre cadrage · 6 s de votre dernier voyage sonore
+          </small>
+          {videoError && <p role="alert">{videoError}</p>}
+          {video && (
+            <a href={video.url} download={video.name}>
+              Télécharger ma vidéodio
+            </a>
+          )}
+        </section>
+      ) : atelier !== "mp3" ? (
         <TwigWorkshop
           mode={atelier}
           {...twigs}

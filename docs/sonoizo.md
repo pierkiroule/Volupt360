@@ -2,7 +2,7 @@
 
 ## Expérience
 
-À l’ouverture, douze mélodies procédurales de 3,8 secondes sont prêtes à jouer. Elles partagent la gamme pentatonique de ré majeur, avec des enveloppes douces et des harmoniques amorties. Aucune lecture ni création d’AudioContext avant une interaction. Le canevas occupe tout l’écran ; seuls le nom discret, deux glyphes carrés de vue, le dépliage et la ligne de pads restent visibles. Le bouton + ouvre les fonctionnalités ; − referme l’atelier en revenant aux pads jouables.
+À l’ouverture, douze mélodies procédurales de 3,8 secondes sont prêtes à jouer. Elles partagent la gamme pentatonique de ré majeur, avec des enveloppes douces et des harmoniques amorties. Aucune lecture ni création d’AudioContext avant une interaction. Le canevas occupe tout l’écran ; seuls le nom discret, trois glyphes carrés de vue, le dépliage et la ligne de pads restent visibles. Le bouton + ouvre les fonctionnalités ; − referme l’atelier en revenant aux pads jouables.
 
 Deux actions, dans une seule application : **Mes sons** permet de remplir les douze pads au microphone ou par import audio ; **Jouer** permet de sculpter en jouant ces sons. Chaque pad correspond à l’une des douze brosses existantes. La buse ailée vole continuellement, y compris lorsque les pads sont silencieux. Seuls les sons joués sur les pads déposent leurs matières sur son trajet ; écouter un sample dans Mes sons ne peint pas.
 
