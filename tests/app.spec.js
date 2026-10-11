@@ -71,7 +71,7 @@ test("rhythmic and silent analysis partition the complete file without gaps", ()
   expect(short.loops[0]).toEqual({ id: 0, start: 0, end: 2 });
 });
 
-test("six brushes, three camera modes and rotation without touch painting", async ({
+test("six brushes, two camera modes and rotation without touch painting", async ({
   page,
 }) => {
   const errors = [];
@@ -93,8 +93,8 @@ test("six brushes, three camera modes and rotation without touch painting", asyn
     "Falaises",
     "Corolles",
     "Filaments",
-    "Brumes",
-    "Lagons",
+    "Encres",
+    "Éclats",
   ]) {
     await palette.getByRole("button", { name, exact: true }).click();
     await expect(
@@ -102,8 +102,9 @@ test("six brushes, three camera modes and rotation without touch painting", asyn
     ).toHaveAttribute("aria-pressed", "true");
     await expect(palette.locator("[aria-pressed=true]")).toHaveCount(1);
   }
-  await page.getByRole("button", { name: "TPV", exact: true }).click();
-  await expect(canvas).toHaveAttribute("data-camera-mode", "tpv");
+  await expect(
+    page.getByRole("button", { name: "TPV", exact: true }),
+  ).toHaveCount(0);
   const markCount = await canvas.getAttribute("data-mark-count");
   const revision = Number(await canvas.getAttribute("data-flight-revision"));
   await canvas.click({ position: { x: 400, y: 220 } });
@@ -122,7 +123,9 @@ test("six brushes, three camera modes and rotation without touch painting", asyn
   await expect(canvas).toHaveAttribute("data-camera-mode", "gyro");
   await page.getByRole("button", { name: "FPV drone", exact: true }).click();
   await expect(canvas).toHaveAttribute("data-camera-mode", "drone");
-  await expect(page.locator("input[type=range]")).toHaveCount(0);
+  await expect(
+    page.getByRole("slider", { name: "Distance du drone" }),
+  ).toHaveCount(1);
   await expect(page.getByText(/scratch/i)).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -150,8 +153,8 @@ test("audio paints with all six brushes, pauses, loops a phrase and restores who
     "Falaises",
     "Corolles",
     "Filaments",
-    "Brumes",
-    "Lagons",
+    "Encres",
+    "Éclats",
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
     const count = Number(await canvas.getAttribute("data-painted-samples"));
@@ -289,10 +292,9 @@ test.describe("mobile", () => {
       "Falaises",
       "Corolles",
       "Filaments",
-      "Brumes",
-      "Lagons",
+      "Encres",
+      "Éclats",
       "FPV drone",
-      "TPV",
       "FPV 360° gyro",
     ]) {
       await expect(
@@ -331,15 +333,15 @@ test("the painter travels through XYZ while its drone follows and reframes the g
     .poll(
       async () => {
         const p = await vector("data-painter-position");
-        return Math.hypot(...p);
+        return p[2];
       },
       { timeout: 20000 },
     )
-    .toBeGreaterThan(50);
+    .toBeGreaterThan(18);
   const painter = await vector("data-painter-position"),
     drone = await vector("data-drone-position");
   const extent = await vector("data-sculpture-extent");
-  expect(extent[0]).toBeGreaterThan(12);
+  expect(extent[0]).toBeGreaterThan(3);
   expect(extent[1]).toBeGreaterThan(3);
   expect(extent[2]).toBeGreaterThan(12);
   expect(
@@ -348,8 +350,9 @@ test("the painter travels through XYZ while its drone follows and reframes the g
   expect(
     Math.hypot(...drone.map((value, i) => value - painter[i])),
   ).toBeLessThan(35);
-  await page.getByRole("button", { name: "TPV", exact: true }).click();
-  await expect(canvas).toHaveAttribute("data-camera-mode", "tpv");
+  await expect(
+    page.getByRole("button", { name: "TPV", exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Mettre en pause" }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
@@ -372,8 +375,8 @@ test("each brush long press imports an independent contour/alpha texture", async
     "Falaises",
     "Corolles",
     "Filaments",
-    "Brumes",
-    "Lagons",
+    "Encres",
+    "Éclats",
   ];
   for (const [i, name] of names.entries()) {
     const button = page.getByRole("button", { name, exact: true });
@@ -506,4 +509,81 @@ test.describe("mobile texture gesture", () => {
     expect(mask.clear).toBeGreaterThan(500);
     expect(mask.pigment).toBeGreaterThan(500);
   });
+});
+
+test("orbital weaving surrounds a clear center over repeated musical phrases", async () => {
+  const { createPainterFlight } =
+    await import("../src/engine/createPainterFlight.js");
+  const flight = createPainterFlight(),
+    sectors = new Set();
+  let min = Infinity,
+    max = 0,
+    altitude = 0,
+    previous = null;
+  for (let i = 0; i < 2400; i++) {
+    const pose = flight.update(0.1, {
+      energy: 0.6,
+      low: 0.4,
+      high: 0.5,
+      flux: 0.1,
+      freq: 1200,
+    });
+    const p = pose.position.clone();
+    min = Math.min(min, p.length());
+    max = Math.max(max, p.length());
+    altitude = Math.max(altitude, Math.abs(p.y));
+    sectors.add(Math.floor((Math.atan2(p.z, p.x) + Math.PI) / (Math.PI / 4)));
+    if (previous) expect(p.distanceTo(previous)).toBeLessThan(2);
+    previous = p;
+  }
+  expect(sectors.size).toBe(8);
+  expect(min).toBeGreaterThan(12);
+  expect(max - min).toBeGreaterThan(15);
+  expect(altitude).toBeGreaterThan(10);
+});
+
+test("dense pigment dissolves old marks smoothly while preserving fresh strokes", async () => {
+  const { dissolvePigment } = await import("../src/engine/dissolvePigment.js");
+  const evaluate = (overrides) =>
+    dissolvePigment({
+      age: 80,
+      count: 12,
+      neighbors: 1,
+      fade: 1,
+      dt: 0.1,
+      ...overrides,
+    });
+  expect(evaluate({})).toBe(1);
+  const dense = evaluate({ count: 50, neighbors: 12 });
+  expect(dense).toBeLessThan(1);
+  expect(dense).toBeGreaterThan(0.9);
+  expect(evaluate({ age: 2, count: 50, neighbors: 12 })).toBe(1);
+  expect(evaluate({ fade: dense })).toBe(dense);
+});
+
+test("drone distance reveals the whole work and gyro stays at the sanctuary", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const canvas = page.locator("canvas");
+  const slider = page.getByRole("slider", { name: "Distance du drone" });
+  await slider.fill("1");
+  await expect(canvas).toHaveAttribute("data-drone-distance", "1");
+  await page
+    .getByRole("button", { name: "FPV 360° gyro", exact: true })
+    .click();
+  await expect(slider).toHaveCount(0);
+  await expect
+    .poll(
+      async () =>
+        Math.hypot(
+          ...(await canvas.getAttribute("data-drone-position"))
+            .split(",")
+            .map(Number),
+        ),
+      { timeout: 10000 },
+    )
+    .toBeLessThan(0.5);
+  await page.getByRole("button", { name: "FPV drone", exact: true }).click();
+  await expect(slider).toHaveValue("1");
 });

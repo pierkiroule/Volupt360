@@ -1,10 +1,9 @@
 const views = [
   ["drone", "FPV drone", "Voyage en drone dans le sillage du pinceau"],
-  ["tpv", "TPV", "Vue extérieure de la sculpture"],
   ["gyro", "FPV 360° gyro", "Regard panoramique avec le gyroscope"],
 ];
 
-export default function CameraViews({ mode, onChange }) {
+export default function CameraViews({ mode, onChange, distance, onDistance }) {
   return (
     <nav className="camera-views" aria-label="Vues caméra">
       {views.map(([id, label, title], index) => (
@@ -20,6 +19,21 @@ export default function CameraViews({ mode, onChange }) {
           {label}
         </button>
       ))}
+      {mode === "drone" && (
+        <label className="drone-distance">
+          <span>Distance</span>
+          <input
+            aria-label="Distance du drone"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={distance}
+            onChange={(event) => onDistance(Number(event.target.value))}
+          />
+          <span aria-hidden="true">Proche · Ensemble</span>
+        </label>
+      )}
     </nav>
   );
 }

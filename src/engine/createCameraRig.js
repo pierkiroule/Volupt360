@@ -10,7 +10,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     dragging = null,
     revision = 0,
     disposed = false;
-  let panoramaYaw = 0;
+  let panoramaYaw = 0,
+    distanceSetting = 0.25;
   let tracking = 0,
     calm = 0;
   const panoramaPosition = new THREE.Vector3();
@@ -51,9 +52,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       tracking = 0;
       calm = 0;
       landscape.updateMatrixWorld(true);
-      panoramaPosition
-        .copy(getFlight().bounds.center)
-        .applyMatrix4(landscape.matrixWorld);
+      panoramaPosition.set(0, 0, 0).applyMatrix4(landscape.matrixWorld);
     }
     revision++;
     canvas.dataset.flightRevision = String(revision);
@@ -61,7 +60,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   listen(canvas, "pointerdown", (event) => {
     if (!event.isPrimary || event.button > 0) return;
     dragging = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    localPivot.copy(getFlight().bounds.center);
+    localPivot.set(0, 0, 0);
     landscape.updateMatrixWorld(true);
     worldPivot.copy(localPivot).applyMatrix4(landscape.matrixWorld);
     canvas.setPointerCapture(event.pointerId);
@@ -134,9 +133,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     }
     const state = getFlight();
     landscape.updateMatrixWorld(true);
-    panoramaPosition
-      .copy(state.bounds.center)
-      .applyMatrix4(landscape.matrixWorld);
+    panoramaPosition.set(0, 0, 0).applyMatrix4(landscape.matrixWorld);
     focus
       .copy(state.position)
       .applyMatrix4(landscape.matrixWorld)
@@ -179,17 +176,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     tracking +=
       ((state.active ? 1 : 0) - tracking) * mix(state.active ? 1.4 : 0.38);
     calm = state.active ? 0 : Math.min(20, calm + dt);
-    if (mode === "tpv") {
-      // Fit the actual work in both portrait and landscape as it expands.
-      const vertical = THREE.MathUtils.degToRad(56 / 2);
-      const horizontal = Math.atan(Math.tan(vertical) * camera.aspect);
-      const distance =
-        (state.bounds.radius * 1.18) / Math.sin(Math.min(vertical, horizontal));
-      desired
-        .copy(center)
-        .addScaledVector(behind.set(1, 0.62, 1.1).normalize(), distance);
-      target.copy(center);
-    } else if (mode === "gyro") {
+    if (mode === "gyro") {
       desired.copy(panoramaPosition);
       target
         .copy(panoramaPosition)
@@ -219,9 +206,20 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         )
         .addScaledVector(lateral, 5 + Math.sin(phase * 0.6) * 3)
         .addScaledVector(up, 8 + Math.min(25, state.bounds.radius * 0.25));
-      desired.copy(overview).lerp(follow, tracking);
+      const halfFov = Math.atan(
+        Math.tan(THREE.MathUtils.degToRad(74 / 2)) * Math.min(1, camera.aspect),
+      );
+      overview
+        .copy(center)
+        .addScaledVector(
+          behind.copy(direction).negate().addScaledVector(up, 0.45).normalize(),
+          (state.bounds.radius * 1.2) / Math.sin(halfFov),
+        );
+      desired.copy(overview).lerp(follow, tracking * (1 - distanceSetting));
       focus.copy(painter).addScaledVector(velocity, 0.4);
-      target.copy(center).lerp(focus, 0.4 + tracking * 0.6);
+      target
+        .copy(center)
+        .lerp(focus, (0.4 + tracking * 0.6) * (1 - distanceSetting));
     }
     const positionBlend = mix(mode === "drone" ? 1.1 : 2.8);
     camera.position.lerp(desired, positionBlend);
@@ -230,12 +228,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     desiredQuaternion.setFromRotationMatrix(matrix);
     if (mode === "gyro") desiredQuaternion.multiply(gyroRelative);
     camera.quaternion.slerp(desiredQuaternion, mix(mode === "drone" ? 2.1 : 5));
-    const fov =
-      mode === "tpv"
-        ? 56
-        : mode === "gyro"
-          ? 92
-          : 74 + tracking * 8 + state.motion * 3;
+    const fov = mode === "gyro" ? 92 : 74 + tracking * 8 + state.motion * 3;
     camera.fov += (fov - camera.fov) * mix(1.4);
     camera.far = Math.max(
       400,
@@ -246,6 +239,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   return {
     setMode,
+    setDistance(value) {
+      distanceSetting = THREE.MathUtils.clamp(Number(value), 0, 1);
+      canvas.dataset.droneDistance = String(distanceSetting);
+    },
     update,
     reanchor,
     dispose() {

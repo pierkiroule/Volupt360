@@ -15,6 +15,7 @@ export default function App() {
     player = useRef(null),
     loadRequest = useRef(0);
   const textureRequests = useRef({});
+  const [distance, setDistance] = useState(0.25);
   const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
@@ -132,7 +133,15 @@ export default function App() {
     <main>
       <div id="stage" ref={stage} />
       <Header />
-      <CameraViews mode={mode} onChange={chooseCamera} />
+      <CameraViews
+        mode={mode}
+        onChange={chooseCamera}
+        distance={distance}
+        onDistance={(value) => {
+          setDistance(value);
+          engine.current?.setDroneDistance(value);
+        }}
+      />
       <p className="view-hint" role="status">
         {hint}
       </p>

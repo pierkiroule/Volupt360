@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { BRUSHES, createBrushStroke, disposeMark } from "./brushes.js";
 import { createCameraRig } from "./createCameraRig.js";
+import { dissolvePigment } from "./dissolvePigment.js";
 import { createPainterFlight } from "./createPainterFlight.js";
 
 /** A living XYZ trail: the painter moves, the watercolor grows behind it,
@@ -107,6 +108,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       object: stroke.group,
       brush: id,
       born: elapsed,
+      fade: 1,
       bounds: new THREE.Box3(),
     };
     marks.push(activeStroke);
@@ -167,9 +169,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     updateBounds();
     rig.reanchor(true);
   }
-  // A finite opening study hints at a journey through open space. There is no
-  // ring, central bowl or fixed ground plane constraining the musical work.
-  for (let i = 0; i < 135; i++) {
+  // A finite opening study surrounds the sanctuary with an irregular envelope.
+  for (let i = 0; i < 420; i++) {
     const pose = flight.update(0.12, {
       energy: 0.45,
       low: 0.25,
@@ -177,8 +178,15 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       flux: 0.05,
       freq: 1100 + Math.sin(i * 0.11) * 700,
     });
-    if (i % 45 === 0) {
-      brush = ["voiles", "corolles", "falaises"][Math.floor(i / 45)];
+    if (i % 70 === 0) {
+      brush = [
+        "voiles",
+        "corolles",
+        "falaises",
+        "filaments",
+        "brumes",
+        "lagons",
+      ][Math.floor(i / 70)];
       closeStroke();
     }
     addSample(pose);
@@ -225,14 +233,29 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       for (let i = marks.length - 1; i >= 0; i--) {
         const item = marks[i],
           age = elapsed - item.born;
-        const fade = 1 - THREE.MathUtils.smoothstep(age, 150, 210);
+        // Dense nearby pigment accelerates dissolution of older marks smoothly.
+        let neighbors = 0;
+        const midpoint = item.bounds.getCenter(new THREE.Vector3());
+        for (const other of marks) {
+          if (other !== item && other.bounds.distanceToPoint(midpoint) < 9)
+            neighbors++;
+        }
+        item.fade = dissolvePigment({
+          age,
+          count: marks.length,
+          neighbors,
+          fade: item.fade,
+          dt,
+        });
+        const fade = item.fade;
         item.object.traverse((object) => {
           if (object.material?.uniforms) {
             object.material.uniforms.uTime.value = elapsed;
+            object.material.uniforms.uAge.value = age;
             object.material.uniforms.uFade.value = fade;
           }
         });
-        if (fade <= 0 && item !== activeStroke) {
+        if (fade < 0.012 && item !== activeStroke) {
           disposeMark(item.object);
           marks.splice(i, 1);
           boundsDirty = true;
@@ -298,6 +321,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       previous?.texture.dispose();
     },
     setCameraMode: rig.setMode,
+    setDroneDistance: rig.setDistance,
     setPlayer(next, callback) {
       player = next;
       reportState = callback;

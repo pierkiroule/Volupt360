@@ -41,21 +41,21 @@ export const BRUSHES = [
   },
   {
     id: "brumes",
-    name: "Brumes",
-    detail: "Nuages diffus · pigments suspendus",
-    color: "#a9a9c4",
+    name: "Encres",
+    detail: "Taches noires · diffusion organique",
+    color: "#29232b",
     glyph: "⋰",
-    style: 1,
-    opacity: 0.32,
+    style: 14,
+    opacity: 0.92,
   },
   {
     id: "lagons",
-    name: "Lagons",
-    detail: "Lentilles fluides · membranes irisées",
-    color: "#7bada7",
+    name: "Éclats",
+    detail: "Éclaboussures noires · satellites dispersés",
+    color: "#211f25",
     glyph: "◌",
-    style: 2,
-    opacity: 0.58,
+    style: 15,
+    opacity: 0.88,
   },
 ];
 
@@ -66,6 +66,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uHasMask: { value: texture ? 1 : 0 },
       uMaskAspect: { value: texture?.aspect || 1 },
       uTime: { value: 0 },
+      uAge: { value: 0 },
       uPigment: { value: 0.88 },
       uOpacity: { value: brush.opacity * opacity },
       uLayer: { value: 0 },
@@ -143,11 +144,9 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
       // Volumes are spaced by movement samples, with changing scale and depth.
       // They follow the path rather than occupying repeated radial positions.
       if (count % 3 === 0) {
-        for (let layer = 0; layer < (id === "brumes" ? 3 : 2); layer++) {
+        for (let layer = 0; layer < (id === "brumes" ? 2 : 6); layer++) {
           const isMist = id === "brumes";
-          const geometry = isMist
-            ? new THREE.PlaneGeometry(1, 1)
-            : new THREE.SphereGeometry(1, 14, 10);
+          const geometry = new THREE.PlaneGeometry(1, 1, 6, 6);
           const vertices = geometry.attributes.position.count;
           const colors = new Float32Array(vertices * 3);
           for (let i = 0; i < vertices; i++) color.toArray(colors, i * 3);
@@ -164,9 +163,12 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
             .copy(sample.position)
             .addScaledVector(
               sample.side,
-              Math.sin(count * 1.7 + layer) * (isMist ? 1.7 : 0.8),
+              Math.sin(count * 1.7 + layer) * (isMist ? 1.7 : 3.5),
             )
-            .addScaledVector(sample.up, Math.cos(count * 0.91 + layer) * 0.9);
+            .addScaledVector(
+              sample.up,
+              Math.cos(count * 0.91 + layer) * (isMist ? 0.9 : 2.6),
+            );
           mesh.quaternion.setFromRotationMatrix(
             new THREE.Matrix4().makeBasis(
               sample.side,
@@ -179,8 +181,18 @@ export function createBrushStroke(id, { seed, color, texture = null }) {
             sample.energy * 1.4 +
             Math.sin(seed + count * 0.67 + layer) ** 2;
           mesh.scale.set(
-            isMist ? scale * 2.7 : scale * 1.35,
-            isMist ? scale * 1.7 : scale * 0.28,
+            isMist
+              ? scale * 1.6
+              : scale *
+                  (layer === 0
+                    ? 0.7
+                    : 0.12 + 0.18 * Math.sin(seed + count + layer) ** 2),
+            isMist
+              ? scale * 1.2
+              : scale *
+                  (layer === 0
+                    ? 0.65
+                    : 0.1 + 0.2 * Math.cos(count + layer) ** 2),
             isMist ? 1 : scale * 0.85,
           );
           group.add(mesh);

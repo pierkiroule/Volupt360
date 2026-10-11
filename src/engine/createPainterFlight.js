@@ -1,11 +1,11 @@
 import * as THREE from "three";
 
 /** Connected, sound-shaped journeys. A phrase starts at the previous endpoint
- * with the previous tangent: no radial placement, teleport or fixed orbit.
+ * with the previous tangent, weaving irregular orbits around a clear center.
  */
 export function createPainterFlight() {
-  const position = new THREE.Vector3();
-  const direction = new THREE.Vector3(0.8, 0.18, -1).normalize();
+  const position = new THREE.Vector3(28, 0, 0);
+  const direction = new THREE.Vector3(0, 0.4, 1).normalize();
   const side = new THREE.Vector3()
     .crossVectors(direction, new THREE.Vector3(0, 1, 0))
     .normalize();
@@ -26,23 +26,24 @@ export function createPainterFlight() {
     smoothMotion = 0;
 
   function plan(features) {
-    const seed = phrase * 2.399963 + features.freq / 1500;
-    const endDirection = direction.clone();
-    const yaw =
-      phrase === 0 ? 0 : Math.sin(seed * 1.13) * (0.55 + smoothEnergy * 0.65);
-    endDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-    endDirection.y =
-      Math.sin(phrase * 1.71 + features.freq / 850) * 0.58 +
-      (smoothHigh - smoothLow) * 0.35;
-    endDirection.normalize();
-    const span = 18 + smoothEnergy * 19 + smoothMotion * 8;
-    const end = position.clone().addScaledVector(endDirection, span);
-    const first = position.clone().addScaledVector(direction, span * 0.38);
-    const second = end.clone().addScaledVector(endDirection, -span * 0.32);
-    // Audio changes bend the passage, lift it or make it dive; phase seeds
-    // continue advancing when an audio loop repeats, so space keeps unfolding.
-    second.addScaledVector(up, Math.sin(seed * 0.73) * (2 + smoothHigh * 6));
-    second.addScaledVector(side, Math.cos(seed * 0.91) * (3 + smoothLow * 5));
+    // Orbit a fixed sanctuary, with changing radius, altitude and inclination.
+    // Bézier tangents keep the passage fluid rather than snapping to a ring.
+    const angle = (phrase + 1) * 0.82;
+    const radius = 25 + 11 * Math.sin(phrase * 0.63) + smoothLow * 13;
+    const end = new THREE.Vector3(
+      Math.cos(angle) * radius,
+      Math.sin(angle * 1.7) * (9 + smoothHigh * 10),
+      Math.sin(angle) * radius,
+    );
+    const endDirection = new THREE.Vector3(
+      -Math.sin(angle),
+      Math.cos(angle * 1.7) * 0.5,
+      Math.cos(angle),
+    ).normalize();
+    const span = position.distanceTo(end);
+    const first = position.clone().addScaledVector(direction, span * 0.4);
+    const second = end.clone().addScaledVector(endDirection, -span * 0.4);
+    second.addScaledVector(up, Math.sin(phrase * 1.3) * smoothHigh * 4);
     curve = new THREE.CubicBezierCurve3(position.clone(), first, second, end);
     duration = 4.6 + (1 - smoothEnergy) * 2.7;
     progress = 0;
@@ -97,8 +98,8 @@ export function createPainterFlight() {
   return {
     update,
     reset() {
-      position.set(0, 0, 0);
-      direction.set(0.8, 0.18, -1).normalize();
+      position.set(28, 0, 0);
+      direction.set(0, 0.4, 1).normalize();
       side.crossVectors(direction, new THREE.Vector3(0, 1, 0)).normalize();
       up.crossVectors(side, direction).normalize();
       velocity.set(0, 0, 0);
