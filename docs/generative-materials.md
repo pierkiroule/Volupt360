@@ -47,4 +47,4 @@ Les tests couvrent les six brosses actuelles, fichiers WAV et MP3, boucles et pa
 
 Les contrôles de références et de cache ne constituent pas un profilage exhaustif du heap ou du pilote GPU. Fluidité sur téléphone physique et gyro réel restent à vérifier. Microphone, scratch avant/arrière, tap-splatch et export PNG ne sont pas testés : fonctions absentes du point de départ. Aucune restauration de ces fonctions dans cette PR.
 
-La PR cible la branche applicative `feat/react-vite-vercel` pour isoler ce changement : `main` ne contient encore que l’initialisation du dépôt. Aucune fusion automatique.
+L’intégration initiale a été fusionnée par la PR #4 dans `feat/react-vite-vercel`. La consolidation synchronise cette branche avec `main`, qui contient les évolutions applicatives de la PR #3. Les changements restants vers `main` concernent les matières génératives et leur documentation. Aucune fusion automatique dans `main`.

@@ -27,6 +27,14 @@ La répétition utilise les limites natives de `AudioBufferSourceNode`, indépen
 
 **Le glissement horizontal tourne uniquement la sculpture à 360°** : il ne crée ni peinture ni déformation. Le trajet du drone se recale sur les positions tournées du paysage. La rotation se fait autour du centre fixe de la scène et le drone recalcule son suivi dans les coordonnées tournées. Avant l’import, une étude pâle présente une enveloppe orbitale en trois dimensions. Les peintures musicales s’estompent progressivement. La densité locale et la quantité totale accélèrent la dissolution des dépôts anciens, tandis que les gestes récents restent lisibles. Une limite de ressources demeure en dernier recours.
 
+## Matières génératives optionnelles
+
+La version consolidée conserve les six brosses, les deux vues caméra, les boucles audio et l’import de textures par appui long. Un générateur Canvas aquarelle peut remplacer le masque d’Éclats uniquement, sans changer les gestes ou le pipeline audio.
+
+Il est **désactivé par défaut** : `ENABLE_GENERATIVE_TEXTURES = false` dans `src/engine/generativeConfig.js`. Pour l’essayer, passer à `true` puis recompiler/recharger ; revenir à `false` pour le désactiver. Quatre masques déterministes sont préparés à l’initialisation, avec cache borné et références libérées au retrait des tracés. Aucune génération de pixels pendant le rendu.
+
+Voir [l’audit, l’architecture et les limites](docs/generative-materials.md). Le dépôt actuel ne propose pas microphone, scratch, peinture par tap ni export PNG.
+
 ## Développement
 
 Node.js 22.12 ou supérieur (Node 24 recommandé) et npm.
