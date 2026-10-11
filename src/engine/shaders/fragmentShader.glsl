@@ -78,13 +78,15 @@ if(uStyle>13.5 && uStyle<15.5){
 if(abs(uStyle-16.)<.1){
   float rim=pow(1.-abs(dot(normalize(vNormal),normalize(vView))),2.);
   vec3 spectrum=.5+.5*cos(6.283*(uv.y+uv.x*.3+uSeed*.11)+vec3(0.,2.1,4.2));
-  col=mix(base,spectrum,.85);alpha=(.045+rim*.72)*uOpacity;
+  col=mix(base,spectrum,.85);alpha=(.045+rim*.95)*uOpacity;
 }else if(abs(uStyle-17.)<.1){
   vec3 spectrum=.5+.5*cos(uv.x*4.+uv.y*7.+uSeed+vec3(0.,2.,4.));
   col=mix(base,spectrum,.55);alpha*=.6+.4*sin(uv.x*35.+middle*3.)*sin(uv.x*35.+middle*3.);
 }else if(abs(uStyle-18.)<.1){
   col=mix(base*.24,base,.35+sediment*.3);alpha*=1.15;
 }
+// Strengthen translucent pigment before fading; preserve bubble centers.
+if(abs(uStyle-16.)>.1)alpha=1.-pow(1.-pow(clamp(alpha,0.,1.),.8),1.65);
 alpha*=uFade*(1.-smoothstep(40.,90.,length(vView))*.28);
 // Brief, localized botanical lace, pigment halos and amber constellations.
 float window=1.-smoothstep(.12,.3,abs(vUv.y-.55));
@@ -101,7 +103,8 @@ if(uSurprise>.5 && uSurprise<1.5){
 if(uHasMask>.5){
   vec2 maskUv=vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
   float imageAlpha=texture2D(uBrushMask,maskUv).a;
-  alpha*=imageAlpha;
+  // Preserve empty mask areas while giving semi-transparent grain more body.
+  alpha*=1.-pow(1.-imageAlpha,1.9);
   col*=.88+.12*imageAlpha;
 }
 if(alpha<.012)discard;

@@ -15,9 +15,9 @@ test("fixed watercolor grading stays active in both views without rendering cont
   ).toHaveCount(0);
   const canvas = page.locator("#stage canvas");
   const preset = JSON.stringify({
-    contrast: 1.6,
-    saturation: 1.2,
-    threshold: 0.04,
+    contrast: 2.2,
+    saturation: 1.45,
+    threshold: 0.08,
   });
   await expect(canvas).toHaveAttribute("data-view-effects", preset);
   await page
@@ -71,6 +71,13 @@ test("postprocessing changes actual pigment pixels, preserves paper and restores
     const paper = read();
     effects.set({ contrast: 1.8, saturation: 1.8, threshold: 1 });
     const filteredPaper = read();
+    const washes = ["#b9bdc9", "#7192b5", "#3d4852", "#445560"].map((hex) => {
+      scene.background = new THREE.Color(hex);
+      effects.set({ contrast: 1.6, saturation: 1.2, threshold: 0.04 });
+      const previous = read();
+      effects.set(DEFAULT_VIEW);
+      return { previous, intense: read() };
+    });
     effects.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
@@ -82,12 +89,27 @@ test("postprocessing changes actual pigment pixels, preserves paper and restores
       paper,
       filteredPaper,
       calibrated,
+      washes,
     };
   });
   expect(result.edited).not.toEqual(result.original);
   expect(
     result.calibrated[0] + result.calibrated[1] + result.calibrated[2],
   ).toBeLessThan(result.original[0] + result.original[1] + result.original[2]);
+  const brightness = (pixel) =>
+    pixel.slice(0, 3).reduce((sum, value) => sum + value, 0);
+  expect(brightness(result.washes[0].intense)).toBeLessThan(
+    brightness(result.washes[0].previous) - 20,
+  );
+  const chroma = (pixel) =>
+    Math.max(...pixel.slice(0, 3)) - Math.min(...pixel.slice(0, 3));
+  expect(chroma(result.washes[1].intense)).toBeGreaterThan(
+    chroma(result.washes[1].previous),
+  );
+  expect(result.washes[2].intense.slice(0, 3).every((value) => value > 0)).toBe(
+    true,
+  );
+  expect(result.washes[2].intense).not.toEqual(result.washes[3].intense);
   expect(result.restored).toEqual(result.original);
   expect(result.resized).toEqual(result.edited);
   expect(

@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 export const DEFAULT_VIEW = Object.freeze({
-  contrast: 1.6,
-  saturation: 1.2,
-  threshold: 0.04,
+  contrast: 2.2,
+  saturation: 1.45,
+  threshold: 0.08,
 });
 export const NATURAL_VIEW = { contrast: 1, saturation: 1, threshold: 0 };
 const clamp = (v, min, max, fallback) =>
@@ -43,7 +43,8 @@ export function createViewEffects(renderer) {
         float luma=dot(original,vec3(.2126,.7152,.0722));
         vec3 color=mix(vec3(luma),original,saturation);
         vec3 paper=vec3(.95686,.94118,.90980);
-        color=paper+(color-paper)*contrast;
+        // Paper-relative curve deepens washes without clipping dark pigment.
+        color=paper*pow(max(color/paper,vec3(0.)),vec3(contrast));
         float ink=smoothstep(.42,.58,dot(color,vec3(.2126,.7152,.0722)));
         float inkStrength=threshold*(1.-smoothstep(.55,.88,luma));
         color=mix(color,mix(vec3(.055,.045,.06),paper,ink),inkStrength);
@@ -63,7 +64,7 @@ export function createViewEffects(renderer) {
   return {
     set(next) {
       settings = {
-        contrast: clamp(next.contrast, 0.6, 1.8, 1),
+        contrast: clamp(next.contrast, 0.6, 2.6, 1),
         saturation: clamp(next.saturation, 0, 1.8, 1),
         threshold: clamp(next.threshold, 0, 1, 0),
       };

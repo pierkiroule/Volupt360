@@ -96,7 +96,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uSurprise: { value: 0 },
       uTime: { value: 0 },
       uAge: { value: 0 },
-      uPigment: { value: 0.88 },
+      uPigment: { value: 1.12 },
       uOpacity: { value: brush.opacity * opacity },
       uLayer: { value: 0 },
       uSeed: { value: seed },
