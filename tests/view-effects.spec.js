@@ -9,7 +9,7 @@ test("fixed watercolor grading stays active in both views without rendering cont
     if (m.type() === "error" && /THREE|WebGL|Shader/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   await expect(
     page.getByRole("button", { name: "Rendu", exact: true }),
   ).toHaveCount(0);
@@ -37,7 +37,7 @@ test("fixed watercolor grading stays active in both views without rendering cont
 test("postprocessing changes actual pigment pixels, preserves paper and restores neutral output", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createViewEffects, DEFAULT_VIEW } =

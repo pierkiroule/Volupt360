@@ -1,4 +1,12 @@
-# Volupt360 — NID SONORE•°
+# SONOÏZO•° — Le chant qui sculpte l’espace des possibles
+
+Le lot 1 ajoute un atelier **Cueillir / Jouer** à l’application existante. Cueillez jusqu’à douze brindilles au microphone, dix secondes maximum chacune ; écoutez-les, remplacez-les ou supprimez-les. Dans Jouer, un tap lance un son, un appui maintenu le boucle jusqu’au relâchement et plusieurs pads peuvent jouer ensemble. Chaque pad reprend l’identité de l’une des douze brosses existantes.
+
+Les sons restent **en mémoire pendant la session**, sans transmission ni sauvegarde après rechargement. Le microphone nécessite HTTPS (ou localhost) et une autorisation du navigateur. Les brosses, les textures et la navigation 3D restent disponibles dans **Musique MP3**. Les brindilles ne pilotent pas encore le vol ou la peinture : l’oizo•°, Le Nid, SonoizoDance et BrushBridge appartiennent aux lots suivants.
+
+Désactivation : `VITE_ENABLE_SONOIZO=false npm run build`, puis redéployer. Supprimer cette variable ou la passer à `true` pour réactiver. Le retour au mode MP3 n’efface pas le bouquet pendant la session. Voir [l’audit et la livraison du lot 1](docs/sonoizo-lot-1.md).
+
+## Atelier MP3 existant
 
 Un voyage en drone dans une œuvre aquarelle étendue en trois dimensions. La musique anime un pinceau qui avance dans l’espace et laisse des matières dans son sillage ; la caméra accompagne ce mouvement, anticipe les courbes et révèle l’œuvre dans les moments calmes. React + Vite + Three.js, sans serveur applicatif ni service audio externe.
 

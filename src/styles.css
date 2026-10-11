@@ -625,3 +625,216 @@ label:focus-visible {
 .brush-echo .brush-swatch {
   color: #9963a8;
 }
+
+.atelier-nav {
+  position: fixed;
+  top: 132px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 24px;
+  background: #faf7efed;
+  backdrop-filter: blur(12px);
+}
+.atelier-nav button {
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  padding: 9px 16px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.atelier-nav button[aria-pressed="true"] {
+  background: #385a55;
+  color: #faf7ed;
+}
+.twig-workshop {
+  position: fixed;
+  z-index: 3;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 28px));
+  max-height: 48dvh;
+  overflow-y: auto;
+  padding: 14px;
+  border-radius: 24px;
+  background: #faf7efe0;
+  border: 1px solid #ffffffc0;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px #385a5514;
+}
+.twig-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.twig-pads {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+}
+.twig-pad {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 76px;
+  border: 1px solid color-mix(in srgb, var(--twig-color) 25%, transparent);
+  border-radius: 15px;
+  padding: 6px 2px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--twig-color) 7%, #faf7ef);
+  font-size: 10px;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.twig-pad.is-filled {
+  background: color-mix(in srgb, var(--twig-color) 16%, #faf7ef);
+}
+.twig-pad[aria-pressed="true"] {
+  border-color: var(--twig-color);
+}
+.twig-pad.is-playing {
+  box-shadow:
+    inset 0 0 0 2px var(--twig-color),
+    0 0 18px color-mix(in srgb, var(--twig-color) 28%, transparent);
+}
+.twig-pad:disabled {
+  opacity: 0.5;
+}
+.twig-index {
+  position: absolute;
+  top: 6px;
+  left: 7px;
+  font-size: 8px;
+  opacity: 0.6;
+}
+.twig-glyph {
+  color: var(--twig-color);
+  font-size: 25px;
+  line-height: 28px;
+}
+.twig-pad small {
+  font-size: 8px;
+  color: #6d7c72;
+}
+.twig-network .twig-glyph {
+  transform: rotate(-15deg);
+}
+.twig-dilution .twig-glyph {
+  filter: blur(0.35px);
+}
+.twig-bulles .twig-glyph {
+  background: linear-gradient(120deg, #3cbbc3, #b579bf, #dca657);
+  background-clip: text;
+  color: transparent;
+}
+.twig-editor {
+  margin-top: 12px;
+}
+.twig-editor-caption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.twig-editor-caption span {
+  color: #6d7c72;
+  font-size: 10px;
+}
+.twig-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.twig-actions button {
+  border: 1px solid #718f8133;
+  border-radius: 18px;
+  padding: 9px 12px;
+  background: #faf7ed;
+  font-size: 11px;
+}
+.twig-actions .twig-record {
+  background: #385a55;
+  color: #faf7ed;
+}
+.twig-actions .is-recording {
+  background: #aa685d;
+}
+.twig-editor progress {
+  width: 100%;
+  height: 5px;
+  accent-color: #aa685d;
+}
+.twig-note {
+  margin: 10px 0 0;
+  font-size: 9px;
+  color: #7b8780;
+}
+.twig-error {
+  margin: 8px 0;
+  font-size: 11px;
+  color: #99483e;
+}
+@media (max-width: 600px) {
+  .atelier-nav {
+    top: 160px;
+  }
+  .atelier-nav button {
+    padding: 8px 13px;
+  }
+  .twig-workshop {
+    padding: 10px;
+    max-height: 49dvh;
+  }
+  .twig-pads {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .twig-pad {
+    min-height: 68px;
+  }
+  .twig-glyph {
+    font-size: 22px;
+    line-height: 23px;
+  }
+  .twig-heading {
+    font-size: 10px;
+  }
+  .twig-editor-caption {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+}
+@media (max-height: 600px) {
+  .atelier-nav {
+    top: 108px;
+  }
+  .twig-workshop {
+    max-height: 48dvh;
+  }
+}
+
+.brand p.sonoizo-tagline {
+  display: block;
+}
+@media (max-width: 760px) {
+  .brand:has(.sonoizo-tagline) {
+    text-align: center;
+  }
+  .brand p.sonoizo-tagline {
+    margin-top: 5px;
+    font-size: 8px;
+    white-space: nowrap;
+    letter-spacing: 0.025em;
+  }
+}

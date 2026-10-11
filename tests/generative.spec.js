@@ -19,7 +19,7 @@ test("grammar handles silence, invalid input and acoustic variation without chan
 test("seeded RGBA cache never evicts live masks, stays bounded and disposes resources", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const result = await page.evaluate(async () => {
     const { TextureFactory } = await import("/src/engine/TextureFactory.js");
     const factory = new TextureFactory({ size: 64, maxEntries: 2 });
@@ -92,7 +92,7 @@ test("twelve brush masks differ and their shared leases remain bounded", async (
 }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const result = await page.evaluate(async () => {
     const { createGenerativeMaterials } =
       await import("/src/engine/createGenerativeMaterials.js");
@@ -155,7 +155,7 @@ test("real MP3 playback preserves disabled behavior and releases generated masks
     if (m.type() === "error" && /WebGL|THREE|Shader/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const canvas = page.locator("canvas");
   await page.getByRole("button", { name: "Éclats", exact: true }).click();
   await page
@@ -204,7 +204,7 @@ test("real MP3 playback preserves disabled behavior and releases generated masks
 test("generated ink mask visibly changes actual WebGL pixels", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createBrushStroke, disposeMark } =
@@ -306,7 +306,7 @@ test("graphic surprises are rare, varied and silent passages stay quiet", async 
 test("imported images replace existing and future generated textures on every brush", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const canvas = page.locator("canvas");
   const names = [
     "Voiles",

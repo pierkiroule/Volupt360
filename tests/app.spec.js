@@ -80,7 +80,7 @@ test("twelve brushes, two camera modes and rotation without touch painting", asy
     if (message.type() === "error" && /THREE|WebGL|Shader/.test(message.text()))
       errors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveCount(1);
   await expect(page.getByRole("alert")).toHaveCount(0);
@@ -146,7 +146,7 @@ test("audio paints with all twelve brushes, pauses, loops a phrase and restores 
     if (message.type() === "error" && /THREE|WebGL|Shader/.test(message.text()))
       errors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   await page.getByLabel("Importer un fichier audio").setInputFiles(file());
   await expect(page.getByText("paysage-120bpm.wav")).toBeVisible();
   const pause = page.getByRole("button", { name: "Mettre en pause" });
@@ -215,7 +215,7 @@ test("audio paints with all twelve brushes, pauses, loops a phrase and restores 
 });
 
 test("invalid audio leaves a recoverable import error", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   await page.getByLabel("Importer un fichier audio").setInputFiles({
     name: "corrupt.mp3",
     mimeType: "audio/mpeg",
@@ -239,7 +239,7 @@ test("gyro permission denial preserves panoramic view and touch rotation", async
   await page.addInitScript(() => {
     window.DeviceOrientationEvent.requestPermission = async () => "denied";
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })
     .click();
@@ -258,7 +258,7 @@ test("gyro permission and sensor events orient the central panoramic view", asyn
   await page.addInitScript(() => {
     window.DeviceOrientationEvent.requestPermission = async () => "granted";
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })
     .click();
@@ -298,7 +298,7 @@ test.describe("mobile", () => {
   test.use({ hasTouch: true });
   test("the only palette and track fit a narrow screen", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
+    await page.goto("/?atelier=mp3");
     for (const name of [
       "Voiles",
       "Falaises",
@@ -338,7 +338,7 @@ test.describe("mobile", () => {
 test("the painter travels through XYZ while its drone follows and reframes the growing work", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   await page.getByLabel("Importer un fichier audio").setInputFiles(file());
   await expect(
     page.getByRole("button", { name: "Mettre en pause" }),
@@ -384,7 +384,7 @@ test("each brush long press imports an independent contour/alpha texture", async
     if (message.type() === "error" && /THREE|WebGL|Shader/.test(message.text()))
       errors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   // Keep interception active across repeated native pickers; attaching a
   // transient listener just before a raw mouse-up can race Chromium's toggle.
   page.on("filechooser", () => {});
@@ -458,7 +458,7 @@ test("each brush long press imports an independent contour/alpha texture", async
 test("invalid texture preserves the previous brush and import remains usable", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   await page.getByLabel("Texture de Voiles", { exact: true }).setInputFiles({
     name: "broken.png",
     mimeType: "image/png",
@@ -488,7 +488,7 @@ test.describe("mobile texture gesture", () => {
     context,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
+    await page.goto("/?atelier=mp3");
     const button = page.getByRole("button", { name: "Corolles", exact: true });
     const box = await button.boundingBox();
     const session = await context.newCDPSession(page);
@@ -597,7 +597,7 @@ test("dense pigment dissolves old marks smoothly while preserving fresh strokes"
 test("drone distance reveals the whole work and gyro stays at the sanctuary", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier=mp3");
   const canvas = page.locator("canvas");
   const slider = page.getByRole("slider", { name: "Distance du drone" });
   await slider.fill("1");
