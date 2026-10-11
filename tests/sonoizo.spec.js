@@ -82,7 +82,7 @@ test("lot 1 maps twelve slots to the brushes and keeps navigation and MP3 availa
     "data-camera-mode",
     "gyro",
   );
-  await page.getByRole("button", { name: "Musique MP3", exact: true }).click();
+  await page.goto("/?atelier=mp3");
   await expect(
     page
       .getByRole("group", { name: "Palette aquarelle : douze brosses" })
@@ -181,9 +181,12 @@ test("native microphone records, stops tracks, replaces locally, plays polyphoni
   await expect(voice.locator("small")).toHaveText("en boucle");
   await page.keyboard.up("Space");
   await expect(voice).toHaveAttribute("aria-pressed", "false");
-  await expect(canvas).toHaveAttribute("data-painted-samples", before);
-  await page.getByRole("button", { name: "Musique MP3", exact: true }).click();
-  await page.getByRole("button", { name: "Cueillir", exact: true }).click();
+  expect(
+    Number(await canvas.getAttribute("data-painted-samples")),
+  ).toBeGreaterThan(Number(before));
+  await expect(canvas).toHaveAttribute("data-painted-brushes", /voiles/);
+  await expect(canvas).toHaveAttribute("data-painted-brushes", /echo/);
+  await page.getByRole("button", { name: "Mes sons", exact: true }).click();
   await expect(page.getByLabel("Nombre de brindilles")).toHaveText("2 / 12");
   await page.getByRole("button", { name: "Supprimer Voiles" }).click();
   await expect(page.getByLabel("Nombre de brindilles")).toHaveText("1 / 12");
@@ -193,7 +196,7 @@ test("native microphone records, stops tracks, replaces locally, plays polyphoni
   expect(errors).toEqual([]);
 });
 
-test("native recording stops automatically after ten seconds and stores a capped sample", async ({
+test("native recording stops automatically after five seconds and stores a capped sample", async ({
   page,
 }) => {
   await page.goto("/");
@@ -208,8 +211,8 @@ test("native recording stops automatically after ten seconds and stores a capped
       .locator("small")
       .innerText(),
   );
-  expect(duration).toBeGreaterThanOrEqual(9.5);
-  expect(duration).toBeLessThanOrEqual(10);
+  expect(duration).toBeGreaterThanOrEqual(4.5);
+  expect(duration).toBeLessThanOrEqual(5);
   await expect(page.getByRole("progressbar")).toHaveCount(0);
 });
 
@@ -294,7 +297,7 @@ test("switching acts cancels a recording without replacing a previous twig", asy
   await page.getByRole("button", { name: "Remplacer Voiles" }).click();
   await expect(page.getByRole("progressbar")).toBeVisible();
   await page.getByRole("button", { name: "Jouer", exact: true }).click();
-  await page.getByRole("button", { name: "Cueillir", exact: true }).click();
+  await page.getByRole("button", { name: "Mes sons", exact: true }).click();
   await expect(
     page
       .getByRole("button", { name: "Brindille Voiles", exact: true })
@@ -436,7 +439,7 @@ test("synthetic eleven-second capture is capped exactly, twelve voices stay boun
     };
   });
   expect(result.durations).toHaveLength(12);
-  expect(result.durations.every((duration) => duration === 10)).toBe(true);
+  expect(result.durations.every((duration) => duration === 5)).toBe(true);
   expect(result.voices).toBe(12);
   expect(result.retriggered).toBe(12);
   expect(result.silent).toBe(true);
@@ -461,7 +464,7 @@ test("leaving MP3 while a file decodes prevents late playback in the microphone 
     };
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Musique MP3", exact: true }).click();
+  await page.goto("/?atelier=mp3");
   const canvas = page.locator("#stage canvas"),
     samples = await canvas.getAttribute("data-painted-samples");
   await page
@@ -470,14 +473,15 @@ test("leaving MP3 while a file decodes prevents late playback in the microphone 
   await expect
     .poll(() => page.evaluate(() => Boolean(window.__releaseMP3Decode)))
     .toBe(true);
-  await page.getByRole("button", { name: "Cueillir", exact: true }).click();
+  await page.getByRole("button", { name: "Mes sons", exact: true }).click();
+  const returnedSamples = await canvas.getAttribute("data-painted-samples");
   await page.evaluate(() => window.__releaseMP3Decode());
   await page.waitForTimeout(500);
-  await expect(canvas).toHaveAttribute("data-painted-samples", samples);
+  await expect(canvas).toHaveAttribute("data-painted-samples", returnedSamples);
   await expect(
     page.getByRole("button", { name: "Enregistrer Voiles" }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "Musique MP3", exact: true }).click();
+  await page.goto("/?atelier=mp3");
   await expect(
     page.getByText("Votre musique, un paysage", { exact: true }),
   ).toBeVisible();

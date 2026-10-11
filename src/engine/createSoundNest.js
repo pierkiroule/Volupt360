@@ -1,4 +1,7 @@
 import * as THREE from "three";
+import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
+import { createBrushBridge } from "../sonoizo/BrushBridge.js";
+import { createOizo } from "../sonoizo/createOizo.js";
 import { createViewEffects, DEFAULT_VIEW } from "./createViewEffects.js";
 import { graphicSurprise } from "./graphicSurprises.js";
 import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
@@ -85,6 +88,13 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     ? createGenerativeMaterials()
     : null;
   const textures = new Map();
+  let padSource = null,
+    oizo = null,
+    padInitialized = false;
+  const dance = createSonoizoDance();
+  const oizoScreen = new THREE.Vector3();
+  const padStates = new Map();
+  const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
   const marks = [],
     totalBounds = new THREE.Box3(),
     extent = new THREE.Vector3();
@@ -139,23 +149,53 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       stroke.append(lastSample);
       activeStroke.bounds.expandByPoint(lastSample.position);
     }
-    while (marks.length > 80) destroyStroke(marks.shift());
+    while (marks.length > 80) {
+      const index = marks.findIndex((mark) => !isActive(mark));
+      if (index < 0) break;
+      destroyStroke(marks.splice(index, 1)[0]);
+    }
     renderer.domElement.dataset.markCount = String(marks.length);
   }
-  function addSample(pose) {
+  function addSample(pose, fromPad = false) {
     const region = compositionAt(pose.position);
-    if (region.density < 0.24) {
+    if (region.density < 0.24 && !fromPad) {
       closeStroke();
       lastSample = null;
       return;
     }
-    pose = { ...pose, density: region.density };
+    pose = {
+      ...pose,
+      density: fromPad ? Math.max(0.25, region.density) : region.density,
+    };
     paintedSamples++;
     if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
     activeStroke.stroke.append(pose);
     activeStroke.bounds.expandByPoint(pose.position);
     lastSample = snapshot(pose);
     boundsDirty = true;
+  }
+  function isActive(mark) {
+    return (
+      mark === activeStroke ||
+      [...padStates.values()].some((state) => state.mark === mark)
+    );
+  }
+  function feedPad(id, pose) {
+    if (!BRUSHES.some((item) => item.id === id)) return;
+    const previous = { mark: activeStroke, last: lastSample, brush };
+    const state = padStates.get(id);
+    activeStroke = state?.mark || null;
+    lastSample = state?.last || null;
+    brush = id;
+    addSample(pose, true);
+    padStates.set(id, { mark: activeStroke, last: lastSample });
+    activeStroke = previous.mark;
+    lastSample = previous.last;
+    brush = previous.brush;
+  }
+  function finishPad(id) {
+    padStates.get(id)?.mark?.stroke.finish();
+    padStates.delete(id);
   }
   function updateBounds() {
     totalBounds.makeEmpty();
@@ -175,6 +215,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     boundsDirty = false;
   }
   function reset() {
+    bridge.close();
+    padStates.clear();
+    dance.reset();
     closeStroke();
     marks.forEach(destroyStroke);
     marks.length = 0;
@@ -228,11 +271,35 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     lastTime = now;
     const playback = player?.getState();
     const f = player?.getFeatures();
+    const voices = padSource?.getVoices() || [];
     const painting = Boolean(playback?.playing && f?.rms > 0.006);
-    navigation.active = painting;
-    tip.visible = painting;
-    if (playback?.playing) elapsed += dt;
-    if (painting) {
+    navigation.active = padSource ? true : painting;
+    tip.visible = !padSource && painting;
+    if (padSource ? voices.length > 0 : playback?.playing) elapsed += dt;
+    if (padSource) {
+      const pose = dance.update(dt, voices);
+      navigation.position.copy(pose.position);
+      navigation.direction.copy(pose.direction);
+      navigation.velocity.copy(pose.velocity);
+      navigation.energy = pose.energy;
+      navigation.motion = pose.motion;
+      navigation.phrase = pose.phrase;
+      navigation.progress = pose.progress;
+      sampleClock += dt;
+      const tick = sampleClock >= 0.12;
+      bridge.update(pose, voices, tick);
+      if (tick) sampleClock %= 0.12;
+      oizo.update(pose);
+      if (!marks.length) {
+        navigation.bounds.center.copy(pose.position);
+        navigation.bounds.radius = 8;
+      } else {
+        navigation.bounds.radius = Math.max(
+          navigation.bounds.radius,
+          pose.position.distanceTo(navigation.bounds.center) + 3,
+        );
+      }
+    } else if (painting) {
       quiet = 0;
       sampleClock += dt;
       const pose = flight.update(dt, f);
@@ -253,7 +320,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
       if (quiet > 0.35) closeStroke();
     }
-    if (playback?.playing) {
+    if (padSource ? voices.length > 0 : playback?.playing) {
       for (let i = marks.length - 1; i >= 0; i--) {
         const item = marks[i],
           age = elapsed - item.born;
@@ -281,7 +348,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
             object.material.uniforms.uFade.value = fade;
           }
         });
-        if (fade < 0.012 && item !== activeStroke) {
+        if (fade < 0.012 && !isActive(item)) {
           destroyStroke(item);
           marks.splice(i, 1);
           boundsDirty = true;
@@ -297,6 +364,22 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       onError?.(error.message);
     }
     if (now - lastReport > 80) {
+      renderer.domElement.dataset.oizo = String(Boolean(padSource));
+      if (padSource) {
+        oizo.group.getWorldPosition(oizoScreen);
+        oizoScreen.project(camera);
+        renderer.domElement.dataset.oizoScreen = oizoScreen
+          .toArray()
+          .map((value) => value.toFixed(4))
+          .join(",");
+      }
+      renderer.domElement.dataset.activePads = voices
+        .map((voice) => voice.id)
+        .join(",");
+      renderer.domElement.dataset.paintedBrushes = [
+        ...new Set(marks.map((mark) => mark.brush)),
+      ].join(",");
+      renderer.domElement.dataset.painterEnergy = navigation.energy.toFixed(3);
       if (generative) {
         renderer.domElement.dataset.generativeTextures = JSON.stringify(
           generative.stats,
@@ -356,6 +439,21 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   frameId = requestAnimationFrame(frame);
   return {
+    setPadSource(source) {
+      bridge.close();
+      padSource = source;
+      if (source) {
+        if (!padInitialized) {
+          reset();
+          padInitialized = true;
+        }
+        if (!oizo) {
+          oizo = createOizo();
+          landscape.add(oizo.group);
+        }
+        oizo.group.visible = true;
+      } else if (oizo) oizo.group.visible = false;
+    },
     setTrackComposition(analysis) {
       palette = createTrackPalette(analysis);
       renderer.domElement.dataset.trackPalette = palette.colors.join(",");
@@ -389,6 +487,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       disposed = true;
       cancelAnimationFrame(frameId);
       rig.dispose();
+      bridge.close();
+      padStates.clear();
+      oizo?.dispose();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       marks.forEach(destroyStroke);

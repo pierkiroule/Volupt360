@@ -1,4 +1,6 @@
-export const MAX_TWIG_SECONDS = 10;
+import { readAudioFeatures } from "../audio/audioGraph.js";
+
+export const MAX_TWIG_SECONDS = 5;
 const SAMPLE_RATE = 24000;
 const HOLD_DELAY = 300;
 
@@ -11,7 +13,7 @@ export function emptyTwigSnapshot(ids) {
   };
 }
 
-/** Session-local, mono sample bank. No monitoring, uploads or painting hooks. */
+/** Session-local, mono sample bank. No monitoring or uploads; exposes per-pad acoustic features. */
 export function createTwigBank({
   ids,
   onChange = () => {},
@@ -27,6 +29,7 @@ export function createTwigBank({
     recording = null,
     revision = 0,
     playbackRevision = 0,
+    triggerSerial = 0,
     disposed = false;
   function snapshot() {
     return {
@@ -76,11 +79,12 @@ export function createTwigBank({
     voice.source.stop(ctx.currentTime + 0.04);
     setTimeout(() => {
       voice.source.disconnect();
+      voice.analyser.disconnect();
       voice.gain.disconnect();
     }, 60);
     balance();
   }
-  async function play(id, owner = null, loop = false) {
+  async function play(id, owner = null, loop = false, dance = Boolean(owner)) {
     if (disposed || !buffers.has(id)) return;
     const ticket = playbackRevision;
     const audio = context();
@@ -99,12 +103,32 @@ export function createTwigBank({
     source.loop = loop || Boolean(owner?.looping);
     gain.gain.setValueAtTime(0, audio.currentTime);
     gain.gain.linearRampToValueAtTime(1, audio.currentTime + 0.006);
-    source.connect(gain);
+    const analyser = audio.createAnalyser();
+    analyser.fftSize = 2048;
+    const graph = {
+      ctx: audio,
+      analyser,
+      bins: new Uint8Array(analyser.frequencyBinCount),
+      wave: new Uint8Array(analyser.fftSize),
+      prev: new Float32Array(analyser.frequencyBinCount),
+    };
+    source.connect(analyser);
+    analyser.connect(gain);
     gain.connect(master);
-    const voice = { source, gain, owner };
+    const voice = {
+      source,
+      gain,
+      owner,
+      analyser,
+      graph,
+      dance,
+      trigger: ++triggerSerial,
+      analysedAt: -1,
+    };
     voices.set(id, voice);
     source.onended = () => {
       source.disconnect();
+      analyser.disconnect();
       gain.disconnect();
       if (voices.get(id) === voice) {
         voices.delete(id);
@@ -150,6 +174,32 @@ export function createTwigBank({
       stopTracks(session);
     }
     emit();
+  }
+  async function prepareSample(decoded) {
+    const frames = Math.min(
+      MAX_TWIG_SECONDS * SAMPLE_RATE,
+      Math.floor(decoded.duration * SAMPLE_RATE),
+    );
+    if (frames < SAMPLE_RATE * 0.04)
+      throw new Error(
+        "Le son est trop court. Enregistrez une nouvelle brindille.",
+      );
+    const offline = new OfflineAudioContext(1, frames, SAMPLE_RATE);
+    const source = offline.createBufferSource();
+    source.buffer = decoded;
+    source.connect(offline.destination);
+    source.start();
+    const sample = await offline.startRendering();
+    source.disconnect();
+    // Four-millisecond edge envelopes soften one-shots and loop seams.
+    const data = sample.getChannelData(0),
+      edge = Math.min(96, Math.floor(data.length / 2));
+    for (let i = 0; i < edge; i++) {
+      const gain = i / edge;
+      data[i] *= gain;
+      data[data.length - 1 - i] *= gain;
+    }
+    return sample;
   }
   async function record(id) {
     if (disposed || recording || !ids.includes(id)) return;
@@ -206,30 +256,8 @@ export function createTwigBank({
           session.chunks.length = 0;
           const decoded = await audio.decodeAudioData(await blob.arrayBuffer());
           if (disposed || session.token !== revision) return;
-          const frames = Math.min(
-            MAX_TWIG_SECONDS * SAMPLE_RATE,
-            Math.floor(decoded.duration * SAMPLE_RATE),
-          );
-          if (frames < SAMPLE_RATE * 0.04)
-            throw new Error(
-              "Le son est trop court. Enregistrez une nouvelle brindille.",
-            );
-          const offline = new OfflineAudioContext(1, frames, SAMPLE_RATE);
-          const source = offline.createBufferSource();
-          source.buffer = decoded;
-          source.connect(offline.destination);
-          source.start();
-          const sample = await offline.startRendering();
-          source.disconnect();
+          const sample = await prepareSample(decoded);
           if (disposed || session.token !== revision) return;
-          // Four-millisecond edge envelopes soften one-shots and loop seams.
-          const data = sample.getChannelData(0),
-            edge = Math.min(96, Math.floor(data.length / 2));
-          for (let i = 0; i < edge; i++) {
-            const gain = i / edge;
-            data[i] *= gain;
-            data[data.length - 1 - i] *= gain;
-          }
           stopVoice(id);
           buffers.set(id, sample);
           recording = null;
@@ -261,6 +289,30 @@ export function createTwigBank({
       );
     }
   }
+  async function importSample(id, file) {
+    if (disposed || recording || !ids.includes(id)) return;
+    const session = { id, status: "importing", token: ++revision };
+    recording = session;
+    stopAll();
+    emit();
+    try {
+      if (!file || file.size > 12 * 1024 * 1024)
+        throw new Error("Choisissez un fichier audio de 12 Mo maximum.");
+      const decoded = await context().decodeAudioData(await file.arrayBuffer());
+      if (disposed || session.token !== revision) return;
+      const sample = await prepareSample(decoded);
+      if (disposed || session.token !== revision) return;
+      stopVoice(id);
+      buffers.set(id, sample);
+      recording = null;
+      emit();
+    } catch (error) {
+      if (disposed || session.token !== revision) return;
+      recording = null;
+      emit();
+      onError(`Import audio impossible. ${error.message}`);
+    }
+  }
   function stopRecording() {
     const session = recording;
     if (session?.recorder?.state !== "recording") return;
@@ -273,6 +325,23 @@ export function createTwigBank({
   return {
     getSnapshot: snapshot,
     record,
+    importSample,
+    trigger(id) {
+      return play(id, null, false, true).catch((error) =>
+        onError(error.message),
+      );
+    },
+    getVoices() {
+      return [...voices.entries()]
+        .filter(([, voice]) => voice.dance)
+        .map(([id, voice]) => {
+          if (!voice.features || ctx.currentTime - voice.analysedAt >= 0.04) {
+            voice.features = readAudioFeatures(voice.graph);
+            voice.analysedAt = ctx.currentTime;
+          }
+          return { id, trigger: voice.trigger, features: voice.features };
+        });
+    },
     stopRecording,
     cancelRecording,
     stopAll,

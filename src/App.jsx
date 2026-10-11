@@ -25,7 +25,7 @@ export default function App() {
     player = useRef(null),
     loadRequest = useRef(0);
   const textureRequests = useRef({});
-  const [distance, setDistance] = useState(0.25);
+  const [distance, setDistance] = useState(atelier === "mp3" ? 0.25 : 0.55);
   const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
@@ -46,6 +46,10 @@ export default function App() {
         onHint: setHint,
         onError: setSceneError,
       });
+      if (ENABLE_SONOIZO && atelier !== "mp3") {
+        engine.current.setPadSource(twigs.bank.current);
+        engine.current.setDroneDistance(0.55);
+      }
     } catch (cause) {
       setSceneError(
         `La scène ne peut pas démarrer. Vérifiez WebGL : ${cause.message}`,
@@ -153,6 +157,7 @@ export default function App() {
       player.current?.pause();
       if (player.current) setPlayback(player.current.getState());
     }
+    engine.current?.setPadSource(next === "mp3" ? null : twigs.bank.current);
     setAtelier(next);
   }
   return (
@@ -181,9 +186,8 @@ export default function App() {
           aria-label="Atelier sonore"
         >
           {[
-            ["cueillir", "Cueillir"],
+            ["cueillir", "Mes sons"],
             ["jouer", "Jouer"],
-            ["mp3", "Musique MP3"],
           ].map(([id, label]) => (
             <button
               key={id}
@@ -196,7 +200,12 @@ export default function App() {
         </nav>
       )}
       {atelier !== "mp3" ? (
-        <TwigWorkshop mode={atelier} {...twigs} />
+        <TwigWorkshop
+          mode={atelier}
+          {...twigs}
+          textures={textures}
+          onTexture={loadTexture}
+        />
       ) : (
         <ControlPanel
           brush={brush}

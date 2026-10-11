@@ -1,10 +1,12 @@
 # SONOÏZO•° — Le chant qui sculpte l’espace des possibles
 
-Le lot 1 ajoute un atelier **Cueillir / Jouer** à l’application existante. Cueillez jusqu’à douze brindilles au microphone, dix secondes maximum chacune ; écoutez-les, remplacez-les ou supprimez-les. Dans Jouer, un tap lance un son, un appui maintenu le boucle jusqu’au relâchement et plusieurs pads peuvent jouer ensemble. Chaque pad reprend l’identité de l’une des douze brosses existantes.
+**1. Créez vos sons.** Douze pads, chacun associé à sa brosse. Enregistrez au microphone ou importez un MP3 : chaque son dure **cinq secondes maximum**. Un import conserve les cinq premières secondes du fichier. Vous pouvez écouter, remplacer et supprimer vos sons, et personnaliser la texture de chaque brosse.
 
-Les sons restent **en mémoire pendant la session**, sans transmission ni sauvegarde après rechargement. Le microphone nécessite HTTPS (ou localhost) et une autorisation du navigateur. Les brosses, les textures et la navigation 3D restent disponibles dans **Musique MP3**. Les brindilles ne pilotent pas encore le vol ou la peinture : l’oizo•°, Le Nid, SonoizoDance et BrushBridge appartiennent aux lots suivants.
+**2. Jouez.** La buse ailée virevolte continuellement en trois dimensions. Un tap joue le son et dépose la brosse du pad sur son sillage, avec une réaction à l’intensité et aux variations du son. Un maintien prolonge le son en boucle jusqu’au relâchement ; les pads peuvent jouer ensemble, chacun avec sa propre matière et son analyse acoustique. Pendant les silences, la buse continue de voler et la sculpture reste visible.
 
-Désactivation : `VITE_ENABLE_SONOIZO=false npm run build`, puis redéployer. Supprimer cette variable ou la passer à `true` pour réactiver. Le retour au mode MP3 n’efface pas le bouquet pendant la session. Voir [l’audit et la livraison du lot 1](docs/sonoizo-lot-1.md).
+Les sons restent **en mémoire pendant la session**, sans transmission ni sauvegarde après rechargement. Le microphone nécessite HTTPS (ou localhost) et une autorisation. Les imports sont limités à 12 Mo ; ils sont décodés localement puis réduits en mono 24 kHz. L’interface principale propose seulement **Mes sons / Jouer**, avec les deux vues 3D existantes.
+
+Désactivation : `VITE_ENABLE_SONOIZO=false npm run build`, puis redéployer. L’ancien atelier MP3 est aussi accessible à `/?atelier=mp3` pour les contrôles de régression. Voir [l’architecture et les vérifications](docs/sonoizo.md). Le moteur des douze brosses, les textures et leurs optimisations sont conservés.
 
 ## Atelier MP3 existant
 

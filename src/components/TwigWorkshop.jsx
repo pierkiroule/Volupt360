@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BRUSHES } from "../engine/brushes.js";
 import { MAX_TWIG_SECONDS } from "../sonoizo/createTwigBank.js";
 
@@ -8,7 +8,11 @@ export default function TwigWorkshop({
   snapshot,
   error,
   clearError,
+  textures = {},
+  onTexture,
 }) {
+  const audioInput = useRef(null),
+    textureInput = useRef(null);
   const [selected, setSelected] = useState(BRUSHES[0].id);
   const [elapsed, setElapsed] = useState(0);
   const recording = snapshot.recording;
@@ -78,7 +82,7 @@ export default function TwigWorkshop({
                   setSelected(brush.id);
                   clearError();
                 } else if (event.detail === 0)
-                  void bank.current?.listen(brush.id);
+                  void bank.current?.trigger(brush.id);
               }}
               onPointerDown={
                 listening ? (event) => press(event, brush.id) : undefined
@@ -122,7 +126,11 @@ export default function TwigWorkshop({
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span className="twig-glyph" aria-hidden="true">
-                {brush.glyph}
+                {textures[brush.id]?.preview ? (
+                  <img src={textures[brush.id].preview} alt="" />
+                ) : (
+                  brush.glyph
+                )}
               </span>
               <span>{brush.name}</span>
               <small>
@@ -143,31 +151,68 @@ export default function TwigWorkshop({
             <span role="status">
               {recording?.status === "permission"
                 ? "Autorisez le microphone…"
-                : recording?.status === "decoding"
+                : ["decoding", "importing"].includes(recording?.status)
                   ? "La brindille prend forme…"
                   : recording
-                    ? `${elapsed.toFixed(1)} / 10 s`
+                    ? `${elapsed.toFixed(1)} / ${MAX_TWIG_SECONDS} s`
                     : slot.duration
                       ? `${slot.duration.toFixed(1)} secondes cueillies`
-                      : "10 secondes maximum · commencez avec un seul son"}
+                      : "Micro ou MP3 · 5 secondes maximum"}
             </span>
           </div>
+          <input
+            ref={audioInput}
+            className="sr-only"
+            type="file"
+            accept="audio/*,.mp3"
+            aria-label={`Importer un son pour ${current.name}`}
+            disabled={Boolean(recording)}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) {
+                clearError();
+                void bank.current?.importSample(current.id, file);
+              }
+            }}
+          />
+          <input
+            ref={textureInput}
+            className="sr-only"
+            type="file"
+            accept="image/*"
+            aria-label={`Texture de ${current.name}`}
+            disabled={Boolean(recording)}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void onTexture?.(current.id, file);
+            }}
+          />
           <div className="twig-actions">
+            <button
+              disabled={Boolean(recording)}
+              onClick={() => audioInput.current?.click()}
+            >
+              Importer MP3
+            </button>
             {recording ? (
               <button
                 className="twig-record is-recording"
                 disabled={recording.status === "decoding"}
                 onClick={() =>
-                  recording.status === "permission"
+                  ["permission", "importing"].includes(recording.status)
                     ? bank.current?.cancelRecording()
                     : bank.current?.stopRecording()
                 }
               >
-                {recording.status === "permission"
-                  ? "Annuler la demande"
-                  : recording.status === "decoding"
-                    ? "Préparation…"
-                    : "Arrêter l’enregistrement"}
+                {recording.status === "importing"
+                  ? "Annuler l’import"
+                  : recording.status === "permission"
+                    ? "Annuler la demande"
+                    : recording.status === "decoding"
+                      ? "Préparation…"
+                      : "Arrêter l’enregistrement"}
               </button>
             ) : (
               <button
@@ -193,6 +238,13 @@ export default function TwigWorkshop({
               Écouter
             </button>
             <button
+              disabled={Boolean(recording)}
+              aria-label={`Modifier la texture ${current.name}`}
+              onClick={() => textureInput.current?.click()}
+            >
+              Texture
+            </button>
+            <button
               disabled={!slot.duration || Boolean(recording)}
               aria-label={`Supprimer ${current.name}`}
               onClick={() => bank.current?.remove(current.id)}
@@ -203,7 +255,7 @@ export default function TwigWorkshop({
           {recording?.status === "recording" && (
             <progress
               aria-label="Durée de l’enregistrement"
-              max="10"
+              max={MAX_TWIG_SECONDS}
               value={elapsed}
             />
           )}
@@ -217,7 +269,7 @@ export default function TwigWorkshop({
       <p className="twig-note">
         {mode === "cueillir"
           ? "Un bouquet local, conservé pendant cette session."
-          : "Jouez plusieurs brindilles ensemble. Leur danse prendra vie au prochain acte."}
+          : "La buse danse en continu. Vos pads sculptent son sillage."}
       </p>
     </section>
   );

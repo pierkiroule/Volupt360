@@ -1,4 +1,6 @@
-# SONOÏZO•° — Lot 1 : Cueillir
+# SONOÏZO•° — Archive de la première livraison
+
+Cette page décrit la première itération à dix secondes, avant correction du concept. La version actuelle utilise des pads micro/import limités à cinq secondes et reliés à la buse : voir [la documentation actuelle](sonoizo.md).
 
 Branche : `feature/sonoizo`, créée depuis `f8ebab6`. Le lot 1 ajoute la collecte et le jeu sonore ; aucun moteur de peinture ou de caméra n’a été réécrit.
 

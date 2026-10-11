@@ -838,3 +838,9 @@ label:focus-visible {
     letter-spacing: 0.025em;
   }
 }
+
+.twig-glyph img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
