@@ -582,3 +582,46 @@ label:focus-visible {
     justify-content: center;
   }
 }
+
+.brush-bulles .brush-swatch {
+  border-radius: 50%;
+  color: #3cbbc3;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #f5faf5aa,
+    #85d9de44 50%,
+    #a579c566
+  );
+}
+.brush-aurore .brush-swatch {
+  color: #769ad3;
+}
+.brush-calligraphie .brush-swatch {
+  color: #5a477c;
+}
+@media (max-width: 600px) {
+  .brush-palette {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 0 0 10px;
+  }
+  .brush {
+    padding: 5px 2px 6px;
+    font-size: 9px;
+  }
+  .brush-swatch {
+    width: 30px;
+    height: 24px;
+    font-size: 22px;
+  }
+}
+
+.brush-network .brush-swatch {
+  color: #398b87;
+}
+.brush-dilution .brush-swatch {
+  color: #568bae;
+}
+.brush-echo .brush-swatch {
+  color: #9963a8;
+}

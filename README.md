@@ -9,7 +9,9 @@ Un voyage en drone dans une œuvre aquarelle étendue en trois dimensions. La mu
 - **FPV drone** : poursuite amortie du pinceau dans son sillage, décalage latéral, anticipation des virages et recul quand le son se calme. Le slider **Distance** passe du sillage proche à un cadrage global adapté au format de l’écran.
 - **FPV 360° gyro** : point de vue central et orientation de l’appareil, calibrée à l’activation. Les appareils qui exigent une autorisation affichent leur demande native. Si le capteur est absent ou refusé, le glissement permet toujours l’exploration panoramique.
 
-**Une seule palette, six brosses :** Voiles (rubans translucides), Falaises (strates minérales), Corolles (pétales nervurés), Filaments (encre fine), Encres (taches noires irrégulières), Éclats (éclaboussures et satellites d’encre). Leur géométrie, texture, épaisseur, couleur et opacité varient avec l’énergie et le spectre du son. Les rubans se construisent progressivement sur des courbes XYZ reliées, avec une orientation continue même dans les montées et les plongées. Les taches et éclaboussures se déposent à différentes échelles le long du voyage. Le chemin tisse des orbites déformées autour d’un centre fixe, avec des rayons et des altitudes variables. Le centre reste dégagé pour la contemplation panoramique. Le chemin continue à évoluer quand une boucle musicale se répète. Les pigments diffusent et se fragmentent lentement, puis sèchent ; l’évolution est suspendue avec la musique.
+**Rendu de la vue :** un étalonnage fixe renforce les pigments dans les deux vues : courbe de contraste ancrée sur le papier à 2,20, saturation 1,45 et seuil d’encre léger à 8 %. Les pigments et la granulation ont davantage de présence, tout en préservant les hautes lumières du papier, les transparences des bulles et les nuances sombres. Le traitement reste limité à la scène ; aucun outil de réglage supplémentaire n’apparaît dans l’interface.
+
+**Une seule palette, douze brosses :** Voiles (rubans translucides), Falaises (strates minérales), Corolles (pétales nervurés), Filaments (encre fine), Encres (taches noires irrégulières), Éclats (éclaboussures et satellites d’encre). Bulles sème des sphères translucides aux reflets multicolores ; Aurore tisse trois voiles torsadés et irisés ; Calligraphie alterne pleins et déliés dans des arabesques en trois dimensions. Leur géométrie, texture, épaisseur, couleur et opacité varient avec l’énergie et le spectre du son. Les rubans se construisent progressivement sur des courbes XYZ reliées, avec une orientation continue même dans les montées et les plongées. Les taches et éclaboussures se déposent à différentes échelles le long du voyage. Network tisse des nœuds cristallins reliés dans l’espace, Dilution étale des lavis à auréoles et Echo dédouble le mouvement en trois rubans décalés dans le temps. Le chemin tisse des orbites déformées autour d’un centre fixe, avec des rayons et des altitudes variables. Le centre reste dégagé pour la contemplation panoramique. Le chemin continue à évoluer quand une boucle musicale se répète. Les pigments diffusent et se fragmentent lentement, puis sèchent ; l’évolution est suspendue avec la musique.
 
 **Composition et respiration :** des régions de densité différente alternent avec deux fenêtres dégagées dans l’enveloppe. Le pinceau cesse d’y déposer du pigment et reprend sans relier les deux bords. Les passages successifs revisitent les régions à des rayons et hauteurs variables. Chaque morceau détermine une gamme de trois couleurs à partir de sa waveform et de son tempo : dominante, secondaire et accent rare. Les encres gardent leurs noirs.
 
@@ -26,6 +28,16 @@ Le fichier est analysé localement : estimation du rythme par autocorrélation d
 La répétition utilise les limites natives de `AudioBufferSourceNode`, indépendamment de la fréquence du rendu 3D. Changer de boucle poursuit la lecture si elle était active, ou reste en pause si elle était arrêtée. Une nouvelle importation remplace les anciennes peintures musicales. Les pistes restent locales ; aucun fichier n’est téléversé.
 
 **Le glissement horizontal tourne uniquement la sculpture à 360°** : il ne crée ni peinture ni déformation. Le trajet du drone se recale sur les positions tournées du paysage. La rotation se fait autour du centre fixe de la scène et le drone recalcule son suivi dans les coordonnées tournées. Avant l’import, une étude pâle présente une enveloppe orbitale en trois dimensions. Les peintures musicales s’estompent progressivement. La densité locale et la quantité totale accélèrent la dissolution des dépôts anciens, tandis que les gestes récents restent lisibles. Une limite de ressources demeure en dernier recours.
+
+## Matières génératives optionnelles
+
+La version consolidée conserve les douze brosses, les deux vues caméra, les boucles audio et l’import de textures par appui long. Un générateur Canvas aquarelle fournit un masque propre à chacune des douze brosses, sans changer les gestes ou le pipeline audio.
+
+Il est **activé pour les douze brosses** : `ENABLE_GENERATIVE_TEXTURES = true` dans `src/engine/generativeConfig.js`. Importer un morceau et choisir une brosse pour voir sa matière générée. Une image importée par appui long a priorité, y compris sur les traces déjà présentes. Revenir à `false` puis recompiler/recharger pour le désactiver. Vingt-quatre masques déterministes (deux variantes par brosse) sont préparés à l’initialisation, avec cache borné et références libérées au retrait des tracés. Aucune génération de pixels pendant le rendu.
+
+Des surprises rares accompagnent certains accents sonores : halos ambrés, constellations de pigment et petites dentelles. Elles restent locales, ne clignotent pas et n’ajoutent aucune géométrie.
+
+Voir [l’audit, l’architecture et les limites](docs/generative-materials.md). Le dépôt actuel ne propose pas microphone, scratch, peinture par tap ni export PNG.
 
 ## Développement
 
@@ -51,7 +63,7 @@ WebGL et Web Audio sont nécessaires. L’orientation mobile nécessite HTTPS (o
 - `src/engine/artDirection.js` : palette par morceau, densité spatiale et intentions du drone.
 - `src/engine/dissolvePigment.js` : dissolution selon densité, importance et ouvertures.
 - `src/engine/createSoundNest.js` : construction progressive du tracé spatial et peinture réactive.
-- `src/engine/brushes.js` : six géométries de traits, buffers progressifs, matières aquarelle et masques alpha.
+- `src/engine/brushes.js` : douze géométries de traits, buffers progressifs, matières aquarelle et masques alpha.
 - `src/engine/createPainterFlight.js` : phrases spatiales reliées et orientation continue du pinceau.
 - `src/engine/createCameraRig.js` : poursuite du pinceau, cadrage global, rotation et orientation gyroscopique.
 - `src/engine/importBrushTexture.js` : décodage local des images, seuil et contours.
@@ -72,10 +84,12 @@ Dans cet environnement cloud, Chromium est déjà installé :
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test
 ```
 
-Les tests couvrent le découpage rythmique et silencieux, les six brosses, les deux vues, la rotation sans peinture tactile, la peinture audio, les limites de boucle, la pause, le morceau entier, un fichier invalide, les autorisations du gyroscope, l’interface mobile, le déplacement XYZ et le suivi du drone, les appuis longs sur les six brosses et les textures invalides ou transparentes. Ils utilisent une fixture WAV locale et le rendu logiciel WebGL. La précision musicale du découpage sur vos propres morceaux et le gyroscope physique nécessitent une vérification sur les appareils visés.
+Les tests couvrent le découpage rythmique et silencieux, les douze brosses, les deux vues, la rotation sans peinture tactile, la peinture audio, les limites de boucle, la pause, le morceau entier, un fichier invalide, les autorisations du gyroscope, l’interface mobile, le déplacement XYZ et le suivi du drone, les appuis longs sur les douze brosses et les textures invalides ou transparentes. Ils utilisent une fixture WAV locale et le rendu logiciel WebGL. La précision musicale du découpage sur vos propres morceaux et le gyroscope physique nécessitent une vérification sur les appareils visés.
 
 ## Vercel
 
 Importer `pierkiroule/Volupt360` dans Vercel, avec le répertoire contenant `package.json` comme racine. Choisir **Vite**, `npm ci` pour l’installation, `npm run build` pour la compilation et `dist` pour la sortie. `vercel.json` fixe le framework, le build et la sortie.
 
 Aucun secret ou variable d’environnement n’est requis. Vercel fournit HTTPS pour le gyroscope. Une seule page, sans routeur : aucune réécriture SPA supplémentaire n’est nécessaire. Aucun déploiement Vercel n’a été exécuté pendant cette refonte.
+
+La persistance de base des traces passe de 150 à 200 secondes (hors pression de densité), avec une dissolution étendue de 35 à 48 secondes. La surcharge locale continue à accélérer l’effacement ; la limite de 80 tracés reste en place. La palette à douze brosses affiche deux rangées sur grand écran et trois sur mobile.

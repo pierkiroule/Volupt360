@@ -1,6 +1,6 @@
 uniform sampler2D uBrushMask;
-uniform float uHasMask,uMaskAspect;
-uniform float uAge;
+uniform float uHasMask,uMaskAspect,uMaskRepeat;
+uniform float uAge,uSurprise;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
 float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -8,7 +8,7 @@ float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h
 float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+vec2(13.1,7.7);a*=.49;}return v;}
 void main(){
 vec2 uv=vUv;float across=abs(uv.x*2.-1.);
-float dryingRate=uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085));
+float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085)));
 float wet=exp(-uAge*dryingRate);
 float settled=1.-wet;
 uv+=vec2(sin(uv.y*13.+uSeed+uAge*.22),cos(uv.x*11.+uSeed+uAge*.17))*.018*wet;
@@ -34,7 +34,7 @@ float veins=pow(1.-abs(sin(q.x*12.+q.y*3.+middle*8.)),16.);
 float organic=mix(cellular,veins,step(2.5,mod(floor(uStyle+0.5),5.)));
 // Matières spécifiques : Botanique nervures ramifiées, Gravure traits fins encre.
 float botanical=step(5.5,uStyle)*(1.-step(11.5,uStyle));
-float engraving=step(11.5,uStyle);
+float engraving=step(11.5,uStyle)*(1.-step(15.5,uStyle));
 float midrib=pow(1.-abs(uv.x*2.-1.),18.);
 float sideVeins=pow(1.-abs(sin(uv.y*18.+abs(uv.x-.5)*21.+middle*2.)),24.);
 float etching=pow(1.-abs(sin(uv.x*88.+uv.y*7.+middle*1.8)),30.);
@@ -69,17 +69,50 @@ float dryPigment=clamp(tide*.65+sediment*.55+granules*.3,0.,1.);
 col=mix(col,col*(.65+.3*micro),settled*dryPigment);
 alpha*=mix(1.,.85+dryPigment*.3,settled);
 col=mix(col,base,.12*wet*(1.-pool));
-if(uStyle>13.5){
+if(uStyle>13.5 && uStyle<15.5){
   float stain=length((uv-.5)*2.);
   float silhouette=1.-smoothstep(.48+macro*.35,.72+macro*.3,stain);
   alpha*=silhouette;
   col=mix(vec3(.018,.016,.023),vec3(.19,.16,.19),sediment*.6+dry*.2);
 }
+if(abs(uStyle-16.)<.1){
+  float rim=pow(1.-abs(dot(normalize(vNormal),normalize(vView))),2.);
+  vec3 spectrum=.5+.5*cos(6.283*(uv.y+uv.x*.3+uSeed*.11)+vec3(0.,2.1,4.2));
+  col=mix(base,spectrum,.85);alpha=(.045+rim*.95)*uOpacity;
+}else if(abs(uStyle-17.)<.1){
+  vec3 spectrum=.5+.5*cos(uv.x*4.+uv.y*7.+uSeed+vec3(0.,2.,4.));
+  col=mix(base,spectrum,.55);alpha*=.6+.4*sin(uv.x*35.+middle*3.)*sin(uv.x*35.+middle*3.);
+}else if(abs(uStyle-18.)<.1){
+  col=mix(base*.24,base,.35+sediment*.3);alpha*=1.15;
+}else if(abs(uStyle-19.)<.1){
+  col=mix(base*.32,base,.5+.3*micro);alpha=uOpacity*(.68+.25*micro);
+}else if(abs(uStyle-20.)<.1){
+  float diffusion=1.-smoothstep(.2,.98,across+(macro-.5)*.15);
+  float bloomRing=exp(-pow((across-.55-middle*.12)/.1,2.));
+  col=mix(base*.65,base,.35+.4*macro);alpha*=diffusion*(.65+bloomRing*.55);
+}else if(abs(uStyle-21.)<.1){
+  col=mix(base*.5,base,.4+.35*middle);alpha*=.72+.28*pow(abs(sin(uv.y*24.+uSeed)),2.);
+}
+// Strengthen translucent pigment before fading; preserve bubble centers.
+if(abs(uStyle-16.)>.1)alpha=1.-pow(1.-pow(clamp(alpha,0.,1.),.8),1.65);
 alpha*=uFade*(1.-smoothstep(40.,90.,length(vView))*.28);
+// Brief, localized botanical lace, pigment halos and amber constellations.
+float window=1.-smoothstep(.12,.3,abs(vUv.y-.55));
+if(uSurprise>.5 && uSurprise<1.5){
+  float halo=exp(-pow((length((vUv-.5)*vec2(1.2,2.))-.22)/.025,2.))*window;
+  col=mix(col,vec3(.65,.38,.12),halo*.65);alpha=max(alpha,halo*.22*uFade*uOpacity);
+}else if(uSurprise>1.5 && uSurprise<2.5){
+  float stars=step(.985,hash21(floor(vUv*vec2(29.,53.))+uSeed))*window;
+  col=mix(col,vec3(.8,.54,.2),stars*.85);alpha=max(alpha,stars*.45*uFade*uOpacity);
+}else if(uSurprise>2.5){
+  float lace=pow(1.-abs(sin(vUv.x*32.+vUv.y*17.+middle*3.)),18.)*window;
+  alpha*=1.-lace*.75;col=mix(col,vec3(.85,.79,.64),lace*.45);
+}
 if(uHasMask>.5){
-  vec2 maskUv=vec2(uv.x,uv.y*4.*uMaskAspect);
+  vec2 maskUv=vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
   float imageAlpha=texture2D(uBrushMask,maskUv).a;
-  alpha*=imageAlpha;
+  // Preserve empty mask areas while giving semi-transparent grain more body.
+  alpha*=1.-pow(1.-imageAlpha,1.9);
   col*=.88+.12*imageAlpha;
 }
 if(alpha<.012)discard;

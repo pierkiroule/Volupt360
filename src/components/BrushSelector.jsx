@@ -49,7 +49,7 @@ export default function BrushSelector({
     <div
       className="brush-palette"
       role="group"
-      aria-label="Palette aquarelle : six brosses"
+      aria-label="Palette aquarelle : douze brosses"
     >
       <span id="texture-help" className="sr-only">
         Maintenir puis relâcher pour importer une image de texture. Au clavier :

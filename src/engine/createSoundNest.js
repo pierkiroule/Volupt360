@@ -1,4 +1,8 @@
 import * as THREE from "three";
+import { createViewEffects, DEFAULT_VIEW } from "./createViewEffects.js";
+import { graphicSurprise } from "./graphicSurprises.js";
+import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
+import { createGenerativeMaterials } from "./createGenerativeMaterials.js";
 import { BRUSHES, createBrushStroke, disposeMark } from "./brushes.js";
 import { createCameraRig } from "./createCameraRig.js";
 import { compositionAt, createTrackPalette } from "./artDirection.js";
@@ -21,6 +25,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   container.append(renderer.domElement);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#f4f0e8");
+  const effects = createViewEffects(renderer);
+  renderer.domElement.dataset.viewEffects = JSON.stringify(DEFAULT_VIEW);
   const camera = new THREE.PerspectiveCamera(
     80,
     innerWidth / innerHeight,
@@ -75,6 +81,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     reportState = null,
     boundsDirty = false;
   let palette = createTrackPalette();
+  const generative = ENABLE_GENERATIVE_TEXTURES
+    ? createGenerativeMaterials()
+    : null;
   const textures = new Map();
   const marks = [],
     totalBounds = new THREE.Box3(),
@@ -88,6 +97,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     velocity: sample.velocity.clone(),
   });
 
+  function destroyStroke(mark) {
+    disposeMark(mark.object);
+    mark.textureLease?.release();
+  }
   function closeStroke() {
     activeStroke?.stroke.finish();
     activeStroke = null;
@@ -96,14 +109,19 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     closeStroke();
     const color = palette.colorFor(id, serial);
     const region = compositionAt(pose.position);
+    const textureLease = textures.has(id)
+      ? null
+      : generative?.acquire(id, pose.acoustic || pose);
     const stroke = createBrushStroke(id, {
       seed: serial++ * 1.37,
       color,
-      texture: textures.get(id),
+      texture: textures.get(id) || textureLease?.binding,
+      surprise: graphicSurprise(serial - 1, pose.acoustic || pose),
     });
     landscape.add(stroke.group);
     activeStroke = {
       stroke,
+      textureLease,
       object: stroke.group,
       brush: id,
       born: elapsed,
@@ -121,7 +139,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       stroke.append(lastSample);
       activeStroke.bounds.expandByPoint(lastSample.position);
     }
-    while (marks.length > 80) disposeMark(marks.shift().object);
+    while (marks.length > 80) destroyStroke(marks.shift());
     renderer.domElement.dataset.markCount = String(marks.length);
   }
   function addSample(pose) {
@@ -158,7 +176,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   function reset() {
     closeStroke();
-    marks.forEach((mark) => disposeMark(mark.object));
+    marks.forEach(destroyStroke);
     marks.length = 0;
     flight.reset();
     serial = 0;
@@ -181,7 +199,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     rig.reanchor(true);
   }
   // A finite opening study surrounds the sanctuary with an irregular envelope.
-  for (let i = 0; i < 420; i++) {
+  for (let i = 0; i < BRUSHES.length * 70; i++) {
     const pose = flight.update(0.12, {
       energy: 0.45,
       low: 0.25,
@@ -190,14 +208,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       freq: 1100 + Math.sin(i * 0.11) * 700,
     });
     if (i % 70 === 0) {
-      brush = [
-        "voiles",
-        "corolles",
-        "falaises",
-        "filaments",
-        "brumes",
-        "lagons",
-      ][Math.floor(i / 70)];
+      brush = BRUSHES[Math.floor(i / 70)].id;
       closeStroke();
     }
     addSample(pose);
@@ -234,7 +245,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       navigation.progress = pose.progress;
       tip.position.copy(pose.position);
       if (sampleClock >= 0.12) {
-        addSample(pose);
+        addSample(generative ? { ...pose, acoustic: f } : pose);
         sampleClock %= 0.12;
       }
     } else {
@@ -271,7 +282,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           }
         });
         if (fade < 0.012 && item !== activeStroke) {
-          disposeMark(item.object);
+          destroyStroke(item);
           marks.splice(i, 1);
           boundsDirty = true;
         }
@@ -281,11 +292,34 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     if (boundsDirty) updateBounds();
     rig.update(dt);
     try {
-      renderer.render(scene, camera);
+      effects.render(scene, camera);
     } catch (error) {
       onError?.(error.message);
     }
     if (now - lastReport > 80) {
+      if (generative) {
+        renderer.domElement.dataset.generativeTextures = JSON.stringify(
+          generative.stats,
+        );
+        renderer.domElement.dataset.generativeStrokes = String(
+          marks.filter((mark) => mark.textureLease).length,
+        );
+      }
+      renderer.domElement.dataset.importedBrushes = [
+        ...new Set(
+          marks
+            .filter(
+              (mark) =>
+                textures.has(mark.brush) &&
+                mark.object.children.some(
+                  (child) =>
+                    child.material?.uniforms?.uBrushMask?.value ===
+                    textures.get(mark.brush).texture,
+                ),
+            )
+            .map((mark) => mark.brush),
+        ),
+      ].join(",");
       renderer.domElement.dataset.paintedSamples = String(paintedSamples);
       renderer.domElement.dataset.texturedStrokes = String(
         marks.filter((mark) =>
@@ -310,6 +344,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    effects.resize();
   };
   const contextLost = (event) => {
     event.preventDefault();
@@ -336,7 +371,11 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       textures.set(id, binding);
       marks
         .filter((mark) => mark.brush === id)
-        .forEach((mark) => mark.stroke.setTexture(binding));
+        .forEach((mark) => {
+          mark.stroke.setTexture(binding);
+          mark.textureLease?.release();
+          mark.textureLease = null;
+        });
       previous?.texture.dispose();
     },
     setCameraMode: rig.setMode,
@@ -352,10 +391,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       rig.dispose();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
-      marks.forEach((mark) => disposeMark(mark.object));
+      marks.forEach(destroyStroke);
+      generative?.dispose();
       textures.forEach((binding) => binding.texture.dispose());
       tip.geometry.dispose();
       tip.material.dispose();
+      effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();

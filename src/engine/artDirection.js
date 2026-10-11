@@ -18,6 +18,15 @@ export function createTrackPalette({ waveform = [], bpm = 0 } = {}) {
   return {
     colors,
     colorFor(id, serial) {
+      if (["bulles", "aurore", "calligraphie"].includes(id)) {
+        const color = new Color(colors[id === "calligraphie" ? 2 : 0]);
+        color.offsetHSL(
+          id === "aurore" ? 0.07 : 0,
+          id === "calligraphie" ? 0.1 : 0.3,
+          id === "calligraphie" ? -0.16 : 0.04,
+        );
+        return color;
+      }
       if (id === "brumes" || id === "lagons") return new Color("#26212a");
       const index =
         id === "falaises" ? 1 : id === "corolles" && serial % 7 === 2 ? 2 : 0;
