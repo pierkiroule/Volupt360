@@ -510,3 +510,48 @@ label:focus-visible {
     transition: none !important;
   }
 }
+.brush-slot {
+  min-width: 0;
+}
+.brush-slot .brush {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.brush.is-held {
+  border-color: var(--pigment);
+  box-shadow: 0 0 0 3px #7bada733;
+}
+.brush-swatch img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--pigment);
+  border-radius: 5px;
+  opacity: 0.75;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.texture-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--pigment);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

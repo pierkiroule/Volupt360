@@ -1,13 +1,11 @@
 import * as THREE from "three";
-import {
-  BRUSHES,
-  createBrushMark,
-  createLandscapeGround,
-  disposeMark,
-} from "./brushes.js";
+import { BRUSHES, createBrushStroke, disposeMark } from "./brushes.js";
 import { createCameraRig } from "./createCameraRig.js";
+import { createPainterFlight } from "./createPainterFlight.js";
 
-/** A circular watercolor landscape with a protected central point of view. */
+/** A living XYZ trail: the painter moves, the watercolor grows behind it,
+ * and the drone films that movement instead of circling a fixed installation.
+ */
 export function createSoundNest(container, { onHint, onError } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
@@ -22,88 +20,176 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#f4f0e8");
   const camera = new THREE.PerspectiveCamera(
-    82,
+    80,
     innerWidth / innerHeight,
-    0.1,
-    180,
+    0.08,
+    1000,
   );
-  camera.position.set(0, 1.1, 1.2);
+  camera.position.set(-9, 6, 12);
   const landscape = new THREE.Group();
   scene.add(landscape);
-  const ground = createLandscapeGround();
-  landscape.add(ground);
-  let brush = "voiles",
-    player = null,
-    disposed = false,
-    frameId = 0;
-  let elapsed = 0,
-    depositClock = 0,
-    stroke = 0,
-    previousFrequency = 0;
-  let lastTime = performance.now(),
-    lastReport = 0,
-    reportState = null;
-  const marks = [];
-  const focus = new THREE.Vector3(0, 1, 16);
+  const tip = new THREE.Mesh(
+    new THREE.SphereGeometry(0.065, 10, 8),
+    new THREE.MeshBasicMaterial({
+      color: "#c99571",
+      transparent: true,
+      opacity: 0.8,
+    }),
+  );
+  tip.visible = false;
+  landscape.add(tip);
+  const flight = createPainterFlight();
+  const navigation = {
+    position: new THREE.Vector3(),
+    direction: new THREE.Vector3(0.8, 0.18, -1).normalize(),
+    velocity: new THREE.Vector3(),
+    active: false,
+    energy: 0,
+    motion: 0,
+    bounds: { center: new THREE.Vector3(), radius: 10 },
+  };
   const rig = createCameraRig(
     camera,
     renderer.domElement,
     landscape,
-    (out) => out.copy(focus),
+    () => navigation,
     onHint || (() => {}),
   );
+  let brush = "voiles",
+    player = null,
+    disposed = false,
+    frameId;
+  let elapsed = 0,
+    sampleClock = 0,
+    paintedSamples = 0,
+    quiet = 0,
+    serial = 0,
+    activeStroke = null,
+    lastSample = null;
+  let lastTime = performance.now(),
+    lastReport = 0,
+    reportState = null,
+    boundsDirty = false;
+  const textures = new Map();
+  const marks = [],
+    totalBounds = new THREE.Box3(),
+    extent = new THREE.Vector3();
+  const snapshot = (sample) => ({
+    ...sample,
+    position: sample.position.clone(),
+    direction: sample.direction.clone(),
+    side: sample.side.clone(),
+    up: sample.up.clone(),
+    velocity: sample.velocity.clone(),
+  });
 
-  function deposit(id, f, introductory = false) {
+  function closeStroke() {
+    activeStroke?.stroke.finish();
+    activeStroke = null;
+  }
+  function beginStroke(id, pose) {
+    closeStroke();
     const definition = BRUSHES.find((item) => item.id === id);
-    const angle = introductory
-      ? stroke * 2.399963
-      : stroke * 2.399963 + Math.sin(elapsed * 0.1) * 0.15;
-    // Alternating rings and heights make foreground, middle ground and distant
-    // silhouettes. Even the broadest brush cannot enter the central clearing.
-    const radius = 12 + (stroke % 4) * 3.2 + f.low * 1.1;
-    const height = -2.8 + (stroke % 5) * 1.45 + f.high * 1.7;
     const color = new THREE.Color(definition.color);
     color.offsetHSL(
-      Math.sin(stroke * 1.7) * 0.025,
-      f.energy * 0.09,
-      Math.sin(stroke * 0.8) * 0.07,
+      Math.sin(serial * 1.73) * 0.032,
+      pose.energy * 0.12,
+      Math.sin(serial * 0.91) * 0.06,
     );
-    const mark = createBrushMark(id, {
-      angle,
-      radius,
-      height,
-      energy: f.energy,
-      seed: stroke * 1.37,
+    const stroke = createBrushStroke(id, {
+      seed: serial++ * 1.37,
       color,
+      texture: textures.get(id),
     });
-    landscape.add(mark);
-    marks.push({ object: mark, born: elapsed, introductory });
-    if (!introductory) {
-      focus.set(Math.sin(angle) * radius, height, Math.cos(angle) * radius);
+    landscape.add(stroke.group);
+    activeStroke = {
+      stroke,
+      object: stroke.group,
+      brush: id,
+      born: elapsed,
+      bounds: new THREE.Box3(),
+    };
+    marks.push(activeStroke);
+    // Reuse the previous endpoint to join successive strokes without a jump.
+    if (lastSample) {
+      stroke.append(lastSample);
+      activeStroke.bounds.expandByPoint(lastSample.position);
     }
-    stroke++;
-    while (marks.length > 110) disposeMark(marks.shift().object);
+    while (marks.length > 80) disposeMark(marks.shift().object);
     renderer.domElement.dataset.markCount = String(marks.length);
   }
+  function addSample(pose) {
+    paintedSamples++;
+    if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
+    activeStroke.stroke.append(pose);
+    activeStroke.bounds.expandByPoint(pose.position);
+    lastSample = snapshot(pose);
+    boundsDirty = true;
+  }
+  function updateBounds() {
+    totalBounds.makeEmpty();
+    for (const mark of marks) totalBounds.union(mark.bounds);
+    if (totalBounds.isEmpty())
+      totalBounds.set(
+        new THREE.Vector3(-4, -4, -4),
+        new THREE.Vector3(4, 4, 4),
+      );
+    totalBounds.getCenter(navigation.bounds.center);
+    totalBounds.getSize(extent);
+    navigation.bounds.radius = Math.max(6, extent.length() * 0.5 + 5);
+    renderer.domElement.dataset.sculptureExtent = extent
+      .toArray()
+      .map((value) => value.toFixed(2))
+      .join(",");
+    boundsDirty = false;
+  }
   function reset() {
+    closeStroke();
     marks.forEach((mark) => disposeMark(mark.object));
     marks.length = 0;
-    stroke = 0;
-    depositClock = 0;
-    previousFrequency = 0;
+    flight.reset();
+    serial = 0;
+    paintedSamples = 0;
     elapsed = 0;
-    focus.set(0, 1, 16);
+    sampleClock = 0;
+    quiet = 0;
+    lastSample = null;
+    navigation.position.set(0, 0, 0);
+    navigation.direction.set(0.8, 0.18, -1).normalize();
+    navigation.velocity.set(0, 0, 0);
+    navigation.active = false;
+    navigation.energy = navigation.motion = 0;
+    landscape.position.set(0, 0, 0);
+    tip.visible = false;
     renderer.domElement.dataset.markCount = "0";
-    rig.reanchor();
+    renderer.domElement.dataset.painterPosition = "0,0,0";
+    renderer.domElement.dataset.paintedSamples = "0";
+    updateBounds();
+    rig.reanchor(true);
   }
-  // A pale landscape study introduces the circular composition before import.
-  // Importing music replaces it with that track's own, sound-driven landscape.
-  for (let i = 0; i < 16; i++)
-    deposit(
-      ["voiles", "falaises", "brumes", "corolles"][i % 4],
-      { energy: 0.22, low: 0.2, high: 0.1 },
-      true,
-    );
+  // A finite opening study hints at a journey through open space. There is no
+  // ring, central bowl or fixed ground plane constraining the musical work.
+  for (let i = 0; i < 135; i++) {
+    const pose = flight.update(0.12, {
+      energy: 0.45,
+      low: 0.25,
+      high: 0.25 + Math.sin(i * 0.07) * 0.15,
+      flux: 0.05,
+      freq: 1100 + Math.sin(i * 0.11) * 700,
+    });
+    if (i % 45 === 0) {
+      brush = ["voiles", "corolles", "falaises"][Math.floor(i / 45)];
+      closeStroke();
+    }
+    addSample(pose);
+    navigation.position.copy(pose.position);
+    navigation.direction.copy(pose.direction);
+  }
+  closeStroke();
+  brush = "voiles";
+  updateBounds();
+  flight.reset();
+  lastSample = null;
 
   function frame(now) {
     if (disposed) return;
@@ -111,46 +197,74 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     const dt = Math.min(0.1, (now - lastTime) / 1000);
     lastTime = now;
     const playback = player?.getState();
-    if (playback?.playing) {
-      elapsed += dt;
-      depositClock += dt;
-      const f = player.getFeatures();
-      const change = Math.abs(f.freq - previousFrequency) / 1500;
-      previousFrequency = f.freq;
-      const interval = 0.7 + (1 - f.energy) * 0.9;
-      if (
-        f.rms > 0.006 &&
-        depositClock > interval &&
-        (f.flux > 0.004 || change > 0.015 || depositClock > 2.2)
-      ) {
-        deposit(brush, f);
-        depositClock = 0;
+    const f = player?.getFeatures();
+    const painting = Boolean(playback?.playing && f?.rms > 0.006);
+    navigation.active = painting;
+    tip.visible = painting;
+    if (playback?.playing) elapsed += dt;
+    if (painting) {
+      quiet = 0;
+      sampleClock += dt;
+      const pose = flight.update(dt, f);
+      navigation.position.copy(pose.position);
+      navigation.direction.copy(pose.direction);
+      navigation.velocity.copy(pose.velocity);
+      navigation.energy = pose.energy;
+      navigation.motion = pose.motion;
+      tip.position.copy(pose.position);
+      if (sampleClock >= 0.12) {
+        addSample(pose);
+        sampleClock %= 0.12;
       }
+    } else {
+      quiet += dt;
+      navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
+      if (quiet > 0.35) closeStroke();
+    }
+    if (playback?.playing) {
       for (let i = marks.length - 1; i >= 0; i--) {
         const item = marks[i],
           age = elapsed - item.born;
-        const fade = 1 - THREE.MathUtils.smoothstep(age, 140, 200);
+        const fade = 1 - THREE.MathUtils.smoothstep(age, 150, 210);
         item.object.traverse((object) => {
           if (object.material?.uniforms) {
             object.material.uniforms.uTime.value = elapsed;
             object.material.uniforms.uFade.value = fade;
           }
         });
-        if (fade <= 0) {
+        if (fade <= 0 && item !== activeStroke) {
           disposeMark(item.object);
           marks.splice(i, 1);
+          boundsDirty = true;
         }
       }
       renderer.domElement.dataset.markCount = String(marks.length);
     }
+    if (boundsDirty) updateBounds();
     rig.update(dt);
     try {
       renderer.render(scene, camera);
     } catch (error) {
       onError?.(error.message);
     }
-    if (reportState && now - lastReport > 80) {
-      reportState(playback);
+    if (now - lastReport > 80) {
+      renderer.domElement.dataset.paintedSamples = String(paintedSamples);
+      renderer.domElement.dataset.texturedStrokes = String(
+        marks.filter((mark) =>
+          mark.object.children.some(
+            (child) => child.material?.uniforms?.uHasMask?.value === 1,
+          ),
+        ).length,
+      );
+      renderer.domElement.dataset.painterPosition = navigation.position
+        .toArray()
+        .map((value) => value.toFixed(3))
+        .join(",");
+      renderer.domElement.dataset.dronePosition = camera.position
+        .toArray()
+        .map((value) => value.toFixed(3))
+        .join(",");
+      reportState?.(playback);
       lastReport = now;
     }
   }
@@ -170,7 +284,18 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   frameId = requestAnimationFrame(frame);
   return {
     setBrush(id) {
-      if (BRUSHES.some((item) => item.id === id)) brush = id;
+      if (BRUSHES.some((item) => item.id === id) && id !== brush) {
+        brush = id;
+        closeStroke();
+      }
+    },
+    setBrushTexture(id, binding) {
+      const previous = textures.get(id);
+      textures.set(id, binding);
+      marks
+        .filter((mark) => mark.brush === id)
+        .forEach((mark) => mark.stroke.setTexture(binding));
+      previous?.texture.dispose();
     },
     setCameraMode: rig.setMode,
     setPlayer(next, callback) {
@@ -185,7 +310,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       marks.forEach((mark) => disposeMark(mark.object));
-      disposeMark(ground);
+      textures.forEach((binding) => binding.texture.dispose());
+      tip.geometry.dispose();
+      tip.material.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();

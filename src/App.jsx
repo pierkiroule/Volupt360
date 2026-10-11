@@ -4,6 +4,7 @@ import CameraViews from "./components/CameraViews.jsx";
 import ControlPanel from "./components/ControlPanel.jsx";
 import { createSoundNest } from "./engine/createSoundNest.js";
 import { createLoopPlayer } from "./audio/createLoopPlayer.js";
+import { importBrushTexture } from "./engine/importBrushTexture.js";
 import { analyzeLoops } from "./audio/analyzeLoops.js";
 
 const initialPlayback = { playing: false, position: 0, duration: 0 };
@@ -13,9 +14,11 @@ export default function App() {
     engine = useRef(null),
     player = useRef(null),
     loadRequest = useRef(0);
+  const textureRequests = useRef({});
+  const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
-  const [hint, setHint] = useState("Au cœur du paysage · vol doux");
+  const [hint, setHint] = useState("Dans le sillage du pinceau · voyage en 3D");
   const [track, setTrack] = useState(null),
     [selected, setSelected] = useState(null);
   const [playback, setPlayback] = useState(initialPlayback);
@@ -42,6 +45,32 @@ export default function App() {
       player.current = null;
     };
   }, []);
+
+  async function loadTexture(id, file) {
+    const owner = engine.current;
+    const request = (textureRequests.current[id] || 0) + 1;
+    textureRequests.current[id] = request;
+    setError("");
+    try {
+      const binding = await importBrushTexture(file);
+      if (
+        !owner ||
+        engine.current !== owner ||
+        textureRequests.current[id] !== request
+      ) {
+        binding.texture.dispose();
+        return;
+      }
+      owner.setBrushTexture(id, binding);
+      setTextures((previous) => ({
+        ...previous,
+        [id]: { preview: binding.preview, name: binding.name },
+      }));
+    } catch (cause) {
+      if (engine.current === owner && textureRequests.current[id] === request)
+        setError(`Texture : ${cause.message}`);
+    }
+  }
 
   function chooseBrush(id) {
     setBrush(id);
@@ -108,12 +137,14 @@ export default function App() {
         {hint}
       </p>
       <div className="landscape-caption" aria-hidden="true">
-        <span>UN MONDE AUTOUR DE VOUS</span>
+        <span>UN VOYAGE DANS LA MATIÈRE</span>
         <span>Glisser pour tourner · le son pour peindre</span>
       </div>
       <ControlPanel
         brush={brush}
         onBrush={chooseBrush}
+        textures={textures}
+        onTexture={loadTexture}
         track={track}
         playback={playback}
         selected={selected}

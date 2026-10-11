@@ -1,3 +1,5 @@
+uniform sampler2D uBrushMask;
+uniform float uHasMask,uMaskAspect;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
 float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -54,6 +56,12 @@ if(abs(uStyle-1.)<.1){float mist=length((uv-.5)*vec2(1.7,1.8));alpha*=1.-smooths
 if(abs(uStyle-2.)<.1){float rim=pow(1.-abs(dot(normalize(vNormal),normalize(vView))),2.);alpha*=.28+rim*.9;col=mix(col,vec3(.72,.88,.84),.25+rim*.2);}
 if(abs(uStyle-3.)<.1){alpha*=.75+.25*sediment;col*=.91+.09*sin(uv.y*45.+middle*4.);}
 alpha*=uFade*(1.-smoothstep(40.,90.,length(vView))*.28);
+if(uHasMask>.5){
+  vec2 maskUv=vec2(uv.x,uv.y*4.*uMaskAspect);
+  float imageAlpha=texture2D(uBrushMask,maskUv).a;
+  alpha*=imageAlpha;
+  col*=.88+.12*imageAlpha;
+}
 if(alpha<.012)discard;
 gl_FragColor=vec4(col,alpha);
 #include <colorspace_fragment>

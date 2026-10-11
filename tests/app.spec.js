@@ -154,11 +154,14 @@ test("audio paints with all six brushes, pauses, loops a phrase and restores who
     "Lagons",
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
-    const count = Number(await canvas.getAttribute("data-mark-count"));
+    const count = Number(await canvas.getAttribute("data-painted-samples"));
     await expect
-      .poll(async () => Number(await canvas.getAttribute("data-mark-count")), {
-        timeout: 5000,
-      })
+      .poll(
+        async () => Number(await canvas.getAttribute("data-painted-samples")),
+        {
+          timeout: 5000,
+        },
+      )
       .toBeGreaterThan(count);
   }
   await regions.last().click();
@@ -309,5 +312,198 @@ test.describe("mobile", () => {
       page.getByRole("button", { name: "Mettre en pause" }),
     ).toBeInViewport();
     await expect(page.locator(".loop-region").last()).toBeInViewport();
+  });
+});
+
+test("the painter travels through XYZ while its drone follows and reframes the growing work", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Importer un fichier audio").setInputFiles(file());
+  await expect(
+    page.getByRole("button", { name: "Mettre en pause" }),
+  ).toBeVisible();
+  const canvas = page.locator("canvas");
+  const vector = async (name) =>
+    (await canvas.getAttribute(name)).split(",").map(Number);
+  const start = await vector("data-drone-position");
+  await expect
+    .poll(
+      async () => {
+        const p = await vector("data-painter-position");
+        return Math.hypot(...p);
+      },
+      { timeout: 20000 },
+    )
+    .toBeGreaterThan(50);
+  const painter = await vector("data-painter-position"),
+    drone = await vector("data-drone-position");
+  const extent = await vector("data-sculpture-extent");
+  expect(extent[0]).toBeGreaterThan(12);
+  expect(extent[1]).toBeGreaterThan(3);
+  expect(extent[2]).toBeGreaterThan(12);
+  expect(
+    Math.hypot(...drone.map((value, i) => value - start[i])),
+  ).toBeGreaterThan(15);
+  expect(
+    Math.hypot(...drone.map((value, i) => value - painter[i])),
+  ).toBeLessThan(35);
+  await page.getByRole("button", { name: "TPV", exact: true }).click();
+  await expect(canvas).toHaveAttribute("data-camera-mode", "tpv");
+  await page.getByRole("button", { name: "Mettre en pause" }).click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("each brush long press imports an independent contour/alpha texture", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error" && /THREE|WebGL|Shader/.test(message.text()))
+      errors.push(message.text());
+  });
+  await page.goto("/");
+  // Keep interception active across repeated native pickers; attaching a
+  // transient listener just before a raw mouse-up can race Chromium's toggle.
+  page.on("filechooser", () => {});
+  const names = [
+    "Voiles",
+    "Falaises",
+    "Corolles",
+    "Filaments",
+    "Brumes",
+    "Lagons",
+  ];
+  for (const [i, name] of names.entries()) {
+    const button = page.getByRole("button", { name, exact: true });
+    const box = await button.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(650);
+    const chooser = page.waitForEvent("filechooser");
+    await page.mouse.up();
+    await (
+      await chooser
+    ).setFiles({
+      name: `nervures-${i}.svg`,
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" fill="white"/><path d="M10 80Q80 5 150 80M10 60Q80 90 150 20M80 10V90" fill="none" stroke="black" stroke-width="12"/></svg>',
+      ),
+    });
+    await expect(button).toHaveAttribute(
+      "title",
+      new RegExp(`nervures-${i}.svg`),
+    );
+    await expect(button.locator("img")).toHaveCount(1);
+  }
+  await expect(
+    page.getByRole("button", { name: "Voiles", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(async () =>
+      Number(
+        await page.locator("canvas").getAttribute("data-textured-strokes"),
+      ),
+    )
+    .toBeGreaterThan(0);
+  await page.getByLabel("Importer un fichier audio").setInputFiles(file());
+  await expect(
+    page.getByRole("button", { name: "Mettre en pause" }),
+  ).toBeVisible();
+  for (const name of names) {
+    await page.getByRole("button", { name, exact: true }).click();
+    const count = Number(
+      await page.locator("canvas").getAttribute("data-painted-samples"),
+    );
+    await expect
+      .poll(async () =>
+        Number(
+          await page.locator("canvas").getAttribute("data-painted-samples"),
+        ),
+      )
+      .toBeGreaterThan(count + 3);
+  }
+  expect(errors).toEqual([]);
+});
+
+test("invalid texture preserves the previous brush and import remains usable", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Texture de Voiles", { exact: true }).setInputFiles({
+    name: "broken.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("broken image"),
+  });
+  await expect(page.locator(".track-caption")).toContainText("Texture :");
+  await expect(
+    page.getByRole("button", { name: "Voiles", exact: true }).locator("img"),
+  ).toHaveCount(0);
+  await page.getByLabel("Texture de Voiles", { exact: true }).setInputFiles({
+    name: "alpha.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="20" fill="white"/></svg>',
+    ),
+  });
+  await expect(
+    page.getByRole("button", { name: "Voiles", exact: true }).locator("img"),
+  ).toHaveCount(1);
+  await expect(page.locator(".track-caption")).not.toContainText("Texture :");
+});
+
+test.describe("mobile texture gesture", () => {
+  test.use({ hasTouch: true });
+  test("touch hold opens a brush image picker without selecting another brush", async ({
+    page,
+    context,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    const button = page.getByRole("button", { name: "Corolles", exact: true });
+    const box = await button.boundingBox();
+    const session = await context.newCDPSession(page);
+    const chooser = page.waitForEvent("filechooser");
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }],
+    });
+    await page.waitForTimeout(650);
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await (
+      await chooser
+    ).setFiles({
+      name: "mobile-alpha.svg",
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="20" fill="white"/></svg>',
+      ),
+    });
+    await expect(button.locator("img")).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "Voiles", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    const mask = await button.locator("img").evaluate((image) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(image, 0, 0);
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let clear = 0,
+        pigment = 0;
+      for (let i = 3; i < pixels.length; i += 4) {
+        if (pixels[i] === 0) clear++;
+        if (pixels[i] > 10) pigment++;
+      }
+      return { clear, pigment };
+    });
+    expect(mask.clear).toBeGreaterThan(500);
+    expect(mask.pigment).toBeGreaterThan(500);
   });
 });

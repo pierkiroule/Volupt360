@@ -1,5 +1,5 @@
 const views = [
-  ["drone", "FPV drone", "Vol immersif au centre du paysage"],
+  ["drone", "FPV drone", "Voyage en drone dans le sillage du pinceau"],
   ["tpv", "TPV", "Vue extérieure de la sculpture"],
   ["gyro", "FPV 360° gyro", "Regard panoramique avec le gyroscope"],
 ];
