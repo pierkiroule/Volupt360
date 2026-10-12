@@ -1,4 +1,3 @@
-import { createVocalEcho } from "../audio/createVocalEcho.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
 
 export const MAX_TWIG_SECONDS = 5;
@@ -36,7 +35,6 @@ export function createTwigBank({
     gestures = new Map();
   let ctx,
     master,
-    vocalEcho,
     pendingVocal = null,
     captureProcessor,
     captureSink,
@@ -98,7 +96,6 @@ export function createTwigBank({
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
       master.connect(ctx.destination);
-      vocalEcho = createVocalEcho(ctx, master);
       connectCapture();
     }
     return ctx;
@@ -206,7 +203,7 @@ export function createTwigBank({
       };
       source.connect(analyser);
       analyser.connect(gain);
-      gain.connect(exclusive ? vocalEcho.input : master);
+      gain.connect(master);
       const voice = {
         source,
         gain,
@@ -682,7 +679,6 @@ export function createTwigBank({
       }
       captureProcessor?.disconnect();
       captureSink?.disconnect();
-      vocalEcho?.dispose();
       master?.disconnect();
       if (ctx && ctx.state !== "closed") void ctx.close();
     },

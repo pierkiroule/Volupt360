@@ -39,43 +39,6 @@ test("vocal lock reserves the first phrase before resume and prevents interrupti
   ).toEqual(["voiles"]);
 });
 
-test("vocal echo is quiet, delayed and decays without altering the dry onset", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const waveform = await page.evaluate(async () => {
-    const { createVocalEcho } = await import("/src/audio/createVocalEcho.js");
-    const ctx = new OfflineAudioContext(1, 24000 * 2, 24000),
-      echo = createVocalEcho(ctx, ctx.destination);
-    const source = ctx.createBufferSource();
-    source.buffer = ctx.createBuffer(1, 24000, 24000);
-    source.buffer.getChannelData(0)[2400] = 1;
-    source.connect(echo.input);
-    source.start();
-    const rendered = await ctx.startRendering(),
-      data = rendered.getChannelData(0);
-    const energy = (start, end) => {
-      let sum = 0;
-      for (let i = Math.floor(start * 24000); i < end * 24000; i++)
-        sum += data[i] ** 2;
-      return sum;
-    };
-    const result = {
-      direct: data[2400],
-      early: energy(0.12, 0.3),
-      echo: energy(0.31, 0.38),
-      tail: energy(1, 1.9),
-    };
-    echo.dispose();
-    return result;
-  });
-  expect(waveform.direct).toBeCloseTo(1);
-  expect(waveform.early).toBeLessThan(0.00001);
-  expect(waveform.echo).toBeGreaterThan(0.0001);
-  expect(waveform.echo).toBeLessThan(0.1);
-  expect(waveform.tail).toBeLessThan(0.0001);
-});
-
 test("one global MP3 importer remains reachable with the atelier folded, and a finished voice enables the next pad", async ({
   page,
 }) => {
