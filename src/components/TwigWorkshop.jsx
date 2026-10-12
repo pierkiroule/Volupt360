@@ -66,7 +66,9 @@ export default function TwigWorkshop({
               : "On cueille des sons comme des brindilles."
             : poetic
               ? "Un tap libère un fragment de fluidité."
-              : "Un tap chante · maintenir prolonge le son."}
+              : snapshot.fireflies
+                ? "Les brosses sculptent · les lucioles murmurent."
+                : "Un tap chante · maintenir prolonge le son."}
         </span>
         <span
           aria-label={poetic ? "Nombre de fragments" : "Nombre de brindilles"}
@@ -91,7 +93,11 @@ export default function TwigWorkshop({
               key={brush.id}
               className={`twig-pad twig-${brush.id} ${item.duration ? "is-filled" : ""} ${item.playing ? "is-playing" : ""}`}
               style={{ "--twig-color": brush.color }}
-              aria-label={`${listening ? (item.text ? "Jouer le fragment" : "Jouer la brindille") : item.text ? "Fragment" : "Brindille"} ${brush.name}`}
+              aria-label={
+                snapshot.fireflies
+                  ? `Sculpter avec ${brush.name}`
+                  : `${listening ? (item.text ? "Jouer le fragment" : "Jouer la brindille") : item.text ? "Fragment" : "Brindille"} ${brush.name}`
+              }
               title={
                 item.text ||
                 `${brush.name} · ${item.duration ? `${item.duration.toFixed(1)} s` : "à cueillir"}`
@@ -103,7 +109,8 @@ export default function TwigWorkshop({
                 Boolean(recording) ||
                 (listening &&
                   (!item.duration ||
-                    (snapshot.vocalBusy &&
+                    (!snapshot.fireflies &&
+                      snapshot.vocalBusy &&
                       snapshot.activeVocalId !== brush.id)))
               }
               onClick={(event) => {
@@ -168,7 +175,7 @@ export default function TwigWorkshop({
           );
         })}
       </div>
-      {mode === "cueillir" && (
+      {mode === "cueillir" && !snapshot.fireflies && (
         <div className="twig-editor">
           <div className="twig-editor-caption">
             <strong>{current.name}</strong>
@@ -291,6 +298,16 @@ export default function TwigWorkshop({
               value={elapsed}
             />
           )}
+        </div>
+      )}
+      {mode === "cueillir" && snapshot.fireflies && (
+        <div className="twig-editor">
+          <strong>{current.name}</strong>
+          <TexturePalette
+            brush={current.name}
+            selected={textures[current.id]?.id}
+            onSelect={(id) => onTexture(current.id, id)}
+          />
         </div>
       )}
       {error && (

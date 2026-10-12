@@ -1,3 +1,4 @@
+import { createVocalFireflies } from "../sonoizo/createVocalFireflies.js";
 import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
@@ -95,6 +96,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   let padSource = null,
     oizo = null,
     padInitialized = false;
+  let vocalFireflies = null;
   const dance = createSonoizoDance();
   const oizoScreen = new THREE.Vector3();
   const padStates = new Map();
@@ -295,6 +297,26 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         oizo.update(pose);
+        const fragments = !vocalFireflies
+          ? padSource.getFragments?.() || []
+          : null;
+        if (!vocalFireflies && fragments?.length) {
+          vocalFireflies = createVocalFireflies({
+            fragments,
+            collide: (id) => padSource.collide(id),
+          });
+          landscape.add(vocalFireflies.group);
+        }
+        if (vocalFireflies) {
+          vocalFireflies.group.visible = true;
+          vocalFireflies.update(dt, pose, camera);
+          renderer.domElement.dataset.vocalFireflies = String(
+            vocalFireflies.group.children.length / 2,
+          );
+          renderer.domElement.dataset.vocalCollisions = String(
+            vocalFireflies.collisionCount,
+          );
+        }
         if (!marks.length) {
           navigation.bounds.center.copy(pose.position);
           navigation.bounds.radius = 8;
@@ -460,6 +482,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         if (!photo && cameraMode === "drone")
           videodio?.audio(data, sampleRate, startTime);
       });
+      vocalFireflies?.dispose();
+      vocalFireflies = null;
       padSource = source;
       if (source) {
         if (!padInitialized) {
@@ -571,6 +595,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       videodio?.dispose();
       bridge.close();
       padStates.clear();
+      vocalFireflies?.dispose();
       oizo?.dispose();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
