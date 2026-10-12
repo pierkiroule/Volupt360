@@ -845,7 +845,7 @@ label:focus-visible {
 /* The performance surface: only the two viewpoints, a fold toggle and pads. */
 .immersive .brand {
   top: max(18px, env(safe-area-inset-top));
-  left: 18px;
+  left: 12px;
   transform: none;
   text-align: left;
 }
@@ -915,4 +915,98 @@ label:focus-visible {
     font-size: 10px;
     letter-spacing: 0;
   }
+}
+
+.photo-panel {
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: min(470px, calc(100vw - 28px));
+  padding: 12px;
+  border-radius: 18px;
+  background: #faf7efe0;
+  text-align: center;
+  font-size: 11px;
+}
+.photo-panel p {
+  margin: 0 0 10px;
+}
+.photo-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.photo-actions button {
+  border: 1px solid #385a5530;
+  background: #faf7ef;
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 8px 12px;
+}
+.photo-panel small {
+  display: block;
+  margin-top: 10px;
+  color: #70827a;
+  font-size: 9px;
+}
+.photo-panel a {
+  display: inline-block;
+  margin-top: 12px;
+  color: #385a55;
+}
+.texture-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.texture-presets button {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  padding: 8px;
+  flex: 1;
+  border: 1px solid #385a5530;
+  border-radius: 10px;
+  background: #faf7ef;
+  min-width: 50px;
+}
+.texture-presets button[aria-pressed="true"] {
+  border-color: #385a55;
+  background: #e1e9e1;
+}
+.texture-presets span {
+  font-size: 24px;
+  color: #183832;
+}
+.texture-presets small {
+  font-size: 8px;
+  white-space: nowrap;
+}
+.brush-texture-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  border-radius: 18px;
+  background: #faf7ef;
+  z-index: 5;
+}
+.photo-download {
+  margin-top: 10px;
+  border: 1px solid #385a5530;
+  border-radius: 10px;
+  background: #faf7ef;
+  padding: 10px 14px;
+}
+
+.texture-presets img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #172b28;
 }

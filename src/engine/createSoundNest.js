@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
 import { createBrushBridge } from "../sonoizo/BrushBridge.js";
 import { createOizo } from "../sonoizo/createOizo.js";
@@ -88,6 +89,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     ? createGenerativeMaterials()
     : null;
   const textures = new Map();
+  let cameraMode = "drone";
+  let photo = false,
+    videodio = null;
   let padSource = null,
     oizo = null,
     padInitialized = false;
@@ -271,99 +275,107 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     lastTime = now;
     const playback = player?.getState();
     const f = player?.getFeatures();
-    const voices = padSource?.getVoices() || [];
-    const painting = Boolean(playback?.playing && f?.rms > 0.006);
-    navigation.active = padSource ? true : painting;
-    tip.visible = !padSource && painting;
-    if (padSource ? voices.length > 0 : playback?.playing) elapsed += dt;
-    if (padSource) {
-      const pose = dance.update(dt, voices);
-      navigation.position.copy(pose.position);
-      navigation.direction.copy(pose.direction);
-      navigation.velocity.copy(pose.velocity);
-      navigation.energy = pose.energy;
-      navigation.motion = pose.motion;
-      navigation.phrase = pose.phrase;
-      navigation.progress = pose.progress;
-      sampleClock += dt;
-      const tick = sampleClock >= 0.12;
-      bridge.update(pose, voices, tick);
-      if (tick) sampleClock %= 0.12;
-      oizo.update(pose);
-      if (!marks.length) {
-        navigation.bounds.center.copy(pose.position);
-        navigation.bounds.radius = 8;
+    const voices = photo ? [] : padSource?.getVoices() || [];
+    if (!photo) {
+      const painting = Boolean(playback?.playing && f?.rms > 0.006);
+      navigation.active = padSource ? true : painting;
+      tip.visible = !padSource && painting;
+      if (padSource ? voices.length > 0 : playback?.playing) elapsed += dt;
+      if (padSource) {
+        const pose = dance.update(dt, voices);
+        navigation.position.copy(pose.position);
+        navigation.direction.copy(pose.direction);
+        navigation.velocity.copy(pose.velocity);
+        navigation.energy = pose.energy;
+        navigation.motion = pose.motion;
+        navigation.phrase = pose.phrase;
+        navigation.progress = pose.progress;
+        sampleClock += dt;
+        const tick = sampleClock >= 0.12;
+        bridge.update(pose, voices, tick);
+        if (tick) sampleClock %= 0.12;
+        oizo.update(pose);
+        if (!marks.length) {
+          navigation.bounds.center.copy(pose.position);
+          navigation.bounds.radius = 8;
+        } else {
+          navigation.bounds.radius = Math.max(
+            navigation.bounds.radius,
+            pose.position.distanceTo(navigation.bounds.center) + 3,
+          );
+        }
+      } else if (painting) {
+        quiet = 0;
+        sampleClock += dt;
+        const pose = flight.update(dt, f);
+        navigation.position.copy(pose.position);
+        navigation.direction.copy(pose.direction);
+        navigation.velocity.copy(pose.velocity);
+        navigation.energy = pose.energy;
+        navigation.motion = pose.motion;
+        navigation.phrase = pose.phrase;
+        navigation.progress = pose.progress;
+        tip.position.copy(pose.position);
+        if (sampleClock >= 0.12) {
+          addSample(generative ? { ...pose, acoustic: f } : pose);
+          sampleClock %= 0.12;
+        }
       } else {
-        navigation.bounds.radius = Math.max(
-          navigation.bounds.radius,
-          pose.position.distanceTo(navigation.bounds.center) + 3,
-        );
+        quiet += dt;
+        navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
+        if (quiet > 0.35) closeStroke();
       }
-    } else if (painting) {
-      quiet = 0;
-      sampleClock += dt;
-      const pose = flight.update(dt, f);
-      navigation.position.copy(pose.position);
-      navigation.direction.copy(pose.direction);
-      navigation.velocity.copy(pose.velocity);
-      navigation.energy = pose.energy;
-      navigation.motion = pose.motion;
-      navigation.phrase = pose.phrase;
-      navigation.progress = pose.progress;
-      tip.position.copy(pose.position);
-      if (sampleClock >= 0.12) {
-        addSample(generative ? { ...pose, acoustic: f } : pose);
-        sampleClock %= 0.12;
-      }
-    } else {
-      quiet += dt;
-      navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
-      if (quiet > 0.35) closeStroke();
-    }
-    if (padSource ? voices.length > 0 : playback?.playing) {
-      for (let i = marks.length - 1; i >= 0; i--) {
-        const item = marks[i],
-          age = elapsed - item.born;
-        // Dense nearby pigment accelerates dissolution of older marks smoothly.
-        let neighbors = 0;
-        const midpoint = item.bounds.getCenter(new THREE.Vector3());
-        for (const other of marks) {
-          if (other !== item && other.bounds.distanceToPoint(midpoint) < 9)
-            neighbors++;
-        }
-        item.fade = dissolvePigment({
-          age,
-          count: marks.length,
-          neighbors,
-          fade: item.fade,
-          dt,
-          significance: item.significance,
-          opening: item.opening,
-        });
-        const fade = item.fade;
-        item.object.traverse((object) => {
-          if (object.material?.uniforms) {
-            object.material.uniforms.uTime.value = elapsed;
-            object.material.uniforms.uAge.value = age;
-            object.material.uniforms.uFade.value = fade;
+      if (padSource ? voices.length > 0 : playback?.playing) {
+        for (let i = marks.length - 1; i >= 0; i--) {
+          const item = marks[i],
+            age = elapsed - item.born;
+          // Dense nearby pigment accelerates dissolution of older marks smoothly.
+          let neighbors = 0;
+          const midpoint = item.bounds.getCenter(new THREE.Vector3());
+          for (const other of marks) {
+            if (other !== item && other.bounds.distanceToPoint(midpoint) < 9)
+              neighbors++;
           }
-        });
-        if (fade < 0.012 && !isActive(item)) {
-          destroyStroke(item);
-          marks.splice(i, 1);
-          boundsDirty = true;
+          item.fade = dissolvePigment({
+            age,
+            count: marks.length,
+            neighbors,
+            fade: item.fade,
+            dt,
+            significance: item.significance,
+            opening: item.opening,
+          });
+          const fade = item.fade;
+          item.object.traverse((object) => {
+            if (object.material?.uniforms) {
+              object.material.uniforms.uTime.value = elapsed;
+              object.material.uniforms.uAge.value = age;
+              object.material.uniforms.uFade.value = fade;
+            }
+          });
+          if (fade < 0.012 && !isActive(item)) {
+            destroyStroke(item);
+            marks.splice(i, 1);
+            boundsDirty = true;
+          }
         }
+        renderer.domElement.dataset.markCount = String(marks.length);
       }
-      renderer.domElement.dataset.markCount = String(marks.length);
+      if (boundsDirty) updateBounds();
     }
-    if (boundsDirty) updateBounds();
+    renderer.domElement.dataset.sculpturePaused = String(photo);
     rig.update(dt);
     try {
       effects.render(scene, camera);
+      if (!photo && cameraMode === "drone")
+        videodio?.frame(renderer.domElement, now);
     } catch (error) {
       onError?.(error.message);
     }
     if (now - lastReport > 80) {
+      renderer.domElement.dataset.videoFrames = String(
+        videodio?.getHistory().frames || 0,
+      );
       renderer.domElement.dataset.oizo = String(Boolean(padSource));
       if (padSource) {
         oizo.group.getWorldPosition(oizoScreen);
@@ -440,7 +452,13 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   frameId = requestAnimationFrame(frame);
   return {
     setPadSource(source) {
+      padSource?.setCaptureTap(null);
       bridge.close();
+      if (source && !videodio) videodio = createVideodio();
+      source?.setCaptureTap((data, sampleRate, startTime) => {
+        if (!photo && cameraMode === "drone")
+          videodio?.audio(data, sampleRate, startTime);
+      });
       padSource = source;
       if (source) {
         if (!padInitialized) {
@@ -476,7 +494,67 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         });
       previous?.texture.dispose();
     },
-    setCameraMode: rig.setMode,
+    setCameraMode(next) {
+      const wasPhoto = photo;
+      const previousMode = cameraMode;
+      cameraMode = next;
+      photo = next === "photo";
+      if (photo && !wasPhoto) {
+        padSource?.stopAll();
+        player?.pause();
+        bridge.close();
+        closeStroke();
+      }
+      // Keep the most recent FPV take while framing or contemplating.
+      if (next !== "drone") videodio?.freeze(true);
+      else if (previousMode !== "drone") videodio?.freeze(false);
+      return rig.setMode(next);
+    },
+    async exportPhoto() {
+      if (!photo) throw new Error("Cadrez votre photo dans la vue Photo.");
+      rig.update(0);
+      const size = renderer.getSize(new THREE.Vector2()),
+        ratio = renderer.getPixelRatio();
+      const aspect = camera.aspect;
+      const longSide = Math.min(2560, renderer.capabilities.maxTextureSize);
+      const scale = longSide / Math.max(size.x, size.y);
+      const width = Math.round(size.x * scale),
+        height = Math.round(size.y * scale);
+      const output = document.createElement("canvas");
+      output.width = width;
+      output.height = height;
+      try {
+        renderer.setPixelRatio(1);
+        renderer.setSize(width, height, false);
+        effects.resize();
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        effects.render(scene, camera);
+        output.getContext("2d").drawImage(renderer.domElement, 0, 0);
+      } finally {
+        renderer.setPixelRatio(ratio);
+        renderer.setSize(size.x, size.y, false);
+        effects.resize();
+        camera.aspect = aspect;
+        camera.updateProjectionMatrix();
+      }
+      return new Promise((resolve, reject) =>
+        output.toBlob(
+          (blob) =>
+            blob
+              ? resolve(blob)
+              : reject(new Error("La photo n’a pas pu être encodée.")),
+          "image/png",
+        ),
+      );
+    },
+    setPhotoZoom: rig.setPhotoZoom,
+    exportVideodio(onProgress) {
+      if (!photo || !videodio)
+        throw new Error("Passez en vue photo pour cadrer votre vidéodio.");
+      effects.render(scene, camera);
+      return videodio.export(renderer.domElement, onProgress);
+    },
     setDroneDistance: rig.setDistance,
     setPlayer(next, callback) {
       player = next;
@@ -487,6 +565,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       disposed = true;
       cancelAnimationFrame(frameId);
       rig.dispose();
+      padSource?.setCaptureTap(null);
+      videodio?.dispose();
       bridge.close();
       padStates.clear();
       oizo?.dispose();

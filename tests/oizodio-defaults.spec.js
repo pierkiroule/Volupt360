@@ -22,7 +22,7 @@ test("twelve deterministic mellow melodies have bounded amplitude, duration and 
   expect(fingerprints.size).toBe(12);
 });
 
-test("default mobile opens ready to sculpt silently with folding tools and two square viewpoints", async ({
+test("default mobile opens ready to sculpt silently with folding tools and three square viewpoints", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -55,7 +55,7 @@ test("default mobile opens ready to sculpt silently with folding tools and two s
   const views = page
     .getByRole("navigation", { name: "Vues caméra" })
     .getByRole("button");
-  await expect(views).toHaveCount(2);
+  await expect(views).toHaveCount(3);
   const box = await views.first().boundingBox();
   expect(box.width).toBe(36);
   expect(box.height).toBe(36);

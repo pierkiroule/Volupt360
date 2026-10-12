@@ -4,7 +4,7 @@ import CameraViews from "./components/CameraViews.jsx";
 import ControlPanel from "./components/ControlPanel.jsx";
 import { createSoundNest } from "./engine/createSoundNest.js";
 import { createLoopPlayer } from "./audio/createLoopPlayer.js";
-import { importBrushTexture } from "./engine/importBrushTexture.js";
+import { createPredefinedTexture } from "./engine/predefinedTextures.js";
 import { analyzeLoops } from "./audio/analyzeLoops.js";
 import { ENABLE_SONOIZO } from "./sonoizo/config.js";
 import { useTwigBank } from "./sonoizo/useTwigBank.js";
@@ -21,6 +21,31 @@ export default function App() {
       : new URLSearchParams(location.search).get("samples") === "empty"
         ? "cueillir"
         : "jouer",
+  );
+  const [photoAsset, setPhotoAsset] = useState(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  useEffect(
+    () => () => {
+      if (photoAsset) URL.revokeObjectURL(photoAsset.url);
+    },
+    [photoAsset],
+  );
+  const [video, setVideo] = useState(null);
+  const [videoBusy, setVideoBusy] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoError, setVideoError] = useState("");
+  const videoRequest = useRef(0);
+  useEffect(
+    () => () => {
+      videoRequest.current++;
+    },
+    [],
+  );
+  useEffect(
+    () => () => {
+      if (video) URL.revokeObjectURL(video.url);
+    },
+    [video],
   );
   const [toolsOpen, setToolsOpen] = useState(
     new URLSearchParams(location.search).get("samples") === "empty",
@@ -70,13 +95,13 @@ export default function App() {
     };
   }, []);
 
-  async function loadTexture(id, file) {
+  async function loadTexture(id, preset) {
     const owner = engine.current;
     const request = (textureRequests.current[id] || 0) + 1;
     textureRequests.current[id] = request;
     setError("");
     try {
-      const binding = await importBrushTexture(file);
+      const binding = createPredefinedTexture(preset);
       if (
         !owner ||
         engine.current !== owner ||
@@ -88,7 +113,7 @@ export default function App() {
       owner.setBrushTexture(id, binding);
       setTextures((previous) => ({
         ...previous,
-        [id]: { preview: binding.preview, name: binding.name },
+        [id]: { preview: binding.preview, name: binding.name, id: binding.id },
       }));
     } catch (cause) {
       if (engine.current === owner && textureRequests.current[id] === request)
@@ -100,7 +125,57 @@ export default function App() {
     setBrush(id);
     engine.current?.setBrush(id);
   }
+  async function exportPhoto() {
+    if (photoBusy || videoBusy) return;
+    const ticket = ++videoRequest.current;
+    setPhotoBusy(true);
+    setVideoError("");
+    try {
+      const blob = await engine.current.exportPhoto();
+      if (ticket !== videoRequest.current) return;
+      const asset = {
+        url: URL.createObjectURL(blob),
+        name: `Oizodio-photo-${Date.now()}.png`,
+      };
+      setPhotoAsset(asset);
+      const link = document.createElement("a");
+      link.href = asset.url;
+      link.download = asset.name;
+      link.click();
+    } catch (cause) {
+      if (ticket === videoRequest.current) setVideoError(cause.message);
+    } finally {
+      if (ticket === videoRequest.current) setPhotoBusy(false);
+    }
+  }
+  async function exportVideo() {
+    if (videoBusy) return;
+    const ticket = ++videoRequest.current;
+    setVideoBusy(true);
+    setVideoError("");
+    setVideoProgress(0);
+    try {
+      const result = await engine.current.exportVideodio((value) => {
+        if (ticket === videoRequest.current) setVideoProgress(value);
+      });
+      if (ticket !== videoRequest.current) return;
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      setVideo({
+        url: URL.createObjectURL(result.blob),
+        name: `Oizodio-${stamp}.${result.extension}`,
+      });
+    } catch (cause) {
+      if (ticket === videoRequest.current) setVideoError(cause.message);
+    } finally {
+      if (ticket === videoRequest.current) setVideoBusy(false);
+    }
+  }
   function chooseCamera(id) {
+    if (id === "photo") {
+      twigs.bank.current?.cancelRecording();
+      setToolsOpen(false);
+      setAtelier("jouer");
+    }
     setMode(id);
     void engine.current?.setCameraMode(id);
   }
@@ -178,6 +253,7 @@ export default function App() {
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
       <CameraViews
+        disabled={videoBusy || photoBusy}
         compact={immersive}
         expanded={!immersive || toolsOpen}
         mode={mode}
@@ -195,7 +271,7 @@ export default function App() {
         <span>UN VOYAGE DANS LA MATIÈRE</span>
         <span>Glisser pour tourner · le son pour peindre</span>
       </div>
-      {immersive && (
+      {immersive && mode !== "photo" && (
         <button
           className="atelier-toggle"
           aria-label={
@@ -233,7 +309,63 @@ export default function App() {
           ))}
         </nav>
       )}
-      {atelier !== "mp3" ? (
+      {mode === "photo" && immersive ? (
+        <section className="photo-panel" aria-label="Cadrer une vidéodio">
+          <p>Glisser pour tourner · pincer ou molette pour zoomer</p>
+          <div className="photo-actions">
+            <button
+              aria-label="Dézoomer la photo"
+              disabled={videoBusy || photoBusy}
+              onClick={() => {
+                const zoom = Number(
+                  stage.current.querySelector("canvas").dataset.photoZoom || 1,
+                );
+                engine.current?.setPhotoZoom(zoom * 1.2);
+              }}
+            >
+              −
+            </button>
+            <button
+              aria-label="Zoomer la photo"
+              disabled={videoBusy || photoBusy}
+              onClick={() => {
+                const zoom = Number(
+                  stage.current.querySelector("canvas").dataset.photoZoom || 1,
+                );
+                engine.current?.setPhotoZoom(zoom / 1.2);
+              }}
+            >
+              +
+            </button>
+            <button onClick={exportVideo} disabled={videoBusy || photoBusy}>
+              {videoBusy
+                ? `Création… ${Math.round(videoProgress * 100)} %`
+                : "Créer ma vidéodio · 10 s"}
+            </button>
+          </div>
+          <button
+            className="photo-download"
+            onClick={exportPhoto}
+            disabled={videoBusy || photoBusy}
+          >
+            {photoBusy ? "Photo…" : "Télécharger la photo · PNG HD"}
+          </button>
+          <small>
+            Vidéo : uniquement votre vol FPV, avec son audio synchronisé
+          </small>
+          {photoAsset && (
+            <a href={photoAsset.url} download={photoAsset.name}>
+              Retélécharger la photo PNG HD
+            </a>
+          )}
+          {videoError && <p role="alert">{videoError}</p>}
+          {video && (
+            <a href={video.url} download={video.name}>
+              Télécharger ma vidéodio
+            </a>
+          )}
+        </section>
+      ) : atelier !== "mp3" ? (
         <TwigWorkshop
           mode={atelier}
           {...twigs}

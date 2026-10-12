@@ -27,6 +27,10 @@ export function createTwigBank({
     gestures = new Map();
   let ctx,
     master,
+    captureProcessor,
+    captureSink,
+    captureTap,
+    capturePending = false,
     recording = null,
     revision = 0,
     playbackRevision = 0,
@@ -72,8 +76,53 @@ export function createTwigBank({
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
       master.connect(ctx.destination);
+      connectCapture();
     }
     return ctx;
+  }
+  function captured(data, rate, audioTime) {
+    const stamp = ctx.getOutputTimestamp?.();
+    const startTime =
+      stamp?.performanceTime > 0
+        ? stamp.performanceTime + (audioTime - stamp.contextTime) * 1000
+        : performance.now() + (audioTime - ctx.currentTime) * 1000;
+    captureTap?.(data, rate, startTime);
+  }
+  async function connectCapture() {
+    if (!ctx || !captureTap || captureProcessor || capturePending) return;
+    capturePending = true;
+    try {
+      if (!ctx.audioWorklet || !window.AudioWorkletNode)
+        throw new Error("Worklet unavailable");
+      await ctx.audioWorklet.addModule(
+        new URL("../audio/CaptureProcessor.js", import.meta.url),
+      );
+      if (disposed || !captureTap || ctx.state === "closed") return;
+      captureProcessor = new AudioWorkletNode(ctx, "oizodio-capture", {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+      });
+      captureProcessor.port.onmessage = (event) =>
+        captured(event.data.data, event.data.sampleRate, event.data.startedAt);
+    } catch {
+      if (disposed || !captureTap || ctx.state === "closed") return;
+      captureProcessor = ctx.createScriptProcessor(2048, 1, 1);
+      captureProcessor.onaudioprocess = (event) =>
+        captured(
+          event.inputBuffer.getChannelData(0),
+          ctx.sampleRate,
+          event.playbackTime - event.inputBuffer.duration * 2,
+        );
+    } finally {
+      capturePending = false;
+    }
+    if (!captureProcessor) return;
+    captureSink = ctx.createGain();
+    captureSink.gain.value = 0;
+    master.connect(captureProcessor);
+    captureProcessor.connect(captureSink);
+    captureSink.connect(ctx.destination);
   }
   function balance() {
     master?.gain.setTargetAtTime(
@@ -335,6 +384,10 @@ export function createTwigBank({
     emit();
   }
   return {
+    setCaptureTap(tap) {
+      captureTap = tap;
+      connectCapture();
+    },
     getSnapshot: snapshot,
     record,
     importSample,
@@ -404,6 +457,14 @@ export function createTwigBank({
       stopAll();
       disposed = true;
       buffers.clear();
+      captureTap = null;
+      if (captureProcessor) captureProcessor.onaudioprocess = null;
+      if (captureProcessor?.port) {
+        captureProcessor.port.onmessage = null;
+        captureProcessor.port.close();
+      }
+      captureProcessor?.disconnect();
+      captureSink?.disconnect();
       master?.disconnect();
       if (ctx && ctx.state !== "closed") void ctx.close();
     },
