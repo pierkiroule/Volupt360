@@ -1,7 +1,12 @@
 import * as THREE from "three";
 
 /** Bounded, reproducible orbital bodies. Collisions use swept relative motion. */
-export function createVocalFireflies({ fragments, collide, seed = 73 }) {
+export function createVocalFireflies({
+  fragments,
+  collide,
+  seed = 73,
+  proximityPull = 1.8,
+}) {
   const group = new THREE.Group();
   const sphere = new THREE.SphereGeometry(0.25, 8, 6);
   const ringGeometry = new THREE.RingGeometry(0.9, 1, 40);
@@ -14,29 +19,17 @@ export function createVocalFireflies({ fragments, collide, seed = 73 }) {
   };
   const previousBird = new THREE.Vector3(),
     relative = new THREE.Vector3(),
-    delta = new THREE.Vector3();
+    delta = new THREE.Vector3(),
+    attraction = new THREE.Vector3();
   let initialized = false,
     collisions = 0;
   const bodies = fragments.map((fragment, i) => {
-    const color = new THREE.Color().setHSL(i / fragments.length, 0.85, 0.6);
+    const color = new THREE.Color("#111111");
     const material = new THREE.MeshBasicMaterial({
       color,
-      transparent: true,
-      opacity: 0.9,
-      depthWrite: false,
+      depthWrite: true,
     });
     const mesh = new THREE.Mesh(sphere, material);
-    const halo = new THREE.Mesh(
-      sphere,
-      new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.12,
-        depthWrite: false,
-      }),
-    );
-    halo.scale.setScalar(3);
-    mesh.add(halo);
     const ring = new THREE.Mesh(
       ringGeometry,
       new THREE.MeshBasicMaterial({
@@ -89,6 +82,16 @@ export function createVocalFireflies({ fragments, collide, seed = 73 }) {
       }
       for (const body of bodies) {
         body.previous.copy(body.mesh.position);
+        // Only nearby, available bodies gently bend toward the bird.
+        // Damped velocity and restoring offsets preserve their independent orbits.
+        attraction.copy(pose.position).sub(body.mesh.position);
+        const distance = attraction.length();
+        if (!body.cooldown && distance > 0.001 && distance < 14) {
+          body.kick.addScaledVector(
+            attraction,
+            (dt * proximityPull * (1 - distance / 14)) / distance,
+          );
+        }
         body.kick.multiplyScalar(Math.exp(-dt * 1.2));
         body.offset
           .addScaledVector(body.kick, dt)
@@ -139,7 +142,6 @@ export function createVocalFireflies({ fragments, collide, seed = 73 }) {
       ringGeometry.dispose();
       for (const body of bodies) {
         body.mesh.material.dispose();
-        body.mesh.children[0].material.dispose();
         body.ring.material.dispose();
       }
     },

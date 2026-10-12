@@ -3,6 +3,7 @@ import * as THREE from "three";
 /** A tiny tapered V. Forward is +Z; the existing flight remains the nozzle. */
 export function createOizo() {
   const group = new THREE.Group();
+  group.scale.setScalar(1.6);
   const material = new THREE.MeshBasicMaterial({
     color: "#284c55",
     side: THREE.DoubleSide,

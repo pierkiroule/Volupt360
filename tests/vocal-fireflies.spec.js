@@ -90,19 +90,31 @@ test("free flight naturally meets the orbital field with bounded scene objects",
       fragments: FIREFLY_FRAGMENTS,
       collide: () => Promise.resolve(true),
     });
+    const baseline = createVocalFireflies({
+      fragments: FIREFLY_FRAGMENTS,
+      collide: () => Promise.resolve(true),
+      proximityPull: 0,
+    });
     const dance = createSonoizoDance(),
       camera = new THREE.PerspectiveCamera();
     for (let i = 0; i < 60 * 180; i++) {
-      field.update(1 / 60, dance.update(1 / 60, []), camera);
+      const pose = dance.update(1 / 60, []);
+      field.update(1 / 60, pose, camera);
+      baseline.update(1 / 60, pose, camera);
       if (i % 60 === 0) await Promise.resolve();
     }
     const result = {
       collisions: field.collisionCount,
+      baselineCollisions: baseline.collisionCount,
+      black: field.group.children[0].material.color.getHex(),
       objects: field.group.children.length,
     };
     field.dispose();
+    baseline.dispose();
     return result;
   });
+  expect(result.black).toBe(0x111111);
+  expect(result.collisions).toBeGreaterThan(result.baselineCollisions);
   expect(result.collisions).toBeGreaterThan(0);
   expect(result.objects).toBe(48);
 });
