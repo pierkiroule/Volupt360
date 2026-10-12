@@ -1,10 +1,18 @@
 import { useRef } from "react";
 
-export default function AmbiencePanel({ bank, snapshot, clearError }) {
+export default function AmbiencePanel({
+  bank,
+  snapshot,
+  clearError,
+  compact = false,
+}) {
   const input = useRef(null),
     state = snapshot.ambience || {};
   return (
-    <section className="ambience-panel" aria-label="Ambiance musicale globale">
+    <section
+      className={`ambience-panel ${compact ? "is-compact" : ""}`}
+      aria-label="Ambiance musicale globale"
+    >
       <input
         ref={input}
         type="file"
@@ -20,8 +28,21 @@ export default function AmbiencePanel({ bank, snapshot, clearError }) {
           }
         }}
       />
-      <button onClick={() => input.current?.click()} disabled={state.loading}>
-        {state.loading ? "Préparation…" : "Ambiance MP3"}
+      <button
+        aria-label={
+          state.loaded ? "Remplacer l’ambiance MP3" : "Choisir une ambiance MP3"
+        }
+        title={state.name || "Importer une ambiance musicale"}
+        onClick={() => input.current?.click()}
+        disabled={state.loading}
+      >
+        {state.loading
+          ? "…"
+          : compact
+            ? "♫"
+            : state.loaded
+              ? "Remplacer MP3"
+              : "Ambiance MP3"}
       </button>
       <span title={state.name}>
         {state.name || "La musique accompagne les voix."}
@@ -36,12 +57,14 @@ export default function AmbiencePanel({ bank, snapshot, clearError }) {
           >
             {state.playing ? "Ⅱ" : "▷"}
           </button>
-          <button
-            aria-label="Retirer l’ambiance"
-            onClick={() => bank.current?.removeAmbience()}
-          >
-            ×
-          </button>
+          {!compact && (
+            <button
+              aria-label="Retirer l’ambiance"
+              onClick={() => bank.current?.removeAmbience()}
+            >
+              ×
+            </button>
+          )}
         </>
       )}
     </section>

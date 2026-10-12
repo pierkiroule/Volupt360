@@ -1,3 +1,4 @@
+import { createVocalEcho } from "../audio/createVocalEcho.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
 
 export const MAX_TWIG_SECONDS = 5;
@@ -35,6 +36,8 @@ export function createTwigBank({
     gestures = new Map();
   let ctx,
     master,
+    vocalEcho,
+    pendingVocal = null,
     captureProcessor,
     captureSink,
     captureTap,
@@ -65,6 +68,8 @@ export function createTwigBank({
           }
         : null,
       poemLoading,
+      activeVocalId: [...voices.keys()][0] || pendingVocal?.id || null,
+      vocalBusy: poems.size > 0 && (voices.size > 0 || pendingVocal !== null),
       ambience: {
         name: ambience?.name || "",
         loaded: Boolean(ambience),
@@ -93,6 +98,7 @@ export function createTwigBank({
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
       master.connect(ctx.destination);
+      vocalEcho = createVocalEcho(ctx, master);
       connectCapture();
     }
     return ctx;
@@ -164,59 +170,73 @@ export function createTwigBank({
   }
   async function play(id, owner = null, loop = false, dance = Boolean(owner)) {
     if (disposed || !buffers.has(id)) return;
-    const ticket = playbackRevision;
-    const audio = context();
-    await audio.resume();
-    if (
-      disposed ||
-      ticket !== playbackRevision ||
-      !buffers.has(id) ||
-      (owner && gestures.get(owner.key) !== owner)
-    )
-      return;
-    stopVoice(id);
-    const source = audio.createBufferSource(),
-      gain = audio.createGain();
-    source.buffer = buffers.get(id);
-    source.loop = loop || Boolean(owner?.looping);
-    gain.gain.setValueAtTime(0, audio.currentTime);
-    gain.gain.linearRampToValueAtTime(1, audio.currentTime + 0.006);
-    const analyser = audio.createAnalyser();
-    analyser.fftSize = 2048;
-    const graph = {
-      ctx: audio,
-      analyser,
-      bins: new Uint8Array(analyser.frequencyBinCount),
-      wave: new Uint8Array(analyser.fftSize),
-      prev: new Float32Array(analyser.frequencyBinCount),
-    };
-    source.connect(analyser);
-    analyser.connect(gain);
-    gain.connect(master);
-    const voice = {
-      source,
-      gain,
-      owner,
-      analyser,
-      graph,
-      dance,
-      trigger: ++triggerSerial,
-      analysedAt: -1,
-    };
-    voices.set(id, voice);
-    source.onended = () => {
-      source.disconnect();
-      analyser.disconnect();
-      gain.disconnect();
-      if (voices.get(id) === voice) {
-        voices.delete(id);
-        balance();
+    const exclusive = poems.has(id);
+    if (exclusive && (voices.size > 0 || pendingVocal !== null)) return;
+    const reservation = exclusive ? { id } : null;
+    if (exclusive) {
+      pendingVocal = reservation;
+      emit();
+    }
+    try {
+      const ticket = playbackRevision;
+      const audio = context();
+      await audio.resume();
+      if (
+        disposed ||
+        ticket !== playbackRevision ||
+        !buffers.has(id) ||
+        (owner && gestures.get(owner.key) !== owner)
+      )
+        return;
+      stopVoice(id);
+      const source = audio.createBufferSource(),
+        gain = audio.createGain();
+      source.buffer = buffers.get(id);
+      source.loop = loop || Boolean(owner?.looping);
+      gain.gain.setValueAtTime(0, audio.currentTime);
+      gain.gain.linearRampToValueAtTime(1, audio.currentTime + 0.006);
+      const analyser = audio.createAnalyser();
+      analyser.fftSize = 2048;
+      const graph = {
+        ctx: audio,
+        analyser,
+        bins: new Uint8Array(analyser.frequencyBinCount),
+        wave: new Uint8Array(analyser.fftSize),
+        prev: new Float32Array(analyser.frequencyBinCount),
+      };
+      source.connect(analyser);
+      analyser.connect(gain);
+      gain.connect(exclusive ? vocalEcho.input : master);
+      const voice = {
+        source,
+        gain,
+        owner,
+        analyser,
+        graph,
+        dance,
+        trigger: ++triggerSerial,
+        analysedAt: -1,
+      };
+      voices.set(id, voice);
+      source.onended = () => {
+        source.disconnect();
+        analyser.disconnect();
+        gain.disconnect();
+        if (voices.get(id) === voice) {
+          voices.delete(id);
+          balance();
+          emit();
+        }
+      };
+      balance();
+      source.start();
+      emit();
+    } finally {
+      if (exclusive && pendingVocal === reservation) {
+        pendingVocal = null;
         emit();
       }
-    };
-    balance();
-    source.start();
-    emit();
+    }
   }
   function release(key, cancel = false) {
     const gesture = gestures.get(key);
@@ -235,6 +255,7 @@ export function createTwigBank({
   }
   function stopAll() {
     playbackRevision++;
+    pendingVocal = null;
     for (const key of [...gestures.keys()]) release(key, true);
     for (const id of [...voices.keys()]) stopVoice(id);
     emit();
@@ -602,6 +623,7 @@ export function createTwigBank({
     },
     press(id, key) {
       if (disposed || recording || !buffers.has(id)) return;
+      if (poems.has(id) && (voices.size > 0 || pendingVocal !== null)) return;
       release(key, true);
       for (const [otherKey, other] of gestures)
         if (other.id === id) release(otherKey, true);
@@ -660,6 +682,7 @@ export function createTwigBank({
       }
       captureProcessor?.disconnect();
       captureSink?.disconnect();
+      vocalEcho?.dispose();
       master?.disconnect();
       if (ctx && ctx.state !== "closed") void ctx.close();
     },

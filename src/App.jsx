@@ -316,8 +316,8 @@ export default function App() {
           ))}
         </nav>
       )}
-      {immersive && toolsOpen && mode !== "photo" && (
-        <AmbiencePanel {...twigs} />
+      {immersive && mode !== "photo" && (
+        <AmbiencePanel {...twigs} compact={!toolsOpen} />
       )}
       {mode === "photo" && immersive ? (
         <section className="photo-panel" aria-label="Cadrer une vidéodio">

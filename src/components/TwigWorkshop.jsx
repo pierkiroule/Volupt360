@@ -99,7 +99,13 @@ export default function TwigWorkshop({
               data-duration={item.duration.toFixed(1)}
               data-looping={Boolean(item.looping)}
               aria-pressed={listening ? item.playing : current.id === brush.id}
-              disabled={Boolean(recording) || (listening && !item.duration)}
+              disabled={
+                Boolean(recording) ||
+                (listening &&
+                  (!item.duration ||
+                    (snapshot.vocalBusy &&
+                      snapshot.activeVocalId !== brush.id)))
+              }
               onClick={(event) => {
                 if (!listening) {
                   setSelected(brush.id);
@@ -241,7 +247,9 @@ export default function TwigWorkshop({
                 </button>
               ))}
             <button
-              disabled={!slot.duration || Boolean(recording)}
+              disabled={
+                !slot.duration || Boolean(recording) || snapshot.vocalBusy
+              }
               aria-label={`Écouter ${current.name}`}
               onClick={() => {
                 clearError();
@@ -293,7 +301,7 @@ export default function TwigWorkshop({
       <p className="twig-note">
         {mode === "cueillir"
           ? poetic
-            ? "En contemplation, un mot regardé réveille sa voix."
+            ? "Les voix dessinent leurs matières dans l’espace."
             : "Un bouquet local, conservé pendant cette session."
           : "La buse danse en continu. Vos pads sculptent son sillage."}
       </p>
