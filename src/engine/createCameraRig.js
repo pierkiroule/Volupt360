@@ -13,6 +13,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     disposed = false;
   let panoramaYaw = 0,
     distanceSetting = 0.25;
+  let photoZoom = 1;
+  const photoPointers = new Map();
+  let pinchDistance = 0;
   let tracking = 0,
     calm = 0;
   const panoramaPosition = new THREE.Vector3();
@@ -59,18 +62,50 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     canvas.dataset.flightRevision = String(revision);
   }
   listen(canvas, "pointerdown", (event) => {
+    if (mode === "photo") {
+      photoPointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY,
+      });
+      canvas.setPointerCapture(event.pointerId);
+      if (photoPointers.size === 2) {
+        const [a, b] = [...photoPointers.values()];
+        pinchDistance = Math.hypot(a.x - b.x, a.y - b.y);
+      }
+    }
     if (!event.isPrimary || event.button > 0) return;
     dragging = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    localPivot.set(0, 0, 0);
+    if (mode === "photo") localPivot.copy(getFlight().bounds.center);
+    else localPivot.set(0, 0, 0);
     landscape.updateMatrixWorld(true);
     worldPivot.copy(localPivot).applyMatrix4(landscape.matrixWorld);
     canvas.setPointerCapture(event.pointerId);
   });
   listen(canvas, "pointermove", (event) => {
+    if (mode === "photo" && photoPointers.has(event.pointerId)) {
+      photoPointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY,
+      });
+      if (photoPointers.size === 2) {
+        const [a, b] = [...photoPointers.values()];
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinchDistance > 0 && distance > 0)
+          setPhotoZoom((photoZoom * pinchDistance) / distance);
+        pinchDistance = distance;
+        if (dragging?.id === event.pointerId) {
+          dragging.x = event.clientX;
+          dragging.y = event.clientY;
+        }
+        return;
+      }
+    }
     if (!dragging || event.pointerId !== dragging.id) return;
     const dx = event.clientX - dragging.x;
-    if (dx !== 0) {
+    const dy = event.clientY - dragging.y;
+    if (dx !== 0 || (mode === "photo" && dy !== 0)) {
       landscape.rotation.y += dx * 0.006;
+      if (mode === "photo") landscape.rotation.x += dy * 0.006;
       landscape.position
         .copy(worldPivot)
         .sub(localPivot.clone().applyQuaternion(landscape.quaternion));
@@ -80,7 +115,23 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     dragging.x = event.clientX;
     dragging.y = event.clientY;
   });
+  function setPhotoZoom(value) {
+    photoZoom = THREE.MathUtils.clamp(Number(value), 0.25, 3);
+    canvas.dataset.photoZoom = String(photoZoom);
+  }
+  listen(canvas, "wheel", (event) => {
+    if (mode !== "photo") return;
+    event.preventDefault();
+    setPhotoZoom(photoZoom * Math.exp(event.deltaY * 0.001));
+  });
   const release = (event) => {
+    photoPointers.delete(event.pointerId);
+    pinchDistance = 0;
+    if (dragging && mode === "photo" && photoPointers.has(dragging.id)) {
+      const position = photoPointers.get(dragging.id);
+      dragging.x = position.x;
+      dragging.y = position.y;
+    }
     if (dragging?.id !== event.pointerId) return;
     if (canvas.hasPointerCapture(event.pointerId))
       canvas.releasePointerCapture(event.pointerId);
@@ -120,6 +171,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   async function setMode(next) {
     const request = ++sensorRequest;
     mode = next;
+    if (next === "photo") setPhotoZoom(1);
+    photoPointers.clear();
+    dragging = null;
     reanchor();
     gyroReference = null;
     gyroRelative.identity();
@@ -177,6 +231,24 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     tracking +=
       ((state.active ? 1 : 0) - tracking) * mix(state.active ? 1.4 : 0.38);
     calm = state.active ? 0 : Math.min(20, calm + dt);
+    if (mode === "photo") {
+      const halfFov = Math.atan(
+        Math.tan(THREE.MathUtils.degToRad(37)) * Math.min(1, camera.aspect),
+      );
+      const radius = Math.max(3, state.bounds.radius);
+      desired
+        .copy(center)
+        .addScaledVector(
+          behind.set(0, 0.25, 1).normalize(),
+          ((radius * 1.2) / Math.sin(halfFov)) * photoZoom,
+        );
+      camera.position.copy(desired);
+      camera.lookAt(center);
+      camera.fov = 74;
+      camera.far = Math.max(400, camera.position.distanceTo(center) * 3);
+      camera.updateProjectionMatrix();
+      return;
+    }
     if (mode === "gyro") {
       desired.copy(panoramaPosition);
       target
@@ -256,6 +328,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   return {
     setMode,
+    setPhotoZoom,
     setDistance(value) {
       distanceSetting = THREE.MathUtils.clamp(Number(value), 0, 1);
       canvas.dataset.droneDistance = String(distanceSetting);

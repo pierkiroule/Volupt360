@@ -10,15 +10,27 @@ export default function CameraViews({
   onDistance,
   compact = false,
   expanded = true,
+  disabled = false,
 }) {
   return (
     <nav
       className={`camera-views ${compact ? "is-compact" : ""}`}
       aria-label="Vues caméra"
     >
-      {views.map(([id, label, title], index) => (
+      {(compact
+        ? [
+            ...views,
+            [
+              "photo",
+              "Vue photo",
+              "Figer, cadrer et collectionner une vidéodio",
+            ],
+          ]
+        : views
+      ).map(([id, label, title], index) => (
         <button
           key={id}
+          disabled={disabled}
           aria-label={label}
           aria-pressed={mode === id}
           title={title}
@@ -40,6 +52,11 @@ export default function CameraViews({
                 <>
                   <path d="M5 16 12 8 19 16M12 8v11" />
                   <path d="M3 6h4M17 6h4M5 4v4M19 4v4" />
+                </>
+              ) : id === "photo" ? (
+                <>
+                  <path d="M3 7h5l2-3h4l2 3h5v13H3z" />
+                  <circle cx="12" cy="13" r="4" />
                 </>
               ) : (
                 <>
