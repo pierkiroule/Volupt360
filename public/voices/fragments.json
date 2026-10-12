@@ -1,0 +1,292 @@
+{
+  "application": "ECHOFRAG",
+  "source": "ElevenLabs_2026-10-12T15_42_47_Mélanie - Storyteller_pvc_sp115_s53_sb60_v3 (1).mp3",
+  "balises": [
+    {
+      "debut_s": 6.784,
+      "fin_s": 7.2
+    },
+    {
+      "debut_s": 16.008,
+      "fin_s": 16.424
+    },
+    {
+      "debut_s": 23.498,
+      "fin_s": 23.93
+    },
+    {
+      "debut_s": 33.823,
+      "fin_s": 34.244
+    },
+    {
+      "debut_s": 42.835,
+      "fin_s": 43.249
+    },
+    {
+      "debut_s": 51.222,
+      "fin_s": 51.65
+    },
+    {
+      "debut_s": 59.02,
+      "fin_s": 59.452
+    },
+    {
+      "debut_s": 69.673,
+      "fin_s": 70.102
+    },
+    {
+      "debut_s": 77.233,
+      "fin_s": 77.664
+    },
+    {
+      "debut_s": 85.869,
+      "fin_s": 86.3
+    },
+    {
+      "debut_s": 95.958,
+      "fin_s": 96.4
+    },
+    {
+      "debut_s": 104.838,
+      "fin_s": 105.261
+    },
+    {
+      "debut_s": 113.432,
+      "fin_s": 113.873
+    },
+    {
+      "debut_s": 121.978,
+      "fin_s": 122.406
+    },
+    {
+      "debut_s": 130.558,
+      "fin_s": 130.999
+    },
+    {
+      "debut_s": 139.28,
+      "fin_s": 139.708
+    },
+    {
+      "debut_s": 147.44,
+      "fin_s": 147.88
+    },
+    {
+      "debut_s": 157.714,
+      "fin_s": 158.145
+    },
+    {
+      "debut_s": 167.043,
+      "fin_s": 167.48
+    },
+    {
+      "debut_s": 176.043,
+      "fin_s": 176.464
+    },
+    {
+      "debut_s": 184.597,
+      "fin_s": 185.029
+    },
+    {
+      "debut_s": 194.367,
+      "fin_s": 194.797
+    },
+    {
+      "debut_s": 204.931,
+      "fin_s": 205.37
+    }
+  ],
+  "fragments": [
+    {
+      "index": 1,
+      "nom": "Fragment 1",
+      "fichier": "01_Fragment_1.mp3",
+      "debut_s": 0.06,
+      "fin_s": 5.636,
+      "duree_s": 5.576
+    },
+    {
+      "index": 2,
+      "nom": "Fragment 2",
+      "fichier": "02_Fragment_2.mp3",
+      "debut_s": 7.996,
+      "fin_s": 14.848,
+      "duree_s": 6.852
+    },
+    {
+      "index": 3,
+      "nom": "Fragment 3",
+      "fichier": "03_Fragment_3.mp3",
+      "debut_s": 17.284,
+      "fin_s": 22.322,
+      "duree_s": 5.038
+    },
+    {
+      "index": 4,
+      "nom": "Fragment 4",
+      "fichier": "04_Fragment_4.mp3",
+      "debut_s": 24.738,
+      "fin_s": 32.651,
+      "duree_s": 7.913
+    },
+    {
+      "index": 5,
+      "nom": "Fragment 5",
+      "fichier": "05_Fragment_5.mp3",
+      "debut_s": 35.024,
+      "fin_s": 41.659,
+      "duree_s": 6.635
+    },
+    {
+      "index": 6,
+      "nom": "Fragment 6",
+      "fichier": "06_Fragment_6.mp3",
+      "debut_s": 44.061,
+      "fin_s": 50.138,
+      "duree_s": 6.077
+    },
+    {
+      "index": 7,
+      "nom": "Fragment 7",
+      "fichier": "07_Fragment_7.mp3",
+      "debut_s": 52.406,
+      "fin_s": 57.86,
+      "duree_s": 5.454
+    },
+    {
+      "index": 8,
+      "nom": "Fragment 8",
+      "fichier": "08_Fragment_8.mp3",
+      "debut_s": 60.232,
+      "fin_s": 68.537,
+      "duree_s": 8.305
+    },
+    {
+      "index": 9,
+      "nom": "Fragment 9",
+      "fichier": "09_Fragment_9.mp3",
+      "debut_s": 70.882,
+      "fin_s": 76.125,
+      "duree_s": 5.243
+    },
+    {
+      "index": 10,
+      "nom": "Fragment 10",
+      "fichier": "10_Fragment_10.mp3",
+      "debut_s": 78.436,
+      "fin_s": 84.721,
+      "duree_s": 6.285
+    },
+    {
+      "index": 11,
+      "nom": "Fragment 11",
+      "fichier": "11_Fragment_11.mp3",
+      "debut_s": 87.064,
+      "fin_s": 94.838,
+      "duree_s": 7.774
+    },
+    {
+      "index": 12,
+      "nom": "Fragment 12",
+      "fichier": "12_Fragment_12.mp3",
+      "debut_s": 97.128,
+      "fin_s": 103.734,
+      "duree_s": 6.606
+    },
+    {
+      "index": 13,
+      "nom": "Fragment 13",
+      "fichier": "13_Fragment_13.mp3",
+      "debut_s": 105.997,
+      "fin_s": 112.28,
+      "duree_s": 6.283
+    },
+    {
+      "index": 14,
+      "nom": "Fragment 14",
+      "fichier": "14_Fragment_14.mp3",
+      "debut_s": 114.649,
+      "fin_s": 120.826,
+      "duree_s": 6.177
+    },
+    {
+      "index": 15,
+      "nom": "Fragment 15",
+      "fichier": "15_Fragment_15.mp3",
+      "debut_s": 123.138,
+      "fin_s": 129.586,
+      "duree_s": 6.448
+    },
+    {
+      "index": 16,
+      "nom": "Fragment 16",
+      "fichier": "16_Fragment_16.mp3",
+      "debut_s": 131.707,
+      "fin_s": 138.16,
+      "duree_s": 6.453
+    },
+    {
+      "index": 17,
+      "nom": "Fragment 17",
+      "fichier": "17_Fragment_17.mp3",
+      "debut_s": 140.484,
+      "fin_s": 146.452,
+      "duree_s": 5.968
+    },
+    {
+      "index": 18,
+      "nom": "Fragment 18",
+      "fichier": "18_Fragment_18.mp3",
+      "debut_s": 148.636,
+      "fin_s": 156.614,
+      "duree_s": 7.978
+    },
+    {
+      "index": 19,
+      "nom": "Fragment 19",
+      "fichier": "19_Fragment_19.mp3",
+      "debut_s": 158.881,
+      "fin_s": 166.059,
+      "duree_s": 7.178
+    },
+    {
+      "index": 20,
+      "nom": "Fragment 20",
+      "fichier": "20_Fragment_20.mp3",
+      "debut_s": 168.228,
+      "fin_s": 174.955,
+      "duree_s": 6.727
+    },
+    {
+      "index": 21,
+      "nom": "Fragment 21",
+      "fichier": "21_Fragment_21.mp3",
+      "debut_s": 177.2,
+      "fin_s": 183.525,
+      "duree_s": 6.325
+    },
+    {
+      "index": 22,
+      "nom": "Fragment 22",
+      "fichier": "22_Fragment_22.mp3",
+      "debut_s": 185.753,
+      "fin_s": 193.299,
+      "duree_s": 7.546
+    },
+    {
+      "index": 23,
+      "nom": "Fragment 23",
+      "fichier": "23_Fragment_23.mp3",
+      "debut_s": 195.529,
+      "fin_s": 203.895,
+      "duree_s": 8.366
+    },
+    {
+      "index": 24,
+      "nom": "Fragment 24",
+      "fichier": "24_Fragment_24.mp3",
+      "debut_s": 206.082,
+      "fin_s": 214.262,
+      "duree_s": 8.18
+    }
+  ]
+}
