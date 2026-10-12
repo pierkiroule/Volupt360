@@ -547,9 +547,19 @@ export function createTwigBank({
       return voices.size > 0;
     },
     preparePlayback() {
-      return context()
+      if (disposed) return Promise.resolve();
+      const audio = context();
+      // Unlock the device output inside the trusted touch-release/click gesture.
+      if (audio.state !== "running") {
+        const silent = audio.createBufferSource();
+        silent.buffer = audio.createBuffer(1, 1, audio.sampleRate);
+        silent.connect(audio.destination);
+        silent.onended = () => silent.disconnect();
+        silent.start();
+      }
+      return audio
         .resume()
-        .catch((error) => onError(error.message));
+        .catch((error) => onError(`Lecture indisponible : ${error.message}`));
     },
     importAmbience,
     toggleAmbience,
