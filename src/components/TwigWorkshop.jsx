@@ -293,7 +293,7 @@ export default function TwigWorkshop({
       <p className="twig-note">
         {mode === "cueillir"
           ? poetic
-            ? "En contemplation, un mot regardé réveille sa voix."
+            ? "Les voix dessinent leurs matières dans l’espace."
             : "Un bouquet local, conservé pendant cette session."
           : "La buse danse en continu. Vos pads sculptent son sillage."}
       </p>

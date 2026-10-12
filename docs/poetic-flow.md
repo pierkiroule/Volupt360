@@ -1,5 +1,7 @@
 # Fluidité : des voix qui sculptent
 
+Mise à jour : les mots déposés et leur relecture au regard sont retirés. Les voix, matières, ambiance musicale et exports restent actifs. Les sections sur les mots ci-dessous décrivent l’ancienne itération.
+
 La sélection actuelle utilise les enregistrements ajoutés dans `public/voices`, décrits dans [curated-voices.md](curated-voices.md). La génération eSpeak et les textes ci-dessous documentent l’itération précédente et ne sont plus associés aux voix par défaut.
 
 Les douze pads diffusent désormais des fragments poétiques français lus en TTS, et non des mélodies. Les douze brosses et leurs textures sont conservées. Le timbre, l’intensité et les variations de la voix sont analysés par les analyseurs Web Audio des pads ; leurs caractéristiques pilotent les matières et le vol.

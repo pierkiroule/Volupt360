@@ -19,7 +19,7 @@ Les pads utilisent désormais les fichiers existants de `public/voices`, sans le
 
 `src/sonoizo/voiceSelection.json` centralise les associations. Chaque voix est lue entièrement, entre environ cinq et huit secondes et demie. Les nouveaux fragments ne passent plus par la limite de cinq secondes des anciens enregistrements : la préparation des voix accepte jusqu’à quinze secondes, sans modifier cette limite pour les captures microphone et imports de samples historiques.
 
-Les paroles n’étant pas fournies, `text` et `word` restent explicitement `null`. L’interface et les marqueurs affichent provisoirement un libellé neutre « Fragment N », qui permet de conserver la relecture au regard sans attribuer les anciens textes TTS aux nouveaux fichiers. Dès que les transcriptions sont disponibles, renseigner `text` et un `word` réellement présent dans ce texte, sans toucher à l’audio.
+Les paroles n’étant pas fournies, `text` et `word` restent explicitement `null`. L’atelier affiche un libellé neutre « Fragment N ». Les textes dans la sculpture et leur relecture automatique au regard ont été retirés. Dès que les transcriptions sont disponibles, renseigner `text` et un `word` réellement présent dans ce texte, sans toucher à l’audio.
 
 Le mix avec l’ambiance, les textures, les brosses et les exports sont conservés. Les douze anciens fichiers eSpeak restent dans le dépôt pour la réversibilité et ne sont plus utilisés par les pads par défaut. La génération historique des anciens textes reste indépendante de cette sélection.
 
