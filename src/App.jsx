@@ -9,6 +9,7 @@ import { analyzeLoops } from "./audio/analyzeLoops.js";
 import { ENABLE_SONOIZO } from "./sonoizo/config.js";
 import { useTwigBank } from "./sonoizo/useTwigBank.js";
 import TwigWorkshop from "./components/TwigWorkshop.jsx";
+import AmbiencePanel from "./components/AmbiencePanel.jsx";
 
 const initialPlayback = { playing: false, position: 0, duration: 0 };
 
@@ -176,6 +177,7 @@ export default function App() {
       setToolsOpen(false);
       setAtelier("jouer");
     }
+    if (id === "gyro") void twigs.bank.current?.preparePlayback();
     setMode(id);
     void engine.current?.setCameraMode(id);
   }
@@ -296,7 +298,12 @@ export default function App() {
           aria-label="Atelier sonore"
         >
           {[
-            ["cueillir", "Mes sons"],
+            [
+              "cueillir",
+              new URLSearchParams(location.search).get("samples") === "empty"
+                ? "Mes sons"
+                : "Poèmes",
+            ],
             ["jouer", "Jouer"],
           ].map(([id, label]) => (
             <button
@@ -308,6 +315,9 @@ export default function App() {
             </button>
           ))}
         </nav>
+      )}
+      {immersive && toolsOpen && mode !== "photo" && (
+        <AmbiencePanel {...twigs} />
       )}
       {mode === "photo" && immersive ? (
         <section className="photo-panel" aria-label="Cadrer une vidéodio">

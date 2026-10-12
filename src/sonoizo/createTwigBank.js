@@ -22,6 +22,14 @@ export function createTwigBank({
 }) {
   if (ids.length > 12 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
+  const poems = new Map();
+  let poemRequest = 0,
+    poemLoading = false,
+    poemAbort = null,
+    ambience = null,
+    ambienceRequest = 0,
+    ambienceLoading = false,
+    pendingAmbience = null;
   const buffers = new Map(),
     voices = new Map(),
     gestures = new Map();
@@ -56,10 +64,19 @@ export function createTwigBank({
             startedAt: recording.startedAt,
           }
         : null,
+      poemLoading,
+      ambience: {
+        name: ambience?.name || "",
+        loaded: Boolean(ambience),
+        playing: Boolean(ambience && !ambience.element.paused),
+        loading: ambienceLoading,
+      },
       slots: Object.fromEntries(
         ids.map((id) => [
           id,
           {
+            text: poems.get(id)?.text || "",
+            word: poems.get(id)?.word || "",
             duration: buffers.get(id)?.duration || 0,
             playing: voices.has(id),
             looping: voices.get(id)?.source.loop || false,
@@ -236,9 +253,9 @@ export function createTwigBank({
     }
     emit();
   }
-  async function prepareSample(decoded) {
+  async function prepareSample(decoded, maxSeconds = MAX_TWIG_SECONDS) {
     const frames = Math.min(
-      MAX_TWIG_SECONDS * SAMPLE_RATE,
+      maxSeconds * SAMPLE_RATE,
       Math.floor(decoded.duration * SAMPLE_RATE),
     );
     if (frames < SAMPLE_RATE * 0.04)
@@ -383,10 +400,168 @@ export function createTwigBank({
     stopTracks(session);
     emit();
   }
+  async function loadPoems(fragments) {
+    const ticket = ++poemRequest;
+    poemAbort?.abort();
+    poemAbort = new AbortController();
+    const signal = poemAbort.signal;
+    poemLoading = true;
+    for (const poem of fragments) poems.set(poem.id, poem);
+    emit();
+    try {
+      const decoder = new OfflineAudioContext(1, 1, SAMPLE_RATE);
+      for (const poem of fragments) {
+        const response = await fetch(poem.url, { signal });
+        if (!response.ok)
+          throw new Error(`Lecture indisponible : ${poem.word}`);
+        const decoded = await decoder.decodeAudioData(
+          await response.arrayBuffer(),
+        );
+        if (decoded.duration > 15)
+          throw new Error(`Fragment trop long : ${poem.label || poem.word}`);
+        // Curated voice files are complete phrases, distinct from five-second recordings.
+        const sample = await prepareSample(decoded, 15);
+        if (disposed || ticket !== poemRequest) return;
+        buffers.set(poem.id, sample);
+        emit();
+      }
+    } catch (error) {
+      if (!disposed && ticket === poemRequest && error.name !== "AbortError")
+        onError(`Voix poétiques : ${error.message}`);
+    } finally {
+      if (!disposed && ticket === poemRequest) {
+        poemLoading = false;
+        emit();
+      }
+    }
+  }
+  function releaseAmbience(item) {
+    if (!item) return;
+    item.element.pause();
+    item.source?.disconnect();
+    item.gain?.disconnect();
+    item.element.removeAttribute("src");
+    item.element.load();
+    URL.revokeObjectURL(item.url);
+  }
+  async function importAmbience(file) {
+    if (disposed) return;
+    const ticket = ++ambienceRequest;
+    if (pendingAmbience) {
+      pendingAmbience.cancel();
+      pendingAmbience = null;
+    }
+    ambienceLoading = true;
+    emit();
+    const element = new Audio(),
+      url = URL.createObjectURL(file),
+      candidate = { element, url, name: file.name };
+    try {
+      if (file.size > 20 * 1024 * 1024)
+        throw new Error("Choisissez une ambiance de 20 Mo maximum.");
+      element.loop = true;
+      element.preload = "metadata";
+      await new Promise((resolve, reject) => {
+        const cleanup = () => {
+          element.onloadedmetadata = null;
+          element.onerror = null;
+          clearTimeout(timer);
+        };
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("Le fichier ne répond pas."));
+        }, 15000);
+        pendingAmbience = {
+          cancel() {
+            cleanup();
+            reject(new Error("Import annulé."));
+          },
+        };
+        element.onloadedmetadata = () => {
+          cleanup();
+          resolve();
+        };
+        element.onerror = () => {
+          cleanup();
+          reject(new Error("Format audio invalide."));
+        };
+        element.src = url;
+        element.load();
+      });
+      if (disposed || ticket !== ambienceRequest) {
+        releaseAmbience(candidate);
+        return;
+      }
+      const audio = context();
+      candidate.source = audio.createMediaElementSource(element);
+      candidate.gain = audio.createGain();
+      candidate.gain.gain.value = 0.32;
+      candidate.source.connect(candidate.gain);
+      candidate.gain.connect(master);
+      releaseAmbience(ambience);
+      ambience = candidate;
+      pendingAmbience = null;
+    } catch (error) {
+      releaseAmbience(candidate);
+      if (!disposed && ticket === ambienceRequest)
+        onError(`Ambiance : ${error.message}`);
+    } finally {
+      if (!disposed && ticket === ambienceRequest) {
+        ambienceLoading = false;
+        pendingAmbience = null;
+        emit();
+      }
+    }
+  }
+  function pauseAmbience() {
+    ambience?.element.pause();
+    emit();
+  }
+  async function toggleAmbience() {
+    if (!ambience || disposed) return;
+    if (!ambience.element.paused) {
+      pauseAmbience();
+      return;
+    }
+    const ticket = ambienceRequest;
+    try {
+      await context().resume();
+      if (!disposed && ticket === ambienceRequest) {
+        await ambience.element.play();
+        emit();
+      }
+    } catch (error) {
+      if (!disposed) onError(`Ambiance : ${error.message}`);
+    }
+  }
   return {
     setCaptureTap(tap) {
       captureTap = tap;
       connectCapture();
+    },
+    loadPoems,
+    getPoem(id) {
+      return poems.get(id);
+    },
+    isSpeaking() {
+      return voices.size > 0;
+    },
+    preparePlayback() {
+      return context()
+        .resume()
+        .catch((error) => onError(error.message));
+    },
+    importAmbience,
+    toggleAmbience,
+    pauseAmbience,
+    removeAmbience() {
+      ambienceRequest++;
+      pendingAmbience?.cancel();
+      pendingAmbience = null;
+      releaseAmbience(ambience);
+      ambience = null;
+      ambienceLoading = false;
+      emit();
     },
     getSnapshot: snapshot,
     record,
@@ -422,16 +597,19 @@ export function createTwigBank({
         if (other.id === id) release(otherKey, true);
       const gesture = { id, key, looping: false };
       gestures.set(key, gesture);
-      gesture.timer = setTimeout(() => {
-        if (gestures.get(key) !== gesture) return;
-        gesture.looping = true;
-        const voice = voices.get(id);
-        if (voice?.owner === gesture) {
-          voice.source.loop = true;
-          emit();
-        } else
-          void play(id, gesture, true).catch((error) => onError(error.message));
-      }, HOLD_DELAY);
+      if (!poems.has(id))
+        gesture.timer = setTimeout(() => {
+          if (gestures.get(key) !== gesture) return;
+          gesture.looping = true;
+          const voice = voices.get(id);
+          if (voice?.owner === gesture) {
+            voice.source.loop = true;
+            emit();
+          } else
+            void play(id, gesture, true).catch((error) =>
+              onError(error.message),
+            );
+        }, HOLD_DELAY);
       void play(id, gesture)
         .then(() => {
           if (gesture.released && gestures.get(key) === gesture)
@@ -456,6 +634,13 @@ export function createTwigBank({
       cancelRecording();
       stopAll();
       disposed = true;
+      poemRequest++;
+      poemAbort?.abort();
+      poems.clear();
+      ambienceRequest++;
+      pendingAmbience?.cancel();
+      releaseAmbience(ambience);
+      ambience = null;
       buffers.clear();
       captureTap = null;
       if (captureProcessor) captureProcessor.onaudioprocess = null;

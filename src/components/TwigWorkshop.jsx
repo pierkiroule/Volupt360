@@ -37,6 +37,7 @@ export default function TwigWorkshop({
     (brush) => brush.id === (recording?.id || selected),
   );
   const slot = snapshot.slots[current.id];
+  const poetic = Object.values(snapshot.slots).some((item) => item.text);
   const count = Object.values(snapshot.slots).filter(
     (item) => item.duration > 0,
   ).length;
@@ -60,15 +61,27 @@ export default function TwigWorkshop({
       <div className="twig-heading">
         <span>
           {mode === "cueillir"
-            ? "On cueille des sons comme des brindilles."
-            : "Un tap chante · maintenir prolonge le son."}
+            ? poetic
+              ? "Chaque parole ouvre un courant."
+              : "On cueille des sons comme des brindilles."
+            : poetic
+              ? "Un tap libère un fragment de fluidité."
+              : "Un tap chante · maintenir prolonge le son."}
         </span>
-        <span aria-label="Nombre de brindilles">{count} / 12</span>
+        <span
+          aria-label={poetic ? "Nombre de fragments" : "Nombre de brindilles"}
+        >
+          {count} / 12
+        </span>
       </div>
       <div
         className="twig-pads"
         role="group"
-        aria-label="Douze brindilles, douze brosses"
+        aria-label={
+          poetic
+            ? "Douze fragments, douze brosses"
+            : "Douze brindilles, douze brosses"
+        }
       >
         {BRUSHES.map((brush) => {
           const item = snapshot.slots[brush.id];
@@ -78,8 +91,11 @@ export default function TwigWorkshop({
               key={brush.id}
               className={`twig-pad twig-${brush.id} ${item.duration ? "is-filled" : ""} ${item.playing ? "is-playing" : ""}`}
               style={{ "--twig-color": brush.color }}
-              aria-label={`${listening ? "Jouer la brindille" : "Brindille"} ${brush.name}`}
-              title={`${brush.name} · ${item.duration ? `${item.duration.toFixed(1)} s` : "à cueillir"}`}
+              aria-label={`${listening ? (item.text ? "Jouer le fragment" : "Jouer la brindille") : item.text ? "Fragment" : "Brindille"} ${brush.name}`}
+              title={
+                item.text ||
+                `${brush.name} · ${item.duration ? `${item.duration.toFixed(1)} s` : "à cueillir"}`
+              }
               data-duration={item.duration.toFixed(1)}
               data-looping={Boolean(item.looping)}
               aria-pressed={listening ? item.playing : current.id === brush.id}
@@ -148,64 +164,72 @@ export default function TwigWorkshop({
                   : recording
                     ? `${elapsed.toFixed(1)} / ${MAX_TWIG_SECONDS} s`
                     : slot.duration
-                      ? `${slot.duration.toFixed(1)} secondes cueillies`
+                      ? slot.text
+                        ? `Lecture française · ${slot.duration.toFixed(1)} s`
+                        : `${slot.duration.toFixed(1)} secondes cueillies`
                       : "Micro ou MP3 · 5 secondes maximum"}
             </span>
           </div>
-          <input
-            ref={audioInput}
-            className="sr-only"
-            type="file"
-            accept="audio/*,.mp3"
-            aria-label={`Importer un son pour ${current.name}`}
-            disabled={Boolean(recording)}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) {
-                clearError();
-                void bank.current?.importSample(current.id, file);
-              }
-            }}
-          />
-          <div className="twig-actions">
-            <button
+          {slot.text && <p className="poetic-fragment">{slot.text}</p>}
+          {!slot.text && (
+            <input
+              ref={audioInput}
+              className="sr-only"
+              type="file"
+              accept="audio/*,.mp3"
+              aria-label={`Importer un son pour ${current.name}`}
               disabled={Boolean(recording)}
-              onClick={() => audioInput.current?.click()}
-            >
-              Importer MP3
-            </button>
-            {recording ? (
-              <button
-                className="twig-record is-recording"
-                disabled={recording.status === "decoding"}
-                onClick={() =>
-                  ["permission", "importing"].includes(recording.status)
-                    ? bank.current?.cancelRecording()
-                    : bank.current?.stopRecording()
-                }
-              >
-                {recording.status === "importing"
-                  ? "Annuler l’import"
-                  : recording.status === "permission"
-                    ? "Annuler la demande"
-                    : recording.status === "decoding"
-                      ? "Préparation…"
-                      : "Arrêter l’enregistrement"}
-              </button>
-            ) : (
-              <button
-                className="twig-record"
-                onClick={() => {
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) {
                   clearError();
-                  void bank.current?.record(current.id);
-                }}
+                  void bank.current?.importSample(current.id, file);
+                }
+              }}
+            />
+          )}
+          <div className="twig-actions">
+            {!slot.text && (
+              <button
+                disabled={Boolean(recording)}
+                onClick={() => audioInput.current?.click()}
               >
-                {slot.duration
-                  ? `Remplacer ${current.name}`
-                  : `Enregistrer ${current.name}`}
+                Importer MP3
               </button>
             )}
+            {!slot.text &&
+              (recording ? (
+                <button
+                  className="twig-record is-recording"
+                  disabled={recording.status === "decoding"}
+                  onClick={() =>
+                    ["permission", "importing"].includes(recording.status)
+                      ? bank.current?.cancelRecording()
+                      : bank.current?.stopRecording()
+                  }
+                >
+                  {recording.status === "importing"
+                    ? "Annuler l’import"
+                    : recording.status === "permission"
+                      ? "Annuler la demande"
+                      : recording.status === "decoding"
+                        ? "Préparation…"
+                        : "Arrêter l’enregistrement"}
+                </button>
+              ) : (
+                <button
+                  className="twig-record"
+                  onClick={() => {
+                    clearError();
+                    void bank.current?.record(current.id);
+                  }}
+                >
+                  {slot.duration
+                    ? `Remplacer ${current.name}`
+                    : `Enregistrer ${current.name}`}
+                </button>
+              ))}
             <button
               disabled={!slot.duration || Boolean(recording)}
               aria-label={`Écouter ${current.name}`}
@@ -224,13 +248,15 @@ export default function TwigWorkshop({
             >
               Texture
             </button>
-            <button
-              disabled={!slot.duration || Boolean(recording)}
-              aria-label={`Supprimer ${current.name}`}
-              onClick={() => bank.current?.remove(current.id)}
-            >
-              Supprimer
-            </button>
+            {!slot.text && (
+              <button
+                disabled={!slot.duration || Boolean(recording)}
+                aria-label={`Supprimer ${current.name}`}
+                onClick={() => bank.current?.remove(current.id)}
+              >
+                Supprimer
+              </button>
+            )}
           </div>
           {textureOpen && (
             <TexturePalette
@@ -256,7 +282,9 @@ export default function TwigWorkshop({
       )}
       <p className="twig-note">
         {mode === "cueillir"
-          ? "Un bouquet local, conservé pendant cette session."
+          ? poetic
+            ? "En contemplation, un mot regardé réveille sa voix."
+            : "Un bouquet local, conservé pendant cette session."
           : "La buse danse en continu. Vos pads sculptent son sillage."}
       </p>
     </section>

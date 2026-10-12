@@ -10,10 +10,22 @@ test("photo freezes deposits and flight, rotates and zooms, exports ten seconds 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   const pad = page.getByRole("button", {
-    name: "Jouer la brindille Voiles",
+    name: "Jouer le fragment Voiles",
     exact: true,
   });
   await expect(pad).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Déplier les fonctionnalités" })
+    .click();
+  await page
+    .getByLabel("Importer une ambiance MP3")
+    .setInputFiles("tests/fixtures/tone.mp3");
+  await page
+    .getByRole("button", { name: "Lire l’ambiance", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Replier les fonctionnalités" })
+    .click();
   const box = await pad.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

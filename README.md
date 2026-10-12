@@ -1,14 +1,10 @@
 # L’Oizodio•° — Le chant qui sculpte l’espace des possibles
 
-Douze courtes mélodies douces et harmonieuses sont prêtes dès l’ouverture, sans lecture automatique. Les vues se choisissent par des glyphes carrés ; le bouton **+** déplie les fonctionnalités, le bouton **−** revient au canevas et aux pads discrets.
+Douze fragments vocaux choisis parmi les vingt-quatre fichiers de **public/voices** sont associés aux pads et lus en entier. Voir [la sélection et les associations](docs/curated-voices.md). Un tap libère une parole : sa voix infléchit le vol et dépose la matière de sa brosse. À la fin de chaque tracé, un mot noir émerge au centre. En contemplation gyro, regarder ce mot au centre pendant un bref instant réveille sa voix, sans peindre de nouveau.
 
-**1. Créez vos sons.** Douze pads, chacun associé à sa brosse. Enregistrez au microphone ou importez un MP3 : chaque son dure **cinq secondes maximum**. Un import conserve les cinq premières secondes du fichier. Vous pouvez écouter, remplacer et supprimer vos sons, et choisir parmi cinq textures organiques contrastées pour chaque brosse.
+L’atelier déplié propose **Poèmes / Jouer**, les cinq textures alpha organiques et une **ambiance MP3 globale**, locale et indépendante. La musique seule ne sculpte pas. Les voix et l’ambiance sont incluses dans le mix des vidéodios. Les fragments vocaux sont livrés avec l’application ; aucun backend ou service de synthèse distant n’est nécessaire. Les transcriptions des nouvelles voix restent à renseigner : les mots émergents affichent provisoirement « Fragment N ». Voir [l’architecture de la poésie et du regard](docs/poetic-flow.md).
 
-**2. Jouez.** La buse ailée virevolte continuellement en trois dimensions. Un tap joue le son et dépose la brosse du pad sur son sillage, avec une réaction à l’intensité et aux variations du son. Un maintien prolonge le son en boucle jusqu’au relâchement ; les pads peuvent jouer ensemble, chacun avec sa propre matière et son analyse acoustique. Pendant les silences, la buse continue de voler et la sculpture reste visible.
-
-Les sons restent **en mémoire pendant la session**, sans transmission ni sauvegarde après rechargement. Le microphone nécessite HTTPS (ou localhost) et une autorisation. Les imports sont limités à 12 Mo ; ils sont décodés localement puis réduits en mono 24 kHz. L’interface principale propose seulement **Mes sons / Jouer**, avec les deux vues 3D existantes.
-
-La vue **Photo** fige la sculpture pour la tourner et zoomer. Elle exporte une **vidéodio de 10 secondes** : uniquement le dernier voyage **FPV drone**, avec son audio synchronisé (une prise courte boucle avec son audio). La photo cadrée se télécharge en **PNG HD, jusqu’à 2 560 pixels**. Photos et vidéos se téléchargent localement. Voir [le fonctionnement et les limites](docs/videodio.md).
+Le bouton **+** déplie les fonctionnalités ; **−** revient au canevas et aux pads discrets. La vue **Photo** permet de tourner et zoomer la sculpture, de télécharger une photo en **PNG HD jusqu’à 2 560 pixels**, ou une **vidéodio FPV de dix secondes avec son audio synchronisé**. Photos et vidéos restent locales. Voir [le fonctionnement et les limites](docs/videodio.md).
 
 Désactivation : `VITE_ENABLE_SONOIZO=false npm run build`, puis redéployer. L’ancien atelier MP3 est aussi accessible à `/?atelier=mp3` pour les contrôles de régression. Voir [l’architecture et les vérifications](docs/sonoizo.md). Le moteur des douze brosses, les textures et leurs optimisations sont conservés.
 
