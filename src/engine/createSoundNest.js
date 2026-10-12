@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { createPoeticWord } from "./createPoeticWord.js";
+import { createGazeReader } from "../sonoizo/GazeReader.js";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
 import { createBrushBridge } from "../sonoizo/BrushBridge.js";
@@ -96,6 +98,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     oizo = null,
     padInitialized = false;
   const dance = createSonoizoDance();
+  const wordPosition = new THREE.Vector3(),
+    wordProjection = new THREE.Vector3();
+  const gaze = createGazeReader({
+    read: (key) => padSource?.listen(key.split(":")[1]),
+    isSpeaking: () => padSource?.isSpeaking() || false,
+  });
+  let wordSerial = 0;
+
   const oizoScreen = new THREE.Vector3();
   const padStates = new Map();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
@@ -112,11 +122,13 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   });
 
   function destroyStroke(mark) {
+    mark.poeticWord?.dispose();
     disposeMark(mark.object);
     mark.textureLease?.release();
   }
   function closeStroke() {
     activeStroke?.stroke.finish();
+    finishPoeticMark(activeStroke);
     activeStroke = null;
   }
   function beginStroke(id, pose) {
@@ -192,13 +204,25 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     lastSample = state?.last || null;
     brush = id;
     addSample(pose, true);
+    if (activeStroke) activeStroke.poem = padSource?.getPoem(id);
     padStates.set(id, { mark: activeStroke, last: lastSample });
     activeStroke = previous.mark;
     lastSample = previous.last;
     brush = previous.brush;
   }
+  function finishPoeticMark(mark) {
+    if (!mark?.poem || mark.poeticWord || mark.bounds.isEmpty()) return;
+    mark.poeticWord = createPoeticWord({
+      ...mark.poem,
+      position: mark.bounds.getCenter(new THREE.Vector3()),
+    });
+    mark.wordKey = ++wordSerial;
+    mark.object.add(mark.poeticWord.sprite);
+  }
   function finishPad(id) {
-    padStates.get(id)?.mark?.stroke.finish();
+    const mark = padStates.get(id)?.mark;
+    mark?.stroke.finish();
+    finishPoeticMark(mark);
     padStates.delete(id);
   }
   function updateBounds() {
@@ -220,6 +244,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   function reset() {
     bridge.close();
+    gaze.reset();
     padStates.clear();
     dance.reset();
     closeStroke();
@@ -365,6 +390,33 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
     rig.update(dt);
+    camera.updateMatrixWorld();
+    let focusedWord = null,
+      nearest = 0.12 * 0.12;
+    for (const mark of marks) {
+      if (!mark.poeticWord) continue;
+      if (!photo) mark.poeticWord.update(dt, mark.fade);
+      if (cameraMode !== "gyro" || mark.fade < 0.3) continue;
+      mark.poeticWord.sprite.getWorldPosition(wordPosition);
+      wordProjection.copy(wordPosition).applyMatrix4(camera.matrixWorldInverse);
+      if (wordProjection.z >= 0) continue;
+      wordProjection.copy(wordPosition).project(camera);
+      const distance = wordProjection.x ** 2 + wordProjection.y ** 2;
+      if (
+        wordProjection.z >= -1 &&
+        wordProjection.z <= 1 &&
+        distance < nearest
+      ) {
+        nearest = distance;
+        focusedWord = mark;
+      }
+    }
+    // Each mark has its own focus identity, even if it shares a poem.
+    gaze.update(
+      dt,
+      focusedWord ? `${focusedWord.wordKey}:${focusedWord.poem.id}` : null,
+    );
+
     try {
       effects.render(scene, camera);
       if (!photo && cameraMode === "drone")
@@ -373,6 +425,11 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       onError?.(error.message);
     }
     if (now - lastReport > 80) {
+      renderer.domElement.dataset.poeticWords = marks
+        .filter((mark) => mark.poeticWord)
+        .map((mark) => mark.poeticWord.word)
+        .join(",");
+      renderer.domElement.dataset.gazeWord = focusedWord?.poeticWord.word || "";
       renderer.domElement.dataset.videoFrames = String(
         videodio?.getHistory().frames || 0,
       );
@@ -495,12 +552,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       previous?.texture.dispose();
     },
     setCameraMode(next) {
+      gaze.reset();
       const wasPhoto = photo;
       const previousMode = cameraMode;
       cameraMode = next;
       photo = next === "photo";
       if (photo && !wasPhoto) {
         padSource?.stopAll();
+        padSource?.pauseAmbience();
         player?.pause();
         bridge.close();
         closeStroke();
@@ -565,6 +624,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       disposed = true;
       cancelAnimationFrame(frameId);
       rig.dispose();
+      gaze.dispose();
       padSource?.setCaptureTap(null);
       videodio?.dispose();
       bridge.close();

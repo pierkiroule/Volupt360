@@ -40,7 +40,7 @@ test("default mobile opens ready to sculpt silently with folding tools and three
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   const pad = page.getByRole("button", {
-    name: "Jouer la brindille Voiles",
+    name: "Jouer le fragment Voiles",
     exact: true,
   });
   await expect(pad).toBeEnabled();
@@ -50,7 +50,7 @@ test("default mobile opens ready to sculpt silently with folding tools and three
     page.getByRole("slider", { name: "Distance du drone" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Mes sons", exact: true }),
+    page.getByRole("button", { name: "Poèmes", exact: true }),
   ).toHaveCount(0);
   const views = page
     .getByRole("navigation", { name: "Vues caméra" })
@@ -70,16 +70,16 @@ test("default mobile opens ready to sculpt silently with folding tools and three
   await expect(
     page.getByRole("slider", { name: "Distance du drone" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Mes sons", exact: true }).click();
+  await page.getByRole("button", { name: "Poèmes", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Remplacer Voiles", exact: true }),
+    page.getByRole("button", { name: "Écouter Voiles", exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Replier les fonctionnalités" })
     .click();
   await expect(pad).toBeEnabled();
   await expect(
-    page.getByRole("button", { name: "Remplacer Voiles", exact: true }),
+    page.getByRole("button", { name: "Écouter Voiles", exact: true }),
   ).toHaveCount(0);
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })

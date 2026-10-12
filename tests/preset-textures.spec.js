@@ -30,7 +30,7 @@ test("five distinct high-contrast organic masks have real transparency and the m
   await page
     .getByRole("button", { name: "Déplier les fonctionnalités" })
     .click();
-  await page.getByRole("button", { name: "Mes sons", exact: true }).click();
+  await page.getByRole("button", { name: "Poèmes", exact: true }).click();
   await expect(
     page.locator('input[type="file"][accept="image/*"]'),
   ).toHaveCount(0);
@@ -54,7 +54,7 @@ test("five distinct high-contrast organic masks have real transparency and the m
   ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Jouer", exact: true }).click();
   await page
-    .getByRole("button", { name: "Jouer la brindille Voiles", exact: true })
+    .getByRole("button", { name: "Jouer le fragment Voiles", exact: true })
     .click();
   await expect
     .poll(async () =>

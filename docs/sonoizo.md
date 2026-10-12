@@ -1,5 +1,7 @@
 # L’Oizodio•° — Les pads sculptent le vol
 
+Ce document décrit l’itération précédente des samples enregistrés. Le concept actuel des fragments TTS, mots émergents et ambiance globale est décrit dans [poetic-flow.md](poetic-flow.md).
+
 ## Expérience
 
 À l’ouverture, douze mélodies procédurales de 3,8 secondes sont prêtes à jouer. Elles partagent la gamme pentatonique de ré majeur, avec des enveloppes douces et des harmoniques amorties. Aucune lecture ni création d’AudioContext avant une interaction. Le canevas occupe tout l’écran ; seuls le nom discret, trois glyphes carrés de vue, le dépliage et la ligne de pads restent visibles. Le bouton + ouvre les fonctionnalités ; − referme l’atelier en revenant aux pads jouables.
