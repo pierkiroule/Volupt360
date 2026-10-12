@@ -54,3 +54,50 @@ test("all selected voices load completely without the previous five-second trunc
   ).toHaveAttribute("aria-pressed", "false");
   expect(errors).toEqual([]);
 });
+
+test.describe("Android touch playback", () => {
+  test.use({ hasTouch: true });
+  test("first mobile tap releases a voice waiting for touch-up audio authorization", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.__released = false;
+      const pending = [];
+      addEventListener(
+        "pointerup",
+        () => {
+          window.__released = true;
+        },
+        { capture: true },
+      );
+      const resume = AudioContext.prototype.resume;
+      AudioContext.prototype.resume = function () {
+        if (window.__released) {
+          for (const resolve of pending.splice(0)) resolve();
+          return resume.call(this);
+        }
+        return new Promise((resolve) =>
+          pending.push(() => resume.call(this).then(resolve)),
+        );
+      };
+    });
+    await page.goto("/");
+    const pad = page.getByRole("button", {
+      name: "Jouer le fragment Voiles",
+      exact: true,
+    });
+    await expect(pad).toBeEnabled();
+    const box = await pad.boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(pad).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(async () =>
+        Number(
+          await page
+            .locator("#stage canvas")
+            .getAttribute("data-painter-energy"),
+        ),
+      )
+      .toBeGreaterThan(0.2);
+  });
+});

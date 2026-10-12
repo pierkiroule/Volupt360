@@ -104,13 +104,23 @@ export default function TwigWorkshop({
                 if (!listening) {
                   setSelected(brush.id);
                   clearError();
-                } else if (event.detail === 0)
-                  void bank.current?.trigger(brush.id);
+                } else {
+                  // iOS may only authorize Web Audio on release/click, not pointerdown.
+                  void bank.current?.preparePlayback();
+                  if (event.detail === 0) void bank.current?.trigger(brush.id);
+                }
               }}
               onPointerDown={
                 listening ? (event) => press(event, brush.id) : undefined
               }
-              onPointerUp={listening ? (event) => release(event) : undefined}
+              onPointerUp={
+                listening
+                  ? (event) => {
+                      void bank.current?.preparePlayback();
+                      release(event);
+                    }
+                  : undefined
+              }
               onPointerCancel={
                 listening ? (event) => release(event, true) : undefined
               }
