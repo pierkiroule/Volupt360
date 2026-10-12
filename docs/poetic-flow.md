@@ -1,5 +1,7 @@
 # Fluidité : des voix qui sculptent
 
+La sélection actuelle utilise les enregistrements ajoutés dans `public/voices`, décrits dans [curated-voices.md](curated-voices.md). La génération eSpeak et les textes ci-dessous documentent l’itération précédente et ne sont plus associés aux voix par défaut.
+
 Les douze pads diffusent désormais des fragments poétiques français lus en TTS, et non des mélodies. Les douze brosses et leurs textures sont conservées. Le timbre, l’intensité et les variations de la voix sont analysés par les analyseurs Web Audio des pads ; leurs caractéristiques pilotent les matières et le vol.
 
 Les fichiers TTS sont préparés hors application avec **eSpeak NG, voix française `fr+f3`, 140 mots/minute**, puis convertis en MP3 mono 24 kHz. La voix est synthétique, non une lecture humaine. Ils sont servis avec l’application, décodés silencieusement avec OfflineAudioContext, puis lus par Web Audio. Aucun service TTS distant, clé API, microphone ou voix native non capturable n’est nécessaire à l’exécution. La branche de capture des vidéodios reçoit donc réellement les voix. Un tap lit le fragment entier ; maintenir le pad ne le transforme pas en boucle.

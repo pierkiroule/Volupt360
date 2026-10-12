@@ -253,9 +253,9 @@ export function createTwigBank({
     }
     emit();
   }
-  async function prepareSample(decoded) {
+  async function prepareSample(decoded, maxSeconds = MAX_TWIG_SECONDS) {
     const frames = Math.min(
-      MAX_TWIG_SECONDS * SAMPLE_RATE,
+      maxSeconds * SAMPLE_RATE,
       Math.floor(decoded.duration * SAMPLE_RATE),
     );
     if (frames < SAMPLE_RATE * 0.04)
@@ -417,7 +417,10 @@ export function createTwigBank({
         const decoded = await decoder.decodeAudioData(
           await response.arrayBuffer(),
         );
-        const sample = await prepareSample(decoded);
+        if (decoded.duration > 15)
+          throw new Error(`Fragment trop long : ${poem.label || poem.word}`);
+        // Curated voice files are complete phrases, distinct from five-second recordings.
+        const sample = await prepareSample(decoded, 15);
         if (disposed || ticket !== poemRequest) return;
         buffers.set(poem.id, sample);
         emit();

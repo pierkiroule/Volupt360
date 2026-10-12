@@ -1,8 +1,14 @@
-import fragments from "./poems.json";
+import selection from "./voiceSelection.json";
 
-export const POEMS = fragments.map(([id, text, word]) => ({
-  id,
-  text,
-  word,
-  url: `${import.meta.env.BASE_URL || "/"}poems/${id}.mp3`,
-}));
+// Missing transcripts are deliberately represented by neutral fragment labels.
+export const POEMS = selection.map(
+  ({ id, file, label, text, word, ...details }) => ({
+    id,
+    ...details,
+    label,
+    text: text || label,
+    word: word || label,
+    transcriptAvailable: Boolean(text && word),
+    url: `${import.meta.env.BASE_URL || "/"}voices/${file}`,
+  }),
+);

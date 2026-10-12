@@ -61,7 +61,7 @@ test("twelve spoken fragments load silently, sculpt with real voice features and
   for (const poem of result) {
     expect(poem.text).toContain(poem.word);
     expect(poem.duration).toBeGreaterThan(1);
-    expect(poem.duration).toBeLessThan(5);
+    expect(poem.duration).toBeLessThan(15);
     expect(poem.energy).toBeGreaterThan(1);
   }
   await page
@@ -73,7 +73,7 @@ test("twelve spoken fragments load silently, sculpt with real voice features and
     .toBeGreaterThan(2);
   await expect
     .poll(() => canvas.getAttribute("data-poetic-words"))
-    .toContain("rives");
+    .toContain("Fragment 10");
   const geometry = await page.evaluate(async () => {
     const { createPoeticWord } =
       await import("/src/engine/createPoeticWord.js");
@@ -191,11 +191,13 @@ test("a centered word in gyro replays its TTS once without painting another trac
     exact: true,
   });
   await pad.click();
-  await expect(pad).toHaveAttribute("aria-pressed", "false");
+  await expect(pad).toHaveAttribute("aria-pressed", "false", {
+    timeout: 10000,
+  });
   const canvas = page.locator("#stage canvas");
   await expect
     .poll(() => canvas.getAttribute("data-poetic-words"))
-    .toContain("rives");
+    .toContain("Fragment 10");
   const samples = await canvas.getAttribute("data-painted-samples");
   const target = await page.evaluate(() => {
     const position = window.__wordSprite.getWorldPosition(
@@ -237,11 +239,11 @@ test("a centered word in gyro replays its TTS once without painting another trac
   }, target);
   await expect
     .poll(() => canvas.getAttribute("data-gaze-word"), { timeout: 5000 })
-    .toBe("rives");
+    .toBe("Fragment 10");
   await expect
     .poll(() => page.evaluate(() => window.__starts))
     .toBe(before + 1);
-  await page.waitForTimeout(2800);
+  await page.waitForTimeout(7400);
   expect(await page.evaluate(() => window.__starts)).toBe(before + 1);
   await expect(canvas).toHaveAttribute("data-painted-samples", samples);
 });
