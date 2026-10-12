@@ -1,4 +1,3 @@
-import { createVocalEcho } from "../audio/createVocalEcho.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
 
 export const MAX_TWIG_SECONDS = 5;
@@ -23,6 +22,8 @@ export function createTwigBank({
 }) {
   if (ids.length > 12 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
+  let fireflies = false;
+  const brushGestures = new Map();
   const poems = new Map();
   let poemRequest = 0,
     poemLoading = false,
@@ -36,7 +37,6 @@ export function createTwigBank({
     gestures = new Map();
   let ctx,
     master,
-    vocalEcho,
     pendingVocal = null,
     captureProcessor,
     captureSink,
@@ -68,6 +68,7 @@ export function createTwigBank({
           }
         : null,
       poemLoading,
+      fireflies,
       activeVocalId: [...voices.keys()][0] || pendingVocal?.id || null,
       vocalBusy: poems.size > 0 && (voices.size > 0 || pendingVocal !== null),
       ambience: {
@@ -82,8 +83,10 @@ export function createTwigBank({
           {
             text: poems.get(id)?.text || "",
             word: poems.get(id)?.word || "",
-            duration: buffers.get(id)?.duration || 0,
-            playing: voices.has(id),
+            duration: fireflies ? 1 : buffers.get(id)?.duration || 0,
+            playing: fireflies
+              ? [...brushGestures.values()].some((g) => g.id === id)
+              : voices.has(id),
             looping: voices.get(id)?.source.loop || false,
           },
         ]),
@@ -98,7 +101,6 @@ export function createTwigBank({
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
       master.connect(ctx.destination);
-      vocalEcho = createVocalEcho(ctx, master);
       connectCapture();
     }
     return ctx;
@@ -206,7 +208,7 @@ export function createTwigBank({
       };
       source.connect(analyser);
       analyser.connect(gain);
-      gain.connect(exclusive ? vocalEcho.input : master);
+      gain.connect(master);
       const voice = {
         source,
         gain,
@@ -230,6 +232,7 @@ export function createTwigBank({
       };
       balance();
       source.start();
+      return true;
       emit();
     } finally {
       if (exclusive && pendingVocal === reservation) {
@@ -239,6 +242,13 @@ export function createTwigBank({
     }
   }
   function release(key, cancel = false) {
+    const brushGesture = brushGestures.get(key);
+    if (brushGesture) {
+      if (cancel) brushGestures.delete(key);
+      else brushGesture.until = performance.now() + 650;
+      emit();
+      return;
+    }
     const gesture = gestures.get(key);
     if (!gesture) return;
     clearTimeout(gesture.timer);
@@ -254,6 +264,7 @@ export function createTwigBank({
     emit();
   }
   function stopAll() {
+    brushGestures.clear();
     playbackRevision++;
     pendingVocal = null;
     for (const key of [...gestures.keys()]) release(key, true);
@@ -560,6 +571,21 @@ export function createTwigBank({
       captureTap = tap;
       connectCapture();
     },
+    enableFireflies() {
+      fireflies = true;
+      emit();
+    },
+    getFragments() {
+      return fireflies ? [...poems.values()] : [];
+    },
+    collide(id) {
+      if (!fireflies || ctx?.state !== "running" || voices.size || pendingVocal)
+        return Promise.resolve(false);
+      return play(id).catch((error) => {
+        onError(error.message);
+        return false;
+      });
+    },
     loadPoems,
     getPoem(id) {
       return poems.get(id);
@@ -598,11 +624,44 @@ export function createTwigBank({
     record,
     importSample,
     trigger(id) {
+      if (fireflies && ids.includes(id)) {
+        brushGestures.set(`tap-${id}`, {
+          id,
+          trigger: ++triggerSerial,
+          until: performance.now() + 1000,
+        });
+        emit();
+        return this.preparePlayback();
+      }
       return play(id, null, false, true).catch((error) =>
         onError(error.message),
       );
     },
     getVoices() {
+      if (fireflies) {
+        const now = performance.now();
+        for (const [key, gesture] of brushGestures)
+          if (gesture.until < now) {
+            brushGestures.delete(key);
+            emit();
+          }
+        const vocal = [...voices.values()][0];
+        const features = vocal
+          ? readAudioFeatures(vocal.graph)
+          : {
+              rms: 0.08,
+              energy: 0.35,
+              low: 0.3,
+              high: 0.4,
+              flux: 0.1,
+              freq: 1200,
+            };
+        return [...brushGestures.values()].map((gesture) => ({
+          id: gesture.id,
+          trigger: gesture.trigger,
+          features,
+        }));
+      }
       return [...voices.entries()]
         .filter(([, voice]) => voice.dance)
         .map(([id, voice]) => {
@@ -622,6 +681,16 @@ export function createTwigBank({
       );
     },
     press(id, key) {
+      if (fireflies && ids.includes(id)) {
+        brushGestures.set(key, {
+          id,
+          trigger: ++triggerSerial,
+          until: Infinity,
+        });
+        emit();
+        void this.preparePlayback();
+        return;
+      }
       if (disposed || recording || !buffers.has(id)) return;
       if (poems.has(id) && (voices.size > 0 || pendingVocal !== null)) return;
       release(key, true);
@@ -682,7 +751,6 @@ export function createTwigBank({
       }
       captureProcessor?.disconnect();
       captureSink?.disconnect();
-      vocalEcho?.dispose();
       master?.disconnect();
       if (ctx && ctx.state !== "closed") void ctx.close();
     },

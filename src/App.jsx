@@ -302,7 +302,9 @@ export default function App() {
               "cueillir",
               new URLSearchParams(location.search).get("samples") === "empty"
                 ? "Mes sons"
-                : "Poèmes",
+                : twigs.snapshot.fireflies
+                  ? "Textures"
+                  : "Poèmes",
             ],
             ["jouer", "Jouer"],
           ].map(([id, label]) => (
