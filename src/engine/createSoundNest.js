@@ -271,8 +271,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   flight.reset();
   lastSample = null;
 
-  let windTaps = 0;
-  function onWindTap(event) {
+  let steeringGesture = null,
+    steeringMoves = 0;
+  function onSteeringDown(event) {
     if (
       !padSource ||
       photo ||
@@ -282,16 +283,49 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     )
       return;
     void padSource.preparePlayback();
-    const rect = renderer.domElement.getBoundingClientRect();
-    dance.blow(
-      ((event.clientX - rect.left) / rect.width) * 2 - 1,
-      1 - ((event.clientY - rect.top) / rect.height) * 2,
-    );
-    vocalFireflies?.gust(navigation.position, camera);
-    windTaps++;
-    renderer.domElement.dataset.windTaps = String(windTaps);
+    steeringGesture = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+    renderer.domElement.setPointerCapture(event.pointerId);
   }
-  renderer.domElement.addEventListener("pointerdown", onWindTap);
+  function onSteeringMove(event) {
+    if (
+      !steeringGesture ||
+      event.pointerId !== steeringGesture.id ||
+      photo ||
+      cameraMode !== "drone"
+    )
+      return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const scale = Math.max(1, Math.min(rect.width, rect.height));
+    const dx = (event.clientX - steeringGesture.x) / scale;
+    const dy = (steeringGesture.y - event.clientY) / scale;
+    steeringGesture.x = event.clientX;
+    steeringGesture.y = event.clientY;
+    if (dx || dy) {
+      dance.steer(dx, dy);
+      steeringMoves++;
+      renderer.domElement.dataset.steeringMoves = String(steeringMoves);
+      renderer.domElement.dataset.steeringInput = `${dx.toFixed(4)},${dy.toFixed(4)}`;
+    }
+  }
+  function onSteeringEnd(event) {
+    if (event.pointerId !== steeringGesture?.id) return;
+    steeringGesture = null;
+    if (renderer.domElement.hasPointerCapture(event.pointerId))
+      renderer.domElement.releasePointerCapture(event.pointerId);
+  }
+  const steeringListeners = [
+    ["pointerdown", onSteeringDown],
+    ["pointermove", onSteeringMove],
+    ["pointerup", onSteeringEnd],
+    ["pointercancel", onSteeringEnd],
+    ["lostpointercapture", onSteeringEnd],
+  ];
+  for (const [name, handler] of steeringListeners)
+    renderer.domElement.addEventListener(name, handler);
   function frame(now) {
     if (disposed) return;
     frameId = requestAnimationFrame(frame);
@@ -614,7 +648,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     dispose() {
       disposed = true;
       cancelAnimationFrame(frameId);
-      renderer.domElement.removeEventListener("pointerdown", onWindTap);
+      for (const [name, handler] of steeringListeners)
+        renderer.domElement.removeEventListener(name, handler);
       rig.dispose();
       padSource?.setCaptureTap(null);
       videodio?.dispose();

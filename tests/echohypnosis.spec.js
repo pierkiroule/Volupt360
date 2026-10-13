@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { test, expect } from "@playwright/test";
 
-test("one available universe starts its imposed ambience and keeps twelve silent brush pads and wind taps", async ({
+test("one available universe starts its imposed ambience and keeps twelve silent brush pads and swipe steering", async ({
   page,
 }) => {
   const errors = [];
@@ -43,8 +43,18 @@ test("one available universe starts its imposed ambience and keeps twelve silent
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
     .toBeGreaterThan(0);
-  await canvas.click({ position: { x: 120, y: 120 } });
-  await expect(canvas).toHaveAttribute("data-wind-taps", "1");
+  await page.mouse.move(120, 220);
+  await page.mouse.down();
+  await page.mouse.move(210, 150, { steps: 5 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-steering-moves")))
+    .toBeGreaterThan(0);
+  const input = (await canvas.getAttribute("data-steering-input"))
+    .split(",")
+    .map(Number);
+  expect(input[0]).toBeGreaterThan(0);
+  expect(input[1]).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 
@@ -134,7 +144,7 @@ test("fixed anchors carry 24 vocal strings, with proximity vibrations and exclus
   expect(result.vibrating).toBe(true);
 });
 
-test("wind influences continuous flight without replacing it or teleporting", async ({
+test("swipe steering influences continuous flight without replacing it or teleporting", async ({
   page,
 }) => {
   await page.goto("/");
@@ -144,7 +154,7 @@ test("wind influences continuous flight without replacing it or teleporting", as
       guided = createSonoizoDance();
     const start = guided.update(0.016, []);
     normal.update(0.016, []);
-    guided.blow(0.8, 0.4);
+    guided.steer(0.2, 0.1);
     const next = guided.update(0.016, []);
     const firstStep = next.position.distanceTo(start.position);
     let a,
@@ -167,12 +177,12 @@ test("wind influences continuous flight without replacing it or teleporting", as
   expect(result.firstStep).toBeLessThan(0.3);
   expect(result.maxStep).toBeLessThan(0.5);
   expect(result.difference).toBeGreaterThan(0.5);
-  expect(result.difference).toBeLessThan(8);
+  expect(result.difference).toBeLessThan(16);
 });
 
 test.describe("mobile canvas", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-  test("a native touch emits wind, photo still freezes and exports HD PNG", async ({
+  test("a native swipe steers, photo still freezes and exports HD PNG", async ({
     page,
   }) => {
     await page.goto("/");
@@ -180,7 +190,25 @@ test.describe("mobile canvas", () => {
     const canvas = page.locator("#stage canvas");
     await expect(canvas).toHaveAttribute("data-vocal-fireflies", "24");
     await page.touchscreen.tap(195, 250);
-    await expect(canvas).toHaveAttribute("data-wind-taps", "1");
+    expect(await canvas.getAttribute("data-steering-moves")).toBeNull();
+    const session = await page.context().newCDPSession(page);
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: 195, y: 300 }],
+    });
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 245, y: 240 }],
+    });
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await expect
+      .poll(async () =>
+        Number(await canvas.getAttribute("data-steering-moves")),
+      )
+      .toBeGreaterThan(0);
     await page
       .getByRole("button", { name: "Sculpter avec Encres", exact: true })
       .tap();
@@ -234,4 +262,44 @@ test("a missing universe ambience is reported without blocking sculpture", async
       ),
     )
     .toBeGreaterThan(0);
+});
+
+test("relative steering turns right and left and climbs and descends", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const projections = await page.evaluate(async () => {
+    const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");
+    return [
+      [0.15, 0],
+      [-0.15, 0],
+      [0, 0.15],
+      [0, -0.15],
+    ].map(([x, y]) => {
+      const guided = createSonoizoDance(),
+        baseline = createSonoizoDance();
+      const reference = baseline.update(0.016, []);
+      guided.update(0.016, []);
+      const right = reference.side.clone().negate(),
+        up = reference.up.clone();
+      guided.steer(x, y);
+      let a, b;
+      for (let i = 0; i < 30; i++) {
+        a = guided.update(0.016, []);
+        b = baseline.update(0.016, []);
+      }
+      const displacement = a.position.clone().sub(b.position);
+      return {
+        right: displacement.dot(right),
+        up: displacement.dot(up),
+        turn: a.direction.clone().sub(b.direction).dot(right),
+      };
+    });
+  });
+  expect(projections[0].right).toBeGreaterThan(0.1);
+  expect(projections[0].turn).toBeGreaterThan(0);
+  expect(projections[1].right).toBeLessThan(-0.1);
+  expect(projections[1].turn).toBeLessThan(0);
+  expect(projections[2].up).toBeGreaterThan(0.1);
+  expect(projections[3].up).toBeLessThan(-0.1);
 });

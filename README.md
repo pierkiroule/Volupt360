@@ -1,6 +1,6 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Choisissez **Le Souffle**, premier univers ouvert parmi trois. Son ambiance imposée est `public/ambiances/ambiance01.mp3`. Les douze pads sculptent un paysage dans le sillage du V. En FPV, un tap sur le canevas émet une onde et ajoute un souffle amorti au vol. Les points de la constellation restent fixes : chacune des 24 cordes porte un fragment vocal, déclenché quand l’oizo la frôle. Une seule voix joue à la fois ; les cordes vibrent avec la proximité et les caractéristiques de la voix.
+Choisissez **Le Souffle**, premier univers ouvert parmi trois. Son ambiance imposée est `public/ambiances/ambiance01.mp3`. Les douze pads sculptent un paysage dans le sillage du V. En FPV, glisser sur le canevas infléchit l’orientation relative de l’oizo : vers le haut pour monter, vers le bas pour descendre, vers la droite ou la gauche pour tourner. La réponse est progressive et conserve une inertie douce au relâchement. Les points de la constellation restent fixes : chacune des 24 cordes porte un fragment vocal, déclenché quand l’oizo la frôle. Une seule voix joue à la fois ; les cordes vibrent avec la proximité et les caractéristiques de la voix.
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 

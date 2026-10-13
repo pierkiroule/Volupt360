@@ -317,7 +317,7 @@ export default function App() {
       </p>
       <div className="landscape-caption" aria-hidden="true">
         <span>UN VOYAGE DANS LA MATIÈRE</span>
-        <span>Tap pour souffler · les brosses pour sculpter</span>
+        <span>Glisser pour guider · les brosses pour sculpter</span>
       </div>
       {immersive && mode !== "photo" && (
         <button

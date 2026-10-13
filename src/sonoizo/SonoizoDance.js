@@ -7,7 +7,7 @@ export function createSonoizoDance({ seed = 37 } = {}) {
     triggers = new Map();
   const wind = new THREE.Vector3(),
     offset = new THREE.Vector3();
-  let pendingWind = null;
+  const steering = new THREE.Vector2();
   let impulse = 0,
     bias = 0;
   const hash = (id) =>
@@ -16,8 +16,9 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       seed,
     );
   return {
-    blow(x, y) {
-      pendingWind = { x, y };
+    steer(x, y) {
+      steering.x = THREE.MathUtils.clamp(steering.x + x * 4, -1, 1);
+      steering.y = THREE.MathUtils.clamp(steering.y + y * 4, -1, 1);
     },
     update(dt, voices) {
       const features = {
@@ -44,17 +45,14 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       features.high = Math.min(1, features.high + impulse * (1 - bias) * 0.4);
       features.flux = Math.min(1, features.flux + impulse * 0.2);
       const pose = flight.update(dt, features);
-      if (pendingWind) {
-        wind
-          .addScaledVector(pose.side, -pendingWind.x * 5)
-          .addScaledVector(pose.up, pendingWind.y * 5)
-          .addScaledVector(pose.direction, 2);
-        wind.clampLength(0, 7);
-        pendingWind = null;
-      }
-      wind.multiplyScalar(Math.exp(-dt * 0.9));
+      const desired = pose.side
+        .clone()
+        .multiplyScalar(-steering.x * 10)
+        .addScaledVector(pose.up, steering.y * 10);
+      wind.lerp(desired, 1 - Math.exp(-dt * 4));
+      steering.multiplyScalar(Math.exp(-dt * 0.7));
       offset.addScaledVector(wind, dt).multiplyScalar(Math.exp(-dt * 0.15));
-      offset.clampLength(0, 8);
+      offset.clampLength(0, 16);
       const velocity = pose.velocity
         .clone()
         .add(wind)
@@ -80,7 +78,7 @@ export function createSonoizoDance({ seed = 37 } = {}) {
     reset() {
       wind.set(0, 0, 0);
       offset.set(0, 0, 0);
-      pendingWind = null;
+      steering.set(0, 0);
       flight.reset();
       triggers.clear();
       impulse = bias = 0;
