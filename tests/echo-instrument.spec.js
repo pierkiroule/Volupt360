@@ -12,19 +12,21 @@ test("each world plays measured percussion and a continuing melody, then stops a
     const silent = ctx.createGain();
     silent.gain.value = 0;
     silent.connect(ctx.destination);
-    const instruments = ["souffle", "marees", "ramure"].map((universe) => {
-      const instrument = createEchoInstrument(ctx, silent, {
-        universe,
-        seedBrush:
-          universe === "marees"
-            ? "corolles"
-            : universe === "ramure"
-              ? "falaises"
-              : "voiles",
-      });
-      instrument.resume();
-      return instrument;
-    });
+    const instruments = await Promise.all(
+      ["souffle", "marees", "ramure"].map(async (universe) => {
+        const instrument = await createEchoInstrument(ctx, silent, {
+          universe,
+          seedBrush:
+            universe === "marees"
+              ? "corolles"
+              : universe === "ramure"
+                ? "falaises"
+                : "voiles",
+        });
+        instrument.resume();
+        return instrument;
+      }),
+    );
     const levels = instruments.map(() => ({
       peak: 0,
       low: 1,
@@ -97,15 +99,17 @@ test("three sonic identities produce distinct spectra, audible levels and bounde
     const silent = ctx.createGain();
     silent.gain.value = 0;
     silent.connect(ctx.destination);
-    const instruments = ["souffle", "marees", "ramure"].map((universe) => {
-      const instrument = createEchoInstrument(ctx, silent, {
-        universe,
-        autonomous: false,
-      });
-      instrument.resume();
-      instrument.deposit("corolles", { x: 0, y: 0, z: -5 }, 0.8, "test");
-      return instrument;
-    });
+    const instruments = await Promise.all(
+      ["souffle", "marees", "ramure"].map(async (universe) => {
+        const instrument = await createEchoInstrument(ctx, silent, {
+          universe,
+          autonomous: false,
+        });
+        instrument.resume();
+        instrument.deposit("corolles", { x: 0, y: 0, z: -5 }, 0.8, "test");
+        return instrument;
+      }),
+    );
     await new Promise((resolve) => setTimeout(resolve, 1200));
     const measure = (instrument) => {
       const wave = new Float32Array(instrument.graph.analyser.fftSize);
@@ -210,7 +214,7 @@ test("brush geometry composes three timbres with bounded polyphony and remembere
     const bank = createTwigBank({ ids: ["voiles", "corolles", "racines"] });
     bank.enableFireflies();
     await bank.preparePlayback();
-    bank.startInstrument();
+    await bank.startInstrument();
     bank.depositSound("voiles", { x: -20, y: 8, z: 0 }, 0.5, "a");
     bank.depositSound("corolles", { x: 20, y: 0, z: 0 }, 0.5, "b");
     bank.depositSound("racines", { x: 0, y: -8, z: 20 }, 0.5, "c");
@@ -261,7 +265,7 @@ test("spatial audio follows the listener orientation in 360 contemplation", asyn
     right.connect(silent);
     silent.connect(ctx.destination);
     await ctx.resume();
-    const instrument = createEchoInstrument(ctx, splitter, {
+    const instrument = await createEchoInstrument(ctx, splitter, {
       autonomous: false,
     });
     instrument.resume();

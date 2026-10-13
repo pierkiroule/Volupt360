@@ -116,7 +116,14 @@ export default function App() {
     engine.current?.setPadSource(bank);
     if (ENABLE_ECHO_INSTRUMENT) {
       await bank.preparePlayback();
-      if (ticket === universeRequest.current) bank.startInstrument(choice.id);
+      if (ticket === universeRequest.current) {
+        try {
+          await bank.startInstrument(choice.id);
+        } catch (error) {
+          if (ticket === universeRequest.current)
+            setUniverseError(`Synthèse aquatique : ${error.message}`);
+        }
+      }
       return;
     }
     const loaded = await bank.loadUniverseAmbience(
@@ -284,6 +291,7 @@ export default function App() {
                   title={choice.description}
                 >
                   {choice.name}
+                  <small aria-hidden="true">{choice.soundName}</small>
                   <span>Entrer</span>
                 </button>
               ))}

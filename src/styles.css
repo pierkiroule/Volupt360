@@ -1100,6 +1100,12 @@ label:focus-visible {
   min-width: 140px;
   color: #28252a;
 }
+.universe-options button small {
+  max-width: 150px;
+  font-size: 10px;
+  line-height: 1.5;
+  opacity: 0.75;
+}
 .universe-options button span {
   font-size: 12px;
   opacity: 0.6;

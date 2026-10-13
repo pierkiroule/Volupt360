@@ -2,7 +2,9 @@ export const UNIVERSES = [
   {
     id: "souffle",
     name: "Le Souffle",
-    description: "Lavis et voiles — souffles flûtés, harmonies aériennes.",
+    soundName: "Source · gouttes cristallines",
+    description:
+      "Source : gouttes résonantes, ruissellements délicats et mélodies lumineuses.",
     brushes: [
       "voiles",
       "filaments",
@@ -15,8 +17,9 @@ export const UNIVERSES = [
   {
     id: "marees",
     name: "Les Marées",
+    soundName: "Rivière · courants rythmiques",
     description:
-      "Pigments et bulles — carillons cristallins, mélodies ondulantes.",
+      "Rivière : impacts liquides, courants vivants et pulsations chaloupées.",
     brushes: [
       "corolles",
       "brumes",
@@ -29,7 +32,9 @@ export const UNIVERSES = [
   {
     id: "ramure",
     name: "La Ramure",
-    description: "Structures et signes — timbres boisés, pulsations dansantes.",
+    soundName: "Abysses · bulles profondes",
+    description:
+      "Abysses : grosses bulles, vagues sourdes et résonances profondes.",
     brushes: [
       "falaises",
       "calligraphie",

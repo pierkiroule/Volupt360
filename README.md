@@ -110,4 +110,6 @@ Chaque univers conserve ses quatre brosses d’origine et reçoit deux matières
 
 L’ambiance musicale est réellement analysée : les basses font respirer les pigments et l’ampleur des particules, les variations déclenchent des accents lumineux, et les aigus accélèrent les mouvements. Une adaptation lente du niveau rend les musiques calmes lisibles sans augmenter leur volume. Les voix complètent cette réponse. La musique module aussi les traces déjà présentes et les cordes proches de l’oizo ; elle ne déclenche pas de brosse seule.
 
+Les mondes sonores **Source, Rivière et Abysses** sont entièrement procéduraux : gouttes résonantes, bulles, courants, écume et réverbération calculée en AudioWorklet. `?sound=legacy` permet de comparer avec la synthèse précédente.
+
 Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-instrument.md). `?instrument=off` restaure le parcours musical MP3 précédent pour comparaison.
