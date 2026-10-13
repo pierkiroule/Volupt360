@@ -611,6 +611,7 @@ export function createTwigBank({
     startInstrument(universe = "souffle") {
       instrument?.dispose();
       instrument = createEchoInstrument(context(), master, {
+        universe,
         seedBrush:
           universe === "marees"
             ? "corolles"
