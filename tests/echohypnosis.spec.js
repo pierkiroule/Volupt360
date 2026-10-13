@@ -269,6 +269,7 @@ test("relative steering turns right and left and climbs and descends", async ({
 }) => {
   await page.goto("/");
   const projections = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");
     return [
       [0.15, 0],
@@ -280,7 +281,15 @@ test("relative steering turns right and left and climbs and descends", async ({
         baseline = createSonoizoDance();
       const reference = baseline.update(0.016, []);
       guided.update(0.016, []);
-      const right = reference.side.clone().negate(),
+      const camera = new THREE.PerspectiveCamera();
+      camera.position
+        .copy(reference.position)
+        .addScaledVector(reference.direction, -10);
+      camera.up.copy(reference.up);
+      camera.lookAt(reference.position);
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(
+          camera.quaternion,
+        ),
         up = reference.up.clone();
       guided.steer(x, y);
       let a, b;

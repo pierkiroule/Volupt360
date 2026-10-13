@@ -47,7 +47,7 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       const pose = flight.update(dt, features);
       const desired = pose.side
         .clone()
-        .multiplyScalar(-steering.x * 10)
+        .multiplyScalar(steering.x * 10)
         .addScaledVector(pose.up, steering.y * 10);
       wind.lerp(desired, 1 - Math.exp(-dt * 4));
       steering.multiplyScalar(Math.exp(-dt * 0.7));
