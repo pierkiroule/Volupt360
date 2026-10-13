@@ -1,3 +1,4 @@
+import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
 import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
 import { createTraceMemory } from "../sonoizo/TraceMemory.js";
 import { createTraceEncounter } from "../sonoizo/TraceEncounter.js";
@@ -126,6 +127,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
 
   function destroyStroke(mark) {
     traceMemory.remove(mark.traceId);
+    padSource?.forgetSound?.(mark.traceId);
     disposeMark(mark.object);
     mark.textureLease?.release();
   }
@@ -196,6 +198,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     paintedSamples++;
     if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
     activeStroke.stroke.append(pose);
+    padSource?.depositSound?.(
+      activeStroke.brush,
+      pose.position,
+      pose.energy || 0.3,
+      activeStroke.traceId,
+    );
     if (ENABLE_TRACE_MEMORY)
       traceMemory.record(
         activeStroke.traceId,
@@ -464,6 +472,19 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           ? traceEncounter.update(pose.position, traceTime)
           : null;
         traceDebug?.update(dt, hit);
+        if (hit) {
+          padSource.recallSound?.(hit.brushId, hit.position, hit.traceId);
+          if (ENABLE_POETIC_VOICES && traceEncounter.stats.count % 5 === 0) {
+            const index =
+              Math.max(
+                0,
+                BRUSHES.findIndex((item) => item.id === hit.brushId),
+              ) % 12;
+            void padSource.collide(
+              `firefly-${index * 2 + 1 + (Math.floor(traceEncounter.stats.count / 5) % 2)}`,
+            );
+          }
+        }
         const fragments =
           !ENABLE_TRACE_MEMORY && !vocalFireflies
             ? padSource.getFragments?.() || []
@@ -570,6 +591,21 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     renderer.domElement.dataset.sculpturePaused = String(photo);
     rig.update(dt);
     camera.updateMatrixWorld();
+    if (!photo && padSource?.updateListener) {
+      const inverse = landscape
+        .getWorldQuaternion(new THREE.Quaternion())
+        .invert();
+      padSource.updateListener(
+        landscape.worldToLocal(camera.position.clone()),
+        camera.getWorldDirection(new THREE.Vector3()).applyQuaternion(inverse),
+        new THREE.Vector3(0, 1, 0)
+          .applyQuaternion(camera.quaternion)
+          .applyQuaternion(inverse),
+      );
+      const sound = padSource.getInstrumentStats?.();
+      renderer.domElement.dataset.instrumentNotes = String(sound?.total || 0);
+      renderer.domElement.dataset.instrumentVoices = String(sound?.voices || 0);
+    }
     try {
       effects.render(scene, camera);
       if (!photo && cameraMode === "drone")
@@ -685,7 +721,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       vocalFireflies?.dispose();
       vocalFireflies = null;
       padSource = source;
-      navigation.windEnabled = Boolean(source?.getFragments?.().length);
+      navigation.windEnabled = Boolean(
+        source?.getSnapshot?.().fireflies || source?.getFragments?.().length,
+      );
       if (source) {
         if (!padInitialized) {
           reset();

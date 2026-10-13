@@ -1,3 +1,4 @@
+import { createEchoInstrument } from "../audio/createEchoInstrument.js";
 import { createVisualAudioResponse } from "../audio/createVisualAudioResponse.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
 
@@ -26,6 +27,7 @@ export function createTwigBank({
   let fireflies = false,
     universeAmbience = false;
   const brushGestures = new Map();
+  let instrument = null;
   const respond = createVisualAudioResponse();
   let visualFeatures = null,
     visualReadAt = -Infinity;
@@ -33,8 +35,9 @@ export function createTwigBank({
     const now = ctx?.currentTime || 0;
     if (visualFeatures && now - visualReadAt < 0.035) return visualFeatures;
     const voice = [...voices.values()][0];
-    const music =
-      ambience && !ambience.element.paused
+    const music = instrument?.stats.active
+      ? readAudioFeatures(instrument.graph)
+      : ambience && !ambience.element.paused
         ? readAudioFeatures(ambience.graph)
         : {};
     const dt = Number.isFinite(visualReadAt)
@@ -583,6 +586,7 @@ export function createTwigBank({
     }
   }
   function pauseAmbience() {
+    instrument?.pause();
     ambience?.element.pause();
     emit();
   }
@@ -604,6 +608,34 @@ export function createTwigBank({
     }
   }
   return {
+    startInstrument(universe = "souffle") {
+      instrument?.dispose();
+      instrument = createEchoInstrument(context(), master, {
+        seedBrush:
+          universe === "marees"
+            ? "corolles"
+            : universe === "ramure"
+              ? "falaises"
+              : "voiles",
+      });
+      instrument.resume();
+      emit();
+    },
+    depositSound(id, position, energy, key) {
+      return instrument?.deposit(id, position, energy, key);
+    },
+    forgetSound(key) {
+      instrument?.forget(key);
+    },
+    recallSound(id, position, key) {
+      return instrument?.recall(id, position, key);
+    },
+    getInstrumentStats() {
+      return instrument?.stats || null;
+    },
+    updateListener(position, direction, up) {
+      instrument?.listener(position, direction, up);
+    },
     setCaptureTap(tap) {
       captureTap = tap;
       connectCapture();
@@ -644,6 +676,7 @@ export function createTwigBank({
       return audio
         .resume()
         .then(() => {
+          instrument?.resume();
           if (universeAmbience && ambience?.element.paused)
             return toggleAmbience();
         })
@@ -662,6 +695,8 @@ export function createTwigBank({
     toggleAmbience,
     pauseAmbience,
     removeAmbience() {
+      instrument?.dispose();
+      instrument = null;
       ambienceRequest++;
       pendingAmbience?.cancel();
       pendingAmbience = null;
@@ -785,6 +820,8 @@ export function createTwigBank({
       disposed = true;
       poemRequest++;
       poemAbort?.abort();
+      instrument?.dispose();
+      instrument = null;
       poems.clear();
       ambienceRequest++;
       pendingAmbience?.cancel();

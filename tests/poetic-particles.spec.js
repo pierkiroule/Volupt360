@@ -8,7 +8,7 @@ test("each universe exposes six brushes without a texture tool and all new parti
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   for (const [universe, names] of [
     ["Le Souffle", ["Plumes", "Lucioles"]],
     ["Les Marées", ["Feuilles", "Filaments libres"]],
@@ -47,7 +47,7 @@ test("each universe exposes six brushes without a texture tool and all new parti
 test("particle geometry is bounded, seeded, evolves without allocations and fades with the sculpture", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const results = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { BRUSHES, createBrushStroke, disposeMark } =
@@ -107,7 +107,7 @@ test("particle geometry is bounded, seeded, evolves without allocations and fade
 test("six procedural motifs produce distinct WebGL images and obey progressive alpha fading", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const images = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { BRUSHES, createBrushStroke, disposeMark } =

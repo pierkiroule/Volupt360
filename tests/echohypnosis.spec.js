@@ -14,7 +14,7 @@ test("one available universe starts its imposed ambience and keeps twelve silent
       });
     };
   });
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   await expect(
     page.getByRole("heading", { name: "echohypnosis" }),
   ).toBeVisible();
@@ -62,7 +62,7 @@ test("one available universe starts its imposed ambience and keeps twelve silent
 test("fixed anchors carry 24 vocal strings, with proximity vibrations and exclusive actual playback", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createVocalConstellation } =
@@ -148,7 +148,7 @@ test("fixed anchors carry 24 vocal strings, with proximity vibrations and exclus
 test("swipe steering influences continuous flight without replacing it or teleporting", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const result = await page.evaluate(async () => {
     const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");
     const normal = createSonoizoDance(),
@@ -186,7 +186,7 @@ test.describe("mobile canvas", () => {
   test("a native swipe steers, photo still freezes and exports HD PNG", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/?instrument=off");
     await page.getByRole("button", { name: "Le Souffle Entrer" }).tap();
     const canvas = page.locator("#stage canvas");
     await expect(canvas).toHaveAttribute("data-vocal-fireflies", "0");
@@ -246,7 +246,7 @@ test("a missing universe ambience is reported without blocking sculpture", async
   await page.route("**/ambiances/ambiance01.mp3", (route) =>
     route.fulfill({ status: 404, body: "missing" }),
   );
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   await page.getByRole("button", { name: "Le Souffle Entrer" }).click();
   await expect(page.locator(".universe-error")).toContainText(
     "ambiance01.mp3 manque",
@@ -268,7 +268,7 @@ test("a missing universe ambience is reported without blocking sculpture", async
 test("relative steering turns right and left and climbs and descends", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const projections = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");
@@ -317,7 +317,7 @@ test("relative steering turns right and left and climbs and descends", async ({
 test("tiny motions are ignored and losing focus cancels a captured gesture", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   await page.getByRole("button", { name: "Le Souffle Entrer" }).click();
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-drone-distance", "0");
@@ -336,7 +336,7 @@ test("tiny motions are ignored and losing focus cancels a captured gesture", asy
 test("discreet zoom remains visible with folded tools and changes distance in the right direction", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   await page.getByRole("button", { name: "Le Souffle Entrer" }).click();
   const zoom = page.getByRole("navigation", { name: "Zoom", exact: true });
   await expect(zoom).toBeVisible();

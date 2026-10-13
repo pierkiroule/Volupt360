@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("the real ambience audio graph responds to musical level changes without activating brush pads", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const result = await page.evaluate(async () => {
     const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
     const bank = createTwigBank({ ids: ["voiles"] });
@@ -67,7 +67,7 @@ test("the real ambience audio graph responds to musical level changes without ac
 test("quiet music gets legible visual energy with restrained decay in silence", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const response = await page.evaluate(async () => {
     const { createVisualAudioResponse } =
       await import("/src/audio/createVisualAudioResponse.js");
