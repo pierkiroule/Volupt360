@@ -58,7 +58,7 @@ export default function App() {
     player = useRef(null),
     loadRequest = useRef(0);
   const textureRequests = useRef({});
-  const [distance, setDistance] = useState(0.25);
+  const [distance, setDistance] = useState(0);
   const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
@@ -82,7 +82,7 @@ export default function App() {
       if (ENABLE_SONOIZO && atelier !== "mp3") {
         if (new URLSearchParams(location.search).has("samples"))
           engine.current.setPadSource(twigs.bank.current);
-        engine.current.setDroneDistance(0.25);
+        engine.current.setDroneDistance(0);
       }
     } catch (cause) {
       setSceneError(
@@ -306,6 +306,12 @@ export default function App() {
         expanded={!immersive || toolsOpen}
         mode={mode}
         onChange={chooseCamera}
+        onPhotoZoom={(factor) => {
+          const zoom = Number(
+            stage.current.querySelector("canvas").dataset.photoZoom || 1,
+          );
+          engine.current?.setPhotoZoom(zoom * factor);
+        }}
         distance={distance}
         onDistance={(value) => {
           setDistance(value);

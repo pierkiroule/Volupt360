@@ -33,6 +33,7 @@ test("one available universe starts its imposed ambience and keeps twelve silent
     .toBe(true);
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-vocal-fireflies", "24");
+  await expect(canvas).toHaveAttribute("data-drone-distance", "0");
   await expect(page.locator(".twig-pad")).toHaveCount(12);
   await expect(
     page.locator('input[type="file"][accept="audio/*,.mp3"]'),
@@ -311,4 +312,48 @@ test("relative steering turns right and left and climbs and descends", async ({
   expect(projections[1].turn).toBeLessThan(0);
   expect(projections[2].up).toBeGreaterThan(0.1);
   expect(projections[3].up).toBeLessThan(-0.1);
+});
+
+test("tiny motions are ignored and losing focus cancels a captured gesture", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Le Souffle Entrer" }).click();
+  const canvas = page.locator("#stage canvas");
+  await expect(canvas).toHaveAttribute("data-drone-distance", "0");
+  await page.mouse.move(200, 200);
+  await page.mouse.down();
+  await page.mouse.move(202, 201);
+  expect(await canvas.getAttribute("data-steering-moves")).toBeNull();
+  await page.mouse.move(230, 200);
+  await expect(canvas).toHaveAttribute("data-steering-moves", "1");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await page.mouse.move(270, 170);
+  await expect(canvas).toHaveAttribute("data-steering-moves", "1");
+  await page.mouse.up();
+});
+
+test("discreet zoom remains visible with folded tools and changes distance in the right direction", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Le Souffle Entrer" }).click();
+  const zoom = page.getByRole("navigation", { name: "Zoom", exact: true });
+  await expect(zoom).toBeVisible();
+  const canvas = page.locator("#stage canvas");
+  await expect(canvas).toHaveAttribute("data-drone-distance", "0");
+  await expect(
+    zoom.getByRole("button", { name: "Rapprocher la caméra" }),
+  ).toBeDisabled();
+  await zoom.getByRole("button", { name: "Éloigner la caméra" }).click();
+  await expect(canvas).toHaveAttribute("data-drone-distance", "0.1");
+  await zoom.getByRole("button", { name: "Rapprocher la caméra" }).click();
+  await expect(canvas).toHaveAttribute("data-drone-distance", "0");
+  await page
+    .getByRole("button", { name: "Déplier les fonctionnalités" })
+    .click();
+  await expect(
+    page.getByRole("slider", { name: "Distance du drone" }),
+  ).toHaveCount(0);
+  await expect(zoom).toBeVisible();
 });

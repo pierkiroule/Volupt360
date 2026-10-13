@@ -287,6 +287,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
+      started: false,
     };
     renderer.domElement.setPointerCapture(event.pointerId);
   }
@@ -300,12 +301,30 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       return;
     const rect = renderer.domElement.getBoundingClientRect();
     const scale = Math.max(1, Math.min(rect.width, rect.height));
+    if (
+      !steeringGesture.started &&
+      Math.hypot(
+        event.clientX - steeringGesture.x,
+        event.clientY - steeringGesture.y,
+      ) < 4
+    )
+      return;
+    steeringGesture.started = true;
     const dx = (event.clientX - steeringGesture.x) / scale;
     const dy = (steeringGesture.y - event.clientY) / scale;
     steeringGesture.x = event.clientX;
     steeringGesture.y = event.clientY;
     if (dx || dy) {
-      dance.steer(dx, dy);
+      const inverse = landscape
+        .getWorldQuaternion(new THREE.Quaternion())
+        .invert();
+      const right = new THREE.Vector3(1, 0, 0)
+        .applyQuaternion(camera.quaternion)
+        .applyQuaternion(inverse);
+      const up = new THREE.Vector3(0, 1, 0)
+        .applyQuaternion(camera.quaternion)
+        .applyQuaternion(inverse);
+      dance.steer(dx, dy, { right, up });
       steeringMoves++;
       renderer.domElement.dataset.steeringMoves = String(steeringMoves);
       renderer.domElement.dataset.steeringInput = `${dx.toFixed(4)},${dy.toFixed(4)}`;
@@ -317,6 +336,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     if (renderer.domElement.hasPointerCapture(event.pointerId))
       renderer.domElement.releasePointerCapture(event.pointerId);
   }
+  function cancelSteering() {
+    if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
+  }
+  window.addEventListener("blur", cancelSteering);
   const steeringListeners = [
     ["pointerdown", onSteeringDown],
     ["pointermove", onSteeringMove],
@@ -539,6 +562,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         if (!photo && cameraMode === "drone")
           videodio?.audio(data, sampleRate, startTime);
       });
+      if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       vocalFireflies?.dispose();
       vocalFireflies = null;
       padSource = source;
@@ -578,6 +602,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       previous?.texture.dispose();
     },
     setCameraMode(next) {
+      if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       const wasPhoto = photo;
       const previousMode = cameraMode;
       cameraMode = next;
@@ -648,6 +673,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     dispose() {
       disposed = true;
       cancelAnimationFrame(frameId);
+      window.removeEventListener("blur", cancelSteering);
       for (const [name, handler] of steeringListeners)
         renderer.domElement.removeEventListener(name, handler);
       rig.dispose();

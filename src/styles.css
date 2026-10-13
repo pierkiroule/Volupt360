@@ -1124,3 +1124,41 @@ label:focus-visible {
   font-size: 10px;
   margin-top: 3px;
 }
+
+.camera-zoom {
+  position: fixed;
+  z-index: 6;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  opacity: 0.7;
+  color: #343039;
+}
+.camera-zoom > span {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.camera-zoom > div {
+  display: flex;
+  gap: 4px;
+}
+.camera-zoom button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid #bcb5ac70;
+  background: #faf7efc9;
+  color: inherit;
+  font-size: 20px;
+}
+.camera-zoom button:disabled {
+  opacity: 0.35;
+}
+.camera-zoom:focus-within,
+.camera-zoom:hover {
+  opacity: 1;
+}
