@@ -1,3 +1,7 @@
+import {
+  ENABLE_ECHO_INSTRUMENT,
+  ENABLE_POETIC_VOICES,
+} from "./instrumentConfig.js";
 import { useEffect, useRef, useState } from "react";
 import { BRUSHES } from "../engine/brushes.js";
 import { createTwigBank, emptyTwigSnapshot } from "./createTwigBank.js";
@@ -25,7 +29,8 @@ export function useTwigBank() {
     setSnapshot(owner.getSnapshot());
     if (new URLSearchParams(location.search).get("samples") !== "empty") {
       owner.enableFireflies();
-      void owner.loadPoems(FIREFLY_FRAGMENTS);
+      if (!ENABLE_ECHO_INSTRUMENT || ENABLE_POETIC_VOICES)
+        void owner.loadPoems(FIREFLY_FRAGMENTS);
     }
     const interrupt = () => {
       owner.cancelRecording();
@@ -37,7 +42,10 @@ export function useTwigBank() {
         owner.pauseAmbience();
       }
     };
-    const blur = () => owner.stopAll();
+    const blur = () => {
+      owner.stopAll();
+      owner.pauseAmbience();
+    };
     window.addEventListener("blur", blur);
     document.addEventListener("visibilitychange", hidden);
     return () => {

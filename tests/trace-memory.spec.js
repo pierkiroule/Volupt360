@@ -5,7 +5,7 @@ test("the scene starts empty, records artistic deposits and resets its memory wi
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/?traceDebug=1");
+  await page.goto("/?traceDebug=1&instrument=off");
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-trace-memory", "true");
   await expect(canvas).toHaveAttribute("data-trace-points", "0");
@@ -37,7 +37,7 @@ test("the scene starts empty, records artistic deposits and resets its memory wi
 test("finite 3D segment encounters reject young traces and apparent screen intersections and throttle repeats", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createTraceMemory } = await import("/src/sonoizo/TraceMemory.js");
@@ -102,7 +102,7 @@ test("finite 3D segment encounters reject young traces and apparent screen inter
 test("memory is bounded and removing traces clears their spatial references", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createTraceMemory } = await import("/src/sonoizo/TraceMemory.js");
@@ -134,7 +134,7 @@ test("memory is bounded and removing traces clears their spatial references", as
 test("a natural recorded orbit has a first old-trace encounter without moving the bird to it", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const result = await page.evaluate(async () => {
     const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");
     const { createTraceMemory } = await import("/src/sonoizo/TraceMemory.js");

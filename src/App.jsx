@@ -1,3 +1,5 @@
+import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
+import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
 import { UNIVERSES } from "./sonoizo/universes.js";
 import { BRUSHES } from "./engine/brushes.js";
 import { useEffect, useRef, useState } from "react";
@@ -112,6 +114,11 @@ export default function App() {
     setDistance(0);
     engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
+    if (ENABLE_ECHO_INSTRUMENT) {
+      await bank.preparePlayback();
+      if (ticket === universeRequest.current) bank.startInstrument(choice.id);
+      return;
+    }
     const loaded = await bank.loadUniverseAmbience(
       `${import.meta.env.BASE_URL}${choice.ambience}`,
     );
@@ -177,7 +184,8 @@ export default function App() {
       setToolsOpen(false);
       setAtelier("jouer");
     }
-    if (id === "gyro") void twigs.bank.current?.preparePlayback();
+    if (id !== "photo" && (id === "gyro" || mode === "photo"))
+      void twigs.bank.current?.preparePlayback();
     if (universe && mode === "photo" && id !== "photo") {
       const ambience = twigs.bank.current?.getSnapshot().ambience;
       if (ambience?.loaded && !ambience.playing)
@@ -264,7 +272,10 @@ export default function App() {
         !new URLSearchParams(location.search).has("samples") && (
           <section className="universe-picker" aria-label="Choisir un univers">
             <h2>Choisissez votre univers</h2>
-            <p>Un vol, des traces, une mémoire à sculpter.</p>
+            <p>
+              Une expérimentation artistique du son, du geste et de leurs
+              résonances.
+            </p>
             <div className="universe-options">
               {UNIVERSES.map((choice) => (
                 <button
@@ -277,6 +288,7 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <ArtisticIntroduction />
           </section>
         )}
       {immersive && universe && mode !== "photo" && (

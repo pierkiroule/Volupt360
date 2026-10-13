@@ -1,0 +1,179 @@
+import { test, expect } from "@playwright/test";
+
+test("an organic generated sound starts the world, painting adds spatial notes and photo silences it", async ({
+  page,
+}) => {
+  const errors = [],
+    files = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (/\/voices\/.*\.mp3|\/ambiances\/.*\.mp3/.test(request.url()))
+      files.push(request.url());
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Le Souffle Entrer", exact: true })
+    .click();
+  const canvas = page.locator("#stage canvas");
+  await expect
+    .poll(async () =>
+      Number(await canvas.getAttribute("data-instrument-notes")),
+    )
+    .toBeGreaterThan(0);
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-music-energy")))
+    .toBeGreaterThan(0.05);
+  const before = Number(await canvas.getAttribute("data-instrument-notes"));
+  await page.mouse.move(450, 300);
+  await page.mouse.down();
+  await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
+  await expect
+    .poll(async () =>
+      Number(await canvas.getAttribute("data-instrument-notes")),
+    )
+    .toBeGreaterThan(before);
+  await page.mouse.up();
+  expect(
+    Number(await canvas.getAttribute("data-instrument-voices")),
+  ).toBeLessThanOrEqual(10);
+  await page
+    .getByRole("button", { name: "FPV 360° gyro", exact: true })
+    .click();
+  await expect(canvas).toHaveAttribute("data-camera-mode", "gyro");
+  await page.getByRole("button", { name: "Vue photo", exact: true }).click();
+  await expect(canvas).toHaveAttribute("data-sculpture-paused", "true");
+  await page.getByRole("button", { name: "FPV drone", exact: true }).click();
+  await canvas.click({ position: { x: 400, y: 300 } });
+  await expect
+    .poll(async () =>
+      Number(await canvas.getAttribute("data-instrument-voices")),
+    )
+    .toBeGreaterThan(0);
+  expect(files).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("brush geometry composes three timbres with bounded polyphony and remembered spatial motifs", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
+    const bank = createTwigBank({ ids: ["voiles", "corolles", "racines"] });
+    bank.enableFireflies();
+    await bank.preparePlayback();
+    bank.startInstrument();
+    bank.depositSound("voiles", { x: -20, y: 8, z: 0 }, 0.5, "a");
+    bank.depositSound("corolles", { x: 20, y: 0, z: 0 }, 0.5, "b");
+    bank.depositSound("racines", { x: 0, y: -8, z: 20 }, 0.5, "c");
+    for (let i = 0; i < 100; i++)
+      bank.recallSound("racines", { x: 0, y: 0, z: 0 }, "c");
+    bank.updateListener(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: -1 },
+      { x: 0, y: 1, z: 0 },
+    );
+    const stats = bank.getInstrumentStats();
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+    const energy = bank.getVisualFeatures().energy;
+    bank.forgetSound("a");
+    const afterForget = bank.getInstrumentStats().motifs;
+    bank.pauseAmbience();
+    const paused = bank.getInstrumentStats();
+    bank.dispose();
+    return { stats, energy, afterForget, paused };
+  });
+  expect(result.stats.voices).toBeLessThanOrEqual(10);
+  expect(result.stats.motifs).toBe(3);
+  for (const count of Object.values(result.stats.timbres))
+    expect(count).toBeGreaterThan(0);
+  expect(result.energy).toBeGreaterThan(0.02);
+  expect(result.afterForget).toBe(2);
+  expect(result.paused.voices).toBe(0);
+  expect(result.paused.active).toBe(false);
+});
+
+test("spatial audio follows the listener orientation in 360 contemplation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const ears = await page.evaluate(async () => {
+    const { createEchoInstrument } =
+      await import("/src/audio/createEchoInstrument.js");
+    const ctx = new AudioContext(),
+      splitter = ctx.createChannelSplitter(2),
+      left = ctx.createAnalyser(),
+      right = ctx.createAnalyser(),
+      silent = ctx.createGain();
+    left.fftSize = right.fftSize = 2048;
+    silent.gain.value = 0;
+    splitter.connect(left, 0);
+    splitter.connect(right, 1);
+    left.connect(silent);
+    right.connect(silent);
+    silent.connect(ctx.destination);
+    await ctx.resume();
+    const instrument = createEchoInstrument(ctx, splitter, {
+      autonomous: false,
+    });
+    instrument.resume();
+    instrument.listener(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: -1 },
+      { x: 0, y: 1, z: 0 },
+    );
+    instrument.deposit("corolles", { x: -20, y: 0, z: -4 }, 0.8, "a");
+    const rms = (analyser) => {
+      const data = new Float32Array(2048);
+      analyser.getFloatTimeDomainData(data);
+      return Math.sqrt(data.reduce((sum, x) => sum + x * x, 0) / data.length);
+    };
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+    const first = { left: rms(left), right: rms(right) };
+    instrument.listener(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 1 },
+      { x: 0, y: 1, z: 0 },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const turned = { left: rms(left), right: rms(right) };
+    instrument.dispose();
+    splitter.disconnect();
+    left.disconnect();
+    right.disconnect();
+    silent.disconnect();
+    await ctx.close();
+    return { first, turned };
+  });
+  expect(ears.first.left).toBeGreaterThan(ears.first.right * 1.05);
+  expect(ears.turned.right).toBeGreaterThan(ears.turned.left * 1.05);
+});
+
+test("the welcome presents the artistic experimentation and remains usable on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Explorer les phénomènes échohypnotiques",
+    }),
+  ).toBeVisible();
+  const introduction = page.getByRole("article");
+  await expect(introduction).toContainText(
+    "expérimentation artistique interactive",
+  );
+  await expect(introduction).toContainText(
+    "proposition artistique exploratoire",
+  );
+  await expect(introduction).toContainText("hypnose contemporaine");
+  await expect(introduction).toContainText("transnumérisme");
+  await expect(introduction).toContainText("expériences transmodales");
+  await expect(introduction).toContainText("synesthésie");
+  await expect(introduction.getByRole("heading", { level: 3 })).toHaveCount(5);
+  await page
+    .getByRole("button", { name: "Les Marées Entrer", exact: true })
+    .click();
+  await expect(introduction).toHaveCount(0);
+  await expect(page.locator(".twig-pad")).toHaveCount(6);
+});

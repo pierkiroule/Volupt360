@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("three universes partition the twelve brushes and changing universe starts a fresh scene", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   const groups = await page.evaluate(async () => {
     const { UNIVERSES } = await import("/src/sonoizo/universes.js");
     const { BRUSHES } = await import("/src/engine/brushes.js");
@@ -33,7 +33,7 @@ test("hold makes the flying oizo paint with the last selected brush, and keep no
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   await page
     .getByRole("button", { name: "Le Souffle Entrer", exact: true })
     .click();
@@ -83,7 +83,7 @@ test("hold makes the flying oizo paint with the last selected brush, and keep no
 test("releasing early or losing focus cancels pending and active direct painting", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?instrument=off");
   await page
     .getByRole("button", { name: "La Ramure Entrer", exact: true })
     .click();
@@ -107,7 +107,7 @@ test.describe("native mobile direct painting", () => {
   }) => {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto("/");
+    await page.goto("/?instrument=off");
     await page
       .getByRole("button", { name: "Les Marées Entrer", exact: true })
       .tap();

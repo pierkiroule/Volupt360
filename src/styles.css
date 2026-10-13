@@ -1184,3 +1184,71 @@ label:focus-visible {
 #stage canvas[data-nozzle-paint="true"] {
   cursor: grabbing;
 }
+
+.universe-picker {
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding-top: 100px;
+  padding-bottom: max(36px, env(safe-area-inset-bottom));
+}
+.universe-options {
+  flex-shrink: 0;
+}
+.artistic-introduction {
+  flex-shrink: 0;
+  width: min(720px, 100%);
+  text-align: left;
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid #bcb5ac60;
+  color: #3c3540;
+}
+.artistic-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #766879;
+}
+.artistic-introduction h2 {
+  font-size: clamp(23px, 5vw, 34px);
+  line-height: 1.2;
+  margin: 14px 0 20px;
+}
+.artistic-introduction h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 26px 0 8px;
+}
+.artistic-introduction p {
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 0 0 16px;
+  max-width: 70ch;
+}
+.artistic-introduction .artistic-lead {
+  font-size: 16px;
+  line-height: 1.7;
+}
+.artistic-introduction .artistic-signature {
+  padding-top: 18px;
+  margin-top: 28px;
+  font-style: italic;
+  color: #605067;
+}
+@media (max-width: 480px) {
+  .universe-picker {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .universe-options {
+    gap: 8px;
+  }
+  .universe-options button {
+    min-width: 100px;
+    padding: 16px 12px;
+    font-size: 12px;
+  }
+  .artistic-introduction {
+    margin-top: 32px;
+  }
+}
