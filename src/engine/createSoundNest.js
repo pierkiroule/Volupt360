@@ -575,14 +575,23 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
       for (const mark of marks) {
-        mark.stroke.update?.(dt, visual);
+        const resonance = padSource?.getTraceResonance?.(mark.traceId) || 0;
+        const response =
+          resonance > 0
+            ? {
+                ...visual,
+                energy: Math.min(1, (visual.energy || 0) + resonance * 0.35),
+                pulse: Math.min(1, (visual.pulse || 0) + resonance * 0.55),
+              }
+            : visual;
+        mark.stroke.update?.(dt, response);
         mark.object.traverse((object) => {
           const uniforms = object.material?.uniforms;
           if (uniforms?.uPigment)
             uniforms.uPigment.value =
-              1.05 + (visual.energy || 0) * 0.7 + (visual.pulse || 0) * 0.3;
+              1.05 + (response.energy || 0) * 0.7 + (response.pulse || 0) * 0.3;
           if (uniforms?.uAudioEnergy)
-            uniforms.uAudioEnergy.value = visual.energy || 0;
+            uniforms.uAudioEnergy.value = response.energy || 0;
           if (uniforms?.uAudioLow) uniforms.uAudioLow.value = visual.low || 0;
         });
       }

@@ -45,8 +45,20 @@ AudioWorklet nécessite HTTPS, ou localhost en développement. Le navigateur Chr
 
 ## Validation
 
-Validation finale exécutée : 31 tests ciblés passent, ainsi que le build Vite, le contrôle Prettier et `git diff --check`.
+Validation de la version aquatique initiale : 31 tests ciblés passent, ainsi que le build Vite, le contrôle Prettier et `git diff --check`.
 
 Les tests audio vérifient le signal réel, les spectres distincts, le niveau, les crêtes sous polyphonie, les mélodies et percussions, la spatialisation, la pause et la reprise. Les tests aquatiques vérifient la reproductibilité à trois fréquences d’échantillonnage, les fins de résonance, le chargement unique du module, l’annulation des changements d’univers, les plafonds, le retour au moteur précédent et la capture audio horodatée destinée à l’export. Le test d’échec de chargement injecte explicitement un rejet de `addModule` ; les autres tests audio utilisent le DSP et l’AudioWorklet réels.
 
 Les régressions ciblées couvrent la navigation, les gestes de peinture, les brosses et particules, la mémoire des traces et l’audioréactivité. Le démarrage des trois mondes est également vérifié dans le build de production avec une fenêtre de 390 × 844 pixels : un seul chargement de worklet et aucune erreur JavaScript. L’export PNG HD de ce build a produit une image de 1183 × 2560 pixels. L’encodage vidéo complet n’a pas été rejoué dans cette évolution ; son entrée PCM et ses horodatages ont été contrôlés. Ce contrôle ne remplace pas un essai sur téléphone physique.
+
+## Profondeur et dialogue des formes
+
+Chaque univers possède maintenant une nappe harmonique continue, à attaque progressive, avec dérive lente des phases et respiration. Source reste plus aérienne ; Rivière développe une nappe mineure enveloppante ; Abysses renforce la profondeur sombre. Les basses ont un corps soutenu et des harmoniques audibles sur de petits haut-parleurs, en complément de leur fondamentale grave. Tout reste calculé dans l’AudioWorklet. Une source permanente de nappe s’ajoute au courant, soit vingt sources maximum avec les plafonds tonaux et percussifs.
+
+`VisualSoundDialogue` mesure la hauteur, la courbure, la vitesse et l’étendue des positions réellement déposées. La hauteur ouvre le spectre de la nappe et infléchit les mélodies ; la courbure modifie les partiels des gouttes et bulles ; la vitesse agit sur l’articulation ; l’étendue renforce le corps de la basse ; la densité des traces enrichit la nappe. Ces paramètres sont bornés et lissés. La mémoire reste limitée à 80 traces et est retirée avec les dépôts. Ces mesures utilisent la géométrie plutôt que le niveau audio, pour éviter une boucle qui augmente continuellement le volume.
+
+En retour, une note rejouée depuis une trace mémorisée crée une enveloppe de résonance locale. Seule la matière de cette trace reçoit un accent de pigment et de mouvement, via ses fonctions et uniforms existants. Aucun tracé n’est remplacé par une ligne générique. La réponse commence au démarrage audio programmé, décroît avec le son et disparaît en pause ou à l’effacement de la trace. Les nappes et leurs calculs sont également suspendus en mode photo.
+
+Les contrôles dédiés vérifient les différences entre géométries, les plafonds de mémoire, le corps soutenu des basses, la continuité des nappes et la résonance limitée à la bonne trace, puis son retrait et sa pause. L’audition sur appareils physiques reste à faire.
+
+Validation exécutée pour la profondeur et le dialogue : 18 tests ciblés passent (résonance, moteur aquatique, instrument, audioréactivité et particules), ainsi que le build, Prettier et le contrôle du diff. Aucun nouvel essai sur téléphone ou casque physique, ni d’encodage vidéo complet, n’a été exécuté.
