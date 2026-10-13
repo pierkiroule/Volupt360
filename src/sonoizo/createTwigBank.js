@@ -27,7 +27,9 @@ export function createTwigBank({
   let fireflies = false,
     universeAmbience = false;
   const brushGestures = new Map();
-  let instrument = null;
+  let instrument = null,
+    instrumentRequest = 0,
+    instrumentPlayingRequested = false;
   const respond = createVisualAudioResponse();
   let visualFeatures = null,
     visualReadAt = -Infinity;
@@ -586,6 +588,7 @@ export function createTwigBank({
     }
   }
   function pauseAmbience() {
+    instrumentPlayingRequested = false;
     instrument?.pause();
     ambience?.element.pause();
     emit();
@@ -608,9 +611,12 @@ export function createTwigBank({
     }
   }
   return {
-    startInstrument(universe = "souffle") {
+    async startInstrument(universe = "souffle") {
+      const request = ++instrumentRequest;
+      instrumentPlayingRequested = true;
       instrument?.dispose();
-      instrument = createEchoInstrument(context(), master, {
+      instrument = null;
+      const created = await createEchoInstrument(context(), master, {
         universe,
         seedBrush:
           universe === "marees"
@@ -619,7 +625,12 @@ export function createTwigBank({
               ? "falaises"
               : "voiles",
       });
-      instrument.resume();
+      if (disposed || request !== instrumentRequest) {
+        created.dispose();
+        return;
+      }
+      instrument = created;
+      if (instrumentPlayingRequested) instrument.resume();
       emit();
     },
     depositSound(id, position, energy, key) {
@@ -665,6 +676,7 @@ export function createTwigBank({
     },
     preparePlayback() {
       if (disposed) return Promise.resolve();
+      instrumentPlayingRequested = true;
       const audio = context();
       // Unlock the device output inside the trusted touch-release/click gesture.
       if (audio.state !== "running") {
@@ -677,7 +689,7 @@ export function createTwigBank({
       return audio
         .resume()
         .then(() => {
-          instrument?.resume();
+          if (instrumentPlayingRequested) instrument?.resume();
           if (universeAmbience && ambience?.element.paused)
             return toggleAmbience();
         })
@@ -696,6 +708,7 @@ export function createTwigBank({
     toggleAmbience,
     pauseAmbience,
     removeAmbience() {
+      instrumentRequest++;
       instrument?.dispose();
       instrument = null;
       ambienceRequest++;
@@ -815,6 +828,7 @@ export function createTwigBank({
       emit();
     },
     dispose() {
+      instrumentRequest++;
       if (disposed) return;
       cancelRecording();
       stopAll();

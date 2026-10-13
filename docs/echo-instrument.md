@@ -1,35 +1,52 @@
-# Instrument échohypnotique — trois identités sonores
+# Instrument échohypnotique — mondes aquatiques procéduraux
 
-La boucle relie la synthèse musicale, l’analyse sonore existante et la géométrie réellement peinte. Choisir un univers démarre son premier son organique après le geste autorisant Web Audio. Le fichier d’ambiance n’est plus imposé dans ce mode. Le Souffle commence par un timbre flûté, Les Marées par un timbre cristallin et La Ramure par un timbre boisé.
+Le son par défaut est désormais produit par un moteur aquatique en AudioWorklet. Aucun sample instrumental, fichier sonore, bibliothèque audio ou service externe n’est utilisé pour ces trois mondes. Les ambiances MP3 et les fragments vocaux existants restent accessibles dans leurs modes et configurations précédents.
 
-`sonicUniverses.js` définit trois langages musicaux indépendants :
+## Trois identités
 
-- **Le Souffle** : do lydien, 64 BPM, longues enveloppes aériennes, timbres flûtés et réponses suspendues.
-- **Les Marées** : ré dorien, 76 BPM, attaques cristallines, ondulations mélodiques et échos plus présents.
-- **La Ramure** : la pentatonique mineure, 94 BPM, attaques boisées, phrases courtes et accents rythmiques.
+| Scène graphique conservée | Monde sonore | Langage                                                                                                          |
+| ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Le Souffle                | Source       | Gouttes cristallines à attaque nette, petits ruissellements, do lydien, 64 BPM, motifs espacés.                  |
+| Les Marées                | Rivière      | Impacts liquides, bulles moyennes, écume et courants plus denses, ré dorien, 76 BPM, groove chaloupé.            |
+| La Ramure                 | Abysses      | Grosses bulles graves, turbulence sombre, longues résonances, mi pentatonique mineur, 70 BPM, contretemps lents. |
 
-`createEchoInstrument` utilise exclusivement Web Audio natif. Trois tables d’harmoniques sont calculées au démarrage de chaque univers, puis deux oscillateurs légèrement désaccordés enrichissent chaque voix. Une séquence de seize croches combine une mélodie composée, des réponses variables et une basse sur les deux demi-phrases ; une progression harmonique et des accents variables évitent une répétition uniforme. Le filtre et l’écho musical filtré sont propres à chaque univers. Cet écho concerne l’instrument, pas les fragments vocaux.
+Les trois cartes d’accueil indiquent leur monde sonore. Les identifiants, répartitions de brosses et rendus graphiques sont conservés.
 
-Le niveau instrumental et les enveloppes ont été renforcés. Un compresseur partagé garde une marge dans les scénarios de polyphonie testés, sans normaliser chaque note au même volume. Les attaques, silences, accents et durées restent contrastés. Le mode photo atténue aussi le retour d’écho, avec une rampe évitant une coupure brusque.
+## Synthèse et architecture
 
-Les dépôts influencent la composition : l’identité de la brosse choisit le timbre, la hauteur du tracé choisit la note, et sa position moyenne place la source dans l’espace. Un motif est conservé par trace (80 maximum). La peinture suggère au plus une note par brosse toutes les 0,9 seconde ; dix voix simultanées maximum empêchent l’emballement de la boucle. Les motifs nourrissent la mélodie des phrases de huit pulsations, ou sont rappelés lors d’une véritable rencontre de l’oizo avec une ancienne trace. Le retrait de la marque retire également son motif. Il ne s’agit pas encore d’une analyse visuelle des pixels ni d’une composition à partir de la courbure détaillée.
+- `WaterDSP` produit le signal échantillon par échantillon. Les bulles s’inspirent de la relation acoustique de Minnaert entre rayon et fréquence, avec un glissement amorti. Les gouttes combinent un impact bruité et quatre modes résonants amortis. L’écume utilise un bruit filtré bref. Le courant superpose une turbulence filtrée et huit microbulles réutilisables, avec des intervalles irréguliers reproductibles.
+- `WaterProcessor` exécute ce DSP sur le thread audio. Déclenchements et arrêts utilisent l’horloge audio. La boucle ne crée pas de nouveaux tableaux. Les coefficients d’amortissement sont précalculés ; les modes supérieurs restent sous Nyquist aux fréquences d’échantillonnage prises en charge.
+- `createWaterAudio` charge une seule fois le module par AudioContext. Vite construit un asset autonome contenant le DSP. Les sources arrêtées ferment leurs ports et libèrent leurs connexions.
+- `createWaterPercussion` réemploie le séquenceur existant : les graves deviennent des bulles, les frappes deviennent des gouttes et les shakers deviennent de l’écume.
+- `createWaterReverb` calcule une réponse impulsionnelle stéréo reproductible au démarrage, sans téléchargement. Chaque monde possède une profondeur et un amortissement différents.
+- `sonicUniverses` décrit la gamme, la progression, les mélodies, le groove, les couleurs aquatiques et la graine de chaque monde.
 
-Le mix généré passe par l’analyseur partagé et la réponse adaptative existante. Il influence à son tour le vol, les pigments, les particules et leur mouvement. Les pads et l’appui long contrôlent toujours les dépôts de l’oizo ; la musique seule ne peint pas. Le visiteur compose aussi par les régions qu’il habite et les matières qu’il choisit.
+Il s’agit d’une modélisation acoustique artistique simplifiée ; ce moteur ne simule pas toute la dynamique des fluides.
 
-Chaque note possède un panner HRTF. L’écouteur suit la caméra réelle, transformée dans le même repère que les traces. En contemplation gyro, la tête et le regard changent la perspective sonore sans déplacer les motifs. Le casque est recommandé pour apprécier cette spatialisation. Le mode photo et la perte de visibilité/focus interrompent les voix instrumentales ; un geste ou le retour à la vue réactive reprend la respiration du monde. Les voix, oscillateurs, gains et panners sont déconnectés à leur fin ou lors de la destruction. Un unique ordonnanceur léger, réveillé toutes les 40 ms avec 160 ms d’anticipation, utilise l’horloge audio. Les retards sont sautés pour éviter une rafale de rattrapage. Les contretemps sont légèrement décalés selon le swing propre à chaque univers.
+## Composition et peinture
 
-Les fragments poétiques sont conservés mais ne sont ni chargés ni joués par défaut. `VITE_ENABLE_POETIC_VOICES=true` les réintègre : une apparition peut se produire toutes les cinq rencontres, avec deux fragments par famille de brosse initiale et le verrou de lecture exclusive existant. La musique continue sous les paroles. Cette option demande une recompilation et n’ajoute pas de menu. Son intégration artistique et son rythme restent à affiner ; elle n’est pas le mécanisme principal.
+Le séquenceur sur seize croches conserve les mélodies composées, basses et réponses sur quatre phrases. Les hauteurs appartiennent à la gamme de leur univers, y compris les microbulles du courant. Un ordonnanceur de 40 ms prépare les événements avec 160 ms d’anticipation ; il saute les événements manqués au lieu de les jouer en rafale.
 
-Désactivation immédiate : `VITE_ENABLE_ECHO_INSTRUMENT=false` puis reconstruire, ou `?instrument=off` pour comparer le parcours d’ambiance MP3 précédent. La mémoire des traces possède toujours son propre interrupteur.
+Les dépôts de l’oizo déclenchent leurs notes et enrichissent les motifs mémorisés. La brosse choisit la matière, la hauteur du dépôt influe sur la note et la position moyenne place la source HRTF. La peinture infléchit les accents et la densité du courant. Les anciennes traces rencontrées rappellent leur motif. Les motifs sont limités à 80 et supprimés avec les marques. La musique seule ne peint pas.
 
-Validation exécutée : les six tests instrumentaux et les six scénarios ciblés d’audioréactivité, d’univers et de peinture par l’oizo passent, ainsi que le build et le contrôle de formatage. Les tests instrumentaux utilisent un vrai AudioContext : comparaison des spectres des trois univers, niveau RMS, crêtes sous forte polyphonie, silence après pause, spatialisation gauche/droite, génération par la peinture, mémoire bornée et reprise après photo. La qualité artistique demande encore une écoute sur casque et haut-parleurs physiques ; ces tests mesurent le signal et ne constituent pas une audition musicale. L’export vidéo conserve le mix audio existant, actuellement mono : il ne conserve donc pas la spatialisation binaurale du direct. Les vocaux optionnels n’ont pas été retestés dans cette évolution.
+Le signal complet, avec percussions et réverbération, passe dans le compresseur et l’analyseur existants. Il continue à influencer le vol, les pigments et les particules. Le lecteur vocal exclusif et le chargement d’ambiance ne sont pas réécrits ; les fragments vocaux ne reçoivent pas ces effets instrumentaux.
 
-L’accueil présente la démarche échohypnotique comme une expérimentation artistique exploratoire, ouverte aux perspectives de l’hypnose contemporaine, du transnumérisme, des expériences transmodales et de la synesthésie. Le texte distingue les pistes de réflexion d’une démonstration de phénomènes établis. Le parcours reste accessible après la lecture sur mobile.
+## Ressources et compatibilité
 
-## Rythmes et mélodies
+Dix voix tonales et huit percussions au maximum, en comptant les sources en cours d’arrêt, plus un courant permanent. Chaque voix possède un nombre fixe de résonateurs. Les pauses atténuent le mix, annulent les événements anticipés et interrompent le calcul du courant. Les sources et ports sont libérés à la fin, au changement d’univers et à la destruction, y compris les sources arrêtées pendant une pause.
 
-`createOrganicPercussion` ajoute trois percussions synthétiques : grave sinusoïdal descendant, frappe boisée et shaker en bruit filtré. Le tampon de bruit reproductible est créé une seule fois. Les motifs, accents, fréquences des corps et swing sont définis par univers dans `sonicUniverses.js`. Les percussions rejoignent le même compresseur et analyseur que la musique ; elles contribuent donc aussi à l’audioréactivité. Leur signal reste sec pour garder les attaques lisibles.
+Les changements d’univers asynchrones possèdent un compteur de requêtes : un chargement ancien ne peut pas réactiver un univers quitté. Les erreurs de chargement sont affichées.
 
-Les mélodies sont de vraies suites de degrés, durées et accents, avec des enveloppes courtes adaptées à l’articulation. Elles suivent la progression harmonique et prennent le timbre et la position des traces mémorisées. La quatrième phrase propose une réponse légèrement descendante. Le geste de peinture renforce doucement les accents, puis cette influence retombe. Les dépôts conservent également leurs notes propres.
+AudioWorklet nécessite HTTPS, ou localhost en développement. Le navigateur Chromium réel utilisé dans les tests exécute le moteur. Les téléphones et casques physiques ne sont pas testés ; la qualité artistique et la fluidité matérielle demandent encore une audition et une mesure sur ces appareils. L’export vidéo existant reste mono, même si le direct conserve sa spatialisation HRTF et sa réverbération stéréo.
 
-Plafonds : dix voix tonales et huit percussions simultanées. Les sources sont déconnectées à leur fin ; pause, photo et destruction annulent aussi les percussions et les notes anticipées. Un test mesure six secondes de signal réel dans les trois univers, contrôle les variations de niveau, les crêtes, les compteurs mélodiques et rythmiques, les plafonds, le silence en pause et la reprise.
+## Désactivation
+
+`?sound=legacy` restaure la synthèse instrumentale précédente, conservée dans un module chargé uniquement sur demande. `VITE_ENABLE_WATER_SYNTHESIS=false` puis recompilation fait de même. `?instrument=off`, ou `VITE_ENABLE_ECHO_INSTRUMENT=false`, restaure toujours le parcours d’ambiance MP3. Aucun de ces interrupteurs ne modifie les brosses.
+
+## Validation
+
+Validation finale exécutée : 31 tests ciblés passent, ainsi que le build Vite, le contrôle Prettier et `git diff --check`.
+
+Les tests audio vérifient le signal réel, les spectres distincts, le niveau, les crêtes sous polyphonie, les mélodies et percussions, la spatialisation, la pause et la reprise. Les tests aquatiques vérifient la reproductibilité à trois fréquences d’échantillonnage, les fins de résonance, le chargement unique du module, l’annulation des changements d’univers, les plafonds, le retour au moteur précédent et la capture audio horodatée destinée à l’export. Le test d’échec de chargement injecte explicitement un rejet de `addModule` ; les autres tests audio utilisent le DSP et l’AudioWorklet réels.
+
+Les régressions ciblées couvrent la navigation, les gestes de peinture, les brosses et particules, la mémoire des traces et l’audioréactivité. Le démarrage des trois mondes est également vérifié dans le build de production avec une fenêtre de 390 × 844 pixels : un seul chargement de worklet et aucune erreur JavaScript. L’export PNG HD de ce build a produit une image de 1183 × 2560 pixels. L’encodage vidéo complet n’a pas été rejoué dans cette évolution ; son entrée PCM et ses horodatages ont été contrôlés. Ce contrôle ne remplace pas un essai sur téléphone physique.

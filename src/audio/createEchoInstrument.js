@@ -1,4 +1,6 @@
-import { createOrganicPercussion } from "./createOrganicPercussion.js";
+import { createWaterSource, prepareWaterAudio } from "./createWaterAudio.js";
+import { createWaterPercussion } from "./createWaterPercussion.js";
+import { createWaterReverb } from "./createWaterReverb.js";
 import { SONIC_UNIVERSES } from "./sonicUniverses.js";
 const FAMILIES = {
   souffle: ["voiles", "filaments", "aurore", "dilution", "plumes", "lucioles"],
@@ -11,19 +13,25 @@ const FAMILIES = {
     "filamentslibres",
   ],
 };
-export function createEchoInstrument(
+export async function createEchoInstrument(
   ctx,
   destination,
   { autonomous = true, seedBrush = "voiles", universe = "souffle" } = {},
 ) {
+  if (
+    import.meta.env.VITE_ENABLE_WATER_SYNTHESIS === "false" ||
+    new URLSearchParams(location.search).get("sound") === "legacy"
+  )
+    return (
+      await import("./createLegacyEchoInstrument.js")
+    ).createLegacyEchoInstrument(ctx, destination, {
+      autonomous,
+      seedBrush,
+      universe,
+    });
   const profile = SONIC_UNIVERSES[universe] || SONIC_UNIVERSES.souffle;
   const beat = 60 / profile.bpm;
-  const waves = profile.harmonics.map((harmonics) => {
-    const real = new Float32Array(harmonics.length + 1),
-      imag = new Float32Array(harmonics.length + 1);
-    harmonics.forEach((value, i) => (imag[i + 1] = value));
-    return ctx.createPeriodicWave(real, imag);
-  });
+  await prepareWaterAudio(ctx);
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.3;
@@ -39,6 +47,8 @@ export function createEchoInstrument(
   limiter.ratio.value = 6;
   limiter.attack.value = 0.003;
   filter.connect(gain);
+  const reverb = createWaterReverb(ctx, gain, profile);
+  filter.connect(reverb.input);
   gain.connect(limiter);
   limiter.connect(analyser);
   analyser.connect(destination);
@@ -57,7 +67,21 @@ export function createEchoInstrument(
   feedback.connect(delay);
   echoFilter.connect(wet);
   wet.connect(gain);
-  const percussion = createOrganicPercussion(ctx, gain, profile);
+  const percussion = createWaterPercussion(ctx, gain, profile);
+  const waterBed = createWaterSource(ctx, {
+    type: "flow",
+    startAt: ctx.currentTime,
+    duration: 1,
+    frequency: profile.root,
+    scale: profile.scale,
+    color: profile.waterColor,
+    seed: profile.seed,
+    velocity: profile.flowLevel,
+  });
+  const bedGain = ctx.createGain();
+  bedGain.gain.value = 0;
+  waterBed.node.connect(bedGain);
+  bedGain.connect(filter);
   const graph = {
     ctx,
     analyser,
@@ -65,6 +89,7 @@ export function createEchoInstrument(
     wave: new Uint8Array(analyser.fftSize),
     prev: new Float32Array(analyser.frequencyBinCount),
   };
+  const retiring = new Set();
   const voices = new Set(),
     recent = new Map(),
     motifs = new Map();
@@ -90,7 +115,12 @@ export function createEchoInstrument(
     bass = false,
     melodicDuration = null,
   ) {
-    if (!active || disposed || ctx.state !== "running" || voices.size >= 10)
+    if (
+      !active ||
+      disposed ||
+      ctx.state !== "running" ||
+      voices.size + retiring.size >= 10
+    )
       return false;
     const now = ctx.currentTime;
     if (!recall && now - (recent.get(brush) ?? -Infinity) < 0.9) return false;
@@ -138,7 +168,7 @@ export function createEchoInstrument(
     panner.positionX.value = point.x;
     panner.positionY.value = point.y;
     panner.positionZ.value = point.z;
-    const level = (0.075 + Math.min(1, strength) * 0.19) * (bass ? 0.8 : 1);
+    const level = (0.24 + Math.min(1, strength) * 0.55) * (bass ? 0.85 : 1);
     envelope.gain.setValueAtTime(0, start);
     envelope.gain.linearRampToValueAtTime(
       level,
@@ -152,47 +182,45 @@ export function createEchoInstrument(
     envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     envelope.connect(panner);
     panner.connect(filter);
-    const sources = [0, 1].map((i) => {
-      const oscillator = ctx.createOscillator(),
-        partialGain = ctx.createGain();
-      oscillator.setPeriodicWave(waves[familyIndex]);
-      oscillator.frequency.value = frequency;
-      oscillator.detune.value = i
-        ? familyIndex === 0
-          ? 6
-          : familyIndex === 1
-            ? 3
-            : 1.5
-        : -1.5;
-      partialGain.gain.value = i ? 0.27 : 0.85;
-      oscillator.connect(partialGain);
-      partialGain.connect(envelope);
-      oscillator.start(start);
-      oscillator.stop(start + duration);
-      return { oscillator, partialGain };
+    const waterSource = createWaterSource(ctx, {
+      type: bass ? "bubble" : profile.materials[familyIndex],
+      startAt: start,
+      duration,
+      frequency,
+      color: profile.waterColor,
+      seed: profile.seed + total * 17 + familyIndex,
+      velocity: 0.9,
     });
+    waterSource.node.connect(envelope);
+    const sources = [{ oscillator: waterSource }];
     const voice = { sources, envelope, panner };
     voices.add(voice);
     total++;
     timbres[family]++;
-    sources[0].oscillator.onended = () => {
+    voice.release = () => {
       for (const source of sources) {
         source.oscillator.disconnect();
-        source.partialGain.disconnect();
       }
       envelope.disconnect();
       panner.disconnect();
       voices.delete(voice);
+      retiring.delete(voice);
     };
+    waterSource.onended = voice.release;
     return true;
   }
   function pause() {
     active = false;
     gain.gain.cancelScheduledValues(ctx.currentTime);
     gain.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
+    bedGain.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
+    waterBed.node.parameters
+      .get("gate")
+      .setValueAtTime(0, ctx.currentTime + 0.1);
     clearInterval(timer);
     percussion.pause();
     for (const voice of voices) {
+      retiring.add(voice);
       const now = ctx.currentTime;
       if (voice.envelope.gain.cancelAndHoldAtTime)
         voice.envelope.gain.cancelAndHoldAtTime(now);
@@ -215,6 +243,11 @@ export function createEchoInstrument(
     active = true;
     gain.gain.cancelScheduledValues(ctx.currentTime);
     gain.gain.setTargetAtTime(0.85, ctx.currentTime, 0.03);
+    waterBed.node.parameters.get("gate").cancelScheduledValues(ctx.currentTime);
+    waterBed.node.parameters
+      .get("gate")
+      .setValueAtTime(autonomous ? 1 : 0, ctx.currentTime);
+    bedGain.gain.setTargetAtTime(autonomous ? 0.85 : 0, ctx.currentTime, 0.2);
     if (!autonomous) return;
     transportOrigin = ctx.currentTime + 0.06;
     sequenceStep = 0;
@@ -291,6 +324,13 @@ export function createEchoInstrument(
     resume,
     pause,
     deposit(brush, position, energy, key = brush) {
+      waterBed.node.parameters
+        .get("energy")
+        .setTargetAtTime(
+          Math.min(1, Math.max(0, energy || 0)),
+          ctx.currentTime,
+          0.2,
+        );
       activity = Math.min(1, activity + Math.max(0, energy || 0) * 0.15);
       let motif = motifs.get(key);
       if (!motif) {
@@ -350,8 +390,11 @@ export function createEchoInstrument(
       return {
         active,
         voices: voices.size,
+        retiringVoices: retiring.size,
         universe,
         bpm: profile.bpm,
+        soundWorld: profile.name,
+        synthesis: "procedural-water",
         leadNotes,
         sequenceStep,
         percussion: percussion.stats,
@@ -363,7 +406,11 @@ export function createEchoInstrument(
     dispose() {
       disposed = true;
       pause();
+      for (const voice of retiring) voice.release();
       percussion.dispose();
+      reverb.dispose();
+      waterBed.disconnect();
+      bedGain.disconnect();
       analyser.disconnect();
       limiter.disconnect();
       gain.disconnect();
