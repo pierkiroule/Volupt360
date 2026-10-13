@@ -12,7 +12,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     revision = 0,
     disposed = false;
   let panoramaYaw = 0,
-    distanceSetting = 0.25;
+    distanceSetting = 0;
   let photoZoom = 1;
   const photoPointers = new Map();
   let pinchDistance = 0;
@@ -62,6 +62,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     canvas.dataset.flightRevision = String(revision);
   }
   listen(canvas, "pointerdown", (event) => {
+    if (mode === "drone" && getFlight().windEnabled) return;
     if (mode === "photo") {
       photoPointers.set(event.pointerId, {
         x: event.clientX,
@@ -181,7 +182,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (next !== "gyro") {
       onHint(
         next === "drone"
-          ? "Dans le sillage du pinceau · voyage en 3D"
+          ? getFlight().windEnabled
+            ? "Glisser pour guider · les brosses pour sculpter"
+            : "Dans le sillage du pinceau · voyage en 3D"
           : "La sculpture dans son ensemble",
       );
       return;
@@ -317,7 +320,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     desiredQuaternion.setFromRotationMatrix(matrix);
     if (mode === "gyro") desiredQuaternion.multiply(gyroRelative);
     camera.quaternion.slerp(desiredQuaternion, mix(mode === "drone" ? 2.1 : 5));
-    const fov = mode === "gyro" ? 92 : 74 + tracking * 8 + state.motion * 3;
+    const fov =
+      mode === "gyro"
+        ? 92 + distanceSetting * 20
+        : 74 + tracking * 8 + state.motion * 3;
     camera.fov += (fov - camera.fov) * mix(1.4);
     camera.far = Math.max(
       400,
@@ -326,6 +332,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     camera.updateProjectionMatrix();
   }
   void setMode("drone");
+  canvas.dataset.droneDistance = String(distanceSetting);
   return {
     setMode,
     setPhotoZoom,

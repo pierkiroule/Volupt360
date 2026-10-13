@@ -1065,3 +1065,100 @@ label:focus-visible {
   height: 32px;
   padding: 0;
 }
+
+.universe-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(249, 247, 242, 0.96);
+  text-align: center;
+}
+.universe-picker h2 {
+  font-size: clamp(22px, 5vw, 36px);
+  font-weight: 400;
+}
+.universe-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 24px;
+}
+.universe-options button {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid #bcb5ac;
+  border-radius: 24px;
+  background: transparent;
+  min-width: 140px;
+  color: #28252a;
+}
+.universe-options button span {
+  font-size: 12px;
+  opacity: 0.6;
+}
+.universe-options button:disabled {
+  opacity: 0.35;
+}
+.universe-error {
+  position: fixed;
+  top: 90px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  font-size: 12px;
+  pointer-events: none;
+}
+.immersive .brand {
+  z-index: 101;
+}
+.immersive .brand p.sonoizo-tagline {
+  display: block;
+  font-size: 10px;
+  margin-top: 3px;
+}
+
+.camera-zoom {
+  position: fixed;
+  z-index: 6;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  opacity: 0.7;
+  color: #343039;
+}
+.camera-zoom > span {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.camera-zoom > div {
+  display: flex;
+  gap: 4px;
+}
+.camera-zoom button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid #bcb5ac70;
+  background: #faf7efc9;
+  color: inherit;
+  font-size: 20px;
+}
+.camera-zoom button:disabled {
+  opacity: 0.35;
+}
+.camera-zoom:focus-within,
+.camera-zoom:hover {
+  opacity: 1;
+}

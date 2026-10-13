@@ -1,4 +1,4 @@
-import { createVocalFireflies } from "../sonoizo/createVocalFireflies.js";
+import { createVocalConstellation } from "../sonoizo/createVocalConstellation.js";
 import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
@@ -57,6 +57,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     direction: new THREE.Vector3(0.8, 0.18, -1).normalize(),
     velocity: new THREE.Vector3(),
     active: false,
+    windEnabled: false,
     energy: 0,
     motion: 0,
     phrase: 0,
@@ -270,6 +271,84 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   flight.reset();
   lastSample = null;
 
+  let steeringGesture = null,
+    steeringMoves = 0;
+  function onSteeringDown(event) {
+    if (
+      !padSource ||
+      photo ||
+      cameraMode !== "drone" ||
+      event.button > 0 ||
+      !event.isPrimary
+    )
+      return;
+    void padSource.preparePlayback();
+    steeringGesture = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      started: false,
+    };
+    renderer.domElement.setPointerCapture(event.pointerId);
+  }
+  function onSteeringMove(event) {
+    if (
+      !steeringGesture ||
+      event.pointerId !== steeringGesture.id ||
+      photo ||
+      cameraMode !== "drone"
+    )
+      return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const scale = Math.max(1, Math.min(rect.width, rect.height));
+    if (
+      !steeringGesture.started &&
+      Math.hypot(
+        event.clientX - steeringGesture.x,
+        event.clientY - steeringGesture.y,
+      ) < 4
+    )
+      return;
+    steeringGesture.started = true;
+    const dx = (event.clientX - steeringGesture.x) / scale;
+    const dy = (steeringGesture.y - event.clientY) / scale;
+    steeringGesture.x = event.clientX;
+    steeringGesture.y = event.clientY;
+    if (dx || dy) {
+      const inverse = landscape
+        .getWorldQuaternion(new THREE.Quaternion())
+        .invert();
+      const right = new THREE.Vector3(1, 0, 0)
+        .applyQuaternion(camera.quaternion)
+        .applyQuaternion(inverse);
+      const up = new THREE.Vector3(0, 1, 0)
+        .applyQuaternion(camera.quaternion)
+        .applyQuaternion(inverse);
+      dance.steer(dx, dy, { right, up });
+      steeringMoves++;
+      renderer.domElement.dataset.steeringMoves = String(steeringMoves);
+      renderer.domElement.dataset.steeringInput = `${dx.toFixed(4)},${dy.toFixed(4)}`;
+    }
+  }
+  function onSteeringEnd(event) {
+    if (event.pointerId !== steeringGesture?.id) return;
+    steeringGesture = null;
+    if (renderer.domElement.hasPointerCapture(event.pointerId))
+      renderer.domElement.releasePointerCapture(event.pointerId);
+  }
+  function cancelSteering() {
+    if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
+  }
+  window.addEventListener("blur", cancelSteering);
+  const steeringListeners = [
+    ["pointerdown", onSteeringDown],
+    ["pointermove", onSteeringMove],
+    ["pointerup", onSteeringEnd],
+    ["pointercancel", onSteeringEnd],
+    ["lostpointercapture", onSteeringEnd],
+  ];
+  for (const [name, handler] of steeringListeners)
+    renderer.domElement.addEventListener(name, handler);
   function frame(now) {
     if (disposed) return;
     frameId = requestAnimationFrame(frame);
@@ -301,9 +380,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           ? padSource.getFragments?.() || []
           : null;
         if (!vocalFireflies && fragments?.length) {
-          vocalFireflies = createVocalFireflies({
+          vocalFireflies = createVocalConstellation({
             fragments,
             collide: (id) => padSource.collide(id),
+            getFeatures: () => padSource.getVocalFeatures(),
           });
           landscape.add(vocalFireflies.group);
         }
@@ -311,7 +391,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           vocalFireflies.group.visible = true;
           vocalFireflies.update(dt, pose, camera);
           renderer.domElement.dataset.vocalFireflies = String(
-            vocalFireflies.group.children.length / 2,
+            vocalFireflies.count,
           );
           renderer.domElement.dataset.vocalCollisions = String(
             vocalFireflies.collisionCount,
@@ -482,9 +562,11 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         if (!photo && cameraMode === "drone")
           videodio?.audio(data, sampleRate, startTime);
       });
+      if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       vocalFireflies?.dispose();
       vocalFireflies = null;
       padSource = source;
+      navigation.windEnabled = Boolean(source?.getFragments?.().length);
       if (source) {
         if (!padInitialized) {
           reset();
@@ -520,6 +602,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       previous?.texture.dispose();
     },
     setCameraMode(next) {
+      if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       const wasPhoto = photo;
       const previousMode = cameraMode;
       cameraMode = next;
@@ -590,6 +673,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     dispose() {
       disposed = true;
       cancelAnimationFrame(frameId);
+      window.removeEventListener("blur", cancelSteering);
+      for (const [name, handler] of steeringListeners)
+        renderer.domElement.removeEventListener(name, handler);
       rig.dispose();
       padSource?.setCaptureTap(null);
       videodio?.dispose();
