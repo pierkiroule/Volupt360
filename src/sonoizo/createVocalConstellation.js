@@ -109,7 +109,10 @@ export function createVocalConstellation({
         const distance = closest.distanceTo(pose.position);
         const nearby = Math.max(0, 1 - distance / 9);
         const amplitude =
-          nearby * (0.08 + (features.energy || 0) * 0.5) +
+          nearby *
+            (0.08 +
+              (features.energy || 0) * 0.9 +
+              (features.pulse || 0) * 0.6) +
           string.pulse * (0.3 + (features.rms || 0) * 2);
         const position = string.line.geometry.attributes.position;
         for (let j = 0; j <= segments; j++) {

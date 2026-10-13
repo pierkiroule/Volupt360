@@ -397,7 +397,11 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing)
         elapsed += dt;
       if (padSource) {
-        const pose = dance.update(dt, voices);
+        const visual = padSource.getVisualFeatures?.() || {};
+        const pose = dance.update(dt, voices, visual);
+        renderer.domElement.dataset.musicEnergy = (visual.energy || 0).toFixed(
+          3,
+        );
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -413,7 +417,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
               ...pose.acoustic,
               rms: 0.08,
               energy: 0.4,
-              ...padSource.getVocalFeatures(),
+              ...padSource.getVisualFeatures(),
             };
             feedPad(nozzlePaint.id, {
               ...pose,
@@ -432,7 +436,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           vocalFireflies = createVocalConstellation({
             fragments,
             collide: (id) => padSource.collide(id),
-            getFeatures: () => padSource.getVocalFeatures(),
+            getFeatures: () => padSource.getVisualFeatures(),
           });
           landscape.add(vocalFireflies.group);
         }
@@ -512,7 +516,19 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         }
         renderer.domElement.dataset.markCount = String(marks.length);
       }
-      for (const mark of marks) mark.stroke.update?.(dt);
+      const visual = padSource?.getVisualFeatures?.() || f || {};
+      for (const mark of marks) {
+        mark.stroke.update?.(dt, visual);
+        mark.object.traverse((object) => {
+          const uniforms = object.material?.uniforms;
+          if (uniforms?.uPigment)
+            uniforms.uPigment.value =
+              1.05 + (visual.energy || 0) * 0.7 + (visual.pulse || 0) * 0.3;
+          if (uniforms?.uAudioEnergy)
+            uniforms.uAudioEnergy.value = visual.energy || 0;
+          if (uniforms?.uAudioLow) uniforms.uAudioLow.value = visual.low || 0;
+        });
+      }
       if (boundsDirty) updateBounds();
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);

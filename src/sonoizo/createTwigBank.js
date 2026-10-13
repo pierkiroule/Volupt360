@@ -1,3 +1,4 @@
+import { createVisualAudioResponse } from "../audio/createVisualAudioResponse.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
 
 export const MAX_TWIG_SECONDS = 5;
@@ -25,6 +26,28 @@ export function createTwigBank({
   let fireflies = false,
     universeAmbience = false;
   const brushGestures = new Map();
+  const respond = createVisualAudioResponse();
+  let visualFeatures = null,
+    visualReadAt = -Infinity;
+  function getVisualFeatures() {
+    const now = ctx?.currentTime || 0;
+    if (visualFeatures && now - visualReadAt < 0.035) return visualFeatures;
+    const voice = [...voices.values()][0];
+    const music =
+      ambience && !ambience.element.paused
+        ? readAudioFeatures(ambience.graph)
+        : {};
+    const dt = Number.isFinite(visualReadAt)
+      ? Math.min(0.1, Math.max(0.001, now - visualReadAt))
+      : 0.04;
+    visualReadAt = now;
+    visualFeatures = respond(
+      music,
+      voice ? readAudioFeatures(voice.graph) : {},
+      dt,
+    );
+    return visualFeatures;
+  }
   const poems = new Map();
   let poemRequest = 0,
     poemLoading = false,
@@ -473,6 +496,7 @@ export function createTwigBank({
     item.element.pause();
     item.source?.disconnect();
     item.gain?.disconnect();
+    item.graph?.analyser.disconnect();
     item.element.removeAttribute("src");
     item.element.load();
     URL.revokeObjectURL(item.url);
@@ -529,7 +553,18 @@ export function createTwigBank({
       candidate.source = audio.createMediaElementSource(element);
       candidate.gain = audio.createGain();
       candidate.gain.gain.value = 0.32;
-      candidate.source.connect(candidate.gain);
+      const analyser = audio.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.25;
+      candidate.graph = {
+        ctx: audio,
+        analyser,
+        bins: new Uint8Array(analyser.frequencyBinCount),
+        wave: new Uint8Array(analyser.fftSize),
+        prev: new Float32Array(analyser.frequencyBinCount),
+      };
+      candidate.source.connect(analyser);
+      analyser.connect(candidate.gain);
       candidate.gain.connect(master);
       releaseAmbience(ambience);
       ambience = candidate;
@@ -618,6 +653,7 @@ export function createTwigBank({
       universeAmbience = true;
       return importAmbience({ url, name: "Ambiance · Le Souffle", size: 0 });
     },
+    getVisualFeatures,
     getVocalFeatures() {
       const voice = [...voices.values()][0];
       return voice ? readAudioFeatures(voice.graph) : {};
@@ -659,17 +695,15 @@ export function createTwigBank({
             brushGestures.delete(key);
             emit();
           }
-        const vocal = [...voices.values()][0];
-        const features = vocal
-          ? readAudioFeatures(vocal.graph)
-          : {
-              rms: 0.08,
-              energy: 0.35,
-              low: 0.3,
-              high: 0.4,
-              flux: 0.1,
-              freq: 1200,
-            };
+        const measured = getVisualFeatures();
+        const features =
+          measured.rms > 0.006
+            ? measured
+            : {
+                ...measured,
+                rms: 0.08,
+                energy: Math.max(0.25, measured.energy),
+              };
         return [...brushGestures.values()].map((gesture) => ({
           id: gesture.id,
           trigger: gesture.trigger,

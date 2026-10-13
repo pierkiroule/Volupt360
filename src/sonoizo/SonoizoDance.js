@@ -29,7 +29,7 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       steering.y = THREE.MathUtils.clamp(steering.y + y * 4, -1, 1);
       steering.clampLength(0, 1);
     },
-    update(dt, voices) {
+    update(dt, voices, ambience = {}) {
       dt = THREE.MathUtils.clamp(dt, 0, 0.1);
       const features = {
         energy: 0.12,
@@ -39,6 +39,9 @@ export function createSonoizoDance({ seed = 37 } = {}) {
         freq: 1200,
         rms: 0,
       };
+      for (const key of ["energy", "low", "high", "flux", "rms"])
+        features[key] = Math.max(features[key], ambience[key] || 0);
+      if (ambience.freq) features.freq = ambience.freq;
       for (const voice of voices) {
         if (triggers.get(voice.id) !== voice.trigger) {
           triggers.set(voice.id, voice.trigger);

@@ -31,13 +31,16 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
       uFade: { value: 1 },
       uOpacity: { value: 0.92 },
       uKind: { value: brush.particle },
+      uAudioEnergy: { value: 0 },
+      uAudioLow: { value: 0 },
+      uAudioPulse: { value: 0 },
     },
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
     vertexShader: `
       attribute vec3 aOffset; attribute vec3 aTint; attribute float aSeed; attribute float aBirth;
-      uniform float uParticleTime; uniform float uKind;
+      uniform float uParticleTime; uniform float uKind; uniform float uAudioEnergy; uniform float uAudioLow;
       varying vec2 vUv; varying vec3 vTint; varying float vPhase;
       void main() {
         float age = max(0.0, uParticleTime - aBirth);
@@ -45,13 +48,13 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
         vec3 drift = vec3(sin(phase), cos(phase * 0.83), sin(phase * 0.61 + aSeed)) * min(age * 0.3, 0.7);
         if (uKind == 3.0) drift *= 0.15;
         float flutter = sin(phase * 2.3) * (uKind == 1.0 ? 0.65 : 0.2);
-        vec3 offset = aOffset;
+        vec3 offset = aOffset * (0.85 + uAudioEnergy * 0.5 + uAudioLow * 0.15);
         offset.xz = mat2(cos(flutter), -sin(flutter), sin(flutter), cos(flutter)) * offset.xz;
         vUv = uv; vTint = aTint; vPhase = phase;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position + offset + drift, 1.0);
       }`,
     fragmentShader: `
-      uniform float uKind; uniform float uFade; uniform float uOpacity;
+      uniform float uKind; uniform float uFade; uniform float uOpacity; uniform float uAudioEnergy; uniform float uAudioPulse;
       varying vec2 vUv; varying vec3 vTint; varying float vPhase;
       void main() {
         vec2 p = vUv * 2.0 - 1.0;
@@ -85,7 +88,7 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
           float hatch = abs(sin((p.x + p.y * 0.55) * 14.0 + sin(vPhase) * 0.5));
           alpha = (1.0 - smoothstep(0.12, 0.3, hatch)) * (1.0 - smoothstep(0.55, 1.0, length(p)));
         }
-        alpha *= (1.0 - smoothstep(0.94, 1.0, abs(p.y))) * uFade * uOpacity;
+        alpha *= (1.0 - smoothstep(0.94, 1.0, abs(p.y))) * uFade * uOpacity * (0.65 + uAudioEnergy * 0.35 + uAudioPulse * 0.25);
         if (alpha < 0.01) discard;
         gl_FragColor = vec4(mix(vTint, vec3(1.0, 0.8, 0.3), highlight), alpha);
       }`,
@@ -157,8 +160,12 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
       for (const attribute of Object.values(geometry.attributes))
         attribute.needsUpdate = true;
     },
-    update(dt) {
-      material.uniforms.uParticleTime.value += dt;
+    update(dt, features = {}) {
+      material.uniforms.uAudioEnergy.value = features.energy || 0;
+      material.uniforms.uAudioLow.value = features.low || 0;
+      material.uniforms.uAudioPulse.value = features.pulse || 0;
+      material.uniforms.uParticleTime.value +=
+        dt * (1 + (features.energy || 0) * 1.2 + (features.high || 0) * 0.6);
     },
     finish() {
       closed = true;
