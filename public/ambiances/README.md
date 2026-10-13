@@ -1,1 +1,1 @@
-Ajouter ici `ambiance01.mp3`, l’ambiance imposée du premier univers. Ce fichier n’était présent ni dans la branche de travail ni dans main au moment de l’implémentation. Aucun fichier sonore de remplacement n’est fourni.
+`ambiance01.mp3` fournit l’ambiance imposée du premier univers, Le Souffle. Le fichier est diffusé en boucle via le mix audio existant, sans décodage intégral en mémoire.

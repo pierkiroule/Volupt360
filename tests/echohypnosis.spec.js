@@ -6,12 +6,6 @@ test("one available universe starts its imposed ambience and keeps twelve silent
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route("**/ambiances/ambiance01.mp3", (route) =>
-    route.fulfill({
-      path: "tests/fixtures/tone.mp3",
-      contentType: "audio/mpeg",
-    }),
-  );
   await page.addInitScript(() => {
     const nativePlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
@@ -157,12 +151,6 @@ test.describe("mobile canvas", () => {
   test("a native touch emits wind, photo still freezes and exports HD PNG", async ({
     page,
   }) => {
-    await page.route("**/ambiances/ambiance01.mp3", (route) =>
-      route.fulfill({
-        path: "tests/fixtures/tone.mp3",
-        contentType: "audio/mpeg",
-      }),
-    );
     await page.goto("/");
     await page.getByRole("button", { name: "Le Souffle Entrer" }).tap();
     const canvas = page.locator("#stage canvas");
