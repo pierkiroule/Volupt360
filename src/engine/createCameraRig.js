@@ -183,7 +183,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       onHint(
         next === "drone"
           ? getFlight().windEnabled
-            ? "Glisser pour guider · les brosses pour sculpter"
+            ? "Glisser pour guider · maintenir pour tracer"
             : "Dans le sillage du pinceau · voyage en 3D"
           : "La sculpture dans son ensemble",
       );

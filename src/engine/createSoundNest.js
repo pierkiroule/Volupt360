@@ -222,6 +222,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     boundsDirty = false;
   }
   function reset() {
+    cancelSteering();
     bridge.close();
     padStates.clear();
     dance.reset();
@@ -271,11 +272,26 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   flight.reset();
   lastSample = null;
 
+  let nozzlePaint = null;
+  function beginNozzlePaint() {
+    if (
+      !steeringGesture ||
+      steeringGesture.started ||
+      photo ||
+      cameraMode !== "drone"
+    )
+      return;
+    bridge.close();
+    nozzlePaint = { id: brush, samples: 0 };
+    renderer.domElement.dataset.nozzlePaint = "true";
+    renderer.domElement.dataset.nozzleBrush = brush;
+  }
   let steeringGesture = null,
     steeringMoves = 0;
   function onSteeringDown(event) {
     if (
       !padSource ||
+      !navigation.windEnabled ||
       photo ||
       cameraMode !== "drone" ||
       event.button > 0 ||
@@ -288,6 +304,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       x: event.clientX,
       y: event.clientY,
       started: false,
+      timer: setTimeout(beginNozzlePaint, 450),
     };
     renderer.domElement.setPointerCapture(event.pointerId);
   }
@@ -309,6 +326,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       ) < 4
     )
       return;
+    clearTimeout(steeringGesture.timer);
     steeringGesture.started = true;
     const dx = (event.clientX - steeringGesture.x) / scale;
     const dy = (steeringGesture.y - event.clientY) / scale;
@@ -332,6 +350,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   function onSteeringEnd(event) {
     if (event.pointerId !== steeringGesture?.id) return;
+    clearTimeout(steeringGesture.timer);
+    if (nozzlePaint) {
+      finishPad(nozzlePaint.id);
+      nozzlePaint = null;
+      renderer.domElement.dataset.nozzlePaint = "false";
+    }
     steeringGesture = null;
     if (renderer.domElement.hasPointerCapture(event.pointerId))
       renderer.domElement.releasePointerCapture(event.pointerId);
@@ -346,6 +370,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     ["pointerup", onSteeringEnd],
     ["pointercancel", onSteeringEnd],
     ["lostpointercapture", onSteeringEnd],
+    ["contextmenu", (event) => event.preventDefault()],
   ];
   for (const [name, handler] of steeringListeners)
     renderer.domElement.addEventListener(name, handler);
@@ -361,7 +386,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const painting = Boolean(playback?.playing && f?.rms > 0.006);
       navigation.active = padSource ? true : painting;
       tip.visible = !padSource && painting;
-      if (padSource ? voices.length > 0 : playback?.playing) elapsed += dt;
+      if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing)
+        elapsed += dt;
       if (padSource) {
         const pose = dance.update(dt, voices);
         navigation.position.copy(pose.position);
@@ -373,7 +399,22 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.progress = pose.progress;
         sampleClock += dt;
         const tick = sampleClock >= 0.12;
-        bridge.update(pose, voices, tick);
+        if (nozzlePaint) {
+          if (tick || nozzlePaint.samples < 2) {
+            const features = {
+              ...pose.acoustic,
+              rms: 0.08,
+              energy: 0.4,
+              ...padSource.getVocalFeatures(),
+            };
+            feedPad(nozzlePaint.id, {
+              ...pose,
+              ...features,
+              acoustic: features,
+            });
+            nozzlePaint.samples++;
+          }
+        } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         oizo.update(pose);
         const fragments = !vocalFireflies
@@ -427,7 +468,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
         if (quiet > 0.35) closeStroke();
       }
-      if (padSource ? voices.length > 0 : playback?.playing) {
+      if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing) {
         for (let i = marks.length - 1; i >= 0; i--) {
           const item = marks[i],
             age = elapsed - item.born;
@@ -671,6 +712,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     },
     reset,
     dispose() {
+      cancelSteering();
       disposed = true;
       cancelAnimationFrame(frameId);
       window.removeEventListener("blur", cancelSteering);

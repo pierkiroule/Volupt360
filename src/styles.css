@@ -1162,3 +1162,25 @@ label:focus-visible {
 .camera-zoom:hover {
   opacity: 1;
 }
+
+.universe-change {
+  position: fixed;
+  z-index: 5;
+  top: 62px;
+  left: 16px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #bcb5ac70;
+  background: #faf7efad;
+  border-radius: 10px;
+  opacity: 0.7;
+  font-size: 22px;
+  color: #343039;
+}
+.twig-pad.is-selected {
+  outline: 1px solid var(--twig-color);
+  outline-offset: 2px;
+}
+#stage canvas[data-nozzle-paint="true"] {
+  cursor: grabbing;
+}
