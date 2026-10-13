@@ -32,7 +32,7 @@ test("one available universe starts its imposed ambience and keeps twelve silent
     .poll(() => page.evaluate(() => Boolean(window.__ambiencePlayed)))
     .toBe(true);
   const canvas = page.locator("#stage canvas");
-  await expect(canvas).toHaveAttribute("data-vocal-fireflies", "24");
+  await expect(canvas).toHaveAttribute("data-vocal-fireflies", "0");
   await expect(canvas).toHaveAttribute("data-drone-distance", "0");
   await expect(page.locator(".twig-pad")).toHaveCount(6);
   await expect(
@@ -189,7 +189,7 @@ test.describe("mobile canvas", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Le Souffle Entrer" }).tap();
     const canvas = page.locator("#stage canvas");
-    await expect(canvas).toHaveAttribute("data-vocal-fireflies", "24");
+    await expect(canvas).toHaveAttribute("data-vocal-fireflies", "0");
     await page.touchscreen.tap(195, 250);
     expect(await canvas.getAttribute("data-steering-moves")).toBeNull();
     const session = await page.context().newCDPSession(page);
