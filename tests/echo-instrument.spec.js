@@ -1,5 +1,68 @@
 import { test, expect } from "@playwright/test";
 
+test("three sonic identities produce distinct spectra, audible levels and bounded peaks", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { createEchoInstrument } =
+      await import("/src/audio/createEchoInstrument.js");
+    const ctx = new AudioContext();
+    await ctx.resume();
+    const silent = ctx.createGain();
+    silent.gain.value = 0;
+    silent.connect(ctx.destination);
+    const instruments = ["souffle", "marees", "ramure"].map((universe) => {
+      const instrument = createEchoInstrument(ctx, silent, {
+        universe,
+        autonomous: false,
+      });
+      instrument.resume();
+      instrument.deposit("corolles", { x: 0, y: 0, z: -5 }, 0.8, "test");
+      return instrument;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const measure = (instrument) => {
+      const wave = new Float32Array(instrument.graph.analyser.fftSize);
+      const spectrum = new Uint8Array(
+        instrument.graph.analyser.frequencyBinCount,
+      );
+      instrument.graph.analyser.getFloatTimeDomainData(wave);
+      instrument.graph.analyser.getByteFrequencyData(spectrum);
+      const mass = spectrum.reduce((sum, value) => sum + value, 0);
+      return {
+        rms: Math.sqrt(
+          wave.reduce((sum, value) => sum + value * value, 0) / wave.length,
+        ),
+        peak: wave.reduce((max, value) => Math.max(max, Math.abs(value)), 0),
+        centroid: spectrum.reduce((sum, value, i) => sum + value * i, 0) / mass,
+      };
+    };
+    const single = instruments.map(measure);
+    for (const instrument of instruments)
+      for (let i = 0; i < 10; i++)
+        instrument.recall("corolles", { x: 0, y: 0, z: -5 }, "test");
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const dense = instruments.map(measure);
+    instruments.forEach((instrument) => instrument.pause());
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const paused = instruments.map(measure);
+    instruments.forEach((instrument) => instrument.dispose());
+    silent.disconnect();
+    await ctx.close();
+    return { single, dense, paused };
+  });
+  for (const level of results.single) expect(level.rms).toBeGreaterThan(0.01);
+  expect(
+    new Set(results.single.map((level) => Math.round(level.centroid))).size,
+  ).toBe(3);
+  for (const level of results.dense) {
+    expect(level.rms).toBeGreaterThan(0.02);
+    expect(level.peak).toBeLessThan(0.95);
+  }
+  for (const level of results.paused) expect(level.rms).toBeLessThan(0.001);
+});
+
 test("an organic generated sound starts the world, painting adds spatial notes and photo silences it", async ({
   page,
 }) => {

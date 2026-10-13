@@ -1,4 +1,4 @@
-const SCALE = [0, 2, 4, 7, 9];
+import { SONIC_UNIVERSES } from "./sonicUniverses.js";
 const FAMILIES = {
   souffle: ["voiles", "filaments", "aurore", "dilution", "plumes", "lucioles"],
   marees: [
@@ -13,24 +13,49 @@ const FAMILIES = {
 export function createEchoInstrument(
   ctx,
   destination,
-  { autonomous = true, seedBrush = "voiles" } = {},
+  { autonomous = true, seedBrush = "voiles", universe = "souffle" } = {},
 ) {
+  const profile = SONIC_UNIVERSES[universe] || SONIC_UNIVERSES.souffle;
+  const beat = 60 / profile.bpm;
+  const waves = profile.harmonics.map((harmonics) => {
+    const real = new Float32Array(harmonics.length + 1),
+      imag = new Float32Array(harmonics.length + 1);
+    harmonics.forEach((value, i) => (imag[i + 1] = value));
+    return ctx.createPeriodicWave(real, imag);
+  });
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.3;
   const gain = ctx.createGain(),
     filter = ctx.createBiquadFilter(),
     limiter = ctx.createDynamicsCompressor();
-  gain.gain.value = 0.45;
+  gain.gain.value = 0.85;
   filter.type = "lowpass";
-  filter.frequency.value = 3800;
-  limiter.threshold.value = -18;
-  limiter.ratio.value = 4;
-  limiter.attack.value = 0.02;
+  filter.frequency.value = profile.cutoff;
+  limiter.threshold.value = -15;
+  limiter.knee.value = 14;
+  limiter.release.value = 0.18;
+  limiter.ratio.value = 6;
+  limiter.attack.value = 0.003;
   filter.connect(gain);
   gain.connect(limiter);
   limiter.connect(analyser);
   analyser.connect(destination);
+  const delay = ctx.createDelay(2),
+    echoFilter = ctx.createBiquadFilter(),
+    feedback = ctx.createGain(),
+    wet = ctx.createGain();
+  delay.delayTime.value = beat * profile.delayBeats;
+  feedback.gain.value = profile.feedback;
+  echoFilter.type = "lowpass";
+  echoFilter.frequency.value = 2800;
+  wet.gain.value = profile.send;
+  filter.connect(delay);
+  delay.connect(echoFilter);
+  echoFilter.connect(feedback);
+  feedback.connect(delay);
+  echoFilter.connect(wet);
+  wet.connect(gain);
   const graph = {
     ctx,
     analyser,
@@ -46,6 +71,7 @@ export function createEchoInstrument(
     nextBreath = 0,
     serial = 0,
     total = 0,
+    phrase = 0,
     timer,
     lastListenerTime = -Infinity;
   const timbres = { souffle: 0, marees: 0, ramure: 0 };
@@ -55,6 +81,9 @@ export function createEchoInstrument(
     strength = 0.35,
     recall = false,
     motifKey = null,
+    scheduled = null,
+    degreeOverride = null,
+    bass = false,
   ) {
     if (!active || disposed || ctx.state !== "running" || voices.size >= 10)
       return false;
@@ -66,18 +95,31 @@ export function createEchoInstrument(
       : FAMILIES.marees.includes(brush)
         ? "marees"
         : "ramure";
-    const index =
-      (((Math.round((point.y + 20) / 8) +
-        (motifKey
-          ? [...brush].reduce((sum, char) => sum + char.charCodeAt(0), 0)
-          : serial++)) %
-        SCALE.length) +
-        SCALE.length) %
-      SCALE.length;
-    const octave = family === "ramure" ? 0 : 12;
-    const frequency = 146.832 * 2 ** ((SCALE[index] + octave) / 12);
-    const start = Math.ceil((now + 0.04) / 0.75) * 0.75,
-      duration = family === "souffle" ? 4.5 : family === "marees" ? 3.6 : 2.7;
+    const familyIndex = family === "souffle" ? 0 : family === "marees" ? 1 : 2;
+    const chord =
+      profile.progression[
+        Math.floor((scheduled ?? now) / (beat * 16)) %
+          profile.progression.length
+      ];
+    const selection =
+      Math.abs(
+        Math.round((point.y + 20) / 8) +
+          (motifKey
+            ? [...brush].reduce((sum, char) => sum + char.charCodeAt(0), 0)
+            : serial++),
+      ) % 4;
+    const degree = chord + (degreeOverride ?? [0, 2, 4, 6][selection]);
+    const octave = bass ? -12 : family === "ramure" ? 0 : 12;
+    const semitone =
+      profile.scale[
+        ((degree % profile.scale.length) + profile.scale.length) %
+          profile.scale.length
+      ] +
+      Math.floor(degree / profile.scale.length) * 12;
+    const frequency = profile.root * 2 ** ((semitone + octave) / 12);
+    const start =
+        scheduled ?? Math.ceil((now + 0.04) / (beat / 2)) * (beat / 2),
+      duration = bass ? beat * 4 : profile.durations[familyIndex];
     const envelope = ctx.createGain(),
       panner = ctx.createPanner();
     panner.panningModel = "HRTF";
@@ -88,22 +130,32 @@ export function createEchoInstrument(
     panner.positionX.value = point.x;
     panner.positionY.value = point.y;
     panner.positionZ.value = point.z;
-    const level = 0.05 + Math.min(1, strength) * 0.08;
+    const level = (0.075 + Math.min(1, strength) * 0.19) * (bass ? 0.8 : 1);
     envelope.gain.setValueAtTime(0, start);
     envelope.gain.linearRampToValueAtTime(
       level,
-      start + (family === "souffle" ? 0.6 : 0.12),
+      start + (bass ? 0.1 : profile.attacks[familyIndex]),
+    );
+    envelope.gain.exponentialRampToValueAtTime(
+      level * (universe === "ramure" ? 0.35 : 0.6),
+      start + duration * 0.65,
     );
     envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     envelope.connect(panner);
     panner.connect(filter);
-    const sources = [1, family === "marees" ? 3 : 2].map((partial, i) => {
+    const sources = [0, 1].map((i) => {
       const oscillator = ctx.createOscillator(),
         partialGain = ctx.createGain();
-      oscillator.type = family === "ramure" ? "triangle" : "sine";
-      oscillator.frequency.value = frequency * partial;
-      oscillator.detune.value = i ? Math.sin(serial * 1.3) * 3 : 0;
-      partialGain.gain.value = i ? 0.13 : 1;
+      oscillator.setPeriodicWave(waves[familyIndex]);
+      oscillator.frequency.value = frequency;
+      oscillator.detune.value = i
+        ? familyIndex === 0
+          ? 6
+          : familyIndex === 1
+            ? 3
+            : 1.5
+        : -1.5;
+      partialGain.gain.value = i ? 0.27 : 0.85;
       oscillator.connect(partialGain);
       partialGain.connect(envelope);
       oscillator.start(start);
@@ -127,6 +179,8 @@ export function createEchoInstrument(
   }
   function pause() {
     active = false;
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
     clearInterval(timer);
     for (const voice of voices) {
       const now = ctx.currentTime;
@@ -149,17 +203,52 @@ export function createEchoInstrument(
   function resume() {
     if (disposed || active) return;
     active = true;
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setTargetAtTime(0.85, ctx.currentTime, 0.03);
     if (!autonomous) return;
     nextBreath = ctx.currentTime;
     const schedule = () => {
       if (active && ctx.state === "running" && ctx.currentTime >= nextBreath) {
         const memories = [...motifs.values()];
         const motif = memories.length
-          ? memories[serial++ % memories.length]
+          ? memories[phrase % memories.length]
           : null;
-        if (motif) note(motif.brush, motif.position, 0.3, true, motif.key);
-        else note(seedBrush, { x: -8, y: 4, z: 12 }, 0.22, true);
-        nextBreath = ctx.currentTime + 4.5;
+        const brush = motif?.brush || seedBrush,
+          point = motif?.position || { x: -8, y: 4, z: 12 };
+        const start = Math.ceil((ctx.currentTime + 0.05) / beat) * beat;
+        const degree = profile.melody[phrase % profile.melody.length] * 2;
+        note(
+          brush,
+          point,
+          profile.dynamics[phrase % 4] * 0.5,
+          true,
+          motif?.key,
+          start,
+          degree,
+        );
+        // A low anchor and an answering note shape phrases rather than a drone.
+        if (phrase % 2 === 0)
+          note(
+            "falaises",
+            { x: 0, y: -8, z: 16 },
+            0.32,
+            true,
+            null,
+            start,
+            0,
+            true,
+          );
+        note(
+          brush,
+          { x: -point.x * 0.6, y: point.y + 3, z: point.z },
+          0.22,
+          true,
+          motif?.key,
+          start + beat * (universe === "ramure" ? 1.5 : 2),
+          (degree + 2) % 7,
+        );
+        phrase++;
+        nextBreath = start + beat * profile.phraseBeats;
       }
     };
     schedule();
@@ -228,6 +317,8 @@ export function createEchoInstrument(
       return {
         active,
         voices: voices.size,
+        universe,
+        bpm: profile.bpm,
         total,
         motifs: motifs.size,
         timbres: { ...timbres },
@@ -240,6 +331,10 @@ export function createEchoInstrument(
       limiter.disconnect();
       gain.disconnect();
       filter.disconnect();
+      delay.disconnect();
+      echoFilter.disconnect();
+      feedback.disconnect();
+      wet.disconnect();
       recent.clear();
       motifs.clear();
     },
