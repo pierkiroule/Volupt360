@@ -1,5 +1,90 @@
 import { test, expect } from "@playwright/test";
 
+test("each world plays measured percussion and a continuing melody, then stops and resumes cleanly", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createEchoInstrument } =
+      await import("/src/audio/createEchoInstrument.js");
+    const ctx = new AudioContext();
+    await ctx.resume();
+    const silent = ctx.createGain();
+    silent.gain.value = 0;
+    silent.connect(ctx.destination);
+    const instruments = ["souffle", "marees", "ramure"].map((universe) => {
+      const instrument = createEchoInstrument(ctx, silent, {
+        universe,
+        seedBrush:
+          universe === "marees"
+            ? "corolles"
+            : universe === "ramure"
+              ? "falaises"
+              : "voiles",
+      });
+      instrument.resume();
+      return instrument;
+    });
+    const levels = instruments.map(() => ({
+      peak: 0,
+      low: 1,
+      high: 0,
+      maxVoices: 0,
+      maxPercussion: 0,
+    }));
+    const wave = new Float32Array(2048);
+    for (let tick = 0; tick < 120; tick++) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      instruments.forEach((instrument, i) => {
+        instrument.graph.analyser.getFloatTimeDomainData(wave);
+        const rms = Math.sqrt(
+          wave.reduce((sum, value) => sum + value * value, 0) / wave.length,
+        );
+        levels[i].low = Math.min(levels[i].low, rms);
+        levels[i].high = Math.max(levels[i].high, rms);
+        levels[i].peak = Math.max(levels[i].peak, ...wave.map(Math.abs));
+        levels[i].maxVoices = Math.max(
+          levels[i].maxVoices,
+          instrument.stats.voices,
+        );
+        levels[i].maxPercussion = Math.max(
+          levels[i].maxPercussion,
+          instrument.stats.percussion.voices,
+        );
+      });
+    }
+    const stats = instruments.map((instrument) => instrument.stats);
+    instruments.forEach((instrument) => instrument.pause());
+    const paused = instruments.map((instrument) => instrument.stats);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const silence = instruments.map((instrument) => {
+      instrument.graph.analyser.getFloatTimeDomainData(wave);
+      return Math.max(...wave.map(Math.abs));
+    });
+    instruments.forEach((instrument) => instrument.resume());
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const resumed = instruments.map((instrument) => instrument.stats);
+    instruments.forEach((instrument) => instrument.dispose());
+    silent.disconnect();
+    await ctx.close();
+    return { stats, levels, paused, silence, resumed };
+  });
+  result.stats.forEach((stats, i) => {
+    expect(stats.leadNotes).toBeGreaterThanOrEqual(4);
+    expect(stats.percussion.counts.kick).toBeGreaterThanOrEqual(2);
+    expect(stats.percussion.counts.wood).toBeGreaterThanOrEqual(2);
+    expect(stats.percussion.counts.shaker).toBeGreaterThanOrEqual(4);
+    expect(result.levels[i].high).toBeGreaterThan(0.02);
+    expect(result.levels[i].high - result.levels[i].low).toBeGreaterThan(0.02);
+    expect(result.levels[i].peak).toBeLessThan(0.95);
+    expect(result.levels[i].maxVoices).toBeLessThanOrEqual(10);
+    expect(result.levels[i].maxPercussion).toBeLessThanOrEqual(8);
+    expect(result.paused[i].percussion.voices).toBe(0);
+    expect(result.silence[i]).toBeLessThan(0.001);
+    expect(result.resumed[i].leadNotes).toBeGreaterThan(stats.leadNotes);
+  });
+});
+
 test("three sonic identities produce distinct spectra, audible levels and bounded peaks", async ({
   page,
 }) => {
