@@ -264,7 +264,7 @@ export default function App() {
         !new URLSearchParams(location.search).has("samples") && (
           <section className="universe-picker" aria-label="Choisir un univers">
             <h2>Choisissez votre univers</h2>
-            <p>Un souffle, des cordes, un paysage à sculpter.</p>
+            <p>Un vol, des traces, une mémoire à sculpter.</p>
             <div className="universe-options">
               {UNIVERSES.map((choice) => (
                 <button

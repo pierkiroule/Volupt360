@@ -1,3 +1,7 @@
+import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
+import { createTraceMemory } from "../sonoizo/TraceMemory.js";
+import { createTraceEncounter } from "../sonoizo/TraceEncounter.js";
+import { createTraceDebug } from "../sonoizo/createTraceDebug.js";
 import { createVocalConstellation } from "../sonoizo/createVocalConstellation.js";
 import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
@@ -98,6 +102,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     oizo = null,
     padInitialized = false;
   let vocalFireflies = null;
+  const traceMemory = createTraceMemory();
+  const traceEncounter = createTraceEncounter(traceMemory);
+  const traceDebug =
+    ENABLE_TRACE_MEMORY && TRACE_DEBUG ? createTraceDebug(traceMemory) : null;
+  if (traceDebug) landscape.add(traceDebug.group);
+  let traceTime = 0;
   const dance = createSonoizoDance();
   const oizoScreen = new THREE.Vector3();
   const padStates = new Map();
@@ -115,6 +125,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   });
 
   function destroyStroke(mark) {
+    traceMemory.remove(mark.traceId);
     disposeMark(mark.object);
     mark.textureLease?.release();
   }
@@ -141,6 +152,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       textureLease,
       object: stroke.group,
       brush: id,
+      traceId: `trace-${serial}`,
       born: elapsed,
       fade: 1,
       significance:
@@ -154,6 +166,13 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     // Reuse the previous endpoint to join successive strokes without a jump.
     if (lastSample) {
       stroke.append(lastSample);
+      if (ENABLE_TRACE_MEMORY)
+        traceMemory.record(
+          activeStroke.traceId,
+          id,
+          lastSample.position,
+          traceTime,
+        );
       activeStroke.bounds.expandByPoint(lastSample.position);
     }
     while (marks.length > 80) {
@@ -177,6 +196,13 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     paintedSamples++;
     if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
     activeStroke.stroke.append(pose);
+    if (ENABLE_TRACE_MEMORY)
+      traceMemory.record(
+        activeStroke.traceId,
+        activeStroke.brush,
+        pose.position,
+        traceTime,
+      );
     activeStroke.bounds.expandByPoint(pose.position);
     if (activeStroke.stroke.padding) {
       activeStroke.bounds.expandByPoint(
@@ -237,6 +263,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     closeStroke();
     marks.forEach(destroyStroke);
     marks.length = 0;
+    traceMemory.clear();
+    traceEncounter.reset();
+    traceTime = 0;
+    traceDebug?.update(2, null);
     flight.reset();
     serial = 0;
     paintedSamples = 0;
@@ -258,7 +288,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     rig.reanchor(true);
   }
   // A finite opening study surrounds the sanctuary with an irregular envelope.
-  for (let i = 0; i < BRUSHES.length * 70; i++) {
+  for (let i = 0; !ENABLE_TRACE_MEMORY && i < BRUSHES.length * 70; i++) {
     const pose = flight.update(0.12, {
       energy: 0.45,
       low: 0.25,
@@ -391,6 +421,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     const f = player?.getFeatures();
     const voices = photo ? [] : padSource?.getVoices() || [];
     if (!photo) {
+      traceTime += dt;
       const painting = Boolean(playback?.playing && f?.rms > 0.006);
       navigation.active = padSource ? true : painting;
       tip.visible = !padSource && painting;
@@ -429,9 +460,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         oizo.update(pose);
-        const fragments = !vocalFireflies
-          ? padSource.getFragments?.() || []
+        const hit = ENABLE_TRACE_MEMORY
+          ? traceEncounter.update(pose.position, traceTime)
           : null;
+        traceDebug?.update(dt, hit);
+        const fragments =
+          !ENABLE_TRACE_MEMORY && !vocalFireflies
+            ? padSource.getFragments?.() || []
+            : null;
         if (!vocalFireflies && fragments?.length) {
           vocalFireflies = createVocalConstellation({
             fragments,
@@ -542,6 +578,23 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       onError?.(error.message);
     }
     if (now - lastReport > 80) {
+      renderer.domElement.dataset.traceMemory = String(ENABLE_TRACE_MEMORY);
+      renderer.domElement.dataset.traceDebug = String(Boolean(traceDebug));
+      renderer.domElement.dataset.tracePoints = String(
+        traceMemory.stats.points,
+      );
+      renderer.domElement.dataset.traceSegments = String(
+        traceMemory.stats.segments,
+      );
+      renderer.domElement.dataset.traceEncounters = String(
+        traceEncounter.stats.count,
+      );
+      renderer.domElement.dataset.traceCandidates = String(
+        traceEncounter.stats.candidates,
+      );
+      renderer.domElement.dataset.vocalFireflies = ENABLE_TRACE_MEMORY
+        ? "0"
+        : renderer.domElement.dataset.vocalFireflies || "0";
       renderer.domElement.dataset.videoFrames = String(
         videodio?.getHistory().frames || 0,
       );
@@ -749,6 +802,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       bridge.close();
       padStates.clear();
       vocalFireflies?.dispose();
+      traceDebug?.dispose();
+      traceMemory.clear();
+      traceEncounter.reset();
       oizo?.dispose();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
