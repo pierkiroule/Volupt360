@@ -272,22 +272,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   flight.reset();
   lastSample = null;
 
-  let directPaint = null;
-  const drawRay = new THREE.Raycaster(),
-    drawPointer = new THREE.Vector2();
-  const intersection = new THREE.Vector3();
-  function moveDirectPaint(x, y) {
-    if (!directPaint) return;
-    const rect = renderer.domElement.getBoundingClientRect();
-    drawPointer.set(
-      ((x - rect.left) / rect.width) * 2 - 1,
-      1 - ((y - rect.top) / rect.height) * 2,
-    );
-    drawRay.setFromCamera(drawPointer, camera);
-    if (drawRay.ray.intersectPlane(directPaint.plane, intersection))
-      directPaint.position.copy(landscape.worldToLocal(intersection));
-  }
-  function beginDirectPaint() {
+  let nozzlePaint = null;
+  function beginNozzlePaint() {
     if (
       !steeringGesture ||
       steeringGesture.started ||
@@ -296,26 +282,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     )
       return;
     bridge.close();
-    const normal = new THREE.Vector3(0, 0, -1).applyQuaternion(
-      camera.quaternion,
-    );
-    const point = landscape.localToWorld(navigation.position.clone());
-    const depth = Math.max(8, point.clone().sub(camera.position).dot(normal));
-    point.copy(camera.position).addScaledVector(normal, depth);
-    const inverse = landscape
-      .getWorldQuaternion(new THREE.Quaternion())
-      .invert();
-    directPaint = {
-      id: brush,
-      plane: new THREE.Plane().setFromNormalAndCoplanarPoint(normal, point),
-      position: new THREE.Vector3(),
-      last: null,
-      normal: normal.clone().applyQuaternion(inverse),
-      samples: 0,
-    };
-    moveDirectPaint(steeringGesture.x, steeringGesture.y);
-    renderer.domElement.dataset.directPaint = "true";
-    renderer.domElement.dataset.directBrush = brush;
+    nozzlePaint = { id: brush, samples: 0 };
+    renderer.domElement.dataset.nozzlePaint = "true";
+    renderer.domElement.dataset.nozzleBrush = brush;
   }
   let steeringGesture = null,
     steeringMoves = 0;
@@ -335,7 +304,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       x: event.clientX,
       y: event.clientY,
       started: false,
-      timer: setTimeout(beginDirectPaint, 450),
+      timer: setTimeout(beginNozzlePaint, 450),
     };
     renderer.domElement.setPointerCapture(event.pointerId);
   }
@@ -347,10 +316,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       cameraMode !== "drone"
     )
       return;
-    if (directPaint) {
-      moveDirectPaint(event.clientX, event.clientY);
-      return;
-    }
     const rect = renderer.domElement.getBoundingClientRect();
     const scale = Math.max(1, Math.min(rect.width, rect.height));
     if (
@@ -386,10 +351,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   function onSteeringEnd(event) {
     if (event.pointerId !== steeringGesture?.id) return;
     clearTimeout(steeringGesture.timer);
-    if (directPaint) {
-      finishPad(directPaint.id);
-      directPaint = null;
-      renderer.domElement.dataset.directPaint = "false";
+    if (nozzlePaint) {
+      finishPad(nozzlePaint.id);
+      nozzlePaint = null;
+      renderer.domElement.dataset.nozzlePaint = "false";
     }
     steeringGesture = null;
     if (renderer.domElement.hasPointerCapture(event.pointerId))
@@ -421,10 +386,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const painting = Boolean(playback?.playing && f?.rms > 0.006);
       navigation.active = padSource ? true : painting;
       tip.visible = !padSource && painting;
-      if (padSource ? voices.length > 0 || directPaint : playback?.playing)
+      if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing)
         elapsed += dt;
       if (padSource) {
-        const pose = dance.update(directPaint ? 0 : dt, voices);
+        const pose = dance.update(dt, voices);
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -434,34 +399,20 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.progress = pose.progress;
         sampleClock += dt;
         const tick = sampleClock >= 0.12;
-        if (directPaint) {
-          if (tick || directPaint.samples < 2) {
-            const direction = directPaint.last
-              ? directPaint.position.clone().sub(directPaint.last)
-              : pose.direction.clone();
-            if (direction.lengthSq() < 0.0001) direction.copy(pose.direction);
-            direction.normalize();
-            const side = new THREE.Vector3()
-              .crossVectors(direction, directPaint.normal)
-              .normalize();
-            if (side.lengthSq() < 0.001) side.copy(pose.side);
+        if (nozzlePaint) {
+          if (tick || nozzlePaint.samples < 2) {
             const features = {
               ...pose.acoustic,
               rms: 0.08,
               energy: 0.4,
               ...padSource.getVocalFeatures(),
             };
-            feedPad(directPaint.id, {
+            feedPad(nozzlePaint.id, {
               ...pose,
               ...features,
-              position: directPaint.position,
-              direction,
-              side,
-              up: directPaint.normal,
               acoustic: features,
             });
-            directPaint.last = directPaint.position.clone();
-            directPaint.samples++;
+            nozzlePaint.samples++;
           }
         } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
@@ -517,7 +468,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
         if (quiet > 0.35) closeStroke();
       }
-      if (padSource ? voices.length > 0 || directPaint : playback?.playing) {
+      if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing) {
         for (let i = marks.length - 1; i >= 0; i--) {
           const item = marks[i],
             age = elapsed - item.born;
@@ -556,7 +507,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       if (boundsDirty) updateBounds();
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
-    rig.update(directPaint ? 0 : dt);
+    rig.update(dt);
     camera.updateMatrixWorld();
     try {
       effects.render(scene, camera);

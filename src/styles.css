@@ -1181,6 +1181,6 @@ label:focus-visible {
   outline: 1px solid var(--twig-color);
   outline-offset: 2px;
 }
-#stage canvas[data-direct-paint="true"] {
-  cursor: crosshair;
+#stage canvas[data-nozzle-paint="true"] {
+  cursor: grabbing;
 }

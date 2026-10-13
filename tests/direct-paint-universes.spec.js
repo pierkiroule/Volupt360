@@ -28,7 +28,7 @@ test("three universes partition the twelve brushes and changing universe starts 
   }
 });
 
-test("hold to draw with the last selected brush, resume flight on release, and keep normal swipe navigation", async ({
+test("hold makes the flying oizo paint with the last selected brush, and keep normal swipe navigation", async ({
   page,
 }) => {
   const errors = [];
@@ -45,20 +45,26 @@ test("hold to draw with the last selected brush, resume flight on release, and k
   const canvas = page.locator("#stage canvas");
   await page.mouse.move(450, 280);
   await page.mouse.down();
-  await expect(canvas).toHaveAttribute("data-direct-paint", "true");
-  await expect(canvas).toHaveAttribute("data-direct-brush", "filaments");
+  await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
+  await expect(canvas).toHaveAttribute("data-nozzle-brush", "filaments");
   await page.waitForTimeout(350);
   const position = await canvas.getAttribute("data-painter-position");
   const samples = Number(await canvas.getAttribute("data-painted-samples"));
-  await page.mouse.move(620, 340, { steps: 8 });
+  // Keeping the finger still must already paint along the moving bird's flight.
+  await expect
+    .poll(() => canvas.getAttribute("data-painter-position"))
+    .not.toBe(position);
   await page.waitForTimeout(250);
-  await expect(canvas).toHaveAttribute("data-painter-position", position);
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
     .toBeGreaterThan(samples);
   expect(await canvas.getAttribute("data-steering-moves")).toBeNull();
+  await page.mouse.move(620, 340, { steps: 8 });
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-steering-moves")))
+    .toBeGreaterThan(0);
   await page.mouse.up();
-  await expect(canvas).toHaveAttribute("data-direct-paint", "false");
+  await expect(canvas).toHaveAttribute("data-nozzle-paint", "false");
   await expect
     .poll(() => canvas.getAttribute("data-painter-position"))
     .not.toBe(position);
@@ -70,7 +76,7 @@ test("hold to draw with the last selected brush, resume flight on release, and k
     .poll(async () => Number(await canvas.getAttribute("data-steering-moves")))
     .toBeGreaterThan(0);
   await page.waitForTimeout(500);
-  await expect(canvas).toHaveAttribute("data-direct-paint", "false");
+  await expect(canvas).toHaveAttribute("data-nozzle-paint", "false");
   expect(errors).toEqual([]);
 });
 
@@ -86,11 +92,11 @@ test("releasing early or losing focus cancels pending and active direct painting
   await page.mouse.down();
   await page.mouse.up();
   await page.waitForTimeout(550);
-  expect(await canvas.getAttribute("data-direct-paint")).toBeNull();
+  expect(await canvas.getAttribute("data-nozzle-paint")).toBeNull();
   await page.mouse.down();
-  await expect(canvas).toHaveAttribute("data-direct-paint", "true");
+  await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
-  await expect(canvas).toHaveAttribute("data-direct-paint", "false");
+  await expect(canvas).toHaveAttribute("data-nozzle-paint", "false");
   await page.mouse.up();
 });
 
@@ -115,9 +121,15 @@ test.describe("native mobile direct painting", () => {
       type: "touchStart",
       touchPoints: [{ x: 190, y: 260 }],
     });
-    await expect(canvas).toHaveAttribute("data-direct-paint", "true");
-    await expect(canvas).toHaveAttribute("data-direct-brush", "bulles");
+    await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
+    await expect(canvas).toHaveAttribute("data-nozzle-brush", "bulles");
     const count = Number(await canvas.getAttribute("data-painted-samples"));
+    // A stationary long touch still deposits paint: the nozzle is the moving bird.
+    await expect
+      .poll(async () =>
+        Number(await canvas.getAttribute("data-painted-samples")),
+      )
+      .toBeGreaterThan(count);
     await touch.send("Input.dispatchTouchEvent", {
       type: "touchMove",
       touchPoints: [{ x: 240, y: 330 }],
@@ -131,7 +143,7 @@ test.describe("native mobile direct painting", () => {
       type: "touchEnd",
       touchPoints: [],
     });
-    await expect(canvas).toHaveAttribute("data-direct-paint", "false");
+    await expect(canvas).toHaveAttribute("data-nozzle-paint", "false");
     expect(errors).toEqual([]);
   });
 });
