@@ -6,7 +6,6 @@ import CameraViews from "./components/CameraViews.jsx";
 import ControlPanel from "./components/ControlPanel.jsx";
 import { createSoundNest } from "./engine/createSoundNest.js";
 import { createLoopPlayer } from "./audio/createLoopPlayer.js";
-import { createPredefinedTexture } from "./engine/predefinedTextures.js";
 import { analyzeLoops } from "./audio/analyzeLoops.js";
 import { ENABLE_SONOIZO } from "./sonoizo/config.js";
 import { useTwigBank } from "./sonoizo/useTwigBank.js";
@@ -60,9 +59,7 @@ export default function App() {
     engine = useRef(null),
     player = useRef(null),
     loadRequest = useRef(0);
-  const textureRequests = useRef({});
   const [distance, setDistance] = useState(0);
-  const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
   const [hint, setHint] = useState("Dans le sillage du pinceau · voyage en 3D");
@@ -125,32 +122,6 @@ export default function App() {
         "L’ambiance de cet univers est indisponible : ambiance01.mp3 manque ou ne peut pas être lu.",
       );
   }
-  async function loadTexture(id, preset) {
-    const owner = engine.current;
-    const request = (textureRequests.current[id] || 0) + 1;
-    textureRequests.current[id] = request;
-    setError("");
-    try {
-      const binding = createPredefinedTexture(preset);
-      if (
-        !owner ||
-        engine.current !== owner ||
-        textureRequests.current[id] !== request
-      ) {
-        binding.texture.dispose();
-        return;
-      }
-      owner.setBrushTexture(id, binding);
-      setTextures((previous) => ({
-        ...previous,
-        [id]: { preview: binding.preview, name: binding.name, id: binding.id },
-      }));
-    } catch (cause) {
-      if (engine.current === owner && textureRequests.current[id] === request)
-        setError(`Texture : ${cause.message}`);
-    }
-  }
-
   function chooseBrush(id) {
     setBrush(id);
     engine.current?.setBrush(id);
@@ -355,7 +326,7 @@ export default function App() {
         <span>UN VOYAGE DANS LA MATIÈRE</span>
         <span>Glisser pour guider · maintenir pour tracer</span>
       </div>
-      {immersive && mode !== "photo" && (
+      {immersive && !twigs.snapshot.fireflies && mode !== "photo" && (
         <button
           className="atelier-toggle"
           aria-label={
@@ -373,33 +344,33 @@ export default function App() {
           <span aria-hidden="true">{toolsOpen ? "−" : "+"}</span>
         </button>
       )}
-      {ENABLE_SONOIZO && (!immersive || toolsOpen) && (
-        <nav
-          id="atelier-tools"
-          className={`atelier-nav ${atelier !== "mp3" ? "with-twigs" : ""}`}
-          aria-label="Atelier sonore"
-        >
-          {[
-            [
-              "cueillir",
-              new URLSearchParams(location.search).get("samples") === "empty"
-                ? "Mes sons"
-                : twigs.snapshot.fireflies
-                  ? "Textures"
+      {ENABLE_SONOIZO &&
+        !twigs.snapshot.fireflies &&
+        (!immersive || toolsOpen) && (
+          <nav
+            id="atelier-tools"
+            className={`atelier-nav ${atelier !== "mp3" ? "with-twigs" : ""}`}
+            aria-label="Atelier sonore"
+          >
+            {[
+              [
+                "cueillir",
+                new URLSearchParams(location.search).get("samples") === "empty"
+                  ? "Mes sons"
                   : "Poèmes",
-            ],
-            ["jouer", "Jouer"],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              aria-pressed={atelier === id}
-              onClick={() => chooseAtelier(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-      )}
+              ],
+              ["jouer", "Jouer"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                aria-pressed={atelier === id}
+                onClick={() => chooseAtelier(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        )}
 
       {mode === "photo" && immersive ? (
         <section className="photo-panel" aria-label="Cadrer une vidéodio">
@@ -461,8 +432,6 @@ export default function App() {
         <TwigWorkshop
           mode={atelier}
           {...twigs}
-          textures={textures}
-          onTexture={loadTexture}
           brushes={
             universe
               ? BRUSHES.filter((item) =>
@@ -479,8 +448,6 @@ export default function App() {
         <ControlPanel
           brush={brush}
           onBrush={chooseBrush}
-          textures={textures}
-          onTexture={loadTexture}
           track={track}
           playback={playback}
           selected={selected}

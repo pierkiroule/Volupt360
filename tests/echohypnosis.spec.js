@@ -34,7 +34,7 @@ test("one available universe starts its imposed ambience and keeps twelve silent
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-vocal-fireflies", "24");
   await expect(canvas).toHaveAttribute("data-drone-distance", "0");
-  await expect(page.locator(".twig-pad")).toHaveCount(4);
+  await expect(page.locator(".twig-pad")).toHaveCount(6);
   await expect(
     page.locator('input[type="file"][accept="audio/*,.mp3"]'),
   ).toHaveCount(0);
@@ -349,9 +349,7 @@ test("discreet zoom remains visible with folded tools and changes distance in th
   await expect(canvas).toHaveAttribute("data-drone-distance", "0.1");
   await zoom.getByRole("button", { name: "Rapprocher la caméra" }).click();
   await expect(canvas).toHaveAttribute("data-drone-distance", "0");
-  await page
-    .getByRole("button", { name: "Déplier les fonctionnalités" })
-    .click();
+
   await expect(
     page.getByRole("slider", { name: "Distance du drone" }),
   ).toHaveCount(0);

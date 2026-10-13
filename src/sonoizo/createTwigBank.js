@@ -20,7 +20,7 @@ export function createTwigBank({
   onError = () => {},
   initialSamples = [],
 }) {
-  if (ids.length > 12 || new Set(ids).size !== ids.length)
+  if (ids.length > 18 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
   let fireflies = false,
     universeAmbience = false;

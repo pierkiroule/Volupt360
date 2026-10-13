@@ -1,3 +1,4 @@
+import { createPoeticParticleStroke } from "./createPoeticParticleStroke.js";
 import * as THREE from "three";
 import { createNetworkStroke } from "./createNetworkStroke.js";
 import vertexShader from "./shaders/vertexShader.glsl?raw";
@@ -112,6 +113,66 @@ export const BRUSHES = [
     style: 21,
     opacity: 0.88,
   },
+  {
+    id: "plumes",
+    name: "Plumes",
+    detail: "Plumage fin · envols lents",
+    color: "#235e8f",
+    glyph: "❧",
+    particle: 0,
+    style: 0,
+    opacity: 0.92,
+  },
+  {
+    id: "lucioles",
+    name: "Lucioles",
+    detail: "Étincelles d’or · respirations lumineuses",
+    color: "#b0750f",
+    glyph: "✧",
+    particle: 2,
+    style: 0,
+    opacity: 0.92,
+  },
+  {
+    id: "feuilles",
+    name: "Feuilles",
+    detail: "Nervures vives · feuilles virevoltantes",
+    color: "#287d54",
+    glyph: "❦",
+    particle: 1,
+    style: 0,
+    opacity: 0.92,
+  },
+  {
+    id: "filamentslibres",
+    name: "Filaments libres",
+    detail: "Chevelures abstraites · courants entrelacés",
+    color: "#704bc6",
+    glyph: "≋",
+    particle: 4,
+    style: 0,
+    opacity: 0.92,
+  },
+  {
+    id: "racines",
+    name: "Racines",
+    detail: "Radicelles d’encre · ramifications vivantes",
+    color: "#5a3c29",
+    glyph: "⋔",
+    particle: 3,
+    style: 0,
+    opacity: 0.92,
+  },
+  {
+    id: "hachures",
+    name: "Hachures",
+    detail: "Hachures dansantes · essaims de signes",
+    color: "#b63860",
+    glyph: "⫶",
+    particle: 5,
+    style: 0,
+    opacity: 0.92,
+  },
 ];
 
 function watercolor(brush, color, seed, opacity = 1, texture = null) {
@@ -149,6 +210,8 @@ export function createBrushStroke(
   { seed, color, texture = null, surprise = 0 },
 ) {
   const brush = BRUSHES.find((item) => item.id === id) || BRUSHES[0];
+  if (brush.particle !== undefined)
+    return createPoeticParticleStroke(brush, { seed, color });
   const group = new THREE.Group();
   let textureBinding = texture;
   const capacity = 52;
