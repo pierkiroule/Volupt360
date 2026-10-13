@@ -62,6 +62,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     canvas.dataset.flightRevision = String(revision);
   }
   listen(canvas, "pointerdown", (event) => {
+    if (mode === "drone" && getFlight().windEnabled) return;
     if (mode === "photo") {
       photoPointers.set(event.pointerId, {
         x: event.clientX,
@@ -181,7 +182,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (next !== "gyro") {
       onHint(
         next === "drone"
-          ? "Dans le sillage du pinceau · voyage en 3D"
+          ? getFlight().windEnabled
+            ? "Tap pour souffler · les brosses pour sculpter"
+            : "Dans le sillage du pinceau · voyage en 3D"
           : "La sculpture dans son ensemble",
       );
       return;

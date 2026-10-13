@@ -1,4 +1,4 @@
-import { createVocalFireflies } from "../sonoizo/createVocalFireflies.js";
+import { createVocalConstellation } from "../sonoizo/createVocalConstellation.js";
 import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
@@ -57,6 +57,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     direction: new THREE.Vector3(0.8, 0.18, -1).normalize(),
     velocity: new THREE.Vector3(),
     active: false,
+    windEnabled: false,
     energy: 0,
     motion: 0,
     phrase: 0,
@@ -270,6 +271,27 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   flight.reset();
   lastSample = null;
 
+  let windTaps = 0;
+  function onWindTap(event) {
+    if (
+      !padSource ||
+      photo ||
+      cameraMode !== "drone" ||
+      event.button > 0 ||
+      !event.isPrimary
+    )
+      return;
+    void padSource.preparePlayback();
+    const rect = renderer.domElement.getBoundingClientRect();
+    dance.blow(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      1 - ((event.clientY - rect.top) / rect.height) * 2,
+    );
+    vocalFireflies?.gust(navigation.position, camera);
+    windTaps++;
+    renderer.domElement.dataset.windTaps = String(windTaps);
+  }
+  renderer.domElement.addEventListener("pointerdown", onWindTap);
   function frame(now) {
     if (disposed) return;
     frameId = requestAnimationFrame(frame);
@@ -301,9 +323,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           ? padSource.getFragments?.() || []
           : null;
         if (!vocalFireflies && fragments?.length) {
-          vocalFireflies = createVocalFireflies({
+          vocalFireflies = createVocalConstellation({
             fragments,
             collide: (id) => padSource.collide(id),
+            getFeatures: () => padSource.getVocalFeatures(),
           });
           landscape.add(vocalFireflies.group);
         }
@@ -311,7 +334,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           vocalFireflies.group.visible = true;
           vocalFireflies.update(dt, pose, camera);
           renderer.domElement.dataset.vocalFireflies = String(
-            vocalFireflies.group.children.length / 2,
+            vocalFireflies.count,
           );
           renderer.domElement.dataset.vocalCollisions = String(
             vocalFireflies.collisionCount,
@@ -485,6 +508,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       vocalFireflies?.dispose();
       vocalFireflies = null;
       padSource = source;
+      navigation.windEnabled = Boolean(source?.getFragments?.().length);
       if (source) {
         if (!padInitialized) {
           reset();
@@ -590,6 +614,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     dispose() {
       disposed = true;
       cancelAnimationFrame(frameId);
+      renderer.domElement.removeEventListener("pointerdown", onWindTap);
       rig.dispose();
       padSource?.setCaptureTap(null);
       videodio?.dispose();

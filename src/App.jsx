@@ -9,12 +9,13 @@ import { analyzeLoops } from "./audio/analyzeLoops.js";
 import { ENABLE_SONOIZO } from "./sonoizo/config.js";
 import { useTwigBank } from "./sonoizo/useTwigBank.js";
 import TwigWorkshop from "./components/TwigWorkshop.jsx";
-import AmbiencePanel from "./components/AmbiencePanel.jsx";
 
 const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
+  const [universe, setUniverse] = useState(null);
+  const [universeError, setUniverseError] = useState("");
   const [atelier, setAtelier] = useState(() =>
     !ENABLE_SONOIZO ||
     new URLSearchParams(location.search).get("atelier") === "mp3"
@@ -57,7 +58,7 @@ export default function App() {
     player = useRef(null),
     loadRequest = useRef(0);
   const textureRequests = useRef({});
-  const [distance, setDistance] = useState(atelier === "mp3" ? 0.25 : 0.55);
+  const [distance, setDistance] = useState(0.25);
   const [textures, setTextures] = useState({});
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
@@ -71,7 +72,7 @@ export default function App() {
 
   useEffect(() => {
     document.title = ENABLE_SONOIZO
-      ? "L’Oizodio•° — Le chant qui sculpte l’espace des possibles"
+      ? "echohypnosis — L’Oizo échohypnotique"
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
@@ -79,8 +80,9 @@ export default function App() {
         onError: setSceneError,
       });
       if (ENABLE_SONOIZO && atelier !== "mp3") {
-        engine.current.setPadSource(twigs.bank.current);
-        engine.current.setDroneDistance(0.55);
+        if (new URLSearchParams(location.search).has("samples"))
+          engine.current.setPadSource(twigs.bank.current);
+        engine.current.setDroneDistance(0.25);
       }
     } catch (cause) {
       setSceneError(
@@ -96,6 +98,21 @@ export default function App() {
     };
   }, []);
 
+  async function enterUniverse() {
+    const bank = twigs.bank.current;
+    if (!bank) return;
+    void bank.preparePlayback();
+    setUniverse("souffle");
+    engine.current?.setPadSource(bank);
+    const loaded = await bank.loadUniverseAmbience(
+      `${import.meta.env.BASE_URL}ambiances/ambiance01.mp3`,
+    );
+    if (loaded) await bank.toggleAmbience();
+    else
+      setUniverseError(
+        "L’ambiance de cet univers est indisponible : ambiance01.mp3 manque ou ne peut pas être lu.",
+      );
+  }
   async function loadTexture(id, preset) {
     const owner = engine.current;
     const request = (textureRequests.current[id] || 0) + 1;
@@ -178,6 +195,11 @@ export default function App() {
       setAtelier("jouer");
     }
     if (id === "gyro") void twigs.bank.current?.preparePlayback();
+    if (universe && mode === "photo" && id !== "photo") {
+      const ambience = twigs.bank.current?.getSnapshot().ambience;
+      if (ambience?.loaded && !ambience.playing)
+        void twigs.bank.current.toggleAmbience();
+    }
     setMode(id);
     void engine.current?.setCameraMode(id);
   }
@@ -254,6 +276,30 @@ export default function App() {
     >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
+      {immersive &&
+        !universe &&
+        !new URLSearchParams(location.search).has("samples") && (
+          <section className="universe-picker" aria-label="Choisir un univers">
+            <h2>Choisissez votre univers</h2>
+            <p>Un souffle, des cordes, un paysage à sculpter.</p>
+            <div className="universe-options">
+              <button onClick={enterUniverse}>
+                Le Souffle <span>Entrer</span>
+              </button>
+              <button disabled>
+                Les Marées <span>Bientôt</span>
+              </button>
+              <button disabled>
+                La Ramure <span>Bientôt</span>
+              </button>
+            </div>
+          </section>
+        )}
+      {universeError && (
+        <p className="universe-error" role="alert">
+          {universeError}
+        </p>
+      )}
       <CameraViews
         disabled={videoBusy || photoBusy}
         compact={immersive}
@@ -271,7 +317,7 @@ export default function App() {
       </p>
       <div className="landscape-caption" aria-hidden="true">
         <span>UN VOYAGE DANS LA MATIÈRE</span>
-        <span>Glisser pour tourner · le son pour peindre</span>
+        <span>Tap pour souffler · les brosses pour sculpter</span>
       </div>
       {immersive && mode !== "photo" && (
         <button
@@ -318,9 +364,7 @@ export default function App() {
           ))}
         </nav>
       )}
-      {immersive && mode !== "photo" && (
-        <AmbiencePanel {...twigs} compact={!toolsOpen} />
-      )}
+
       {mode === "photo" && immersive ? (
         <section className="photo-panel" aria-label="Cadrer une vidéodio">
           <p>Glisser pour tourner · pincer ou molette pour zoomer</p>

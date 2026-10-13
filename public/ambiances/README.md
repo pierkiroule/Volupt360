@@ -1,0 +1,1 @@
+Ajouter ici `ambiance01.mp3`, l’ambiance imposée du premier univers. Ce fichier n’était présent ni dans la branche de travail ni dans main au moment de l’implémentation. Aucun fichier sonore de remplacement n’est fourni.

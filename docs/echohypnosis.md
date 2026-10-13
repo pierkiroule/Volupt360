@@ -1,0 +1,13 @@
+# echohypnosis — L’Oizo échohypnotique
+
+Le parcours principal commence par trois univers ; seul **Le Souffle** est ouvert. Le choix déverrouille Web Audio puis charge l’ambiance imposée `public/ambiances/ambiance01.mp3`, bouclée au niveau existant de la banque. Aucun import libre n’est présenté. Le fichier manque dans le dépôt : un message explicite est affiché, sans empêcher l’exploration. Ajouter le véritable MP3 à ce chemin suffit pour activer l’ambiance. La vue photo met le son en pause ; revenir au vol reprend l’ambiance. Après interruption mobile, un nouveau geste reprend également la musique.
+
+`createVocalConstellation` remplace les lucioles mobiles dans la scène principale. Vingt-quatre points noirs restent fixes, reliés par vingt-quatre cordes, une par fragment vocal existant. Les cordes utilisent des lignes subdivisées de 17 sommets ; leurs extrémités restent ancrées. Le frôlement se calcule entre le trajet parcouru par l’oizo et chaque corde, avec une tolérance de 1,8 unité. La réservation audio existante interdit le chevauchement et la mise en file d’attente. Chaque corde attend 12 secondes avant un nouveau contact. La vibration combine proximité, émission et intensité/spectre vocal. Les géométries restent bornées et sont détruites avec la scène.
+
+Les douze brosses et leurs textures restent inchangées. Un tap sur un pad lance un geste bref ; maintenir prolonge le dépôt. Les voix modulent les paramètres plastiques des brosses actives, sans déclencher les pads.
+
+`SonoizoDance.blow()` superpose une vitesse amortie et un déplacement borné à la trajectoire existante. Le côté et la hauteur du tap orientent le souffle, avec une petite poussée avant. Position, direction et cadre de brosse suivent le déplacement de façon continue. Un anneau réutilisé matérialise l’onde. En FPV, le canevas n’accepte plus la rotation au glissement ; gyro et cadrage photo conservent leurs interactions. Les pads ne propagent pas le souffle au canevas.
+
+Tests ciblés Chromium : parcours des univers et lecture réelle d’une ambiance de test substituée au fichier absent ; douze pads, peinture, absence d’import libre ; points fixes et 24 cordes, véritable fragment vocal et exclusivité ; déplacement continu influencé par le vent ; toucher natif sous émulation mobile, pause photo, zoom, téléchargement PNG et retour au vol. Les fichiers de voix sont les véritables MP3 du dépôt. Aucun test sur téléphone physique ; export vidéo non retesté pour ce lot. Les anciens scénarios de lucioles mobiles et d’import libre décrivent le parcours remplacé.
+
+Désactivation : `VITE_ENABLE_SONOIZO=false` restaure le moteur historique. `?samples=empty` conserve la banque locale de samples de contrôle, sans sélection d’univers. Aucune nouvelle bibliothèque ni backend.

@@ -22,7 +22,8 @@ export function createTwigBank({
 }) {
   if (ids.length > 12 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
-  let fireflies = false;
+  let fireflies = false,
+    universeAmbience = false;
   const brushGestures = new Map();
   const poems = new Map();
   let poemRequest = 0,
@@ -486,7 +487,7 @@ export function createTwigBank({
     ambienceLoading = true;
     emit();
     const element = new Audio(),
-      url = URL.createObjectURL(file),
+      url = file.url || URL.createObjectURL(file),
       candidate = { element, url, name: file.name };
     try {
       if (file.size > 20 * 1024 * 1024)
@@ -533,6 +534,7 @@ export function createTwigBank({
       releaseAmbience(ambience);
       ambience = candidate;
       pendingAmbience = null;
+      return true;
     } catch (error) {
       releaseAmbience(candidate);
       if (!disposed && ticket === ambienceRequest)
@@ -606,7 +608,19 @@ export function createTwigBank({
       }
       return audio
         .resume()
+        .then(() => {
+          if (universeAmbience && ambience?.element.paused)
+            return toggleAmbience();
+        })
         .catch((error) => onError(`Lecture indisponible : ${error.message}`));
+    },
+    loadUniverseAmbience(url) {
+      universeAmbience = true;
+      return importAmbience({ url, name: "Ambiance · Le Souffle", size: 0 });
+    },
+    getVocalFeatures() {
+      const voice = [...voices.values()][0];
+      return voice ? readAudioFeatures(voice.graph) : {};
     },
     importAmbience,
     toggleAmbience,
