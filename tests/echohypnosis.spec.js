@@ -68,7 +68,7 @@ test("fixed anchors carry 24 vocal strings, with proximity vibrations and exclus
       getFeatures: () => bank.getVocalFeatures(),
     });
     const before = field.group.children
-      .slice(0, 24)
+      .slice(0, 16)
       .map((dot) => dot.position.toArray());
     const midpoint = new THREE.Vector3()
       .addVectors(
@@ -82,13 +82,16 @@ test("fixed anchors carry 24 vocal strings, with proximity vibrations and exclus
     field.update(0.1, pose);
     const second = await bank.collide("firefly-2");
     const after = field.group.children
-      .slice(0, 24)
+      .slice(0, 16)
       .map((dot) => dot.position.toArray());
     const line = field.group.children.find((child) => child.isLine);
     const result = {
       before,
       after,
       lines: field.group.children.filter((child) => child.isLine).length,
+      edges: field.group.children
+        .filter((child) => child.isLine)
+        .map((line) => line.userData.anchors),
       active: bank.getSnapshot().activeVocalId,
       second,
       collisions: field.collisionCount,
@@ -104,6 +107,27 @@ test("fixed anchors carry 24 vocal strings, with proximity vibrations and exclus
   });
   expect(result.after).toEqual(result.before);
   expect(result.lines).toBe(24);
+  expect(result.before).toHaveLength(16);
+  const degrees = Array(16).fill(0),
+    reached = new Set([0]);
+  for (const [a, b] of result.edges) {
+    expect(a).not.toBe(b);
+    degrees[a]++;
+    degrees[b]++;
+  }
+  expect(degrees).toEqual(Array(16).fill(3));
+  expect(
+    new Set(
+      result.edges.map(([a, b]) => [a, b].sort((x, y) => x - y).join("-")),
+    ).size,
+  ).toBe(24);
+  for (let i = 0; i < 16; i++)
+    for (const [a, b] of result.edges)
+      if (reached.has(a) || reached.has(b)) {
+        reached.add(a);
+        reached.add(b);
+      }
+  expect(reached.size).toBe(16);
   expect(result.active).toBe("firefly-1");
   expect(result.second).toBe(false);
   expect(result.collisions).toBe(1);

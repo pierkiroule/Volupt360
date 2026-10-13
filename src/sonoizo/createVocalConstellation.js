@@ -9,8 +9,11 @@ export function createVocalConstellation({
   const group = new THREE.Group(),
     sphere = new THREE.SphereGeometry(0.23, 8, 6);
   const dotMaterial = new THREE.MeshBasicMaterial({ color: 0x151515 });
-  const points = fragments.map((_, i) => {
-    const angle = (i * Math.PI * 2) / fragments.length;
+  // Sixteen anchors, twenty-four vocal edges: a connected ring plus
+  // eight cross-links. Each anchor meets three strings, without duplicates.
+  const nodeCount = Math.max(3, Math.floor((fragments.length * 2) / 3));
+  const points = Array.from({ length: nodeCount }, (_, i) => {
+    const angle = (i * Math.PI * 2) / nodeCount;
     const radius = 25 + 7 * Math.sin(i * 0.63);
     const position = new THREE.Vector3(
       Math.cos(angle) * radius,
@@ -36,8 +39,10 @@ export function createVocalConstellation({
   let waveAge = 2;
   const segments = 16;
   const strings = fragments.map((fragment, i) => {
-    const a = points[i],
-      b = points[(i + 1) % points.length];
+    const from = i < nodeCount ? i : (i - nodeCount) * 2;
+    const to = i < nodeCount ? (i + 1) % nodeCount : (from + 5) % nodeCount;
+    const a = points[from % nodeCount],
+      b = points[to];
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
       "position",
@@ -51,6 +56,7 @@ export function createVocalConstellation({
     });
     const line = new THREE.Line(geometry, material);
     line.frustumCulled = false;
+    line.userData.anchors = [from % nodeCount, to];
     group.add(line);
     const normal = new THREE.Vector3()
       .subVectors(b, a)
