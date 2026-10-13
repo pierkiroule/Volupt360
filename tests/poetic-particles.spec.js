@@ -136,7 +136,8 @@ test("six procedural motifs produce distinct WebGL images and obey progressive a
         stroke.finish();
         stroke.update(0.4);
         scene.add(stroke.group);
-        const read = (fade) => {
+        const read = (fade, energy = 0) => {
+          stroke.update(0, { energy, low: energy * 0.5, pulse: energy * 0.4 });
           stroke.group.children[0].material.uniforms.uFade.value = fade;
           renderer.clear();
           renderer.render(scene, camera);
@@ -154,6 +155,8 @@ test("six procedural motifs produce distinct WebGL images and obey progressive a
           full: read(1),
           half: read(0.5),
           gone: read(0),
+          quiet: read(1, 0.1),
+          loud: read(1, 0.9),
         };
         disposeMark(stroke.group);
         return result;
@@ -170,5 +173,7 @@ test("six procedural motifs produce distinct WebGL images and obey progressive a
     expect(image.half.alpha).toBeGreaterThan(0);
     expect(image.half.alpha).toBeLessThan(image.full.alpha);
     expect(image.gone.alpha).toBe(0);
+    expect(image.loud.hash).not.toBe(image.quiet.hash);
+    expect(image.loud.alpha).toBeGreaterThan(image.quiet.alpha);
   }
 });

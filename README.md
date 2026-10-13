@@ -107,3 +107,5 @@ Aucun secret ou variable d’environnement n’est requis. Vercel fournit HTTPS 
 La persistance de base des traces passe de 150 à 200 secondes (hors pression de densité), avec une dissolution étendue de 35 à 48 secondes. La surcharge locale continue à accélérer l’effacement ; la limite de 80 tracés reste en place. Chaque univers affiche six pads discrets sur une ligne horizontale.
 
 Chaque univers conserve ses quatre brosses d’origine et reçoit deux matières de particules : **Plumes / Lucioles** dans Le Souffle, **Feuilles / Filaments libres** dans Les Marées, **Racines / Hachures** dans La Ramure. Leurs motifs sont procéduraux, colorés, animés et déposés par l’oizo, y compris à l’appui long.
+
+L’ambiance musicale est réellement analysée : les basses font respirer les pigments et l’ampleur des particules, les variations déclenchent des accents lumineux, et les aigus accélèrent les mouvements. Une adaptation lente du niveau rend les musiques calmes lisibles sans augmenter leur volume. Les voix complètent cette réponse. La musique module aussi les traces déjà présentes et les cordes proches de l’oizo ; elle ne déclenche pas de brosse seule.
