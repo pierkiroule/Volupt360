@@ -5,6 +5,9 @@ import { MAX_TWIG_SECONDS } from "../sonoizo/createTwigBank.js";
 
 export default function TwigWorkshop({
   mode,
+  brushes = BRUSHES,
+  onBrush = () => {},
+  selectedBrush,
   bank,
   snapshot,
   error,
@@ -33,19 +36,30 @@ export default function TwigWorkshop({
     const timer = setInterval(tick, 100);
     return () => clearInterval(timer);
   }, [recording?.status, recording?.startedAt]);
+  useEffect(() => {
+    if (
+      selectedBrush &&
+      brushes.some((item) => item.id === selectedBrush) &&
+      selected !== selectedBrush
+    )
+      setSelected(selectedBrush);
+    else if (!brushes.some((item) => item.id === selected))
+      setSelected(brushes[0].id);
+  }, [brushes, selected, selectedBrush]);
   const current = BRUSHES.find(
     (brush) => brush.id === (recording?.id || selected),
   );
   const slot = snapshot.slots[current.id];
   const poetic = Object.values(snapshot.slots).some((item) => item.text);
-  const count = Object.values(snapshot.slots).filter(
-    (item) => item.duration > 0,
+  const count = brushes.filter(
+    (item) => snapshot.slots[item.id].duration > 0,
   ).length;
   function press(event, id) {
     if (event.button > 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     clearError();
+    onBrush(id);
     bank.current?.press(id, event.pointerId);
   }
   function release(event, cancel = false) {
@@ -60,38 +74,48 @@ export default function TwigWorkshop({
     >
       <div className="twig-heading">
         <span>
-          {mode === "cueillir"
-            ? poetic
-              ? "Chaque parole ouvre un courant."
-              : "On cueille des sons comme des brindilles."
-            : poetic
-              ? "Un tap libère un fragment de fluidité."
-              : snapshot.fireflies
-                ? "Les brosses sculptent · les lucioles murmurent."
-                : "Un tap chante · maintenir prolonge le son."}
+          {snapshot.fireflies
+            ? "Quatre matières pour ce paysage."
+            : mode === "cueillir"
+              ? poetic
+                ? "Chaque parole ouvre un courant."
+                : "On cueille des sons comme des brindilles."
+              : poetic
+                ? "Un tap libère un fragment de fluidité."
+                : snapshot.fireflies
+                  ? "Les brosses sculptent · les lucioles murmurent."
+                  : "Un tap chante · maintenir prolonge le son."}
         </span>
         <span
-          aria-label={poetic ? "Nombre de fragments" : "Nombre de brindilles"}
+          aria-label={
+            snapshot.fireflies
+              ? "Nombre de brosses"
+              : poetic
+                ? "Nombre de fragments"
+                : "Nombre de brindilles"
+          }
         >
-          {count} / 12
+          {count} / {brushes.length}
         </span>
       </div>
       <div
         className="twig-pads"
         role="group"
         aria-label={
-          poetic
-            ? "Douze fragments, douze brosses"
-            : "Douze brindilles, douze brosses"
+          snapshot.fireflies
+            ? "Brosses de l’univers"
+            : poetic
+              ? "Douze fragments, douze brosses"
+              : "Douze brindilles, douze brosses"
         }
       >
-        {BRUSHES.map((brush) => {
+        {brushes.map((brush) => {
           const item = snapshot.slots[brush.id];
           const listening = mode === "jouer";
           return (
             <button
               key={brush.id}
-              className={`twig-pad twig-${brush.id} ${item.duration ? "is-filled" : ""} ${item.playing ? "is-playing" : ""}`}
+              className={`twig-pad twig-${brush.id} ${item.duration ? "is-filled" : ""} ${item.playing ? "is-playing" : ""} ${selectedBrush === brush.id ? "is-selected" : ""}`}
               style={{ "--twig-color": brush.color }}
               aria-label={
                 snapshot.fireflies
@@ -99,8 +123,10 @@ export default function TwigWorkshop({
                   : `${listening ? (item.text ? "Jouer le fragment" : "Jouer la brindille") : item.text ? "Fragment" : "Brindille"} ${brush.name}`
               }
               title={
-                item.text ||
-                `${brush.name} · ${item.duration ? `${item.duration.toFixed(1)} s` : "à cueillir"}`
+                snapshot.fireflies
+                  ? brush.name
+                  : item.text ||
+                    `${brush.name} · ${item.duration ? `${item.duration.toFixed(1)} s` : "à cueillir"}`
               }
               data-duration={item.duration.toFixed(1)}
               data-looping={Boolean(item.looping)}
@@ -114,6 +140,7 @@ export default function TwigWorkshop({
                       snapshot.activeVocalId !== brush.id)))
               }
               onClick={(event) => {
+                onBrush(brush.id);
                 if (!listening) {
                   setSelected(brush.id);
                   clearError();
@@ -147,8 +174,10 @@ export default function TwigWorkshop({
                   ? (event) => {
                       if (!["Enter", " "].includes(event.key)) return;
                       event.preventDefault();
-                      if (!event.repeat)
+                      if (!event.repeat) {
+                        onBrush(brush.id);
                         bank.current?.press(brush.id, `key-${brush.id}`);
+                      }
                     }
                   : undefined
               }

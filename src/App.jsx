@@ -1,3 +1,5 @@
+import { UNIVERSES } from "./sonoizo/universes.js";
+import { BRUSHES } from "./engine/brushes.js";
 import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header.jsx";
 import CameraViews from "./components/CameraViews.jsx";
@@ -15,6 +17,7 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 export default function App() {
   const twigs = useTwigBank();
   const [universe, setUniverse] = useState(null);
+  const universeRequest = useRef(0);
   const [universeError, setUniverseError] = useState("");
   const [atelier, setAtelier] = useState(() =>
     !ENABLE_SONOIZO ||
@@ -91,6 +94,7 @@ export default function App() {
     }
     return () => {
       loadRequest.current++;
+      universeRequest.current++;
       engine.current?.dispose();
       engine.current = null;
       player.current?.dispose();
@@ -98,15 +102,23 @@ export default function App() {
     };
   }, []);
 
-  async function enterUniverse() {
+  async function enterUniverse(choice) {
+    const ticket = ++universeRequest.current;
+    setUniverseError("");
     const bank = twigs.bank.current;
     if (!bank) return;
     void bank.preparePlayback();
-    setUniverse("souffle");
+    setUniverse(choice.id);
+    engine.current?.reset();
+    chooseBrush(choice.brushes[0]);
+    chooseCamera("drone");
+    setDistance(0);
+    engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
     const loaded = await bank.loadUniverseAmbience(
-      `${import.meta.env.BASE_URL}ambiances/ambiance01.mp3`,
+      `${import.meta.env.BASE_URL}${choice.ambience}`,
     );
+    if (ticket !== universeRequest.current) return;
     if (loaded) await bank.toggleAmbience();
     else
       setUniverseError(
@@ -283,18 +295,36 @@ export default function App() {
             <h2>Choisissez votre univers</h2>
             <p>Un souffle, des cordes, un paysage à sculpter.</p>
             <div className="universe-options">
-              <button onClick={enterUniverse}>
-                Le Souffle <span>Entrer</span>
-              </button>
-              <button disabled>
-                Les Marées <span>Bientôt</span>
-              </button>
-              <button disabled>
-                La Ramure <span>Bientôt</span>
-              </button>
+              {UNIVERSES.map((choice) => (
+                <button
+                  key={choice.id}
+                  onClick={() => enterUniverse(choice)}
+                  title={choice.description}
+                >
+                  {choice.name}
+                  <span>Entrer</span>
+                </button>
+              ))}
             </div>
           </section>
         )}
+      {immersive && universe && mode !== "photo" && (
+        <button
+          className="universe-change"
+          aria-label="Changer d’univers"
+          onClick={() => {
+            universeRequest.current++;
+            twigs.bank.current?.stopAll();
+            twigs.bank.current?.removeAmbience();
+            engine.current?.setPadSource(null);
+            setUniverse(null);
+            setUniverseError("");
+            setToolsOpen(false);
+          }}
+        >
+          ◇
+        </button>
+      )}
       {universeError && (
         <p className="universe-error" role="alert">
           {universeError}
@@ -323,7 +353,7 @@ export default function App() {
       </p>
       <div className="landscape-caption" aria-hidden="true">
         <span>UN VOYAGE DANS LA MATIÈRE</span>
-        <span>Glisser pour guider · les brosses pour sculpter</span>
+        <span>Glisser pour guider · maintenir pour tracer</span>
       </div>
       {immersive && mode !== "photo" && (
         <button
@@ -433,6 +463,17 @@ export default function App() {
           {...twigs}
           textures={textures}
           onTexture={loadTexture}
+          brushes={
+            universe
+              ? BRUSHES.filter((item) =>
+                  UNIVERSES.find(
+                    (choice) => choice.id === universe,
+                  ).brushes.includes(item.id),
+                )
+              : BRUSHES
+          }
+          selectedBrush={brush}
+          onBrush={chooseBrush}
         />
       ) : (
         <ControlPanel

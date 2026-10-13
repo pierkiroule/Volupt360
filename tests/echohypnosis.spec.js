@@ -24,8 +24,8 @@ test("one available universe starts its imposed ambience and keeps twelve silent
   const picker = page.getByRole("region", { name: "Choisir un univers" });
   await expect(picker.getByRole("button")).toHaveCount(3);
   await expect(
-    picker.getByRole("button", { name: "Les Marées Bientôt" }),
-  ).toBeDisabled();
+    picker.getByRole("button", { name: "Les Marées Entrer" }),
+  ).toBeEnabled();
   await picker.getByRole("button", { name: "Le Souffle Entrer" }).click();
   await expect(picker).toHaveCount(0);
   await expect
@@ -34,7 +34,7 @@ test("one available universe starts its imposed ambience and keeps twelve silent
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-vocal-fireflies", "24");
   await expect(canvas).toHaveAttribute("data-drone-distance", "0");
-  await expect(page.locator(".twig-pad")).toHaveCount(12);
+  await expect(page.locator(".twig-pad")).toHaveCount(4);
   await expect(
     page.locator('input[type="file"][accept="audio/*,.mp3"]'),
   ).toHaveCount(0);
@@ -211,7 +211,7 @@ test.describe("mobile canvas", () => {
       )
       .toBeGreaterThan(0);
     await page
-      .getByRole("button", { name: "Sculpter avec Encres", exact: true })
+      .getByRole("button", { name: "Sculpter avec Filaments", exact: true })
       .tap();
     await expect
       .poll(async () =>

@@ -222,6 +222,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     boundsDirty = false;
   }
   function reset() {
+    cancelSteering();
     bridge.close();
     padStates.clear();
     dance.reset();
@@ -271,11 +272,57 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   flight.reset();
   lastSample = null;
 
+  let directPaint = null;
+  const drawRay = new THREE.Raycaster(),
+    drawPointer = new THREE.Vector2();
+  const intersection = new THREE.Vector3();
+  function moveDirectPaint(x, y) {
+    if (!directPaint) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    drawPointer.set(
+      ((x - rect.left) / rect.width) * 2 - 1,
+      1 - ((y - rect.top) / rect.height) * 2,
+    );
+    drawRay.setFromCamera(drawPointer, camera);
+    if (drawRay.ray.intersectPlane(directPaint.plane, intersection))
+      directPaint.position.copy(landscape.worldToLocal(intersection));
+  }
+  function beginDirectPaint() {
+    if (
+      !steeringGesture ||
+      steeringGesture.started ||
+      photo ||
+      cameraMode !== "drone"
+    )
+      return;
+    bridge.close();
+    const normal = new THREE.Vector3(0, 0, -1).applyQuaternion(
+      camera.quaternion,
+    );
+    const point = landscape.localToWorld(navigation.position.clone());
+    const depth = Math.max(8, point.clone().sub(camera.position).dot(normal));
+    point.copy(camera.position).addScaledVector(normal, depth);
+    const inverse = landscape
+      .getWorldQuaternion(new THREE.Quaternion())
+      .invert();
+    directPaint = {
+      id: brush,
+      plane: new THREE.Plane().setFromNormalAndCoplanarPoint(normal, point),
+      position: new THREE.Vector3(),
+      last: null,
+      normal: normal.clone().applyQuaternion(inverse),
+      samples: 0,
+    };
+    moveDirectPaint(steeringGesture.x, steeringGesture.y);
+    renderer.domElement.dataset.directPaint = "true";
+    renderer.domElement.dataset.directBrush = brush;
+  }
   let steeringGesture = null,
     steeringMoves = 0;
   function onSteeringDown(event) {
     if (
       !padSource ||
+      !navigation.windEnabled ||
       photo ||
       cameraMode !== "drone" ||
       event.button > 0 ||
@@ -288,6 +335,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       x: event.clientX,
       y: event.clientY,
       started: false,
+      timer: setTimeout(beginDirectPaint, 450),
     };
     renderer.domElement.setPointerCapture(event.pointerId);
   }
@@ -299,6 +347,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       cameraMode !== "drone"
     )
       return;
+    if (directPaint) {
+      moveDirectPaint(event.clientX, event.clientY);
+      return;
+    }
     const rect = renderer.domElement.getBoundingClientRect();
     const scale = Math.max(1, Math.min(rect.width, rect.height));
     if (
@@ -309,6 +361,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       ) < 4
     )
       return;
+    clearTimeout(steeringGesture.timer);
     steeringGesture.started = true;
     const dx = (event.clientX - steeringGesture.x) / scale;
     const dy = (steeringGesture.y - event.clientY) / scale;
@@ -332,6 +385,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   function onSteeringEnd(event) {
     if (event.pointerId !== steeringGesture?.id) return;
+    clearTimeout(steeringGesture.timer);
+    if (directPaint) {
+      finishPad(directPaint.id);
+      directPaint = null;
+      renderer.domElement.dataset.directPaint = "false";
+    }
     steeringGesture = null;
     if (renderer.domElement.hasPointerCapture(event.pointerId))
       renderer.domElement.releasePointerCapture(event.pointerId);
@@ -346,6 +405,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     ["pointerup", onSteeringEnd],
     ["pointercancel", onSteeringEnd],
     ["lostpointercapture", onSteeringEnd],
+    ["contextmenu", (event) => event.preventDefault()],
   ];
   for (const [name, handler] of steeringListeners)
     renderer.domElement.addEventListener(name, handler);
@@ -361,9 +421,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const painting = Boolean(playback?.playing && f?.rms > 0.006);
       navigation.active = padSource ? true : painting;
       tip.visible = !padSource && painting;
-      if (padSource ? voices.length > 0 : playback?.playing) elapsed += dt;
+      if (padSource ? voices.length > 0 || directPaint : playback?.playing)
+        elapsed += dt;
       if (padSource) {
-        const pose = dance.update(dt, voices);
+        const pose = dance.update(directPaint ? 0 : dt, voices);
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -373,7 +434,36 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.progress = pose.progress;
         sampleClock += dt;
         const tick = sampleClock >= 0.12;
-        bridge.update(pose, voices, tick);
+        if (directPaint) {
+          if (tick || directPaint.samples < 2) {
+            const direction = directPaint.last
+              ? directPaint.position.clone().sub(directPaint.last)
+              : pose.direction.clone();
+            if (direction.lengthSq() < 0.0001) direction.copy(pose.direction);
+            direction.normalize();
+            const side = new THREE.Vector3()
+              .crossVectors(direction, directPaint.normal)
+              .normalize();
+            if (side.lengthSq() < 0.001) side.copy(pose.side);
+            const features = {
+              ...pose.acoustic,
+              rms: 0.08,
+              energy: 0.4,
+              ...padSource.getVocalFeatures(),
+            };
+            feedPad(directPaint.id, {
+              ...pose,
+              ...features,
+              position: directPaint.position,
+              direction,
+              side,
+              up: directPaint.normal,
+              acoustic: features,
+            });
+            directPaint.last = directPaint.position.clone();
+            directPaint.samples++;
+          }
+        } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         oizo.update(pose);
         const fragments = !vocalFireflies
@@ -427,7 +517,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
         if (quiet > 0.35) closeStroke();
       }
-      if (padSource ? voices.length > 0 : playback?.playing) {
+      if (padSource ? voices.length > 0 || directPaint : playback?.playing) {
         for (let i = marks.length - 1; i >= 0; i--) {
           const item = marks[i],
             age = elapsed - item.born;
@@ -466,7 +556,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       if (boundsDirty) updateBounds();
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
-    rig.update(dt);
+    rig.update(directPaint ? 0 : dt);
     camera.updateMatrixWorld();
     try {
       effects.render(scene, camera);
@@ -671,6 +761,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     },
     reset,
     dispose() {
+      cancelSteering();
       disposed = true;
       cancelAnimationFrame(frameId);
       window.removeEventListener("blur", cancelSteering);
