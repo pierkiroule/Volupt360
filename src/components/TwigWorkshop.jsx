@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import TexturePalette from "./TexturePalette.jsx";
 import { BRUSHES } from "../engine/brushes.js";
 import { MAX_TWIG_SECONDS } from "../sonoizo/createTwigBank.js";
 
@@ -12,11 +11,8 @@ export default function TwigWorkshop({
   snapshot,
   error,
   clearError,
-  onTexture,
-  textures = {},
 }) {
   const audioInput = useRef(null);
-  const [textureOpen, setTextureOpen] = useState(false);
   const [selected, setSelected] = useState(BRUSHES[0].id);
   const [elapsed, setElapsed] = useState(0);
   const recording = snapshot.recording;
@@ -75,7 +71,7 @@ export default function TwigWorkshop({
       <div className="twig-heading">
         <span>
           {snapshot.fireflies
-            ? "Quatre matières pour ce paysage."
+            ? "Six matières pour ce paysage."
             : mode === "cueillir"
               ? poetic
                 ? "Chaque parole ouvre un courant."
@@ -294,14 +290,6 @@ export default function TwigWorkshop({
             >
               Écouter
             </button>
-            <button
-              disabled={Boolean(recording)}
-              aria-label={`Modifier la texture ${current.name}`}
-              aria-expanded={textureOpen}
-              onClick={() => setTextureOpen(!textureOpen)}
-            >
-              Texture
-            </button>
             {!slot.text && (
               <button
                 disabled={!slot.duration || Boolean(recording)}
@@ -312,14 +300,6 @@ export default function TwigWorkshop({
               </button>
             )}
           </div>
-          {textureOpen && (
-            <TexturePalette
-              brush={current.name}
-              selected={textures[current.id]?.id}
-              disabled={Boolean(recording)}
-              onSelect={(id) => onTexture(current.id, id)}
-            />
-          )}
           {recording?.status === "recording" && (
             <progress
               aria-label="Durée de l’enregistrement"
@@ -327,16 +307,6 @@ export default function TwigWorkshop({
               value={elapsed}
             />
           )}
-        </div>
-      )}
-      {mode === "cueillir" && snapshot.fireflies && (
-        <div className="twig-editor">
-          <strong>{current.name}</strong>
-          <TexturePalette
-            brush={current.name}
-            selected={textures[current.id]?.id}
-            onSelect={(id) => onTexture(current.id, id)}
-          />
         </div>
       )}
       {error && (

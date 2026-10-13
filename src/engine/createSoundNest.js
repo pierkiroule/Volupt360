@@ -178,6 +178,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
     activeStroke.stroke.append(pose);
     activeStroke.bounds.expandByPoint(pose.position);
+    if (activeStroke.stroke.padding) {
+      activeStroke.bounds.expandByPoint(
+        pose.position.clone().addScalar(activeStroke.stroke.padding),
+      );
+      activeStroke.bounds.expandByPoint(
+        pose.position.clone().addScalar(-activeStroke.stroke.padding),
+      );
+    }
     lastSample = snapshot(pose);
     boundsDirty = true;
   }
@@ -504,6 +512,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         }
         renderer.domElement.dataset.markCount = String(marks.length);
       }
+      for (const mark of marks) mark.stroke.update?.(dt);
       if (boundsDirty) updateBounds();
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);

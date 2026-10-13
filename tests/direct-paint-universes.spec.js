@@ -10,13 +10,13 @@ test("three universes partition the twelve brushes and changing universe starts 
     return { universes: UNIVERSES, brushes: BRUSHES.map((item) => item.id) };
   });
   const all = groups.universes.flatMap((universe) => universe.brushes);
-  expect(new Set(all).size).toBe(12);
+  expect(new Set(all).size).toBe(18);
   expect([...all].sort()).toEqual([...groups.brushes].sort());
   for (const universe of groups.universes) {
     await page
       .getByRole("button", { name: `${universe.name} Entrer`, exact: true })
       .click();
-    await expect(page.locator(".twig-pad")).toHaveCount(4);
+    await expect(page.locator(".twig-pad")).toHaveCount(6);
     for (const id of universe.brushes)
       await expect(page.locator(`.twig-${id}`)).toBeVisible();
     const canvas = page.locator("#stage canvas");
