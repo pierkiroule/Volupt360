@@ -1,6 +1,7 @@
 import { createWaterSource, prepareWaterAudio } from "./createWaterAudio.js";
 import { createWaterPercussion } from "./createWaterPercussion.js";
 import { createWaterReverb } from "./createWaterReverb.js";
+import { createVisualSoundDialogue } from "./VisualSoundDialogue.js";
 import { SONIC_UNIVERSES } from "./sonicUniverses.js";
 const FAMILIES = {
   souffle: ["voiles", "filaments", "aurore", "dilution", "plumes", "lucioles"],
@@ -82,6 +83,22 @@ export async function createEchoInstrument(
   bedGain.gain.value = 0;
   waterBed.node.connect(bedGain);
   bedGain.connect(filter);
+  const dialogue = createVisualSoundDialogue();
+  const resonances = new Map();
+  const pad = createWaterSource(ctx, {
+    type: "pad",
+    startAt: ctx.currentTime,
+    duration: 1,
+    frequency: profile.root,
+    scale: profile.waterColor === 0 ? [0, 4, 7, 11] : [0, 3, 7, 10],
+    color: profile.waterColor,
+    seed: profile.seed + 71,
+    velocity: profile.padLevel,
+  });
+  const padGain = ctx.createGain();
+  padGain.gain.value = 0;
+  pad.node.connect(padGain);
+  padGain.connect(filter);
   const graph = {
     ctx,
     analyser,
@@ -124,7 +141,7 @@ export async function createEchoInstrument(
       return false;
     const now = ctx.currentTime;
     if (!recall && now - (recent.get(brush) ?? -Infinity) < 0.9) return false;
-    recent.set(brush, now);
+    if (!recall) recent.set(brush, now);
     const family = FAMILIES.souffle.includes(brush)
       ? "souffle"
       : FAMILIES.marees.includes(brush)
@@ -183,18 +200,32 @@ export async function createEchoInstrument(
     envelope.connect(panner);
     panner.connect(filter);
     const waterSource = createWaterSource(ctx, {
-      type: bass ? "bubble" : profile.materials[familyIndex],
+      type: bass ? "bass" : profile.materials[familyIndex],
       startAt: start,
       duration,
       frequency,
       color: profile.waterColor,
       seed: profile.seed + total * 17 + familyIndex,
-      velocity: 0.9,
+      velocity: bass
+        ? Math.min(1, profile.bassLevel * (0.8 + dialogue.state.spread * 0.2))
+        : 0.9,
     });
+    waterSource.node.parameters
+      .get("shape")
+      .setValueAtTime(dialogue.state.curvature, start);
     waterSource.node.connect(envelope);
     const sources = [{ oscillator: waterSource }];
     const voice = { sources, envelope, panner };
     voices.add(voice);
+    if (motifKey && motifs.has(motifKey)) {
+      if (resonances.size >= 80)
+        resonances.delete(resonances.keys().next().value);
+      resonances.set(motifKey, {
+        start,
+        duration,
+        strength: Math.min(1, strength),
+      });
+    }
     total++;
     timbres[family]++;
     voice.release = () => {
@@ -219,6 +250,8 @@ export async function createEchoInstrument(
       .setValueAtTime(0, ctx.currentTime + 0.1);
     clearInterval(timer);
     percussion.pause();
+    padGain.gain.setTargetAtTime(0, ctx.currentTime, 0.02);
+    pad.node.parameters.get("gate").setValueAtTime(0, ctx.currentTime + 0.15);
     for (const voice of voices) {
       retiring.add(voice);
       const now = ctx.currentTime;
@@ -248,6 +281,11 @@ export async function createEchoInstrument(
       .get("gate")
       .setValueAtTime(autonomous ? 1 : 0, ctx.currentTime);
     bedGain.gain.setTargetAtTime(autonomous ? 0.85 : 0, ctx.currentTime, 0.2);
+    pad.node.parameters.get("gate").cancelScheduledValues(ctx.currentTime);
+    pad.node.parameters
+      .get("gate")
+      .setValueAtTime(autonomous ? 1 : 0, ctx.currentTime);
+    padGain.gain.setTargetAtTime(autonomous ? 0.7 : 0, ctx.currentTime, 0.6);
     if (!autonomous) return;
     transportOrigin = ctx.currentTime + 0.06;
     sequenceStep = 0;
@@ -266,6 +304,20 @@ export async function createEchoInstrument(
         transportOrigin + sequenceStep * tickDuration <
         ctx.currentTime + 0.16
       ) {
+        const form = dialogue.state;
+        pad.node.parameters
+          .get("shape")
+          .setTargetAtTime(form.brightness, ctx.currentTime, 0.4);
+        padGain.gain.setTargetAtTime(
+          0.7 + form.density * 0.25,
+          ctx.currentTime,
+          0.8,
+        );
+        filter.frequency.setTargetAtTime(
+          profile.cutoff * (0.65 + form.brightness * 0.55),
+          ctx.currentTime,
+          0.5,
+        );
         const step = sequenceStep % 16,
           bar = Math.floor(sequenceStep / 16);
         const start =
@@ -285,7 +337,12 @@ export async function createEchoInstrument(
         if (melody) {
           const [, degree, length, velocity] = melody;
           // Alternate a composed question with its softer, descending answer.
-          const pitch = bar % 4 === 3 ? Math.max(0, degree - 1) : degree;
+          const pitch = Math.max(
+            0,
+            degree +
+              Math.round((form.brightness - 0.45) * 3) -
+              (bar % 4 === 3 ? 1 : 0),
+          );
           if (
             note(
               brush,
@@ -296,7 +353,7 @@ export async function createEchoInstrument(
               start,
               pitch,
               false,
-              beat * length,
+              beat * length * (1.2 - form.speed * 0.4),
             )
           )
             leadNotes++;
@@ -324,6 +381,7 @@ export async function createEchoInstrument(
     resume,
     pause,
     deposit(brush, position, energy, key = brush) {
+      dialogue.record(key, position, ctx.currentTime);
       waterBed.node.parameters
         .get("energy")
         .setTargetAtTime(
@@ -346,9 +404,23 @@ export async function createEchoInstrument(
     },
     forget(key) {
       motifs.delete(key);
+      dialogue.forget(key);
+      resonances.delete(key);
     },
     recall(brush, position, key = brush) {
       return note(brush, motifs.get(key)?.position || position, 0.7, true, key);
+    },
+    traceResonance(key) {
+      if (!active) return 0;
+      const resonance = resonances.get(key);
+      if (!resonance) return 0;
+      const age = ctx.currentTime - resonance.start;
+      if (age < 0 || age > resonance.duration) return 0;
+      return (
+        resonance.strength *
+        Math.min(1, age / 0.08) *
+        Math.exp(-age / (resonance.duration * 0.4))
+      );
     },
     listener(position, direction, up) {
       if (!active || ctx.currentTime - lastListenerTime < 0.033) return;
@@ -395,6 +467,9 @@ export async function createEchoInstrument(
         bpm: profile.bpm,
         soundWorld: profile.name,
         synthesis: "procedural-water",
+        dialogue: dialogue.state,
+        padActive: active && autonomous,
+        resonantTraces: resonances.size,
         leadNotes,
         sequenceStep,
         percussion: percussion.stats,
@@ -409,6 +484,10 @@ export async function createEchoInstrument(
       for (const voice of retiring) voice.release();
       percussion.dispose();
       reverb.dispose();
+      pad.disconnect();
+      padGain.disconnect();
+      dialogue.clear();
+      resonances.clear();
       waterBed.disconnect();
       bedGain.disconnect();
       analyser.disconnect();

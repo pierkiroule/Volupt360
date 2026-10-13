@@ -43,16 +43,50 @@ export class WaterDSP {
     this.impactDecay = Math.exp(-100 / sampleRate);
     const cutoff = type === "spray" ? 1800 : color === 2 ? 65 : 320;
     this.filterCoefficient = 1 - Math.exp((-2 * Math.PI * cutoff) / sampleRate);
+    this.bassRatios = [1, 2, 3, 4];
+    this.bassWeights = [1, 0.3, 0.12, 0.04];
     this.pitches = scale.map((semitone) => 2 ** (semitone / 12));
   }
   random() {
     this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0;
     return this.seed / 4294967296;
   }
-  render(energy = 0) {
+  render(energy = 0, shape = 0.45, frequencyFactor = 1) {
     const t = this.age++ / this.rate;
-    if (this.type !== "flow" && t >= this.duration) return 0;
+    if (this.type !== "flow" && this.type !== "pad" && t >= this.duration)
+      return 0;
     const noise = this.random() * 2 - 1;
+    if (this.type === "pad" || this.type === "bass") {
+      const ratios = this.type === "pad" ? this.pitches : this.bassRatios;
+      let sound = 0;
+      for (let i = 0; i < 4; i++) {
+        const ratio = ratios[i % ratios.length];
+        const drift =
+          this.type === "pad"
+            ? 1 + Math.sin(t * (0.31 + i * 0.07)) * 0.0018
+            : 1;
+        this.phase[i] +=
+          (2 * Math.PI * this.frequency * frequencyFactor * ratio * drift) /
+          this.rate;
+        if (this.phase[i] > Math.PI * 2) this.phase[i] -= Math.PI * 2;
+        const weight =
+          this.type === "bass"
+            ? this.bassWeights[i]
+            : i === 0
+              ? 0.55
+              : 0.2 + shape * 0.12;
+        sound += Math.sin(this.phase[i]) * weight;
+      }
+      const envelope =
+        this.type === "pad"
+          ? Math.min(1, t / 1.8) * (0.85 + Math.sin(t * 0.33) * 0.15)
+          : Math.min(1, t / 0.025) *
+            Math.min(1, Math.max(0, (this.duration - t) / 0.15)) *
+            Math.exp(-t / (this.duration * 0.9));
+      return (
+        sound * envelope * this.velocity * (this.type === "pad" ? 0.12 : 0.5)
+      );
+    }
     if (this.type === "flow" || this.type === "spray") {
       const cutoff = this.filterCoefficient;
       this.low += cutoff * (noise - this.low);
@@ -97,7 +131,10 @@ export class WaterDSP {
       this.phase[i] +=
         (2 * Math.PI * this.frequency * this.ratios[i] * glide) / this.rate;
       if (this.phase[i] > Math.PI * 2) this.phase[i] -= Math.PI * 2;
-      signal += Math.sin(this.phase[i]) * this.amplitudes[i];
+      signal +=
+        Math.sin(this.phase[i]) *
+        this.amplitudes[i] *
+        (i === 0 ? 1 : 0.75 + shape * 0.6);
       this.amplitudes[i] *= this.decays[i];
     }
     const impact = this.type === "drop" ? noise * this.impact : 0;

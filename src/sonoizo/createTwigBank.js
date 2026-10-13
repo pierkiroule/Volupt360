@@ -642,6 +642,9 @@ export function createTwigBank({
     recallSound(id, position, key) {
       return instrument?.recall(id, position, key);
     },
+    getTraceResonance(key) {
+      return instrument?.traceResonance?.(key) || 0;
+    },
     getInstrumentStats() {
       return instrument?.stats || null;
     },
