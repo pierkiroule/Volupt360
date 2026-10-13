@@ -3,6 +3,13 @@ import { WaterDSP } from "./WaterDSP.js";
 class WaterProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
+      ...[1, 2, 3, 4].map((i) => ({
+        name: `tone${i}`,
+        defaultValue: [1, 1.259921, 1.498307, 1.887749][i - 1],
+        minValue: 0.5,
+        maxValue: 8,
+        automationRate: "k-rate",
+      })),
       {
         name: "shape",
         defaultValue: 0.45,
@@ -43,6 +50,7 @@ class WaterProcessor extends AudioWorkletProcessor {
         : this.startAt + options.duration;
     this.stopAt = Infinity;
     this.disposed = false;
+    this.tones = new Float64Array(4);
     this.port.onmessage = ({ data }) => {
       if (data.dispose) this.disposed = true;
       if (Number.isFinite(data.stopAt))
@@ -53,6 +61,7 @@ class WaterProcessor extends AudioWorkletProcessor {
     const output = outputs[0][0];
     if (this.disposed) return false;
     if (parameters.gate[0] === 0) return true;
+    for (let i = 0; i < 4; i++) this.tones[i] = parameters[`tone${i + 1}`][0];
     let alive = false;
     for (let i = 0; i < output.length; i++) {
       const time = currentTime + i / sampleRate;
@@ -68,6 +77,7 @@ class WaterProcessor extends AudioWorkletProcessor {
           parameters.energy[0],
           parameters.shape[0],
           parameters.frequencyFactor[0],
+          this.tones,
         ) * release;
       alive = true;
     }

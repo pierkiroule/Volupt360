@@ -1,5 +1,6 @@
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
+import { AtmosphereSpheres } from "./components/AtmosphereSpheres.jsx";
 import { UNIVERSES } from "./sonoizo/universes.js";
 import { BRUSHES } from "./engine/brushes.js";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +19,11 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 export default function App() {
   const twigs = useTwigBank();
   const [universe, setUniverse] = useState(null);
+  const [atmosphereMix, setAtmosphereMix] = useState([1, 0, 0]);
+  const [atmosphere, setAtmosphere] = useState({ echo: 0.5, hypnos: 0.3 });
+  const atmosphereRef = useRef({ echo: 0.5, hypnos: 0.3 });
+  const atmosphereMixRef = useRef([1, 0, 0]);
+  const atmosphereStart = useRef(null);
   const universeRequest = useRef(0);
   const [universeError, setUniverseError] = useState("");
   const [atelier, setAtelier] = useState(() =>
@@ -74,7 +80,7 @@ export default function App() {
 
   useEffect(() => {
     document.title = ENABLE_SONOIZO
-      ? "echohypnosis — L’Oizo échohypnotique"
+      ? "ÉCHO & HYPNOS •° — Trois univers ambient génératifs"
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
@@ -118,7 +124,10 @@ export default function App() {
       await bank.preparePlayback();
       if (ticket === universeRequest.current) {
         try {
-          await bank.startInstrument(choice.id);
+          if (atmosphereStart.current) await atmosphereStart.current;
+          if (!bank.getInstrumentStats()) await bank.startInstrument(choice.id);
+          bank.setInstrumentMix(atmosphereMixRef.current);
+          bank.setAtmosphere(atmosphereRef.current);
         } catch (error) {
           if (ticket === universeRequest.current)
             setUniverseError(`Synthèse aquatique : ${error.message}`);
@@ -283,19 +292,48 @@ export default function App() {
               Une expérimentation artistique du son, du geste et de leurs
               résonances.
             </p>
-            <div className="universe-options">
-              {UNIVERSES.map((choice) => (
-                <button
-                  key={choice.id}
-                  onClick={() => enterUniverse(choice)}
-                  title={choice.description}
-                >
-                  {choice.name}
-                  <small aria-hidden="true">{choice.soundName}</small>
-                  <span>Entrer</span>
-                </button>
-              ))}
-            </div>
+            <AtmosphereSpheres
+              value={atmosphereMix}
+              echo={atmosphere.echo}
+              hypnos={atmosphere.hypnos}
+              onMix={(values) => {
+                setAtmosphereMix(values);
+                atmosphereMixRef.current = values;
+                const bank = twigs.bank.current;
+                if (!bank) return;
+                if (!ENABLE_ECHO_INSTRUMENT) return;
+                void bank.preparePlayback();
+                if (!bank.getInstrumentStats() && !atmosphereStart.current) {
+                  atmosphereStart.current = bank
+                    .startInstrument(
+                      UNIVERSES[values.indexOf(Math.max(...values))].id,
+                    )
+                    .then(() => {
+                      bank.setInstrumentMix(atmosphereMixRef.current);
+                      bank.setAtmosphere(atmosphereRef.current);
+                    })
+                    .catch((error) => setUniverseError(error.message))
+                    .finally(() => {
+                      atmosphereStart.current = null;
+                    });
+                } else bank.setInstrumentMix(values);
+              }}
+              onAtmosphere={(values) => {
+                setAtmosphere(values);
+                atmosphereRef.current = values;
+                twigs.bank.current?.setAtmosphere(values);
+              }}
+              onEnter={async () => {
+                if (atmosphereStart.current) await atmosphereStart.current;
+                await enterUniverse(
+                  UNIVERSES[
+                    atmosphereMixRef.current.indexOf(
+                      Math.max(...atmosphereMixRef.current),
+                    )
+                  ],
+                );
+              }}
+            />
             <ArtisticIntroduction />
           </section>
         )}
@@ -306,7 +344,6 @@ export default function App() {
           onClick={() => {
             universeRequest.current++;
             twigs.bank.current?.stopAll();
-            twigs.bank.current?.removeAmbience();
             engine.current?.setPadSource(null);
             setUniverse(null);
             setUniverseError("");

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("each world plays measured percussion and a continuing melody, then stops and resumes cleanly", async ({
+test("each ambient world emits sparse melodies and sustained layers, then stops and resumes cleanly", async ({
   page,
 }) => {
   await page.goto("/");
@@ -72,10 +72,10 @@ test("each world plays measured percussion and a continuing melody, then stops a
     return { stats, levels, paused, silence, resumed };
   });
   result.stats.forEach((stats, i) => {
-    expect(stats.leadNotes).toBeGreaterThanOrEqual(4);
-    expect(stats.percussion.counts.kick).toBeGreaterThanOrEqual(2);
-    expect(stats.percussion.counts.wood).toBeGreaterThanOrEqual(2);
-    expect(stats.percussion.counts.shaker).toBeGreaterThanOrEqual(4);
+    expect(stats.leadNotes).toBeGreaterThanOrEqual(1);
+    expect(stats.percussion.counts.kick).toBe(0);
+    expect(stats.percussion.counts.wood).toBe(0);
+    expect(stats.percussion.counts.shaker).toBe(0);
     expect(result.levels[i].high).toBeGreaterThan(0.02);
     expect(result.levels[i].high - result.levels[i].low).toBeGreaterThan(0.02);
     expect(result.levels[i].peak).toBeLessThan(0.95);
@@ -83,7 +83,8 @@ test("each world plays measured percussion and a continuing melody, then stops a
     expect(result.levels[i].maxPercussion).toBeLessThanOrEqual(8);
     expect(result.paused[i].percussion.voices).toBe(0);
     expect(result.silence[i]).toBeLessThan(0.001);
-    expect(result.resumed[i].leadNotes).toBeGreaterThan(stats.leadNotes);
+    expect(result.resumed[i].active).toBe(true);
+    expect(result.resumed[i].padActive).toBe(true);
   });
 });
 
@@ -164,8 +165,9 @@ test("an organic generated sound starts the world, painting adds spatial notes a
   });
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Le Souffle Entrer", exact: true })
+    .getByRole("button", { name: "Choisir ÉTHER", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   const canvas = page.locator("#stage canvas");
   await expect
     .poll(async () =>
@@ -324,8 +326,9 @@ test("the welcome presents the artistic experimentation and remains usable on mo
   await expect(introduction).toContainText("synesthésie");
   await expect(introduction.getByRole("heading", { level: 3 })).toHaveCount(5);
   await page
-    .getByRole("button", { name: "Les Marées Entrer", exact: true })
+    .getByRole("button", { name: "Choisir ABYSSE", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(introduction).toHaveCount(0);
   await expect(page.locator(".twig-pad")).toHaveCount(6);
 });

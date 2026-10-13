@@ -1,10 +1,9 @@
 export const UNIVERSES = [
   {
     id: "souffle",
-    name: "Le Souffle",
-    soundName: "Source · gouttes cristallines",
-    description:
-      "Source : gouttes résonantes, ruissellements délicats et mélodies lumineuses.",
+    name: "ÉTHER",
+    soundName: "Le ciel suspendu",
+    description: "Nappes lumineuses, cloches cristallines et accords ouverts.",
     brushes: [
       "voiles",
       "filaments",
@@ -16,10 +15,10 @@ export const UNIVERSES = [
   },
   {
     id: "marees",
-    name: "Les Marées",
-    soundName: "Rivière · courants rythmiques",
+    name: "ABYSSE",
+    soundName: "Le jardin englouti",
     description:
-      "Rivière : impacts liquides, courants vivants et pulsations chaloupées.",
+      "Bourdons chaleureux, cordes résonantes et mélodies descendantes.",
     brushes: [
       "corolles",
       "brumes",
@@ -31,10 +30,9 @@ export const UNIVERSES = [
   },
   {
     id: "ramure",
-    name: "La Ramure",
-    soundName: "Abysses · bulles profondes",
-    description:
-      "Abysses : grosses bulles, vagues sourdes et résonances profondes.",
+    name: "MÉMOIRE",
+    soundName: "Les échos du rêve",
+    description: "Cellules feutrées, cloches douces et contrechants d’échos.",
     brushes: [
       "falaises",
       "calligraphie",
