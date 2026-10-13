@@ -1,3 +1,4 @@
+import { createOrganicPercussion } from "./createOrganicPercussion.js";
 import { SONIC_UNIVERSES } from "./sonicUniverses.js";
 const FAMILIES = {
   souffle: ["voiles", "filaments", "aurore", "dilution", "plumes", "lucioles"],
@@ -56,6 +57,7 @@ export function createEchoInstrument(
   feedback.connect(delay);
   echoFilter.connect(wet);
   wet.connect(gain);
+  const percussion = createOrganicPercussion(ctx, gain, profile);
   const graph = {
     ctx,
     analyser,
@@ -68,10 +70,12 @@ export function createEchoInstrument(
     motifs = new Map();
   let active = false,
     disposed = false,
-    nextBreath = 0,
+    transportOrigin = 0,
+    sequenceStep = 0,
+    leadNotes = 0,
+    activity = 0,
     serial = 0,
     total = 0,
-    phrase = 0,
     timer,
     lastListenerTime = -Infinity;
   const timbres = { souffle: 0, marees: 0, ramure: 0 };
@@ -84,6 +88,7 @@ export function createEchoInstrument(
     scheduled = null,
     degreeOverride = null,
     bass = false,
+    melodicDuration = null,
   ) {
     if (!active || disposed || ctx.state !== "running" || voices.size >= 10)
       return false;
@@ -98,8 +103,10 @@ export function createEchoInstrument(
     const familyIndex = family === "souffle" ? 0 : family === "marees" ? 1 : 2;
     const chord =
       profile.progression[
-        Math.floor((scheduled ?? now) / (beat * 16)) %
-          profile.progression.length
+        Math.max(
+          0,
+          Math.floor(((scheduled ?? now) - transportOrigin) / (beat * 8)),
+        ) % profile.progression.length
       ];
     const selection =
       Math.abs(
@@ -119,7 +126,8 @@ export function createEchoInstrument(
     const frequency = profile.root * 2 ** ((semitone + octave) / 12);
     const start =
         scheduled ?? Math.ceil((now + 0.04) / (beat / 2)) * (beat / 2),
-      duration = bass ? beat * 4 : profile.durations[familyIndex];
+      duration =
+        melodicDuration ?? (bass ? beat * 3 : profile.durations[familyIndex]);
     const envelope = ctx.createGain(),
       panner = ctx.createPanner();
     panner.panningModel = "HRTF";
@@ -134,7 +142,8 @@ export function createEchoInstrument(
     envelope.gain.setValueAtTime(0, start);
     envelope.gain.linearRampToValueAtTime(
       level,
-      start + (bass ? 0.1 : profile.attacks[familyIndex]),
+      start +
+        (melodicDuration ? 0.018 : bass ? 0.1 : profile.attacks[familyIndex]),
     );
     envelope.gain.exponentialRampToValueAtTime(
       level * (universe === "ramure" ? 0.35 : 0.6),
@@ -182,6 +191,7 @@ export function createEchoInstrument(
     gain.gain.cancelScheduledValues(ctx.currentTime);
     gain.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
     clearInterval(timer);
+    percussion.pause();
     for (const voice of voices) {
       const now = ctx.currentTime;
       if (voice.envelope.gain.cancelAndHoldAtTime)
@@ -206,59 +216,82 @@ export function createEchoInstrument(
     gain.gain.cancelScheduledValues(ctx.currentTime);
     gain.gain.setTargetAtTime(0.85, ctx.currentTime, 0.03);
     if (!autonomous) return;
-    nextBreath = ctx.currentTime;
+    transportOrigin = ctx.currentTime + 0.06;
+    sequenceStep = 0;
+    const tickDuration = beat / 2;
     const schedule = () => {
-      if (active && ctx.state === "running" && ctx.currentTime >= nextBreath) {
-        const memories = [...motifs.values()];
-        const motif = memories.length
-          ? memories[phrase % memories.length]
-          : null;
-        const brush = motif?.brush || seedBrush,
-          point = motif?.position || { x: -8, y: 4, z: 12 };
-        const start = Math.ceil((ctx.currentTime + 0.05) / beat) * beat;
-        const degree = profile.melody[phrase % profile.melody.length] * 2;
-        note(
-          brush,
-          point,
-          profile.dynamics[phrase % 4] * 0.5,
-          true,
-          motif?.key,
-          start,
-          degree,
+      if (!active || ctx.state !== "running") return;
+      // Schedule with AudioContext time, never with timer jitter; skip missed ticks.
+      if (
+        transportOrigin + sequenceStep * tickDuration <
+        ctx.currentTime - 0.02
+      )
+        sequenceStep = Math.ceil(
+          (ctx.currentTime - transportOrigin) / tickDuration,
         );
-        // A low anchor and an answering note shape phrases rather than a drone.
-        if (phrase % 2 === 0)
+      while (
+        transportOrigin + sequenceStep * tickDuration <
+        ctx.currentTime + 0.16
+      ) {
+        const step = sequenceStep % 16,
+          bar = Math.floor(sequenceStep / 16);
+        const start =
+          transportOrigin +
+          sequenceStep * tickDuration +
+          (step % 2 ? profile.swing * tickDuration : 0);
+        for (const kind of ["kick", "wood", "shaker"]) {
+          const velocity = profile.rhythm[kind][step];
+          if (velocity)
+            percussion.hit(kind, start, velocity * (0.8 + activity * 0.2));
+        }
+        const memories = [...motifs.values()];
+        const motif = memories.length ? memories[bar % memories.length] : null;
+        const brush = motif?.brush || seedBrush;
+        const point = motif?.position || { x: -8, y: 4, z: 12 };
+        const melody = profile.lead.find((event) => event[0] === step);
+        if (melody) {
+          const [, degree, length, velocity] = melody;
+          // Alternate a composed question with its softer, descending answer.
+          const pitch = bar % 4 === 3 ? Math.max(0, degree - 1) : degree;
+          if (
+            note(
+              brush,
+              point,
+              velocity * (0.65 + activity * 0.2),
+              true,
+              motif?.key,
+              start,
+              pitch,
+              false,
+              beat * length,
+            )
+          )
+            leadNotes++;
+        }
+        if (step === 0 || step === 8)
           note(
             "falaises",
             { x: 0, y: -8, z: 16 },
-            0.32,
+            step === 0 ? 0.42 : 0.3,
             true,
             null,
             start,
-            0,
+            step === 0 ? 0 : 4,
             true,
           );
-        note(
-          brush,
-          { x: -point.x * 0.6, y: point.y + 3, z: point.z },
-          0.22,
-          true,
-          motif?.key,
-          start + beat * (universe === "ramure" ? 1.5 : 2),
-          (degree + 2) % 7,
-        );
-        phrase++;
-        nextBreath = start + beat * profile.phraseBeats;
+        activity *= 0.94;
+        sequenceStep++;
       }
     };
     schedule();
-    timer = setInterval(schedule, 120);
+    timer = setInterval(schedule, 40);
   }
   return {
     graph,
     resume,
     pause,
     deposit(brush, position, energy, key = brush) {
+      activity = Math.min(1, activity + Math.max(0, energy || 0) * 0.15);
       let motif = motifs.get(key);
       if (!motif) {
         if (motifs.size >= 80) motifs.delete(motifs.keys().next().value);
@@ -319,6 +352,9 @@ export function createEchoInstrument(
         voices: voices.size,
         universe,
         bpm: profile.bpm,
+        leadNotes,
+        sequenceStep,
+        percussion: percussion.stats,
         total,
         motifs: motifs.size,
         timbres: { ...timbres },
@@ -327,6 +363,7 @@ export function createEchoInstrument(
     dispose() {
       disposed = true;
       pause();
+      percussion.dispose();
       analyser.disconnect();
       limiter.disconnect();
       gain.disconnect();
