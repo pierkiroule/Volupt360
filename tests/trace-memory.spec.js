@@ -10,8 +10,9 @@ test("the scene starts empty, records artistic deposits and resets its memory wi
   await expect(canvas).toHaveAttribute("data-trace-memory", "true");
   await expect(canvas).toHaveAttribute("data-trace-points", "0");
   await page
-    .getByRole("button", { name: "Le Souffle Entrer", exact: true })
+    .getByRole("button", { name: "Choisir ÉTHER", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(canvas).toHaveAttribute("data-vocal-fireflies", "0");
   await expect(canvas).toHaveAttribute("data-mark-count", "0");
   await expect(canvas).toHaveAttribute("data-trace-debug", "true");
@@ -27,8 +28,9 @@ test("the scene starts empty, records artistic deposits and resets its memory wi
     .getByRole("button", { name: "Changer d’univers", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Les Marées Entrer", exact: true })
+    .getByRole("button", { name: "Choisir ABYSSE", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(canvas).toHaveAttribute("data-trace-points", "0");
   await expect(canvas).toHaveAttribute("data-trace-encounters", "0");
   expect(errors).toEqual([]);

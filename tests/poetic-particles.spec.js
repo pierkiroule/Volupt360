@@ -10,13 +10,14 @@ test("each universe exposes six brushes without a texture tool and all new parti
   });
   await page.goto("/?instrument=off");
   for (const [universe, names] of [
-    ["Le Souffle", ["Plumes", "Lucioles"]],
-    ["Les Marées", ["Feuilles", "Filaments libres"]],
-    ["La Ramure", ["Racines", "Hachures"]],
+    ["ÉTHER", ["Plumes", "Lucioles"]],
+    ["ABYSSE", ["Feuilles", "Filaments libres"]],
+    ["MÉMOIRE", ["Racines", "Hachures"]],
   ]) {
     await page
-      .getByRole("button", { name: `${universe} Entrer`, exact: true })
+      .getByRole("button", { name: `Choisir ${universe}`, exact: true })
       .click();
+    await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
     await expect(page.locator(".twig-pad")).toHaveCount(6);
 
     await expect(page.getByRole("button", { name: /texture/i })).toHaveCount(0);
