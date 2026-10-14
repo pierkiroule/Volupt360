@@ -1,3 +1,5 @@
+> Archive du prototype photographique, retiré de l’interface. Voir [les corps aquarellés actuels](celestial-brushes.md).
+
 # Brosses photographiques — transduction visuelle et sonore
 
 Les **18 brosses** possèdent chacune leur propre image, dans les trois univers. Une photo ou une image importée est requise avant de peindre avec une brosse. Sa silhouette et son comportement de dépôt sont conservés : rubans, voiles, bulles, réseaux et six brosses de particules.

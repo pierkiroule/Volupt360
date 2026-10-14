@@ -1449,3 +1449,17 @@ label:focus-visible {
   top: 2px;
   right: 3px;
 }
+
+.celestial-instruction {
+  position: fixed;
+  bottom: max(1.1rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(74vw, 34rem);
+  margin: 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #433e38;
+  opacity: 0.7;
+  pointer-events: none;
+}

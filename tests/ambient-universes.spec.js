@@ -109,7 +109,7 @@ test("organic spheres blend by drag, controls survive entry and painting still w
   await page.mouse.up();
   await page.getByLabel("HYPNOS", { exact: true }).fill("0.8");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
-  await expect(page.locator(".twig-pad")).toHaveCount(6);
+  await expect(page.locator(".twig-pad")).toHaveCount(0);
   await expect
     .poll(async () =>
       Number(
@@ -117,23 +117,6 @@ test("organic spheres blend by drag, controls survive entry and painting still w
       ),
     )
     .toBeGreaterThan(0.03);
-  await page
-    .getByRole("button", { name: "Sculpter avec Filaments", exact: true })
-    .click();
-  const photo = await page.evaluate(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 32;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#87a4bc";
-    ctx.fillRect(0, 0, 32, 32);
-    return canvas.toDataURL().split(",")[1];
-  });
-  await page.getByLabel("Importer l’image de Filaments").setInputFiles({
-    name: "matter.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(photo, "base64"),
-  });
-  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.mouse.move(170, 350);
   await page.mouse.down();
   await expect(page.locator("#stage canvas")).toHaveAttribute(
