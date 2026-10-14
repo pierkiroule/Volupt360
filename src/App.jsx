@@ -442,8 +442,8 @@ export default function App() {
         </section>
       ) : atelier !== "mp3" ? (
         <p className="celestial-instruction" role="status">
-          {BRUSHES.find((item) => item.id === brush)?.name} · Traversez les
-          astres pour changer de matière
+          {BRUSHES.find((item) => item.id === brush)?.name} · Double tap sur une
+          planète pour changer de matière
         </p>
       ) : (
         <ControlPanel

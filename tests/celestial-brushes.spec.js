@@ -1,61 +1,91 @@
 import { test, expect } from "@playwright/test";
+test.use({ hasTouch: true });
 
-test("fixed pigment textures and swept celestial encounters are bounded and reproducible", async ({
+test("3D planets select only on double tap and show a single blue halo", async ({
   page,
 }) => {
   await page.goto("/");
-  const result = await page.evaluate(async () => {
+  await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
-    const { BRUSHES } = await import("/src/engine/brushes.js");
-    const { createWatercolorTexture } =
-      await import("/src/engine/createWatercolorTexture.js");
     const { createCelestialBrushes } =
       await import("/src/engine/CelestialBrushes.js");
-    const bindings = new Map(
-      BRUSHES.map((brush, i) => [
-        brush.id,
-        createWatercolorTexture(brush, i + 31, 64),
-      ]),
-    );
-    const first = bindings.get(BRUSHES[0].id);
-    const repeat = createWatercolorTexture(BRUSHES[0], 31, 64);
-    const pixels = (binding) => [
-      ...binding.texture.image.getContext("2d").getImageData(0, 0, 64, 64).data,
-    ];
-    const a = pixels(first),
-      b = pixels(repeat);
+    const texture = new THREE.Texture();
     const hits = [];
-    const bodies = createCelestialBrushes(BRUSHES, bindings, (id) =>
-      hits.push(id),
+    const planets = createCelestialBrushes(
+      [{ id: "one" }, { id: "two" }],
+      new Map([
+        ["one", { texture }],
+        ["two", { texture }],
+      ]),
+      (id) => hits.push(id),
     );
-    bodies.setBrushes([BRUSHES[0].id]);
-    const target = bodies.group.children[0].position.clone();
-    // A high-speed crossing must work even with both endpoints outside the body.
-    bodies.update(0, target.clone().add(new THREE.Vector3(-10, 0, 0)));
-    bodies.update(0.01, target.clone().add(new THREE.Vector3(10, 0, 0)));
-    for (let i = 0; i < 30; i++) bodies.update(0.01, target);
-    const visible = bodies.group.children.filter((body) => body.visible).length;
-    let disposed = 0;
-    bodies.group.children.forEach((body) =>
-      body.material.addEventListener("dispose", () => disposed++),
+    planets.setBrushes(["one", "two"]);
+    const meshes = planets.group.children.filter(
+      (object) => object.userData.brushId,
     );
-    bodies.dispose();
-    bindings.forEach((binding) => binding.texture.dispose());
-    repeat.texture.dispose();
-    return {
-      same: a.every((value, i) => value === b[i]),
-      alpha: new Set(a.filter((_, i) => i % 4 === 3)).size,
+    meshes[0].position.set(-6, 0, 0);
+    meshes[1].position.set(0, 0, 0);
+    planets.group.position.set(2, 0, 0);
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+    camera.position.set(2, 0, 15);
+    camera.lookAt(2, 0, 0);
+    const canvas = document.createElement("canvas");
+    canvas.id = "planet-test";
+    canvas.style.cssText =
+      "position:fixed;left:0;top:0;width:200px;height:200px;z-index:9999;touch-action:none";
+    document.body.append(canvas);
+    let enabled = true;
+    const unbind = planets.bindInput(canvas, camera, () => enabled);
+    window.planetTest = {
       hits,
-      visible,
-      disposed,
-      count: BRUSHES.length,
+      planets,
+      meshes,
+      disable: () => (enabled = false),
+      cleanup: () => {
+        unbind();
+        planets.dispose();
+        texture.dispose();
+        canvas.remove();
+      },
     };
   });
-  expect(result.same).toBe(true);
-  expect(result.alpha).toBeGreaterThan(50);
-  expect(result.hits).toEqual(["voiles"]);
-  expect(result.visible).toBe(1);
-  expect(result.disposed).toBe(result.count);
+  await page.mouse.click(100, 100);
+  expect(await page.evaluate(() => window.planetTest.hits)).toEqual([]);
+  await page.waitForTimeout(400);
+  await page.touchscreen.tap(100, 100);
+  await page.touchscreen.tap(100, 100);
+  const selected = await page.evaluate(() => {
+    const { planets, meshes, hits } = window.planetTest;
+    const halo = planets.group.children.find(
+      (object) => !object.userData.brushId,
+    );
+    return {
+      hits,
+      sphere: meshes.every((mesh) => mesh.geometry.type === "SphereGeometry"),
+      halo: halo.visible,
+      aligned: halo.position.equals(meshes[1].position),
+      solid: meshes.every((mesh) => !mesh.material.transparent),
+    };
+  });
+  expect(selected).toEqual({
+    hits: ["two"],
+    sphere: true,
+    halo: true,
+    aligned: true,
+    solid: true,
+  });
+  await page.waitForTimeout(400);
+  await page.mouse.move(100, 100);
+  await page.mouse.down();
+  await page.mouse.move(130, 100);
+  await page.mouse.move(100, 100);
+  await page.mouse.up();
+  await page.mouse.click(100, 100);
+  expect(await page.evaluate(() => window.planetTest.hits)).toEqual(["two"]);
+  await page.evaluate(() => window.planetTest.disable());
+  await page.mouse.dblclick(100, 100, { delay: 30 });
+  expect(await page.evaluate(() => window.planetTest.hits)).toEqual(["two"]);
+  await page.evaluate(() => window.planetTest.cleanup());
 });
 
 test("mobile atelier paints without imports or pads and keeps photo framing", async ({
@@ -63,6 +93,9 @@ test("mobile atelier paints without imports or pads and keeps photo framing", as
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
