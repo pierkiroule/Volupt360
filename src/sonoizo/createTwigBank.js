@@ -1,4 +1,4 @@
-import { createEchoInstrument } from "../audio/createEchoInstrument.js";
+import { createAmbientMixer } from "../audio/createAmbientMixer.js";
 import { createVisualAudioResponse } from "../audio/createVisualAudioResponse.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
 
@@ -616,15 +616,7 @@ export function createTwigBank({
       instrumentPlayingRequested = true;
       instrument?.dispose();
       instrument = null;
-      const created = await createEchoInstrument(context(), master, {
-        universe,
-        seedBrush:
-          universe === "marees"
-            ? "corolles"
-            : universe === "ramure"
-              ? "falaises"
-              : "voiles",
-      });
+      const created = await createAmbientMixer(context(), master, universe);
       if (disposed || request !== instrumentRequest) {
         created.dispose();
         return;
@@ -632,6 +624,12 @@ export function createTwigBank({
       instrument = created;
       if (instrumentPlayingRequested) instrument.resume();
       emit();
+    },
+    setInstrumentMix(values) {
+      instrument?.setMix?.(values);
+    },
+    setAtmosphere(values) {
+      instrument?.setAtmosphere?.(values);
     },
     depositSound(id, position, energy, key) {
       return instrument?.deposit(id, position, energy, key);

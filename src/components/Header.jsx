@@ -2,12 +2,12 @@ export default function Header({ sonoizo = false }) {
   return (
     <header className="brand">
       <h1>
-        {sonoizo ? "echohypnosis" : "NID SONORE"}
+        {sonoizo ? "ÉCHO & HYPNOS •°" : "NID SONORE"}
         {!sonoizo && <span>•°</span>}
       </h1>
       <p className={sonoizo ? "sonoizo-tagline" : undefined}>
         {sonoizo
-          ? "L’Oizo échohypnotique"
+          ? "Trois univers ambient génératifs"
           : "Paysages d’aquarelle · habiter le son"}
       </p>
     </header>

@@ -113,3 +113,5 @@ L’ambiance musicale est réellement analysée : les basses font respirer les p
 Les mondes sonores **Source, Rivière et Abysses** sont entièrement procéduraux : gouttes résonantes, bulles, courants, écume et réverbération calculée en AudioWorklet. `?sound=legacy` permet de comparer avec la synthèse précédente.
 
 Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-instrument.md). `?instrument=off` restaure le parcours musical MP3 précédent pour comparaison.
+
+Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).

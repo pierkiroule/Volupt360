@@ -2,6 +2,7 @@ import { createWaterSource, prepareWaterAudio } from "./createWaterAudio.js";
 import { createWaterPercussion } from "./createWaterPercussion.js";
 import { createWaterReverb } from "./createWaterReverb.js";
 import { createVisualSoundDialogue } from "./VisualSoundDialogue.js";
+import { createAmbientComposer, AMBIENT_WORLDS } from "./AmbientComposer.js";
 import { SONIC_UNIVERSES } from "./sonicUniverses.js";
 const FAMILIES = {
   souffle: ["voiles", "filaments", "aurore", "dilution", "plumes", "lucioles"],
@@ -32,6 +33,10 @@ export async function createEchoInstrument(
     });
   const profile = SONIC_UNIVERSES[universe] || SONIC_UNIVERSES.souffle;
   const beat = 60 / profile.bpm;
+  const world = AMBIENT_WORLDS[universe] || AMBIENT_WORLDS.souffle;
+  const composer = createAmbientComposer(universe, profile.seed);
+  let echoControl = 0.5,
+    hypnosControl = 0.3;
   await prepareWaterAudio(ctx);
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 2048;
@@ -53,11 +58,12 @@ export async function createEchoInstrument(
   gain.connect(limiter);
   limiter.connect(analyser);
   analyser.connect(destination);
-  const delay = ctx.createDelay(2),
+  const delay = ctx.createDelay(12),
     echoFilter = ctx.createBiquadFilter(),
     feedback = ctx.createGain(),
     wet = ctx.createGain();
-  delay.delayTime.value = beat * profile.delayBeats;
+  delay.delayTime.value =
+    universe === "ramure" ? 3.7 : universe === "marees" ? 2.9 : 4.3;
   feedback.gain.value = profile.feedback;
   echoFilter.type = "lowpass";
   echoFilter.frequency.value = 2800;
@@ -68,6 +74,22 @@ export async function createEchoInstrument(
   feedback.connect(delay);
   echoFilter.connect(wet);
   wet.connect(gain);
+  const extraEchoes =
+    universe === "ramure"
+      ? [6.11, 10.3].map((seconds) => {
+          const tap = ctx.createDelay(12),
+            tone = ctx.createBiquadFilter(),
+            level = ctx.createGain();
+          tap.delayTime.value = seconds;
+          tone.frequency.value = 1800;
+          level.gain.value = seconds > 8 ? 0.08 : 0.12;
+          filter.connect(tap);
+          tap.connect(tone);
+          tone.connect(level);
+          level.connect(gain);
+          return { tap, tone, level };
+        })
+      : [];
   const percussion = createWaterPercussion(ctx, gain, profile);
   const waterBed = createWaterSource(ctx, {
     type: "flow",
@@ -95,6 +117,11 @@ export async function createEchoInstrument(
     seed: profile.seed + 71,
     velocity: profile.padLevel,
   });
+  [0, 2, 4, 6].forEach((degree, i) =>
+    pad.node.parameters
+      .get(`tone${i + 1}`)
+      .setValueAtTime(2 ** (profile.scale[degree] / 12), ctx.currentTime),
+  );
   const padGain = ctx.createGain();
   padGain.gain.value = 0;
   pad.node.connect(padGain);
@@ -115,7 +142,6 @@ export async function createEchoInstrument(
     transportOrigin = 0,
     sequenceStep = 0,
     leadNotes = 0,
-    activity = 0,
     serial = 0,
     total = 0,
     timer,
@@ -131,6 +157,7 @@ export async function createEchoInstrument(
     degreeOverride = null,
     bass = false,
     melodicDuration = null,
+    voiceType = null,
   ) {
     if (
       !active ||
@@ -152,7 +179,9 @@ export async function createEchoInstrument(
       profile.progression[
         Math.max(
           0,
-          Math.floor(((scheduled ?? now) - transportOrigin) / (beat * 8)),
+          Math.floor(
+            ((scheduled ?? now) - transportOrigin) / world.chordPeriod,
+          ),
         ) % profile.progression.length
       ];
     const selection =
@@ -200,7 +229,7 @@ export async function createEchoInstrument(
     envelope.connect(panner);
     panner.connect(filter);
     const waterSource = createWaterSource(ctx, {
-      type: bass ? "bass" : profile.materials[familyIndex],
+      type: bass ? "bass" : voiceType || world.type,
       startAt: start,
       duration,
       frequency,
@@ -280,7 +309,7 @@ export async function createEchoInstrument(
     waterBed.node.parameters
       .get("gate")
       .setValueAtTime(autonomous ? 1 : 0, ctx.currentTime);
-    bedGain.gain.setTargetAtTime(autonomous ? 0.85 : 0, ctx.currentTime, 0.2);
+    bedGain.gain.setTargetAtTime(autonomous ? 0.18 : 0, ctx.currentTime, 0.2);
     pad.node.parameters.get("gate").cancelScheduledValues(ctx.currentTime);
     pad.node.parameters
       .get("gate")
@@ -289,87 +318,108 @@ export async function createEchoInstrument(
     if (!autonomous) return;
     transportOrigin = ctx.currentTime + 0.06;
     sequenceStep = 0;
-    const tickDuration = beat / 2;
     const schedule = () => {
       if (!active || ctx.state !== "running") return;
-      // Schedule with AudioContext time, never with timer jitter; skip missed ticks.
-      if (
-        transportOrigin + sequenceStep * tickDuration <
-        ctx.currentTime - 0.02
-      )
-        sequenceStep = Math.ceil(
-          (ctx.currentTime - transportOrigin) / tickDuration,
-        );
-      while (
-        transportOrigin + sequenceStep * tickDuration <
-        ctx.currentTime + 0.16
-      ) {
-        const form = dialogue.state;
+      const form = dialogue.state;
+      const chordIndex =
+        Math.floor(
+          Math.max(0, ctx.currentTime - transportOrigin) / world.chordPeriod,
+        ) % profile.progression.length;
+      const rootDegree = profile.progression[chordIndex];
+      const chordShape =
+        universe === "souffle"
+          ? [
+              [0, 2, 4, 6],
+              [0, 2, 4, 8],
+              [0, 1, 4, 8],
+            ][chordIndex % 3]
+          : [0, 2, 4, 6];
+      chordShape.forEach((offset, i) => {
+        const degree = rootDegree + offset;
+        const semitone =
+          profile.scale[degree % profile.scale.length] +
+          Math.floor(degree / profile.scale.length) * 12;
         pad.node.parameters
-          .get("shape")
-          .setTargetAtTime(form.brightness, ctx.currentTime, 0.4);
-        padGain.gain.setTargetAtTime(
-          0.7 + form.density * 0.25,
-          ctx.currentTime,
-          0.8,
-        );
-        filter.frequency.setTargetAtTime(
-          profile.cutoff * (0.65 + form.brightness * 0.55),
-          ctx.currentTime,
-          0.5,
-        );
-        const step = sequenceStep % 16,
-          bar = Math.floor(sequenceStep / 16);
-        const start =
-          transportOrigin +
-          sequenceStep * tickDuration +
-          (step % 2 ? profile.swing * tickDuration : 0);
-        for (const kind of ["kick", "wood", "shaker"]) {
-          const velocity = profile.rhythm[kind][step];
-          if (velocity)
-            percussion.hit(kind, start, velocity * (0.8 + activity * 0.2));
-        }
-        const memories = [...motifs.values()];
-        const motif = memories.length ? memories[bar % memories.length] : null;
-        const brush = motif?.brush || seedBrush;
-        const point = motif?.position || { x: -8, y: 4, z: 12 };
-        const melody = profile.lead.find((event) => event[0] === step);
-        if (melody) {
-          const [, degree, length, velocity] = melody;
-          // Alternate a composed question with its softer, descending answer.
-          const pitch = Math.max(
-            0,
-            degree +
-              Math.round((form.brightness - 0.45) * 3) -
-              (bar % 4 === 3 ? 1 : 0),
+          .get(`tone${i + 1}`)
+          .setTargetAtTime(
+            2 ** (semitone / 12),
+            ctx.currentTime,
+            12 + hypnosControl * 18,
           );
-          if (
-            note(
-              brush,
-              point,
-              velocity * (0.65 + activity * 0.2),
-              true,
-              motif?.key,
-              start,
-              pitch,
-              false,
-              beat * length * (1.2 - form.speed * 0.4),
-            )
+      });
+      extraEchoes.forEach(({ level }, i) =>
+        level.gain.setTargetAtTime(
+          echoControl * (i ? 0.16 : 0.24),
+          ctx.currentTime,
+          3,
+        ),
+      );
+      pad.node.parameters
+        .get("shape")
+        .setTargetAtTime(
+          form.brightness * (1 - hypnosControl * 0.4),
+          ctx.currentTime,
+          3,
+        );
+      filter.frequency.setTargetAtTime(
+        profile.cutoff *
+          (0.65 + form.brightness * 0.55) *
+          (1 - hypnosControl * 0.35),
+        ctx.currentTime,
+        5,
+      );
+      feedback.gain.setTargetAtTime(
+        0.12 + echoControl * 0.32,
+        ctx.currentTime,
+        2,
+      );
+      wet.gain.setTargetAtTime(
+        profile.send * (0.3 + echoControl),
+        ctx.currentTime,
+        2,
+      );
+      const events = composer.next(ctx.currentTime - transportOrigin, {
+        echo: echoControl,
+        hypnos: hypnosControl,
+        brightness: form.brightness,
+      });
+      for (const event of events) {
+        const memories = [...motifs.values()];
+        const motif = memories.length
+          ? memories[sequenceStep % memories.length]
+          : null;
+        const angle = sequenceStep * 2.39996 + event.layer;
+        const position = motif?.position || {
+          x: Math.cos(angle) * world.space,
+          y: event.layer * 3,
+          z: Math.sin(angle) * world.space,
+        };
+        if (
+          note(
+            motif?.brush || seedBrush,
+            position,
+            event.velocity,
+            true,
+            motif?.key,
+            transportOrigin + event.time,
+            event.degree,
+            false,
+            event.duration,
           )
-            leadNotes++;
-        }
-        if (step === 0 || step === 8)
+        )
+          leadNotes++;
+        if (event.layer === 0 && sequenceStep % 3 === 0)
           note(
             "falaises",
-            { x: 0, y: -8, z: 16 },
-            step === 0 ? 0.42 : 0.3,
+            { x: 0, y: -8, z: 12 },
+            0.3,
             true,
             null,
-            start,
-            step === 0 ? 0 : 4,
+            transportOrigin + event.time,
+            0,
             true,
+            7 + hypnosControl * 5,
           );
-        activity *= 0.94;
         sequenceStep++;
       }
     };
@@ -378,6 +428,10 @@ export async function createEchoInstrument(
   }
   return {
     graph,
+    setAtmosphere({ echo = echoControl, hypnos = hypnosControl }) {
+      echoControl = Math.max(0, Math.min(1, echo));
+      hypnosControl = Math.max(0, Math.min(1, hypnos));
+    },
     resume,
     pause,
     deposit(brush, position, energy, key = brush) {
@@ -389,7 +443,6 @@ export async function createEchoInstrument(
           ctx.currentTime,
           0.2,
         );
-      activity = Math.min(1, activity + Math.max(0, energy || 0) * 0.15);
       let motif = motifs.get(key);
       if (!motif) {
         if (motifs.size >= 80) motifs.delete(motifs.keys().next().value);
@@ -417,6 +470,7 @@ export async function createEchoInstrument(
       const age = ctx.currentTime - resonance.start;
       if (age < 0 || age > resonance.duration) return 0;
       return (
+        (0.25 + echoControl * 0.75) *
         resonance.strength *
         Math.min(1, age / 0.08) *
         Math.exp(-age / (resonance.duration * 0.4))
@@ -465,7 +519,10 @@ export async function createEchoInstrument(
         retiringVoices: retiring.size,
         universe,
         bpm: profile.bpm,
-        soundWorld: profile.name,
+        soundWorld: world.name,
+        composition: composer.stats,
+        echo: echoControl,
+        hypnos: hypnosControl,
         synthesis: "procedural-water",
         dialogue: dialogue.state,
         padActive: active && autonomous,
@@ -482,6 +539,11 @@ export async function createEchoInstrument(
       disposed = true;
       pause();
       for (const voice of retiring) voice.release();
+      extraEchoes.forEach(({ tap, tone, level }) => {
+        tap.disconnect();
+        tone.disconnect();
+        level.disconnect();
+      });
       percussion.dispose();
       reverb.dispose();
       pad.disconnect();

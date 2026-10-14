@@ -14,8 +14,9 @@ test("three universes partition the twelve brushes and changing universe starts 
   expect([...all].sort()).toEqual([...groups.brushes].sort());
   for (const universe of groups.universes) {
     await page
-      .getByRole("button", { name: `${universe.name} Entrer`, exact: true })
+      .getByRole("button", { name: `Choisir ${universe.name}`, exact: true })
       .click();
+    await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
     await expect(page.locator(".twig-pad")).toHaveCount(6);
     for (const id of universe.brushes)
       await expect(page.locator(`.twig-${id}`)).toBeVisible();
@@ -35,8 +36,9 @@ test("hold makes the flying oizo paint with the last selected brush, and keep no
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/?instrument=off");
   await page
-    .getByRole("button", { name: "Le Souffle Entrer", exact: true })
+    .getByRole("button", { name: "Choisir ÉTHER", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await page
     .getByRole("button", { name: "Sculpter avec Filaments", exact: true })
     .click();
@@ -85,8 +87,9 @@ test("releasing early or losing focus cancels pending and active direct painting
 }) => {
   await page.goto("/?instrument=off");
   await page
-    .getByRole("button", { name: "La Ramure Entrer", exact: true })
+    .getByRole("button", { name: "Choisir MÉMOIRE", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   const canvas = page.locator("#stage canvas");
   await page.mouse.move(450, 280);
   await page.mouse.down();
@@ -109,8 +112,9 @@ test.describe("native mobile direct painting", () => {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("/?instrument=off");
     await page
-      .getByRole("button", { name: "Les Marées Entrer", exact: true })
+      .getByRole("button", { name: "Choisir ABYSSE", exact: true })
       .tap();
+    await page.getByRole("button", { name: "Entrer dans le paysage" }).tap();
     await page
       .getByRole("button", { name: "Sculpter avec Bulles", exact: true })
       .tap();

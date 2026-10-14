@@ -1,7 +1,7 @@
 // Seeded synthetic impulse response, calculated once, never fetched from a file.
 export function createWaterReverb(ctx, destination, profile) {
   const seconds =
-    profile.waterColor === 2 ? 2.8 : profile.waterColor === 1 ? 1.6 : 1.1;
+    profile.waterColor === 0 ? 4.5 : profile.waterColor === 2 ? 3.8 : 2.8;
   const response = ctx.createBuffer(
     2,
     Math.ceil(ctx.sampleRate * seconds),

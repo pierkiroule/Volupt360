@@ -43,6 +43,15 @@ export class WaterDSP {
     this.impactDecay = Math.exp(-100 / sampleRate);
     const cutoff = type === "spray" ? 1800 : color === 2 ? 65 : 320;
     this.filterCoefficient = 1 - Math.exp((-2 * Math.PI * cutoff) / sampleRate);
+    const delayLength = Math.max(
+      2,
+      Math.round(sampleRate / this.frequency - 0.5),
+    );
+    this.string = type === "string" ? new Float64Array(delayLength) : null;
+    this.stringIndex = 0;
+    if (this.string)
+      for (let i = 0; i < delayLength; i++)
+        this.string[i] = (this.random() * 2 - 1) * 0.45;
     this.bassRatios = [1, 2, 3, 4];
     this.bassWeights = [1, 0.3, 0.12, 0.04];
     this.pitches = scale.map((semitone) => 2 ** (semitone / 12));
@@ -51,13 +60,50 @@ export class WaterDSP {
     this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0;
     return this.seed / 4294967296;
   }
-  render(energy = 0, shape = 0.45, frequencyFactor = 1) {
+  render(energy = 0, shape = 0.45, frequencyFactor = 1, tones = this.pitches) {
     const t = this.age++ / this.rate;
     if (this.type !== "flow" && this.type !== "pad" && t >= this.duration)
       return 0;
     const noise = this.random() * 2 - 1;
+    if (this.type === "string") {
+      const i = this.stringIndex,
+        next = (i + 1) % this.string.length;
+      const value = this.string[i];
+      this.string[i] = (value + this.string[next]) * 0.49975;
+      this.stringIndex = next;
+      return (
+        value *
+        this.velocity *
+        Math.min(1, t / 0.008) *
+        Math.min(1, Math.max(0, (this.duration - t) / 0.1))
+      );
+    }
+    if (this.type === "bell" || this.type === "felt") {
+      this.phase[0] += (2 * Math.PI * this.frequency) / this.rate;
+      this.phase[1] +=
+        (2 * Math.PI * this.frequency * (this.type === "bell" ? 2.01 : 1)) /
+        this.rate;
+      for (let i = 0; i < 2; i++)
+        if (this.phase[i] > Math.PI * 2) this.phase[i] -= Math.PI * 2;
+      const decay = Math.exp(
+        -t / (this.duration * (this.type === "bell" ? 0.35 : 0.22)),
+      );
+      const fm = Math.sin(
+        this.phase[0] +
+          Math.sin(this.phase[1]) * decay * (this.type === "bell" ? 0.8 : 0.22),
+      );
+      const partial = Math.sin(this.phase[0] * 2) * 0.13 * decay;
+      return (
+        (fm + partial) *
+        decay *
+        this.velocity *
+        0.42 *
+        Math.min(1, t / 0.012) *
+        Math.min(1, Math.max(0, (this.duration - t) / 0.08))
+      );
+    }
     if (this.type === "pad" || this.type === "bass") {
-      const ratios = this.type === "pad" ? this.pitches : this.bassRatios;
+      const ratios = this.type === "pad" ? tones : this.bassRatios;
       let sound = 0;
       for (let i = 0; i < 4; i++) {
         const ratio = ratios[i % ratios.length];

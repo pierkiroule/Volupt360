@@ -134,7 +134,7 @@ test("a single worklet module serves universe changes, cancellation and bounded 
     return { latest, removed, moduleLoads, pausedDuringLoad, resumedAfterLoad };
   });
   expect(result.latest.universe).toBe("ramure");
-  expect(result.latest.soundWorld).toBe("Abysses");
+  expect(result.latest.soundWorld).toBe("MÉMOIRE");
   expect(result.latest.synthesis).toBe("procedural-water");
   expect(result.removed).toBeNull();
   expect(result.pausedDuringLoad).toBe(false);
@@ -158,15 +158,17 @@ test("a worklet loading error is reported and the previous synth can be restored
   });
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Le Souffle Entrer", exact: true })
+    .getByRole("button", { name: "Choisir ÉTHER", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(page.locator(".universe-error")).toContainText(
     "Synthèse aquatique",
   );
   await page.goto("/?sound=legacy");
   await page
-    .getByRole("button", { name: "Le Souffle Entrer", exact: true })
+    .getByRole("button", { name: "Choisir ÉTHER", exact: true })
     .click();
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect
     .poll(async () =>
       Number(

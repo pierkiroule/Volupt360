@@ -7,7 +7,7 @@ export default function ArtisticIntroduction() {
       <span className="artistic-eyebrow">Démarche artistique</span>
       <h2 id="artistic-intention">Explorer les phénomènes échohypnotiques</h2>
       <p className="artistic-lead">
-        echohypnosis est une expérimentation artistique interactive à la
+        ÉCHO & HYPNOS •° est une expérimentation artistique interactive à la
         rencontre de la musique générative, de la peinture dans l’espace et de
         la contemplation. Elle explore les phénomènes que nous proposons de
         nommer
