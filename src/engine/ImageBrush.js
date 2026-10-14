@@ -1,5 +1,4 @@
 import * as THREE from "three";
-export const IMAGE_BRUSH_ID = "voiles";
 
 export async function createImageBrush(file) {
   if (!file || !/^image\/(jpeg|png|webp|avif|gif)$/.test(file.type))
@@ -7,20 +6,23 @@ export async function createImageBrush(file) {
   if (file.size > 15 * 1024 * 1024)
     throw new Error("L’image doit faire moins de 15 Mo.");
   const bitmap = await createImageBitmap(file, {
-    resizeWidth: 256,
-    resizeHeight: 256,
-    resizeQuality: "high",
     imageOrientation: "from-image",
   });
   try {
+    if (bitmap.width * bitmap.height > 40000000)
+      throw new Error("Réduisez l’image à moins de 40 mégapixels.");
+    const scale = Math.min(1, 384 / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(16, Math.round(bitmap.width * scale)),
+      height = Math.max(16, Math.round(bitmap.height * scale));
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 256;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(bitmap, 0, 0, 256, 256);
+    ctx.drawImage(bitmap, 0, 0, width, height);
     const thumbnail = canvas.toDataURL("image/jpeg", 0.75);
-    const image = ctx.getImageData(0, 0, 256, 256),
+    const image = ctx.getImageData(0, 0, width, height),
       pixels = image.data;
-    const light = new Float32Array(256 * 256),
+    const light = new Float32Array(width * height),
       cells = Array.from({ length: 256 }, () => ({
         r: 0,
         g: 0,
@@ -39,15 +41,19 @@ export async function createImageBrush(file) {
     let mean = 0,
       variance = 0,
       edges = 0;
-    for (let y = 0; y < 256; y++)
-      for (let x = 0; x < 256; x++) {
-        const i = y * 256 + x,
-          cell = cells[Math.floor(y / 16) * 16 + Math.floor(x / 16)],
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) {
+        const i = y * width + x,
+          cell =
+            cells[
+              Math.min(15, Math.floor((y * 16) / height)) * 16 +
+                Math.min(15, Math.floor((x * 16) / width))
+            ],
           l = light[i];
         const edge = Math.min(
           1,
-          (Math.abs(l - light[y * 256 + Math.min(255, x + 1)]) +
-            Math.abs(l - light[Math.min(255, y + 1) * 256 + x])) *
+          (Math.abs(l - light[y * width + Math.min(width - 1, x + 1)]) +
+            Math.abs(l - light[Math.min(height - 1, y + 1) * width + x])) *
             3,
         );
         const r = pixels[i * 4] / 255,
@@ -64,9 +70,8 @@ export async function createImageBrush(file) {
         variance += l * l;
         edges += edge;
         // A photographic alpha, with a floor so pale images still deposit matter.
-        pixels[i * 4] = pixels[i * 4 + 1] = pixels[i * 4 + 2] = 255;
         pixels[i * 4 + 3] = Math.round(
-          (0.1 + 0.65 * (1 - l) + 0.25 * edge) *
+          (0.65 + 0.25 * edge + 0.1 * (1 - l)) *
             (pixels[i * 4 + 3] / 255) *
             255,
         );
@@ -89,12 +94,13 @@ export async function createImageBrush(file) {
     };
     ctx.putImageData(image, 0, 0);
     const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.needsUpdate = true;
     return {
       thumbnail,
       stats,
-      binding: { texture, aspect: 1, repeat: 2 },
+      binding: { texture, aspect: width / height, repeat: 1, photograph: true },
       sample(position) {
         const u =
           (((Math.atan2(position.z, position.x) / (Math.PI * 2)) % 1) + 1) % 1;

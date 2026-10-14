@@ -1,5 +1,12 @@
 import { useEffect, useRef } from "react";
-export function ImageBrushPicker({ open, busy, error, onFile, onClose }) {
+export function ImageBrushPicker({
+  open,
+  busy,
+  error,
+  onFile,
+  onClose,
+  brushName,
+}) {
   const camera = useRef(null),
     library = useRef(null);
   const panel = useRef(null);
@@ -40,7 +47,7 @@ export function ImageBrushPicker({ open, busy, error, onFile, onClose }) {
         aria-labelledby="image-brush-title"
         className="image-brush-picker"
       >
-        <h2 id="image-brush-title">Une image pour Voiles</h2>
+        <h2 id="image-brush-title">Une image pour {brushName}</h2>
         <p>
           Ses couleurs, son grain et ses contours deviennent matière et
           résonance. Traitement local, sans envoi.
@@ -51,7 +58,7 @@ export function ImageBrushPicker({ open, busy, error, onFile, onClose }) {
           accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
           capture="environment"
           className="sr-only"
-          aria-label="Photographier la matière de Voiles"
+          aria-label={`Photographier la matière de ${brushName}`}
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = "";
@@ -63,7 +70,7 @@ export function ImageBrushPicker({ open, busy, error, onFile, onClose }) {
           type="file"
           accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
           className="sr-only"
-          aria-label="Importer l’image de Voiles"
+          aria-label={`Importer l’image de ${brushName}`}
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = "";

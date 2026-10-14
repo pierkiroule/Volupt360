@@ -116,4 +116,4 @@ Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-i
 
 Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
 
-**Voiles — pilote photographique** : une photo ou image importée fournit sa texture, sa palette et une identité sonore procédurale. Traitement local en session ; les autres brosses restent accessibles. Voir [la transduction et ses limites](docs/image-brush-transduction.md).
+**18 brosses photographiques** : chaque pad reçoit sa photo ou image importée, utilisée en couleurs pour sa matière et sa résonance sonore procédurale. Les détails et proportions de l’image source sont préservés à l’import. Traitement local en session. Voir [la transduction et ses limites](docs/image-brush-transduction.md).
