@@ -22,7 +22,10 @@ import { createPainterFlight } from "./createPainterFlight.js";
 /** A living XYZ trail: the painter moves, the watercolor grows behind it,
  * and the drone films that movement instead of circling a fixed installation.
  */
-export function createSoundNest(container, { onHint, onError } = {}) {
+export function createSoundNest(
+  container,
+  { onHint, onError, onImageRequired } = {},
+) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.setSize(innerWidth, innerHeight);
@@ -96,6 +99,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     ? createGenerativeMaterials()
     : null;
   const textures = new Map();
+  const imageBrushes = new Map();
   let cameraMode = "drone";
   let photo = false,
     videodio = null;
@@ -137,7 +141,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   function beginStroke(id, pose) {
     closeStroke();
-    const color = palette.colorFor(id, serial);
+    const color =
+      imageBrushes.get(id)?.sample(pose.position).color.clone() ||
+      palette.colorFor(id, serial);
     const region = compositionAt(pose.position);
     const textureLease = textures.has(id)
       ? null
@@ -185,6 +191,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     renderer.domElement.dataset.markCount = String(marks.length);
   }
   function addSample(pose, fromPad = false) {
+    if (brush === "voiles" && !imageBrushes.has(brush)) return;
     const region = compositionAt(pose.position);
     if (region.density < 0.24 && !fromPad) {
       closeStroke();
@@ -327,6 +334,11 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       cameraMode !== "drone"
     )
       return;
+    if (brush === "voiles" && !imageBrushes.has(brush)) {
+      cancelSteering();
+      onImageRequired?.(brush);
+      return;
+    }
     bridge.close();
     nozzlePaint = { id: brush, samples: 0 };
     renderer.domElement.dataset.nozzlePaint = "true";
@@ -755,6 +767,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         closeStroke();
       }
     },
+    setImageBrush(id, profile) {
+      imageBrushes.set(id, profile);
+      this.setBrushTexture(id, profile.binding);
+    },
     setBrushTexture(id, binding) {
       const previous = textures.get(id);
       textures.set(id, binding);
@@ -858,6 +874,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       marks.forEach(destroyStroke);
       generative?.dispose();
       textures.forEach((binding) => binding.texture.dispose());
+      imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();
       effects.dispose();

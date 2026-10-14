@@ -3,6 +3,8 @@ import { BRUSHES } from "../engine/brushes.js";
 import { MAX_TWIG_SECONDS } from "../sonoizo/createTwigBank.js";
 
 export default function TwigWorkshop({
+  imageBrushes = {},
+  onImageRequest = () => {},
   mode,
   brushes = BRUSHES,
   onBrush = () => {},
@@ -13,6 +15,8 @@ export default function TwigWorkshop({
   clearError,
 }) {
   const audioInput = useRef(null);
+  const imageHold = useRef(null);
+  useEffect(() => () => clearTimeout(imageHold.current), []);
   const [selected, setSelected] = useState(BRUSHES[0].id);
   const [elapsed, setElapsed] = useState(0);
   const recording = snapshot.recording;
@@ -53,12 +57,24 @@ export default function TwigWorkshop({
   function press(event, id) {
     if (event.button > 0) return;
     event.preventDefault();
+    if (id === "voiles") {
+      if (!imageBrushes.voiles) {
+        onImageRequest();
+        return;
+      }
+      clearTimeout(imageHold.current);
+      imageHold.current = setTimeout(() => {
+        bank.current?.release(event.pointerId, true);
+        onImageRequest();
+      }, 700);
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
     clearError();
     onBrush(id);
     bank.current?.press(id, event.pointerId);
   }
   function release(event, cancel = false) {
+    clearTimeout(imageHold.current);
     bank.current?.release(event.pointerId, cancel);
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -118,6 +134,19 @@ export default function TwigWorkshop({
                   ? `Sculpter avec ${brush.name}`
                   : `${listening ? (item.text ? "Jouer le fragment" : "Jouer la brindille") : item.text ? "Fragment" : "Brindille"} ${brush.name}`
               }
+              data-image-ready={
+                brush.id === "voiles" ? Boolean(imageBrushes.voiles) : undefined
+              }
+              onContextMenu={
+                brush.id === "voiles"
+                  ? (event) => {
+                      event.preventDefault();
+                      clearTimeout(imageHold.current);
+                      bank.current?.stopAll();
+                      onImageRequest();
+                    }
+                  : undefined
+              }
               title={
                 snapshot.fireflies
                   ? brush.name
@@ -136,6 +165,10 @@ export default function TwigWorkshop({
                       snapshot.activeVocalId !== brush.id)))
               }
               onClick={(event) => {
+                if (brush.id === "voiles" && !imageBrushes.voiles) {
+                  onImageRequest();
+                  return;
+                }
                 onBrush(brush.id);
                 if (!listening) {
                   setSelected(brush.id);
@@ -162,7 +195,10 @@ export default function TwigWorkshop({
               }
               onLostPointerCapture={
                 listening
-                  ? (event) => bank.current?.release(event.pointerId)
+                  ? (event) => {
+                      clearTimeout(imageHold.current);
+                      bank.current?.release(event.pointerId);
+                    }
                   : undefined
               }
               onKeyDown={
@@ -170,6 +206,10 @@ export default function TwigWorkshop({
                   ? (event) => {
                       if (!["Enter", " "].includes(event.key)) return;
                       event.preventDefault();
+                      if (brush.id === "voiles" && !imageBrushes.voiles) {
+                        onImageRequest();
+                        return;
+                      }
                       if (!event.repeat) {
                         onBrush(brush.id);
                         bank.current?.press(brush.id, `key-${brush.id}`);
@@ -193,6 +233,18 @@ export default function TwigWorkshop({
                   : undefined
               }
             >
+              {brush.id === "voiles" && imageBrushes.voiles && (
+                <img
+                  className="twig-image"
+                  src={imageBrushes.voiles.thumbnail}
+                  alt=""
+                />
+              )}
+              {brush.id === "voiles" && !imageBrushes.voiles && (
+                <span className="twig-image-missing" aria-hidden="true">
+                  ＋
+                </span>
+              )}
               <span className="twig-glyph" aria-hidden="true">
                 {brush.glyph}
               </span>

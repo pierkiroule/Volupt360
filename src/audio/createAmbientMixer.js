@@ -78,6 +78,9 @@ export async function createAmbientMixer(ctx, destination, initial) {
       weights = IDS.map((_, i) => Math.max(0, values[i] || 0) / sum);
       apply();
     },
+    setBrushImage(id, profile) {
+      instruments.forEach((item) => item.setBrushImage?.(id, profile));
+    },
     setAtmosphere(values) {
       instruments.forEach((item) => item.setAtmosphere?.(values));
     },
