@@ -1,5 +1,3 @@
-import { createImageBrush } from "./engine/ImageBrush.js";
-import { ImageBrushPicker } from "./components/ImageBrushPicker.jsx";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
 import { AtmosphereSpheres } from "./components/AtmosphereSpheres.jsx";
@@ -14,17 +12,11 @@ import { createLoopPlayer } from "./audio/createLoopPlayer.js";
 import { analyzeLoops } from "./audio/analyzeLoops.js";
 import { ENABLE_SONOIZO } from "./sonoizo/config.js";
 import { useTwigBank } from "./sonoizo/useTwigBank.js";
-import TwigWorkshop from "./components/TwigWorkshop.jsx";
 
 const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
-  const [imageBrushes, setImageBrushes] = useState({});
-  const [imagePicker, setImagePicker] = useState(null);
-  const [imageBusy, setImageBusy] = useState(false);
-  const [imageError, setImageError] = useState("");
-  const imageRequest = useRef(0);
   const [universe, setUniverse] = useState(null);
   const [atmosphereMix, setAtmosphereMix] = useState([1, 0, 0]);
   const [atmosphere, setAtmosphere] = useState({ echo: 0.5, hypnos: 0.3 });
@@ -91,10 +83,7 @@ export default function App() {
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
-        onImageRequired: (id) => {
-          setImageError("");
-          setImagePicker(id);
-        },
+        onBrushChange: setBrush,
         onHint: setHint,
         onError: setSceneError,
       });
@@ -109,7 +98,6 @@ export default function App() {
       );
     }
     return () => {
-      imageRequest.current++;
       loadRequest.current++;
       universeRequest.current++;
       engine.current?.dispose();
@@ -128,6 +116,7 @@ export default function App() {
     setUniverse(choice.id);
     engine.current?.reset();
     chooseBrush(choice.brushes[0]);
+    engine.current?.setCelestialBrushes(choice.brushes);
     chooseCamera("drone");
     setDistance(0);
     engine.current?.setDroneDistance(0);
@@ -156,37 +145,6 @@ export default function App() {
       setUniverseError(
         "L’ambiance de cet univers est indisponible : ambiance01.mp3 manque ou ne peut pas être lu.",
       );
-  }
-  async function importBrushImage(file) {
-    const id = imagePicker;
-    if (!id) return;
-    const request = ++imageRequest.current;
-    setImageBusy(true);
-    setImageError("");
-    let profile;
-    try {
-      profile = await createImageBrush(file);
-      if (request !== imageRequest.current || !engine.current) {
-        profile.binding.texture.dispose();
-        return;
-      }
-      engine.current.setImageBrush(id, profile);
-      twigs.bank.current?.setBrushImage(id, profile);
-      setImageBrushes((previous) => ({
-        ...previous,
-        [id]: {
-          thumbnail: profile.thumbnail,
-          stats: profile.stats,
-        },
-      }));
-      setImagePicker(null);
-      chooseBrush(id);
-      void twigs.bank.current?.preparePlayback();
-    } catch (error) {
-      if (request === imageRequest.current) setImageError(error.message);
-    } finally {
-      if (request === imageRequest.current) setImageBusy(false);
-    }
   }
   function chooseBrush(id) {
     setBrush(id);
@@ -326,20 +284,6 @@ export default function App() {
     >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
-      <ImageBrushPicker
-        open={Boolean(imagePicker)}
-        brushName={
-          BRUSHES.find((brush) => brush.id === imagePicker)?.name || "la brosse"
-        }
-        busy={imageBusy}
-        error={imageError}
-        onFile={importBrushImage}
-        onClose={() => {
-          imageRequest.current++;
-          setImageBusy(false);
-          setImagePicker(null);
-        }}
-      />
       {immersive &&
         !universe &&
         !new URLSearchParams(location.search).has("samples") && (
@@ -440,52 +384,6 @@ export default function App() {
         <span>UN VOYAGE DANS LA MATIÈRE</span>
         <span>Glisser pour guider · maintenir pour tracer</span>
       </div>
-      {immersive && !twigs.snapshot.fireflies && mode !== "photo" && (
-        <button
-          className="atelier-toggle"
-          aria-label={
-            toolsOpen
-              ? "Replier les fonctionnalités"
-              : "Déplier les fonctionnalités"
-          }
-          aria-expanded={toolsOpen}
-          aria-controls="atelier-tools"
-          onClick={() => {
-            if (toolsOpen) chooseAtelier("jouer");
-            setToolsOpen(!toolsOpen);
-          }}
-        >
-          <span aria-hidden="true">{toolsOpen ? "−" : "+"}</span>
-        </button>
-      )}
-      {ENABLE_SONOIZO &&
-        !twigs.snapshot.fireflies &&
-        (!immersive || toolsOpen) && (
-          <nav
-            id="atelier-tools"
-            className={`atelier-nav ${atelier !== "mp3" ? "with-twigs" : ""}`}
-            aria-label="Atelier sonore"
-          >
-            {[
-              [
-                "cueillir",
-                new URLSearchParams(location.search).get("samples") === "empty"
-                  ? "Mes sons"
-                  : "Poèmes",
-              ],
-              ["jouer", "Jouer"],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                aria-pressed={atelier === id}
-                onClick={() => chooseAtelier(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-        )}
-
       {mode === "photo" && immersive ? (
         <section className="photo-panel" aria-label="Cadrer une vidéodio">
           <p>Glisser pour tourner · pincer ou molette pour zoomer</p>
@@ -543,26 +441,10 @@ export default function App() {
           )}
         </section>
       ) : atelier !== "mp3" ? (
-        <TwigWorkshop
-          mode={atelier}
-          {...twigs}
-          brushes={
-            universe
-              ? BRUSHES.filter((item) =>
-                  UNIVERSES.find(
-                    (choice) => choice.id === universe,
-                  ).brushes.includes(item.id),
-                )
-              : BRUSHES
-          }
-          imageBrushes={imageBrushes}
-          onImageRequest={(id) => {
-            setImageError("");
-            setImagePicker(id);
-          }}
-          selectedBrush={brush}
-          onBrush={chooseBrush}
-        />
+        <p className="celestial-instruction" role="status">
+          {BRUSHES.find((item) => item.id === brush)?.name} · Traversez les
+          astres pour changer de matière
+        </p>
       ) : (
         <ControlPanel
           brush={brush}
