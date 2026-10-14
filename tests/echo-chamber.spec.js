@@ -1,5 +1,91 @@
 import { test, expect } from "@playwright/test";
 
+test("default sky presence is perceptible early and remains visible in a populated scene after view effects", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { createEchoChamber } = await import("/src/engine/EchoChamber.js");
+    const { createViewEffects } =
+      await import("/src/engine/createViewEffects.js");
+    const renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
+    renderer.setSize(128, 128);
+    const effects = createViewEffects(renderer),
+      scene = new THREE.Scene();
+    scene.background = new THREE.Color("#f4f0e8");
+    const camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+    const chamber = createEchoChamber({ mobile: true });
+    scene.add(chamber.mesh);
+    const pixels = new Uint8Array(128 * 128 * 4);
+    const image = () => {
+      effects.render(scene, camera);
+      renderer
+        .getContext()
+        .readPixels(
+          0,
+          0,
+          128,
+          128,
+          renderer.getContext().RGBA,
+          renderer.getContext().UNSIGNED_BYTE,
+          pixels,
+        );
+      return pixels.slice();
+    };
+    const blank = image();
+    const metrics = (data) => {
+      let changed = 0,
+        max = 0,
+        sum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const delta = Math.max(
+          ...[0, 1, 2].map((c) => Math.abs(data[i + c] - blank[i + c])),
+        );
+        if (delta >= 3) changed++;
+        max = Math.max(max, delta);
+        sum += delta;
+      }
+      return { changed, max, mean: sum / (128 * 128) };
+    };
+    chamber.onTraceCreated({
+      id: "facing",
+      brush: "voiles",
+      color: "#8babb7",
+      position: { x: 0, y: 0, z: -10 },
+    });
+    for (let i = 0; i < 30; i++) chamber.update(0.1);
+    const early = metrics(image());
+    for (let i = 0; i < 31; i++) {
+      const angle = ((i + 0.5) * Math.PI * 2) / 31;
+      chamber.onTraceCreated({
+        id: `other-${i}`,
+        brush: "filaments",
+        color: "#8babb7",
+        position: { x: Math.cos(angle) * 20, y: 12, z: Math.sin(angle) * 20 },
+      });
+    }
+    for (let i = 0; i < 150; i++) chamber.update(0.1);
+    const populated = metrics(image());
+    chamber.configure({ presence: 0.15 });
+    const low = metrics(image());
+    chamber.configure({ enabled: false });
+    const disabled = metrics(image());
+    chamber.dispose();
+    effects.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    return { early, populated, low, disabled };
+  });
+  expect(result.early.changed).toBeGreaterThan(30);
+  expect(result.early.max).toBeGreaterThanOrEqual(6);
+  expect(result.populated.changed).toBeGreaterThan(100);
+  expect(result.populated.max).toBeGreaterThanOrEqual(8);
+  expect(result.populated.mean).toBeLessThan(20);
+  expect(result.low.mean).toBeLessThan(result.populated.mean);
+  expect(result.disabled.max).toBe(0);
+});
+
 test("spherical memory wraps the seam, rejects the origin, remains bounded and retains expired traces", async ({
   page,
 }) => {
