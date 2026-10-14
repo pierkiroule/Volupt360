@@ -1,4 +1,4 @@
-import { createImageBrush, IMAGE_BRUSH_ID } from "./engine/ImageBrush.js";
+import { createImageBrush } from "./engine/ImageBrush.js";
 import { ImageBrushPicker } from "./components/ImageBrushPicker.jsx";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
@@ -21,7 +21,7 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 export default function App() {
   const twigs = useTwigBank();
   const [imageBrushes, setImageBrushes] = useState({});
-  const [imagePicker, setImagePicker] = useState(false);
+  const [imagePicker, setImagePicker] = useState(null);
   const [imageBusy, setImageBusy] = useState(false);
   const [imageError, setImageError] = useState("");
   const imageRequest = useRef(0);
@@ -91,9 +91,9 @@ export default function App() {
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
-        onImageRequired: () => {
+        onImageRequired: (id) => {
           setImageError("");
-          setImagePicker(true);
+          setImagePicker(id);
         },
         onHint: setHint,
         onError: setSceneError,
@@ -158,6 +158,8 @@ export default function App() {
       );
   }
   async function importBrushImage(file) {
+    const id = imagePicker;
+    if (!id) return;
     const request = ++imageRequest.current;
     setImageBusy(true);
     setImageError("");
@@ -168,16 +170,17 @@ export default function App() {
         profile.binding.texture.dispose();
         return;
       }
-      engine.current.setImageBrush(IMAGE_BRUSH_ID, profile);
-      twigs.bank.current?.setBrushImage(IMAGE_BRUSH_ID, profile);
-      setImageBrushes({
-        [IMAGE_BRUSH_ID]: {
+      engine.current.setImageBrush(id, profile);
+      twigs.bank.current?.setBrushImage(id, profile);
+      setImageBrushes((previous) => ({
+        ...previous,
+        [id]: {
           thumbnail: profile.thumbnail,
           stats: profile.stats,
         },
-      });
-      setImagePicker(false);
-      chooseBrush(IMAGE_BRUSH_ID);
+      }));
+      setImagePicker(null);
+      chooseBrush(id);
       void twigs.bank.current?.preparePlayback();
     } catch (error) {
       if (request === imageRequest.current) setImageError(error.message);
@@ -324,14 +327,17 @@ export default function App() {
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
       <ImageBrushPicker
-        open={imagePicker}
+        open={Boolean(imagePicker)}
+        brushName={
+          BRUSHES.find((brush) => brush.id === imagePicker)?.name || "la brosse"
+        }
         busy={imageBusy}
         error={imageError}
         onFile={importBrushImage}
         onClose={() => {
           imageRequest.current++;
           setImageBusy(false);
-          setImagePicker(false);
+          setImagePicker(null);
         }}
       />
       {immersive &&
@@ -550,9 +556,9 @@ export default function App() {
               : BRUSHES
           }
           imageBrushes={imageBrushes}
-          onImageRequest={() => {
+          onImageRequest={(id) => {
             setImageError("");
-            setImagePicker(true);
+            setImagePicker(id);
           }}
           selectedBrush={brush}
           onBrush={chooseBrush}

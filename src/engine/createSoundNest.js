@@ -191,7 +191,7 @@ export function createSoundNest(
     renderer.domElement.dataset.markCount = String(marks.length);
   }
   function addSample(pose, fromPad = false) {
-    if (brush === "voiles" && !imageBrushes.has(brush)) return;
+    if (!imageBrushes.has(brush)) return;
     const region = compositionAt(pose.position);
     if (region.density < 0.24 && !fromPad) {
       closeStroke();
@@ -334,7 +334,7 @@ export function createSoundNest(
       cameraMode !== "drone"
     )
       return;
-    if (brush === "voiles" && !imageBrushes.has(brush)) {
+    if (!imageBrushes.has(brush)) {
       cancelSteering();
       onImageRequired?.(brush);
       return;

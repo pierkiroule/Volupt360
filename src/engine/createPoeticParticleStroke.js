@@ -1,7 +1,10 @@
 import * as THREE from "three";
 
 /** Four moving motifs per deposit, batched into one bounded mesh per stroke. */
-export function createPoeticParticleStroke(brush, { seed = 0 }) {
+export function createPoeticParticleStroke(
+  brush,
+  { seed = 0, texture = null },
+) {
   const capacity = 52,
     particles = 4,
     vertices = capacity * particles * 6;
@@ -30,6 +33,8 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
       uAge: { value: 0 },
       uFade: { value: 1 },
       uOpacity: { value: 0.92 },
+      uBrushMask: { value: texture?.texture || null },
+      uHasMask: { value: texture?.photograph ? 1 : 0 },
       uKind: { value: brush.particle },
       uAudioEnergy: { value: 0 },
       uAudioLow: { value: 0 },
@@ -54,6 +59,7 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position + offset + drift, 1.0);
       }`,
     fragmentShader: `
+      uniform sampler2D uBrushMask; uniform float uHasMask;
       uniform float uKind; uniform float uFade; uniform float uOpacity; uniform float uAudioEnergy; uniform float uAudioPulse;
       varying vec2 vUv; varying vec3 vTint; varying float vPhase;
       void main() {
@@ -90,7 +96,10 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
         }
         alpha *= (1.0 - smoothstep(0.94, 1.0, abs(p.y))) * uFade * uOpacity * (0.65 + uAudioEnergy * 0.35 + uAudioPulse * 0.25);
         if (alpha < 0.01) discard;
-        gl_FragColor = vec4(mix(vTint, vec3(1.0, 0.8, 0.3), highlight), alpha);
+        vec3 color=mix(vTint, vec3(1.0, 0.8, 0.3), highlight);
+        if(uHasMask>.5){vec4 photo=texture2D(uBrushMask,clamp(vUv,vec2(.001),vec2(.999)));color=mix(color,photo.rgb,.92);alpha*=photo.a;}
+        gl_FragColor = vec4(color, alpha);
+        #include <colorspace_fragment>
       }`,
   });
   const mesh = new THREE.Mesh(geometry, material);
@@ -170,7 +179,10 @@ export function createPoeticParticleStroke(brush, { seed = 0 }) {
     finish() {
       closed = true;
     },
-    setTexture() {},
+    setTexture(binding) {
+      material.uniforms.uBrushMask.value = binding?.texture || null;
+      material.uniforms.uHasMask.value = binding?.photograph ? 1 : 0;
+    },
     get full() {
       return count >= capacity;
     },

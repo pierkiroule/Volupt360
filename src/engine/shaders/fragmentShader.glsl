@@ -1,4 +1,5 @@
 uniform sampler2D uBrushMask;
+uniform float uPhotograph;
 uniform float uHasMask,uMaskAspect,uMaskRepeat;
 uniform float uAge,uSurprise;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
@@ -109,8 +110,10 @@ if(uSurprise>.5 && uSurprise<1.5){
   alpha*=1.-lace*.75;col=mix(col,vec3(.85,.79,.64),lace*.45);
 }
 if(uHasMask>.5){
-  vec2 maskUv=vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
-  float imageAlpha=texture2D(uBrushMask,maskUv).a;
+  vec2 maskUv=uPhotograph>.5 ? clamp(vUv,vec2(.001),vec2(.999)) : vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
+  vec4 photograph=texture2D(uBrushMask,maskUv);
+  float imageAlpha=photograph.a;
+  if(uPhotograph>.5)col=mix(col,photograph.rgb,.9);
   // Preserve empty mask areas while giving semi-transparent grain more body.
   alpha*=1.-pow(1.-imageAlpha,1.9);
   col*=.88+.12*imageAlpha;

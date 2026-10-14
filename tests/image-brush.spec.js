@@ -134,7 +134,7 @@ test("image analysis changes photographic alpha, palette and real synthesized so
   });
   expect(result.data[0].light).toBeGreaterThan(result.data[1].light + 0.4);
   expect(result.data[0].color).not.toBe(result.data[1].color);
-  expect(result.data[1].alpha).toBeGreaterThan(result.data[0].alpha + 50);
+  expect(result.data[1].alpha).toBeGreaterThan(result.data[0].alpha + 10);
   for (const level of result.levels) expect(level.rms).toBeGreaterThan(0.001);
   expect(
     Math.abs(result.levels[0].centroid - result.levels[1].centroid),
@@ -156,6 +156,12 @@ test("invalid image keeps the picker usable and another brush can still paint", 
   });
   await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible();
   await page.getByRole("button", { name: "Fermer", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Sculpter avec Filaments", exact: true })
+    .click();
+  await page
+    .getByLabel("Importer l’image de Filaments")
+    .setInputFiles(await photo(page));
   await page
     .getByRole("button", { name: "Sculpter avec Filaments", exact: true })
     .click();

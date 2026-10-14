@@ -1,31 +1,37 @@
-# Transduction photographique — pilote Voiles
+# Brosses photographiques — transduction visuelle et sonore
 
-Cette première étape concerne uniquement **Voiles**, conformément au prototype proposé. Les 17 autres brosses et les trois univers ambient conservent leur fonctionnement.
+Les **18 brosses** possèdent chacune leur propre image, dans les trois univers. Une photo ou une image importée est requise avant de peindre avec une brosse. Sa silhouette et son comportement de dépôt sont conservés : rubans, voiles, bulles, réseaux et six brosses de particules.
 
-## Geste
+## Utilisation
 
-Toucher le pad Voiles sans image ouvre un sélecteur « Prendre une photo / Importer une image ». Le premier bouton utilise une entrée native avec `capture=environment` ; le second ouvre la bibliothèque. Après import, le pad affiche une vignette. Le toucher joue et sculpte ; un appui de 700 ms ou le menu contextuel permet de remplacer l’image. Sur le canevas, un maintien avec Voiles sans image ouvre également le sélecteur : la sculpture demeure produite par l’oizo, jamais par le doigt.
+Un toucher sur un pad sans image ouvre « Prendre une photo / Importer une image », avec le nom de la brosse. Après import, sa vignette apparaît dans la bulle. Un toucher joue et sculpte ; maintenir le pad 700 ms ou ouvrir son menu contextuel propose de remplacer son image. Un maintien sur le canevas avec une brosse non préparée ouvre aussi ce sélecteur. Le doigt ne dessine pas : l’oizo reste la buse.
 
-Le sélecteur gère chargement, erreurs, annulation, Échap et circulation du focus. Une image invalide ne remplace pas l’ancienne matière. Les fichiers JPEG, PNG, WebP, AVIF et GIF (première image) sont acceptés, jusqu’à 15 Mo. Les formats non pris en charge et les décodages impossibles affichent une erreur. HEIC n’est pas directement pris en charge : exporter en JPEG sur les appareils concernés.
+Les images et leurs identités sonores sont indépendantes et restent disponibles quand on change d’univers. Elles ne sont conservées que pendant la session. Le sélecteur traite erreurs, annulation, demandes obsolètes, Échap et focus. Une image invalide ne remplace pas la précédente.
 
-## Traitement local
+## Reconnaître les photos
 
-`ImageBrush` décode avec `createImageBitmap`, demande une réduction à 256 × 256 et ferme le bitmap. Le fichier original n’est pas conservé. Deux dérivés restent en session : une vignette JPEG et un masque RGBA 256 × 256, plus une grille de 16 × 16 cellules contenant couleur, luminosité, saturation et contours. Aucune image n’est envoyée, stockée sur un serveur ou persistée dans le navigateur. Recharger la page demande une nouvelle image.
+Le masque blanc du pilote a été remplacé par une vraie texture photographique RGBA : les couleurs RGB et les détails sont conservés. La transparence reste plus généreuse, pour que les zones claires de la photo ne disparaissent pas. Les shaders mêlent environ 90 % de couleur photographique à la matière existante. Les images photographiques ne sont plus répétées plusieurs fois le long du tracé ; les masques procéduraux existants conservent leur comportement.
 
-Les contours sont estimés à partir des différences de luminance adjacentes. Le masque combine réserves claires, pigment sombre et contours ; son alpha conserve la transparence de l’image. Il utilise le binding de texture déjà disponible dans le moteur de brosses. La couleur initiale d’un nouveau tracé vient d’une cellule photographique, en suivant la position de l’oizo. La forme, les buffers et les shaders artistiques de Voiles sont préservés.
+Les six brosses de particules acceptent maintenant elles aussi leur texture photographique, y compris lors d’un remplacement. Leurs motifs, formes, animations et buffers restent ceux d’origine. Les formes étroites comme les filaments ou les réseaux fragmentent naturellement l’image : elles ne deviennent pas des panneaux rectangulaires. Les photos les plus lisibles restent celles avec des formes contrastées et des sujets simples.
 
-## Transduction sonore
+La plus grande dimension de la texture est limitée à 384 pixels et les proportions sont conservées à l’import, sauf un minimum technique de 16 pixels pour le petit côté. Le bitmap source est fermé après analyse. Le décodage natif initial peut temporairement utiliser la résolution complète : la limite est de 15 Mo et 40 mégapixels. JPEG, PNG, WebP, AVIF et GIF (première image) sont pris en charge ; HEIC nécessite une conversion préalable.
 
-La même grille est transmise au pad source puis aux trois moteurs du mix ambient. L’angle horizontal et la hauteur du dépôt choisissent la cellule explorée. Sa luminosité infléchit le degré musical en restant dans la gamme de l’univers et sélectionne une résonance cristalline ou une corde. Contours et saturation modulent la richesse FM ou l’amortissement Karplus–Strong. Les correspondances sont des décisions artistiques explicites.
+## Résonance
 
-L’analyse et la génération de texture ne sont pas exécutées dans la boucle de rendu. À chaque note, la consultation d’une cellule suffit ; la synthèse reste procédurale et native. Les images sont réappliquées après un changement de moteur sonore. La musique ambient peut continuer avant l’import ; c’est la peinture par Voiles qui nécessite l’image.
+La grille d’analyse de 16 × 16 cellules conserve luminosité, couleur, saturation et contours. L’angle et la hauteur du dépôt choisissent la région explorée. La même cellule influence la couleur initiale du tracé et le son : degrés dans la gamme de l’univers, matière cristalline ou corde, richesse FM et amortissement Karplus–Strong. Il s’agit de correspondances artistiques, pas d’une reconnaissance sémantique des objets photographiés.
 
-## Ressources et limites
+Les profils sont partagés avec les trois moteurs ambient et réappliqués après leur recréation. La musique autonome peut continuer avant de préparer les brosses ; seuls leurs dépôts exigent une image. Aucune nouvelle bibliothèque, aucun sample audio et aucun backend.
 
-Le moteur 3D possède la texture. Au remplacement, son mécanisme existant remplace les bindings des traces Voiles déjà présentes puis libère l’ancienne texture. Leur couleur initiale est conservée. Les cartes de profils sont vidées à la destruction. Une demande annulée ou terminée après le démontage libère immédiatement sa texture. Les résultats de décodage obsolètes ne remplacent pas une demande plus récente.
+## Vie des ressources
 
-Le prototype ne promet pas la synthèse d’un instrument réaliste à partir d’une photo : il traduit une matière visuelle en paramètres musicaux cohérents. Une audition sur casque, le vrai appareil photo Android/iOS et les fichiers HEIC ne sont pas validés ici. Le redimensionnement carré simplifie le masque et peut modifier les proportions de l’image.
+L’analyse et la fabrication de la texture ont lieu à l’import, hors boucle de rendu. Le moteur graphique possède les textures. Au remplacement, le binding des anciens tracés de cette brosse est mis à jour et l’ancienne texture est libérée ; leur ancienne couleur de base reste conservée. Les profils des autres brosses ne sont pas remplacés. À la destruction, textures et références sont libérées. Une demande annulée libère son résultat sans modifier la scène.
 
-Les tests dédiés couvrent l’import, la demande obligatoire, la vignette, le binding réel au shader, le remplacement, une image invalide et l’absence d’envoi POST. Un AudioContext réel compare deux images et vérifie une modification du spectre sonore ; les mêmes images produisent des couleurs et des alpha différents. La navigation et les moteurs ambient, de résonance et d’audioréactivité sont aussi contrôlés.
+Aucune image n’est envoyée ou persistée. Recharger la page demande de les sélectionner à nouveau. Le coût GPU reste borné à une texture photographique par brosse et aux ressources existantes ; préparer les 18 images utilise davantage de mémoire qu’une seule.
 
-Validation exécutée : 15 tests ciblés passent (image, ambient, navigation tactile, résonance et audioréactivité), ainsi que le build Vite, Prettier et `git diff --check`. Le vrai appareil photo et l’écoute sur téléphone/casque physiques n’ont pas été testés.
+## Contrôles
+
+Les tests importent une image pour chacun des 18 pads, vérifient la vignette et le binding utilisé par son matériau, puis retrouvent les images en revenant au premier univers. Le déplacement et le mode photo restent exercés. Un test de pixels WebGL vérifie que les zones rouges et bleues d’une image source sont effectivement présentes dans le rendu d’un ruban et d’une plume, et que les proportions sont conservées à l’import.
+
+Les contrôles du pilote continuent de vérifier remplacement, image invalide, absence d’envoi POST et différences de synthèse sur AudioContext réel. La capture d’un vrai appareil photo et l’écoute/fluidité sur téléphone physique restent à vérifier. L’encodage vidéo complet n’a pas été rejoué dans cette évolution.
+
+Validation exécutée : 13 tests Playwright ciblés réussis sous Chromium, compilation Vite réussie, contrôle Prettier et `git diff --check` sans erreur.

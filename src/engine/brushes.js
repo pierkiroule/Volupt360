@@ -180,6 +180,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
     uniforms: {
       uBrushMask: { value: texture?.texture || null },
       uHasMask: { value: texture ? 1 : 0 },
+      uPhotograph: { value: texture?.photograph ? 1 : 0 },
       uMaskAspect: { value: texture?.aspect || 1 },
       uMaskRepeat: { value: texture?.repeat ?? 4 },
       uSurprise: { value: 0 },
@@ -213,7 +214,7 @@ export function createBrushStroke(
 ) {
   const brush = BRUSHES.find((item) => item.id === id) || BRUSHES[0];
   if (brush.particle !== undefined)
-    return createPoeticParticleStroke(brush, { seed, color });
+    return createPoeticParticleStroke(brush, { seed, color, texture });
   const group = new THREE.Group();
   let textureBinding = texture;
   const capacity = 52;
@@ -543,6 +544,7 @@ export function createBrushStroke(
       if (!uniforms) return;
       uniforms.uBrushMask.value = next?.texture || null;
       uniforms.uHasMask.value = next ? 1 : 0;
+      uniforms.uPhotograph.value = next?.photograph ? 1 : 0;
       uniforms.uMaskAspect.value = next?.aspect || 1;
       uniforms.uMaskRepeat.value = next?.repeat ?? 4;
     });
