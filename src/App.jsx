@@ -1,7 +1,5 @@
-import { DEFAULT_ECHO_PRESENCE } from "./engine/EchoChamber.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
-import { EchoChamberControls } from "./components/EchoChamberControls.jsx";
 import { AtmosphereSpheres } from "./components/AtmosphereSpheres.jsx";
 import { UNIVERSES } from "./sonoizo/universes.js";
 import { BRUSHES } from "./engine/brushes.js";
@@ -20,11 +18,6 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
-  const [echoChamber, setEchoChamber] = useState({
-    enabled: true,
-    presence: DEFAULT_ECHO_PRESENCE,
-    memory: 240,
-  });
   const [universe, setUniverse] = useState(null);
   const [atmosphereMix, setAtmosphereMix] = useState([1, 0, 0]);
   const [atmosphere, setAtmosphere] = useState({ echo: 0.5, hypnos: 0.3 });
@@ -364,15 +357,6 @@ export default function App() {
         <p className="universe-error" role="alert">
           {universeError}
         </p>
-      )}
-      {immersive && universe && mode !== "photo" && (
-        <EchoChamberControls
-          value={echoChamber}
-          onChange={(value) => {
-            setEchoChamber(value);
-            engine.current?.setEchoChamber(value);
-          }}
-        />
       )}
       <CameraViews
         disabled={videoBusy || photoBusy}

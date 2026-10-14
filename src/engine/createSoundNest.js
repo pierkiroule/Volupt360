@@ -1,4 +1,3 @@
-import { createEchoChamber } from "./EchoChamber.js";
 import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
 import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
 import { createTraceMemory } from "../sonoizo/TraceMemory.js";
@@ -47,8 +46,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   camera.position.set(-9, 6, 12);
   const landscape = new THREE.Group();
   scene.add(landscape);
-  const echoChamber = createEchoChamber({ mobile: innerWidth < 600 });
-  landscape.add(echoChamber.mesh);
   const tip = new THREE.Mesh(
     new THREE.SphereGeometry(0.065, 10, 8),
     new THREE.MeshBasicMaterial({
@@ -129,7 +126,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   });
 
   function destroyStroke(mark) {
-    echoChamber.onTraceExpired(mark.traceId);
     traceMemory.remove(mark.traceId);
     padSource?.forgetSound?.(mark.traceId);
     disposeMark(mark.object);
@@ -158,7 +154,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       textureLease,
       object: stroke.group,
       brush: id,
-      echoColor: color.getStyle(),
       traceId: `trace-${serial}`,
       born: elapsed,
       fade: 1,
@@ -203,12 +198,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     paintedSamples++;
     if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
     activeStroke.stroke.append(pose);
-    echoChamber.onTraceCreated({
-      id: activeStroke.traceId,
-      brush: activeStroke.brush,
-      color: activeStroke.echoColor,
-      position: pose.position,
-    });
     padSource?.depositSound?.(
       activeStroke.brush,
       pose.position,
@@ -284,7 +273,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     marks.length = 0;
     traceMemory.clear();
     traceEncounter.reset();
-    echoChamber.clear();
     traceTime = 0;
     traceDebug?.update(2, null);
     flight.reset();
@@ -485,7 +473,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           : null;
         traceDebug?.update(dt, hit);
         if (hit) {
-          echoChamber.onTraceEncounter(hit.traceId);
           padSource.recallSound?.(hit.brushId, hit.position, hit.traceId);
           if (ENABLE_POETIC_VOICES && traceEncounter.stats.count % 5 === 0) {
             const index =
@@ -609,9 +596,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         });
       }
       if (boundsDirty) updateBounds();
-      echoChamber.update(dt);
     }
-    renderer.domElement.dataset.echoChamber = JSON.stringify(echoChamber.stats);
     renderer.domElement.dataset.sculpturePaused = String(photo);
     rig.update(dt);
     camera.updateMatrixWorld();
@@ -725,18 +710,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   };
   const contextLost = (event) => {
     event.preventDefault();
-    echoChamber.suspend(true);
     onError?.(
       "Le contexte 3D a été interrompu. Rechargez la page pour reprendre.",
     );
   };
-  const contextRestored = () => echoChamber.suspend(false);
-  renderer.domElement.addEventListener("webglcontextrestored", contextRestored);
   window.addEventListener("resize", resize);
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   frameId = requestAnimationFrame(frame);
   return {
-    setEchoChamber: echoChamber.configure,
     setPadSource(source) {
       padSource?.setCaptureTap(null);
       bridge.close();
@@ -874,11 +855,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       oizo?.dispose();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
-      renderer.domElement.removeEventListener(
-        "webglcontextrestored",
-        contextRestored,
-      );
-      echoChamber.dispose();
       marks.forEach(destroyStroke);
       generative?.dispose();
       textures.forEach((binding) => binding.texture.dispose());
