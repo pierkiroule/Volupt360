@@ -1384,37 +1384,3 @@ label:focus-visible {
     transition: none;
   }
 }
-
-.echo-chamber-controls {
-  position: fixed;
-  z-index: 7;
-  top: max(80px, calc(env(safe-area-inset-top) + 65px));
-  right: 12px;
-  max-width: 230px;
-  font-size: 10px;
-  color: #494051;
-  opacity: 0.78;
-}
-.echo-chamber-controls summary {
-  cursor: pointer;
-  list-style: none;
-  letter-spacing: 0.08em;
-  padding: 8px;
-}
-.echo-chamber-controls[open] {
-  background: #f4f0e8ed;
-  border: 1px solid #c9c0cb80;
-  border-radius: 16px;
-  padding: 8px;
-}
-.echo-chamber-controls label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 10px 5px;
-}
-.echo-chamber-controls input[type="range"] {
-  width: 115px;
-  accent-color: #897b91;
-}

@@ -115,5 +115,3 @@ Les mondes sonores **Source, Rivière et Abysses** sont entièrement procédurau
 Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-instrument.md). `?instrument=off` restaure le parcours musical MP3 précédent pour comparaison.
 
 Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
-
-**ÉCHORÉMANENCE•°** ajoute une mémoire atmosphérique des dépôts et de leurs rencontres, sans modifier les brosses ou le vol. Voir [l’intégration, les réglages et les limites](docs/echoremanence.md).
