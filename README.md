@@ -115,3 +115,5 @@ Les mondes sonores **Source, Rivière et Abysses** sont entièrement procédurau
 Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-instrument.md). `?instrument=off` restaure le parcours musical MP3 précédent pour comparaison.
 
 Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
+
+**Voiles — pilote photographique** : une photo ou image importée fournit sa texture, sa palette et une identité sonore procédurale. Traitement local en session ; les autres brosses restent accessibles. Voir [la transduction et ses limites](docs/image-brush-transduction.md).

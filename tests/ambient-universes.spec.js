@@ -117,6 +117,9 @@ test("organic spheres blend by drag, controls survive entry and painting still w
       ),
     )
     .toBeGreaterThan(0.03);
+  await page
+    .getByRole("button", { name: "Sculpter avec Filaments", exact: true })
+    .click();
   await page.mouse.move(170, 350);
   await page.mouse.down();
   await expect(page.locator("#stage canvas")).toHaveAttribute(

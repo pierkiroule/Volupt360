@@ -69,7 +69,7 @@ export class WaterDSP {
       const i = this.stringIndex,
         next = (i + 1) % this.string.length;
       const value = this.string[i];
-      this.string[i] = (value + this.string[next]) * 0.49975;
+      this.string[i] = (value + this.string[next]) * (0.4995 + shape * 0.00025);
       this.stringIndex = next;
       return (
         value *
@@ -90,7 +90,10 @@ export class WaterDSP {
       );
       const fm = Math.sin(
         this.phase[0] +
-          Math.sin(this.phase[1]) * decay * (this.type === "bell" ? 0.8 : 0.22),
+          Math.sin(this.phase[1]) *
+            decay *
+            (this.type === "bell" ? 0.8 : 0.22) *
+            (0.5 + shape * 1.5),
       );
       const partial = Math.sin(this.phase[0] * 2) * 0.13 * decay;
       return (

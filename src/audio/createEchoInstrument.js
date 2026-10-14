@@ -107,6 +107,7 @@ export async function createEchoInstrument(
   bedGain.connect(filter);
   const dialogue = createVisualSoundDialogue();
   const resonances = new Map();
+  const imageBrushes = new Map();
   const pad = createWaterSource(ctx, {
     type: "pad",
     startAt: ctx.currentTime,
@@ -191,7 +192,11 @@ export async function createEchoInstrument(
             ? [...brush].reduce((sum, char) => sum + char.charCodeAt(0), 0)
             : serial++),
       ) % 4;
-    const degree = chord + (degreeOverride ?? [0, 2, 4, 6][selection]);
+    const imageCell = imageBrushes.get(brush)?.sample(point);
+    const degree =
+      chord +
+      (degreeOverride ?? [0, 2, 4, 6][selection]) +
+      (imageCell ? Math.round(imageCell.light * 2) : 0);
     const octave = bass ? -12 : family === "ramure" ? 0 : 12;
     const semitone =
       profile.scale[
@@ -229,7 +234,13 @@ export async function createEchoInstrument(
     envelope.connect(panner);
     panner.connect(filter);
     const waterSource = createWaterSource(ctx, {
-      type: bass ? "bass" : voiceType || world.type,
+      type: bass
+        ? "bass"
+        : imageCell
+          ? imageCell.light > 0.55
+            ? "bell"
+            : "string"
+          : voiceType || world.type,
       startAt: start,
       duration,
       frequency,
@@ -241,7 +252,12 @@ export async function createEchoInstrument(
     });
     waterSource.node.parameters
       .get("shape")
-      .setValueAtTime(dialogue.state.curvature, start);
+      .setValueAtTime(
+        imageCell
+          ? Math.min(1, imageCell.edge * 3 + imageCell.saturation * 0.7)
+          : dialogue.state.curvature,
+        start,
+      );
     waterSource.node.connect(envelope);
     const sources = [{ oscillator: waterSource }];
     const voice = { sources, envelope, panner };
@@ -428,6 +444,9 @@ export async function createEchoInstrument(
   }
   return {
     graph,
+    setBrushImage(id, profile) {
+      imageBrushes.set(id, profile);
+    },
     setAtmosphere({ echo = echoControl, hypnos = hypnosControl }) {
       echoControl = Math.max(0, Math.min(1, echo));
       hypnosControl = Math.max(0, Math.min(1, hypnos));
@@ -550,6 +569,7 @@ export async function createEchoInstrument(
       padGain.disconnect();
       dialogue.clear();
       resonances.clear();
+      imageBrushes.clear();
       waterBed.disconnect();
       bedGain.disconnect();
       analyser.disconnect();

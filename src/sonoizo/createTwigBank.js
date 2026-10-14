@@ -27,6 +27,7 @@ export function createTwigBank({
   let fireflies = false,
     universeAmbience = false;
   const brushGestures = new Map();
+  const imageBrushes = new Map();
   let instrument = null,
     instrumentRequest = 0,
     instrumentPlayingRequested = false;
@@ -622,6 +623,9 @@ export function createTwigBank({
         return;
       }
       instrument = created;
+      imageBrushes.forEach((profile, id) =>
+        instrument.setBrushImage?.(id, profile),
+      );
       if (instrumentPlayingRequested) instrument.resume();
       emit();
     },
@@ -630,6 +634,10 @@ export function createTwigBank({
     },
     setAtmosphere(values) {
       instrument?.setAtmosphere?.(values);
+    },
+    setBrushImage(id, profile) {
+      imageBrushes.set(id, profile);
+      instrument?.setBrushImage?.(id, profile);
     },
     depositSound(id, position, energy, key) {
       return instrument?.deposit(id, position, energy, key);
@@ -839,6 +847,7 @@ export function createTwigBank({
       instrument?.dispose();
       instrument = null;
       poems.clear();
+      imageBrushes.clear();
       ambienceRequest++;
       pendingAmbience?.cancel();
       releaseAmbience(ambience);
