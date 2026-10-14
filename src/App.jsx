@@ -1,3 +1,4 @@
+import { DEFAULT_ECHO_PRESENCE } from "./engine/EchoChamber.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
 import { EchoChamberControls } from "./components/EchoChamberControls.jsx";
@@ -21,7 +22,7 @@ export default function App() {
   const twigs = useTwigBank();
   const [echoChamber, setEchoChamber] = useState({
     enabled: true,
-    presence: 0.24,
+    presence: DEFAULT_ECHO_PRESENCE,
     memory: 240,
   });
   const [universe, setUniverse] = useState(null);

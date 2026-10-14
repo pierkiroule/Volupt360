@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+export const DEFAULT_ECHO_PRESENCE = 0.55;
 const TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -62,7 +63,7 @@ export function createEchoMemory(limit = 48) {
       const entry = entries.get(id);
       if (entry) {
         entry.recallAt = time;
-        entry.resonance = Math.min(1, entry.resonance + 0.35);
+        entry.resonance = Math.min(1, entry.resonance + 0.55);
       }
     },
     expire(id) {
@@ -113,7 +114,7 @@ export function createEchoChamber({ mobile = false } = {}) {
     uniforms: {
       uMemory: { value: texture },
       uTime: { value: 0 },
-      uPresence: { value: 0.24 },
+      uPresence: { value: DEFAULT_ECHO_PRESENCE },
     },
     vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
     fragmentShader: `uniform sampler2D uMemory; uniform float uTime; uniform float uPresence; varying vec2 vUv;
@@ -124,7 +125,7 @@ export function createEchoChamber({ mobile = false } = {}) {
         vec4 pigment=texture2D(uMemory,uv)*.5;
         pigment+=texture2D(uMemory,vec2(fract(uv.x+.0015),uv.y))*.25;
         pigment+=texture2D(uMemory,vec2(fract(uv.x-.0015),uv.y))*.25;
-        gl_FragColor=vec4(pigment.rgb,min(.26,pigment.a*uPresence));
+        gl_FragColor=vec4(pigment.rgb,min(.38,pigment.a*uPresence));
         #include <colorspace_fragment>
       }`,
   });
@@ -135,7 +136,7 @@ export function createEchoChamber({ mobile = false } = {}) {
   mesh.frustumCulled = false;
   mesh.visible = false;
   let enabled = true,
-    presence = 0.24,
+    presence = DEFAULT_ECHO_PRESENCE,
     persistence = 240,
     clock = 0,
     disposed = false,
@@ -148,7 +149,7 @@ export function createEchoChamber({ mobile = false } = {}) {
     let painted = false;
     context.clearRect(0, 0, canvas.width, canvas.height);
     const now = memory.time,
-      density = 1 / Math.sqrt(Math.max(1, memory.entries.size));
+      density = 1 / Math.sqrt(1 + memory.entries.size * 0.075);
     for (const entry of memory.entries.values()) {
       const age = now - entry.createdAt,
         recallAge = now - entry.recallAt;
@@ -159,18 +160,18 @@ export function createEchoChamber({ mobile = false } = {}) {
             entry.resonance
           : 0;
       for (let layer = 0; layer < 3; layer++) {
-        const delay = [2.5, 13, 39][layer] * (0.85 + entry.seed * 0.3);
+        const delay = [0.9, 9.5, 28][layer] * (0.85 + entry.seed * 0.3);
         const echoAge = age - delay;
         if (echoAge <= 0 && reminiscence < 0.001) continue;
         const envelope = Math.max(
           0,
-          (1 - Math.exp(-Math.max(0, echoAge) / 6)) *
+          (1 - Math.exp(-Math.max(0, echoAge) / 3.5)) *
             Math.exp(
               -Math.max(0, echoAge) / [18, 65, persistence * 0.6][layer],
             ),
         );
         const opacity =
-          (envelope * 0.17 + reminiscence * 0.16) *
+          (envelope * 0.38 + reminiscence * 0.36) *
           (1 - entry.dissipation) *
           density;
         if (opacity < 0.0005) continue;
@@ -181,11 +182,11 @@ export function createEchoChamber({ mobile = false } = {}) {
           const breathing =
             1 + Math.sin(now * (0.011 + entry.seed * 0.006) + phase) * 0.055;
           const radiusY =
-            (0.017 + layer * 0.012 + Math.max(0, echoAge) * 0.00006) *
+            (0.035 + layer * 0.019 + Math.max(0, echoAge) * 0.00009) *
             breathing;
           const radiusX = Math.min(
-            0.18,
-            (radiusY * 0.55) / Math.max(0.18, Math.sin(point.v * Math.PI)),
+            0.23,
+            (radiusY * 0.65) / Math.max(0.18, Math.sin(point.v * Math.PI)),
           );
           const u =
             point.u + Math.sin(now * (0.006 + layer * 0.001) + phase) * 0.008;
