@@ -1612,3 +1612,87 @@ label:focus-visible {
   border-radius: 0.4rem;
   font-size: 0.7rem;
 }
+
+.brush-workshop {
+  border: 1px solid #a9b9ae;
+  border-radius: 1.2rem;
+  background: #f6f2e9;
+  color: #384e47;
+  width: min(90vw, 26rem);
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 1.2rem;
+}
+.brush-workshop::backdrop {
+  background: #193d4055;
+  backdrop-filter: blur(5px);
+}
+.brush-workshop h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.5rem;
+}
+.brush-workshop label {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.7rem 0;
+  font-size: 0.8rem;
+}
+.brush-workshop input:not([type="range"]),
+.brush-workshop select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #b3c2b7;
+  border-radius: 0.4rem;
+  padding: 0.35rem;
+  background: #fff9;
+  color: inherit;
+}
+.brush-workshop input[type="color"] {
+  height: 2.3rem;
+}
+.brush-workshop input[type="range"] {
+  width: 100%;
+}
+.brush-preview {
+  height: 100px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.brush-preview img {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+.brush-preview span {
+  pointer-events: none;
+  position: absolute;
+  font-size: 2rem;
+  color: var(--brush-color);
+}
+.workshop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin: 1rem 0 0.5rem;
+}
+.workshop-actions button,
+.save-brush-palette {
+  border: 1px solid #b3c2b7;
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+  color: #384e47;
+  background: #e0e8df;
+}
+.brush-workshop small {
+  font-size: 0.65rem;
+}
+.save-brush-palette {
+  flex: 0 0 2.4rem;
+}

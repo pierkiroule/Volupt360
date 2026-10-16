@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { importPhoto } from "./helpers/localPhotos.js";
+import { createBrush } from "./helpers/proceduralBrushes.js";
 
 test("actual repository MP3 plays in background, respects manual pause and resumes after contemplation pause", async ({
   page,
@@ -95,7 +95,7 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
   await expect(
     page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
   ).toBeVisible();
-  await importPhoto(page, 1);
+  await createBrush(page, 1);
   await expect(page.locator(".generated-brush")).toBeEnabled();
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })

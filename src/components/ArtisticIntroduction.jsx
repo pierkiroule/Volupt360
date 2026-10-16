@@ -10,11 +10,12 @@ export default function ArtisticIntroduction() {
         Un petit oizo traverse un ciel d’aquarelle. Il transforme les couleurs,
         les contours et les textures de la nature en traces dans l’espace.
       </p>
-      <h3>Une image, une rencontre, une matière</h3>
+      <h3>Un geste, une forme, une matière</h3>
       <p>
-        Chaque nouvelle matière naît d’une photographie importée ou prise avec
-        votre appareil : mousse, plume, écorce, eau, lichen ou feuillage. Son
-        analyse compose une brosse abstraite, organique et singulière.
+        Touchez + pour composer une brosse : choisissez sa forme, sa couleur,
+        ses effets de matière, son épaisseur et sa transparence. Une graine
+        procédurale lui donne ses détails singuliers. Sauvegardez votre palette
+        sur cet appareil pour la retrouver au prochain voyage.
       </p>
       <h3>Accompagner l’oizo</h3>
       <p>
@@ -29,11 +30,11 @@ export default function ArtisticIntroduction() {
         revenir sur vos passages, changer de regard et parcourir la mémoire
         sensible que l’oizo a laissée derrière lui.
       </p>
-      <h3>Les traces d’une nature partagée</h3>
+      <h3>Un atelier sans images importées</h3>
       <p>
-        Vos photographies ouvrent une rencontre avec les matières du vivant.
-        Elles sont analysées sur votre appareil, sans être envoyées à un
-        serveur. Les brosses créées restent dans la session en cours.
+        Lavis, granulations, nervures et marbrures naissent du calcul et du
+        hasard contraint. Les matières sont créées localement, sans photo ni
+        appel à un service externe.
       </p>
       <h3>Une expérimentation échohypnotique</h3>
       <p>

@@ -1,5 +1,9 @@
 import GrowingBrushMenu from "./components/GrowingBrushMenu.jsx";
-import BirdCredits from "./components/BirdCredits.jsx";
+import {
+  createProceduralBrush,
+  loadPalette,
+  savePalette,
+} from "./materials/proceduralBrush.js";
 import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
@@ -20,9 +24,31 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
-  const [collection, setCollection] = useState([
-    { id: "voiles", name: "Première brosse", ready: false },
-  ]);
+  const [collection, setCollection] = useState(() => {
+    const saved = loadPalette();
+    return saved.length
+      ? saved.map((config, index) => ({
+          id: BRUSHES[index].id,
+          name: config.name,
+          color: config.color,
+          ready: true,
+          config,
+        }))
+      : [{ id: "voiles", name: "Première brosse", ready: false }];
+  });
+  const [paletteMessage, setPaletteMessage] = useState("");
+  function persistPalette(entries = collection) {
+    try {
+      savePalette(
+        entries.filter((item) => item.ready).map((item) => item.config),
+      );
+      setPaletteMessage("Palette sauvegardée sur cet appareil");
+    } catch {
+      setPaletteMessage(
+        "Sauvegarde indisponible : votre palette reste dans cette session.",
+      );
+    }
+  }
   const [creatingBrush, setCreatingBrush] = useState(false);
   const [brushError, setBrushError] = useState("");
   const brushBusy = useRef(false),
@@ -96,6 +122,21 @@ export default function App() {
         onHint: setHint,
         onError: setSceneError,
       });
+      if (collection.some((item) => item.ready)) {
+        setCollection(
+          collection.map((item) =>
+            item.ready
+              ? {
+                  ...item,
+                  thumbnail: engine.current.setGeneratedBrush(
+                    item.id,
+                    createProceduralBrush(item.config),
+                  ),
+                }
+              : item,
+          ),
+        );
+      }
       if (ENABLE_SONOIZO && atelier !== "mp3") {
         if (new URLSearchParams(location.search).has("samples"))
           engine.current.setPadSource(twigs.bank.current);
@@ -174,7 +215,7 @@ export default function App() {
         "L’ambiance de cet univers est indisponible : ambiance01.mp3 manque ou ne peut pas être lu.",
       );
   }
-  async function buildBrush(file) {
+  async function buildBrush(config) {
     if (brushBusy.current || !twigs.bank.current) return;
     const id = collection[0].ready
       ? BRUSHES.find(
@@ -187,30 +228,32 @@ export default function App() {
     setBrushError("");
     const ticket = ++brushTicket.current;
     try {
-      const result = await twigs.bank.current.generateBirdBrush(id, file);
+      const result = await twigs.bank.current.generateBirdBrush(id, config);
       if (ticket !== brushTicket.current || !engine.current) return;
       if (!result) {
         setBrushError(
           twigs.bank.current?.getSnapshot().birds.error ||
-            "La photographie est indisponible. Réessayez.",
+            "La brosse n’a pas pu être créée.",
         );
         return;
       }
       const thumbnail = engine.current.setGeneratedBrush(id, result.profile);
       const item = {
         id,
-        name: result.profile.photo?.commonName || result.recording.commonName,
+        name: result.profile.name,
+        config: result.profile.config,
         ready: true,
         thumbnail,
         color: result.profile.color,
         baseId: result.profile.baseId,
       };
-      setCollection((previous) =>
-        previous.some((entry) => entry.id === id)
-          ? previous.map((entry) => (entry.id === id ? item : entry))
-          : [...previous, item],
-      );
+      const next = collection.some((entry) => entry.id === id)
+        ? collection.map((entry) => (entry.id === id ? item : entry))
+        : [...collection, item];
+      setCollection(next);
+      persistPalette(next);
       chooseBrush(id);
+      return true;
     } catch (cause) {
       if (ticket === brushTicket.current)
         setBrushError(`Création impossible : ${cause.message}`);
@@ -378,17 +421,14 @@ export default function App() {
           {universeError || twigs.error}
         </p>
       )}
-      {ENABLE_BIRD_SONGS && universe && (
-        <BirdCredits birds={twigs.snapshot.birds} brush={brush} />
-      )}
       {immersive &&
         !universe &&
         !new URLSearchParams(location.search).has("samples") && (
           <section className="universe-picker" aria-label="Choisir un univers">
             <h2>Choisissez votre univers</h2>
             <p>
-              L’oizo rencontre les textures de la nature et en sculpte les
-              couleurs, les contours et les matières.
+              Composez vos brosses, puis laissez l’oizo en sculpter les
+              couleurs, les formes et les matières.
             </p>
             <AtmosphereSpheres
               acousticControls={!ENABLE_BIRD_SONGS}
@@ -546,6 +586,8 @@ export default function App() {
           error={brushError}
           onSelect={chooseBrush}
           onAdd={buildBrush}
+          onSave={() => persistPalette()}
+          saveMessage={paletteMessage}
           max={BRUSHES.length}
         />
       ) : (

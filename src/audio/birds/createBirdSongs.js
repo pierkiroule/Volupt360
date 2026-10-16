@@ -1,9 +1,6 @@
-import {
-  readNaturePhoto,
-  combineNatureProfile,
-} from "../../materials/naturePhoto.js";
+import { createProceduralBrush } from "../../materials/proceduralBrush.js";
 
-// Compatibility adapter for the existing collection API. Materials now use images only.
+// Compatibility adapter for the existing collection API. Materials are now entirely procedural.
 export function createBirdSongs({ ids, onChange = () => {} }) {
   const profiles = new Map();
   let catalog = {},
@@ -14,7 +11,7 @@ export function createBirdSongs({ ids, onChange = () => {} }) {
   const emit = () => {
     if (!disposed) onChange();
   };
-  async function generate(id, file) {
+  async function generate(id, config) {
     if (disposed || !ids.includes(id)) return null;
     if (profiles.has(id))
       return { recording: catalog[id], profile: profiles.get(id) };
@@ -24,13 +21,10 @@ export function createBirdSongs({ ids, onChange = () => {} }) {
     emit();
     addTask = (async () => {
       try {
-        const nature = await readNaturePhoto(file);
+        await Promise.resolve();
+        const profile = createProceduralBrush(config);
         if (disposed) return null;
-        const profile = combineNatureProfile(
-          { seed: nature.photo.pageid >>> 0 },
-          nature,
-        );
-        catalog = { ...catalog, [id]: { photo: nature.photo } };
+        catalog = { ...catalog, [id]: { commonName: profile.name } };
         profiles.set(id, profile);
         status = "ready";
         emit();
