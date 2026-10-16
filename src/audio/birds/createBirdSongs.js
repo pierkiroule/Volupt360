@@ -6,6 +6,8 @@ import { readAudioFeatures } from "../audioGraph.js";
 import { fetchCatalog, drawRecording } from "./catalog.js";
 import { recordingBytes } from "./recordingCache.js";
 
+export const BIRD_FADE = Object.freeze({ attack: 0.25, release: 0.7 });
+
 export function createBirdSongs({
   ids,
   context,
@@ -92,7 +94,7 @@ export function createBirdSongs({
     })();
     return catalogTask;
   }
-  function release(voice, seconds = 0.65) {
+  function release(voice, seconds = BIRD_FADE.release) {
     if (!voice || tails.has(voice)) return;
     tails.add(voice);
     const now = voice.ctx.currentTime;
@@ -195,7 +197,10 @@ export function createBirdSongs({
       gain.connect(analyser);
       analyser.connect(destination());
       gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.18);
+      gain.gain.linearRampToValueAtTime(
+        0.85,
+        ctx.currentTime + BIRD_FADE.attack,
+      );
       const voice = {
         ctx,
         source,

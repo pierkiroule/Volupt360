@@ -123,3 +123,5 @@ Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des hor
 Les brosses peuvent désormais porter de vrais enregistrements d’oiseaux, prioritaires parmi les espèces signalées menacées. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0/CC BY uniquement, crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/inaturalist-bird-brushes.md).
 
 Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis un nouvel oiseau et un visuel généré par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.
+
+Le voyage est présenté comme la sculpture des traces du patrimoine sonore des oiseaux du monde. L’ambiance `ambiance01.mp3` accompagne de nouveau le vol, sous les chants qui entrent et sortent en fondu. Un [skydome de coucher de soleil aquarellé](docs/oizo-sunset-story.md) offre un horizon discret en FPV et en 360°.
