@@ -117,3 +117,7 @@ Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-i
 Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
 
 **18 matières aquarellées fixes** : six planètes par univers remplacent le menu des brosses. Un double tap sur une planète change la matière ; maintenir le canevas fait peindre l’oizo. Aucun import ni modification des textures. Voir [les corps aquarellés](docs/celestial-brushes.md).
+
+## Chants réels iNaturalist
+
+Les brosses peuvent désormais porter de vrais enregistrements d’oiseaux, prioritaires parmi les espèces signalées menacées. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0/CC BY uniquement, crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/inaturalist-bird-brushes.md).

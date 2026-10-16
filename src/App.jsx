@@ -1,3 +1,6 @@
+import { downloadBirdCredits } from "./audio/birds/credits.js";
+import BirdCredits from "./components/BirdCredits.jsx";
+import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
 import { AtmosphereSpheres } from "./components/AtmosphereSpheres.jsx";
@@ -121,6 +124,12 @@ export default function App() {
     setDistance(0);
     engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
+    if (ENABLE_BIRD_SONGS) {
+      void bank
+        .prepareBirdCatalog()
+        .then(() => bank.preloadBirdSong(choice.brushes[0]));
+      return;
+    }
     if (ENABLE_ECHO_INSTRUMENT) {
       await bank.preparePlayback();
       if (ticket === universeRequest.current) {
@@ -284,6 +293,13 @@ export default function App() {
     >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
+      {ENABLE_BIRD_SONGS && universe && (
+        <BirdCredits
+          birds={twigs.snapshot.birds}
+          brush={brush}
+          onRetry={() => twigs.bank.current?.prepareBirdCatalog(true)}
+        />
+      )}
       {immersive &&
         !universe &&
         !new URLSearchParams(location.search).has("samples") && (
@@ -294,6 +310,7 @@ export default function App() {
               résonances.
             </p>
             <AtmosphereSpheres
+              acousticControls={!ENABLE_BIRD_SONGS}
               value={atmosphereMix}
               echo={atmosphere.echo}
               hypnos={atmosphere.hypnos}
@@ -302,7 +319,7 @@ export default function App() {
                 atmosphereMixRef.current = values;
                 const bank = twigs.bank.current;
                 if (!bank) return;
-                if (!ENABLE_ECHO_INSTRUMENT) return;
+                if (!ENABLE_ECHO_INSTRUMENT || ENABLE_BIRD_SONGS) return;
                 void bank.preparePlayback();
                 if (!bank.getInstrumentStats() && !atmosphereStart.current) {
                   atmosphereStart.current = bank
@@ -433,6 +450,12 @@ export default function App() {
               Retélécharger la photo PNG HD
             </a>
           )}
+          {ENABLE_BIRD_SONGS &&
+            Object.keys(twigs.snapshot.birds?.used || {}).length > 0 && (
+              <button onClick={() => downloadBirdCredits(twigs.snapshot.birds)}>
+                Télécharger les crédits des chants · à joindre à la vidéo
+              </button>
+            )}
           {videoError && <p role="alert">{videoError}</p>}
           {video && (
             <a href={video.url} download={video.name}>

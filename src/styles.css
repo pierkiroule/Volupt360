@@ -1463,3 +1463,32 @@ label:focus-visible {
   opacity: 0.7;
   pointer-events: none;
 }
+
+.bird-credits {
+  position: fixed;
+  z-index: 20;
+  top: 7rem;
+  left: 1rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+  font-size: 0.72rem;
+  color: #384e47;
+}
+.bird-credits summary {
+  cursor: pointer;
+  background: #f4f0e8db;
+  padding: 0.45rem 0.6rem;
+  border-radius: 1rem;
+}
+.bird-credits[open] {
+  max-height: 55vh;
+  overflow: auto;
+  padding: 0.65rem;
+  border-radius: 0.7rem;
+  background: #f4f0e8f5;
+}
+.bird-credits ul {
+  padding-left: 1.1rem;
+}
+.bird-credits li {
+  margin: 0.6rem 0;
+}

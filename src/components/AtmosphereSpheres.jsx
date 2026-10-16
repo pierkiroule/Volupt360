@@ -8,6 +8,7 @@ export function AtmosphereSpheres({
   echo,
   hypnos,
   onAtmosphere,
+  acousticControls = true,
 }) {
   const drag = useRef(null);
   function blend(event) {
@@ -88,38 +89,42 @@ export function AtmosphereSpheres({
         ))}
       </div>
       <p className="ambient-hint">
-        Glisser entre les sphères pour mêler les paysages
+        {acousticControls
+          ? "Glisser entre les sphères pour mêler les paysages"
+          : "Choisissez un univers. Chaque planète porte un chant réel d’oiseau."}
       </p>
-      <div className="ambient-controls">
-        <label>
-          ÉCHO{" "}
-          <input
-            aria-label="ÉCHO"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={echo}
-            onChange={(event) =>
-              onAtmosphere({ echo: Number(event.target.value), hypnos })
-            }
-          />
-        </label>
-        <label>
-          HYPNOS{" "}
-          <input
-            aria-label="HYPNOS"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={hypnos}
-            onChange={(event) =>
-              onAtmosphere({ echo, hypnos: Number(event.target.value) })
-            }
-          />
-        </label>
-      </div>
+      {acousticControls && (
+        <div className="ambient-controls">
+          <label>
+            ÉCHO{" "}
+            <input
+              aria-label="ÉCHO"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={echo}
+              onChange={(event) =>
+                onAtmosphere({ echo: Number(event.target.value), hypnos })
+              }
+            />
+          </label>
+          <label>
+            HYPNOS{" "}
+            <input
+              aria-label="HYPNOS"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={hypnos}
+              onChange={(event) =>
+                onAtmosphere({ echo, hypnos: Number(event.target.value) })
+              }
+            />
+          </label>
+        </div>
+      )}
       <button className="ambient-enter" onClick={onEnter}>
         Entrer dans le paysage
       </button>

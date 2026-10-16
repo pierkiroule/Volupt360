@@ -84,7 +84,7 @@ test("native ambient synthesis emits sound, mixed worlds keep playing and pause 
   expect(result.silence).toBeLessThan(0.001);
 });
 
-test("organic spheres blend by drag, controls survive entry and painting still works on mobile", async ({
+test("universe spheres preserve navigation and painting works without synthetic sound on mobile", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -94,6 +94,9 @@ test("organic spheres blend by drag, controls survive entry and painting still w
   page.on("request", (request) => {
     if (/\.mp3/.test(request.url())) files.push(request.url());
   });
+  await page.route("https://api.inaturalist.org/**", (route) =>
+    route.fulfill({ json: { results: [] } }),
+  );
   await page.goto("/");
   await expect(
     page.getByRole("button", { name: "Choisir ÉTHER" }),
@@ -107,16 +110,10 @@ test("organic spheres blend by drag, controls survive entry and painting still w
     steps: 8,
   });
   await page.mouse.up();
-  await page.getByLabel("HYPNOS", { exact: true }).fill("0.8");
+  await expect(page.getByLabel("HYPNOS", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(page.locator(".twig-pad")).toHaveCount(0);
-  await expect
-    .poll(async () =>
-      Number(
-        await page.locator("#stage canvas").getAttribute("data-music-energy"),
-      ),
-    )
-    .toBeGreaterThan(0.03);
+  await expect(page.locator(".bird-credits")).toBeVisible();
   await page.mouse.move(170, 350);
   await page.mouse.down();
   await expect(page.locator("#stage canvas")).toHaveAttribute(
@@ -125,7 +122,9 @@ test("organic spheres blend by drag, controls survive entry and painting still w
   );
   await page.mouse.up();
   await page.getByRole("button", { name: "Changer d’univers" }).click();
-  await expect(page.getByLabel("HYPNOS", { exact: true })).toHaveValue("0.8");
+  await expect(
+    page.getByRole("button", { name: "Choisir ÉTHER" }),
+  ).toBeVisible();
   expect(errors).toEqual([]);
   expect(files).toEqual([]);
 });

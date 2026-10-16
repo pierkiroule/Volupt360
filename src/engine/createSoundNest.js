@@ -114,9 +114,13 @@ export function createSoundNest(
     bridge.close();
     closeStroke();
     brush = id;
-    if (nozzlePaint) nozzlePaint = { id, samples: 0 };
+    if (nozzlePaint) {
+      nozzlePaint = { id, samples: 0 };
+      void padSource?.beginSculpture?.(id);
+    }
     renderer.domElement.dataset.activeBrush = id;
     celestials.select(id);
+    void padSource?.preloadBirdSong?.(id);
     onBrushChange?.(id);
     onHint?.(
       `${BRUSHES.find((item) => item.id === id).name} · nouvelle matière`,
@@ -361,6 +365,7 @@ export function createSoundNest(
       return;
     bridge.close();
     nozzlePaint = { id: brush, samples: 0 };
+    void padSource?.beginSculpture?.(brush);
     renderer.domElement.dataset.nozzlePaint = "true";
     renderer.domElement.dataset.nozzleBrush = brush;
   }
@@ -435,6 +440,7 @@ export function createSoundNest(
     if (event.pointerId !== steeringGesture?.id) return;
     clearTimeout(steeringGesture.timer);
     if (nozzlePaint) {
+      padSource?.endSculpture?.();
       finishPad(nozzlePaint.id);
       nozzlePaint = null;
       renderer.domElement.dataset.nozzlePaint = "false";
