@@ -791,6 +791,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         profile.seed,
         256,
         profile.acoustic,
+        profile.visual,
       );
       generatedBrushes.set(id, profile);
       this.setBrushTexture(id, binding);

@@ -17,8 +17,10 @@ export default function ArtisticIntroduction() {
         Le voyage commence avec un chant réel. Il fait naître une première
         brosse, façonnée par ses vibrations, ses silences et ses variations.
         Puis un autre oiseau rejoint la collection. Le hasard ouvre la rencontre
-        ; l’écoute lui donne une forme. Une attention particulière est portée
-        aux espèces signalées menacées dans les observations iNaturalist.
+        ; l’écoute lui donne une forme. Une photographie de mousse, de plume ou
+        de feuillage apporte ses couleurs, ses contours et ses textures. Chaque
+        nouvelle matière associe cette photographie réelle à un chant tiré sur
+        Wikimedia Commons.
       </p>
       <h3>Accompagner l’oizo</h3>
       <p>
@@ -37,9 +39,9 @@ export default function ArtisticIntroduction() {
       </p>
       <h3>Les traces d’un patrimoine vivant</h3>
       <p>
-        Les enregistrements partagés par les contributeurs d’iNaturalist relient
-        l’expérience aux oiseaux et aux lieux où ils ont été entendus. Leurs
-        espèces, leurs auteurs, leurs sources et leurs licences restent
+        Les enregistrements partagés par les contributeurs de Wikimedia Commons
+        relient l’expérience aux oiseaux et aux lieux où ils ont été entendus.
+        Leurs espèces, leurs auteurs, leurs sources et leurs licences restent
         accessibles. Chaque sculpture devient une manière singulière
         d’accueillir et de transmettre l’attention portée à ces présences
         sonores.

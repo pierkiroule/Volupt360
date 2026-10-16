@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { observation, wav } from "./helpers/birdFixtures.js";
+import { mockCommons } from "./helpers/birdFixtures.js";
 
 test("actual repository MP3 plays in background, respects manual pause and resumes after contemplation pause", async ({
   page,
@@ -82,12 +82,7 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await page.route("https://api.inaturalist.org/**", (route) =>
-    route.fulfill({ json: { results: [observation(1), observation(2)] } }),
-  );
-  await page.route("https://static.inaturalist.org/**", (route) =>
-    route.fulfill({ body: wav(), contentType: "audio/wav" }),
-  );
+  await mockCommons(page, { count: 2 });
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: "Sculpter les chants du monde" }),

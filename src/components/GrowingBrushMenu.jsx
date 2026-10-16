@@ -54,16 +54,16 @@ export default function GrowingBrushMenu({
           disabled={busy || brushes.length >= max}
           aria-label={
             brushes[0].ready
-              ? "Ajouter une brosse"
+              ? "Nouvelle matière"
               : "Réessayer la première brosse"
           }
         >
           <span aria-hidden="true">{busy ? "…" : "+"}</span>
           <small>
             {busy
-              ? "Écoute du chant…"
+              ? "Création…"
               : brushes[0].ready
-                ? "Nouvel oiseau"
+                ? "Nouvelle matière"
                 : "Réessayer"}
           </small>
         </button>

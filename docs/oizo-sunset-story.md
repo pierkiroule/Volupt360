@@ -29,4 +29,4 @@ La sphère suit la position de la caméra mais conserve l’orientation du monde
 - Accueil narratif mobile, collection progressive, vue FPV, vue 360 et cadrage photo.
 - Rendu des 18 primitives de brosses et contrôles musicaux existants ciblés.
 
-Les chants des tests restent des fixtures de transport, non livrées : l’accès réel à iNaturalist demeure non validé depuis cet environnement qui a renvoyé HTTP 403. L’écoute sur haut-parleurs/casque, la fluidité et le gyroscope sur téléphone physique, ainsi que l’encodage vidéo complet n’ont pas été vérifiés pour cette évolution.
+Les chants des tests restent des fixtures de transport, non livrées : l’accès réel à Wikimedia Commons demeure non validé depuis cet environnement qui a renvoyé HTTP 403. L’écoute sur haut-parleurs/casque, la fluidité et le gyroscope sur téléphone physique, ainsi que l’encodage vidéo complet n’ont pas été vérifiés pour cette évolution.

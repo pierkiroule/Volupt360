@@ -8,8 +8,8 @@ test("all eighteen brush geometries render generated watercolor parameters in We
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await page.route("https://api.inaturalist.org/**", (route) =>
-    route.fulfill({ json: { results: [] } }),
+  await page.route("https://commons.wikimedia.org/**", (route) =>
+    route.fulfill({ json: { query: { pages: [] } } }),
   );
   await page.goto("/");
   const output = await page.evaluate(async () => {

@@ -1,182 +1,251 @@
 import { withTimeout } from "./network.js";
-export const API = "https://api.inaturalist.org/v1";
+export const API = "https://commons.wikimedia.org/w/api.php";
+export const THEMES = [
+  "moss",
+  "feather",
+  "bark",
+  "water",
+  "lichen",
+  "flower",
+  "foliage",
+];
+export const AUDIO_THEMES = ["bird song", "bird call", "birdsong"];
 export const LICENSES = {
   cc0: {
-    name: "CC0 1.0",
+    name: "CC0",
     url: "https://creativecommons.org/publicdomain/zero/1.0/",
   },
   "cc-by": {
-    name: "CC BY 4.0",
+    name: "CC BY",
     url: "https://creativecommons.org/licenses/by/4.0/",
   },
 };
+export function plainText(value = "") {
+  return String(value)
+    .replace(/<[^>]*>/g, " ")
+    .replace(
+      /&(?:nbsp|amp|quot|lt|gt|#39);/g,
+      (m) =>
+        ({
+          "&nbsp;": " ",
+          "&amp;": "&",
+          "&quot;": '"',
+          "&lt;": "<",
+          "&gt;": ">",
+          "&#39;": "'",
+        })[m],
+    )
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 2000);
+}
 export function mediaUrl(value) {
   try {
     const url = new URL(value);
     return url.protocol === "https:" &&
+      url.hostname === "upload.wikimedia.org" &&
+      !url.port &&
       !url.username &&
       !url.password &&
-      !url.port &&
-      [
-        "static.inaturalist.org",
-        "inaturalist-open-data.s3.amazonaws.com",
-      ].includes(url.hostname)
+      url.pathname.startsWith("/wikipedia/commons/")
       ? url.href
       : null;
   } catch {
     return null;
   }
 }
-export function recordings(observations, threatened = false) {
-  const results = [];
-  for (const observation of observations) {
-    const taxon = observation.taxon;
-    if (!taxon || taxon.rank !== "species" || !Number.isSafeInteger(taxon.id))
-      continue;
-    for (const sound of observation.sounds || []) {
-      const license = String(sound.license_code || "").toLowerCase();
-      const url = mediaUrl(sound.file_url);
-      if (
-        !LICENSES[license] ||
-        !url ||
-        !Number.isSafeInteger(sound.id) ||
-        !Number.isSafeInteger(observation.id)
-      )
-        continue;
-      results.push({
-        observation: observation.id,
-        sound: sound.id,
-        taxon: taxon.id,
-        species: taxon.name,
-        commonName: taxon.preferred_common_name || taxon.name,
-        author:
-          sound.attribution ||
-          observation.user?.name ||
-          observation.user?.login ||
-          "Contributeur iNaturalist",
-        license,
-        url,
-        threatened,
-        source: `https://www.inaturalist.org/observations/${observation.id}`,
-      });
-    }
+export function licenseInfo(metadata = {}) {
+  const raw = metadata.LicenseUrl?.value || "";
+  try {
+    const url = new URL(raw);
+    if (
+      url.hostname !== "creativecommons.org" ||
+      !["https:", "http:"].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.port
+    )
+      return null;
+    const cc0 = /^\/publicdomain\/zero\/1\.0\/?$/.test(url.pathname),
+      by = /^\/licenses\/by\/(1\.0|2\.0|2\.5|3\.0|4\.0)\/?$/.exec(url.pathname);
+    if (!cc0 && !by) return null;
+    return {
+      license: cc0 ? "cc0" : "cc-by",
+      licenseName: cc0 ? "CC0 1.0" : `CC BY ${by[1]}`,
+      licenseUrl: `https://creativecommons.org${url.pathname.endsWith("/") ? url.pathname : url.pathname + "/"}`,
+    };
+  } catch {
+    return null;
   }
-  return results;
 }
-export function assignRecordings(ids, candidates) {
-  const used = new Set();
-  const sorted = [...candidates].sort(
-    (a, b) =>
-      Number(b.threatened) - Number(a.threatened) ||
-      a.taxon - b.taxon ||
-      a.sound - b.sound,
+export function recordings(pages, kind = "audio") {
+  return (Array.isArray(pages) ? pages : Object.values(pages || {})).flatMap(
+    (page) => {
+      const info = page.imageinfo?.[0],
+        rights = licenseInfo(info?.extmetadata),
+        original = mediaUrl(info?.url);
+      if (
+        !Number.isSafeInteger(page.pageid) ||
+        page.pageid <= 0 ||
+        page.ns !== 6 ||
+        !info ||
+        !rights ||
+        !original
+      )
+        return [];
+      if (
+        kind === "audio"
+          ? !/^audio\//.test(info.mime || "")
+          : !/^image\/(jpeg|png|webp)$/.test(info.mime || "")
+      )
+        return [];
+      if (
+        kind === "image" &&
+        !info.thumburl &&
+        (!Number.isFinite(info.width) ||
+          !Number.isFinite(info.height) ||
+          info.width * info.height > 16000000)
+      )
+        return [];
+      const description =
+        plainText(info.extmetadata?.ImageDescription?.value || "") +
+        " " +
+        plainText(info.extmetadata?.Categories?.value || "");
+      if (
+        kind === "image" &&
+        /AI.generated|stable diffusion|midjourney|DALL.E|vector illustration|diagram/i.test(
+          description,
+        )
+      )
+        return [];
+      const label = plainText(
+        page.title.replace(/^File:/, " ").replace(/\.[^.]+$/, ""),
+      );
+      return [
+        {
+          pageid: page.pageid,
+          sound: page.pageid,
+          taxon: page.pageid,
+          title: page.title,
+          commonName: label,
+          species: "Enregistrement d’oiseau · Wikimedia Commons",
+          ...rights,
+          author: plainText(
+            info.extmetadata?.Artist?.value || "Contributeur Wikimedia Commons",
+          ),
+          credit: plainText(info.extmetadata?.Credit?.value || ""),
+          source: `https://commons.wikimedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, "_"))}`,
+          url:
+            kind === "image" ? mediaUrl(info.thumburl) || original : original,
+          original,
+          kind,
+          mime: kind === "image" ? info.thumbmime || info.mime : info.mime,
+        },
+      ];
+    },
   );
-  const unique = sorted.filter((item) => {
-    if (used.has(item.taxon)) return false;
-    used.add(item.taxon);
-    return true;
+}
+export function randomUnit() {
+  const n = new Uint32Array(1);
+  crypto.getRandomValues(n);
+  return n[0] / 4294967296;
+}
+export function searchParams(kind, theme, offset = 0) {
+  if (
+    !["image", "audio"].includes(kind) ||
+    !(kind === "image" ? THEMES : AUDIO_THEMES).includes(theme) ||
+    ![0, 20, 40].includes(Number(offset))
+  )
+    throw new Error("Recherche non autorisée");
+  return new URLSearchParams({
+    action: "query",
+    maxlag: "5",
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+    generator: "search",
+    gsrnamespace: "6",
+    gsrlimit: "20",
+    gsroffset: String(offset),
+    gsrsearch:
+      kind === "image"
+        ? `filetype:bitmap ${theme} nature -illustration -diagram -logo`
+        : `filetype:audio ${theme}`,
+    prop: "imageinfo",
+    iiprop: "url|mime|size|extmetadata",
+    iiurlwidth: "384",
+    iiurlheight: "384",
+    iiextmetadatafilter:
+      "LicenseShortName|LicenseUrl|Artist|Credit|ImageDescription|Categories",
   });
-  return Object.fromEntries(
-    ids.map((id, index) => [id, unique[index] || null]),
-  );
 }
-export async function fetchCatalog(ids, { signal, request = fetch } = {}) {
-  const candidates = [];
-  for (const threatened of [true, false]) {
-    for (let page = 1; page <= 3; page++) {
-      const params = new URLSearchParams({
-        sounds: "true",
-        taxon_id: "3",
-        rank: "species",
-        per_page: "100",
-        page: String(page),
-        order_by: "id",
-        order: "desc",
-      });
-      if (threatened) params.set("threatened", "true");
+export async function drawMedia(
+  kind,
+  excluded = [],
+  { signal, request = fetch, random = randomUnit } = {},
+) {
+  const themes = [...(kind === "image" ? THEMES : AUDIO_THEMES)],
+    skip = new Set(excluded);
+  for (let i = themes.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [themes[i], themes[j]] = [themes[j], themes[i]];
+  }
+  for (const theme of themes.slice(0, 3))
+    for (const offset of [0, 20, 40]) {
       const data = await withTimeout(signal, async (timedSignal) => {
         let response;
         try {
-          response = await request(`${API}/observations?${params}`, {
-            signal: timedSignal,
-          });
+          response = await request(
+            `${API}?${searchParams(kind, theme, offset)}`,
+            { signal: timedSignal, credentials: "omit" },
+          );
         } catch (error) {
           if (signal?.aborted) throw error;
           response = await request(
-            `/api/bird-catalog?threatened=${threatened}&page=${page}`,
+            `/api/commons-search?kind=${kind}&theme=${encodeURIComponent(theme)}&offset=${offset}`,
             { signal: timedSignal },
           );
         }
         if (!response.ok)
           throw new Error(
-            `Catalogue iNaturalist indisponible (${response.status}).`,
+            `Wikimedia Commons indisponible (${response.status}).`,
           );
-        return response.json();
+        const data = await response.json();
+        if (data.error) throw new Error("La recherche Commons a échoué.");
+        return data;
       });
-      candidates.push(...recordings(data.results || [], threatened));
-      if (
-        Object.values(assignRecordings(ids, candidates)).filter(Boolean)
-          .length >= ids.length
-      )
-        return assignRecordings(ids, candidates);
-      if ((data.results || []).length < 100) break;
-    }
-  }
-  return assignRecordings(ids, candidates);
-}
-
-export function randomUnit() {
-  const value = new Uint32Array(1);
-  crypto.getRandomValues(value);
-  return value[0] / 4294967296;
-}
-export async function drawRecording(
-  excluded,
-  { signal, request = fetch, random = randomUnit } = {},
-) {
-  const skipped = new Set(excluded);
-  for (const threatened of [true, false]) {
-    const pages = [1, 2, 3]; // Shuffle a finite API window; no claim of global uniformity.
-    for (let i = pages.length - 1; i > 0; i--) {
-      const j = Math.floor(random() * (i + 1));
-      [pages[i], pages[j]] = [pages[j], pages[i]];
-    }
-    for (const page of pages) {
-      const params = new URLSearchParams({
-        sounds: "true",
-        taxon_id: "3",
-        rank: "species",
-        per_page: "100",
-        page: String(page),
-        order_by: "id",
-        order: "desc",
-      });
-      if (threatened) params.set("threatened", "true");
-      const data = await withTimeout(signal, async (timedSignal) => {
-        let response;
-        try {
-          response = await request(`${API}/observations?${params}`, {
-            signal: timedSignal,
-          });
-        } catch (error) {
-          if (signal?.aborted) throw error;
-          response = await request(
-            `/api/bird-catalog?threatened=${threatened}&page=${page}`,
-            { signal: timedSignal },
-          );
-        }
-        if (!response.ok)
-          throw new Error(`Catalogue indisponible (${response.status}).`);
-        return response.json();
-      });
-      const candidates = recordings(data.results || [], threatened).filter(
-        (item) => !skipped.has(item.taxon),
+      const items = recordings(data.query?.pages || [], kind).filter(
+        (item) => !skip.has(item.pageid),
       );
-      if (candidates.length)
-        return candidates[Math.floor(random() * candidates.length)];
+      if (items.length)
+        return { ...items[Math.floor(random() * items.length)], theme };
+    }
+  throw new Error(
+    `Aucun ${kind === "image" ? "photographie" : "chant"} autorisé trouvé dans la sélection Commons.`,
+  );
+}
+export const drawRecording = (excluded, options) =>
+  drawMedia("audio", excluded, options);
+export function assignRecordings(ids, candidates) {
+  const unique = [
+    ...new Map(candidates.map((item) => [item.sound, item])).values(),
+  ];
+  return Object.fromEntries(ids.map((id, i) => [id, unique[i] || null]));
+}
+export async function fetchCatalog(ids, options = {}) {
+  const items = [];
+  for (const id of ids) {
+    try {
+      items.push(
+        await drawRecording(
+          items.map((item) => item.sound),
+          options,
+        ),
+      );
+    } catch {
+      if (!items.length) throw new Error("Chants Commons indisponibles.");
+      break;
     }
   }
-  throw new Error(
-    "Aucune nouvelle espèce avec un chant autorisé dans les pages disponibles.",
-  );
+  return assignRecordings(ids, items);
 }

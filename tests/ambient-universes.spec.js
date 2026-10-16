@@ -94,8 +94,8 @@ test("universe navigation remains available when the first birdsong cannot be cr
   page.on("request", (request) => {
     if (/\.mp3/.test(request.url())) files.push(request.url());
   });
-  await page.route("https://api.inaturalist.org/**", (route) =>
-    route.fulfill({ json: { results: [] } }),
+  await page.route("https://commons.wikimedia.org/**", (route) =>
+    route.fulfill({ json: { query: { pages: [] } } }),
   );
   await page.goto("/");
   await expect(

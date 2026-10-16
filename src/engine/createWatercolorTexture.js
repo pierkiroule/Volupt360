@@ -6,6 +6,7 @@ export function createWatercolorTexture(
   seed,
   size = 512,
   acoustic = null,
+  visual = null,
 ) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
@@ -35,6 +36,35 @@ export function createWatercolorTexture(
     for (let x = 0; x < size; x++) {
       const u = x / size,
         v = y / size;
+      const fieldX = visual
+        ? Math.min(
+            visual.width - 1,
+            Math.floor(
+              ((u + Math.sin(v * 8 + seed) * 0.12 + 1) % 1) * visual.width,
+            ),
+          )
+        : 0;
+      const fieldY = visual
+        ? Math.min(
+            visual.height - 1,
+            Math.floor(
+              ((v + Math.sin(u * 9 + seed) * 0.1 + 1) % 1) * visual.height,
+            ),
+          )
+        : 0;
+      const fieldIndex = visual ? (fieldY * visual.width + fieldX) * 2 : 0;
+      const photoLight = visual ? visual.field[fieldIndex] / 255 : 0.5;
+      const photoEdge = visual ? visual.field[fieldIndex + 1] / 255 : 0;
+      const pigmentColor = visual
+        ? visual.palette[
+            Math.min(
+              visual.palette.length - 1,
+              Math.floor(
+                (photoLight * 0.7 + photoEdge * 0.3) * visual.palette.length,
+              ),
+            )
+          ]
+        : channels;
       const grainScale = 5 + (acoustic?.brightness || 0) * 7;
       const broad = noise(u * grainScale, v * grainScale),
         flow = noise(u * 17 + broad * 3, v * 17);
@@ -55,7 +85,7 @@ export function createWatercolorTexture(
         : 1;
       const k = (y * size + x) * 4;
       for (let c = 0; c < 3; c++) {
-        const base = channels[c];
+        const base = pigmentColor[c];
         image.data[k + c] =
           255 *
           THREE.MathUtils.clamp(
@@ -68,6 +98,7 @@ export function createWatercolorTexture(
       }
       image.data[k + 3] =
         255 *
+        (visual ? 0.7 + photoEdge * 0.3 : 1) *
         wet *
         (0.4 + pigment * 0.55) *
         grain *

@@ -307,8 +307,8 @@ test("the welcome presents the artistic experimentation and remains usable on mo
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("https://api.inaturalist.org/**", (route) =>
-    route.fulfill({ json: { results: [] } }),
+  await page.route("https://commons.wikimedia.org/**", (route) =>
+    route.fulfill({ json: { query: { pages: [] } } }),
   );
   await page.goto("/");
   await expect(
