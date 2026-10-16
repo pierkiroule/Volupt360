@@ -83,6 +83,7 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
     if (message.type() === "error") errors.push(message.text());
   });
   await page.goto("/");
+  await page.getByText("La démarche artistique", { exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Sculpter les matières du monde" }),
   ).toBeAttached();

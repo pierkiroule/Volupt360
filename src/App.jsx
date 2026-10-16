@@ -7,7 +7,6 @@ import {
 import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
-import { AtmosphereSpheres } from "./components/AtmosphereSpheres.jsx";
 import { UNIVERSES } from "./sonoizo/universes.js";
 import { BRUSHES } from "./engine/brushes.js";
 import { useEffect, useRef, useState } from "react";
@@ -424,62 +423,31 @@ export default function App() {
       {immersive &&
         !universe &&
         !new URLSearchParams(location.search).has("samples") && (
-          <section className="universe-picker" aria-label="Choisir un univers">
-            <h2>Choisissez votre univers</h2>
+          <section
+            className="universe-picker"
+            aria-label="Entrer dans le paysage"
+          >
+            <h2>Un ciel, des matières vivantes</h2>
             <p>
               Composez vos brosses, puis laissez l’oizo en sculpter les
               couleurs, les formes et les matières.
             </p>
-            <AtmosphereSpheres
-              acousticControls={!ENABLE_BIRD_SONGS}
-              value={atmosphereMix}
-              echo={atmosphere.echo}
-              hypnos={atmosphere.hypnos}
-              onMix={(values) => {
-                setAtmosphereMix(values);
-                atmosphereMixRef.current = values;
-                const bank = twigs.bank.current;
-                if (!bank) return;
-                if (!ENABLE_ECHO_INSTRUMENT || ENABLE_BIRD_SONGS) return;
-                void bank.preparePlayback();
-                if (!bank.getInstrumentStats() && !atmosphereStart.current) {
-                  atmosphereStart.current = bank
-                    .startInstrument(
-                      UNIVERSES[values.indexOf(Math.max(...values))].id,
-                    )
-                    .then(() => {
-                      bank.setInstrumentMix(atmosphereMixRef.current);
-                      bank.setAtmosphere(atmosphereRef.current);
-                    })
-                    .catch((error) => setUniverseError(error.message))
-                    .finally(() => {
-                      atmosphereStart.current = null;
-                    });
-                } else bank.setInstrumentMix(values);
-              }}
-              onAtmosphere={(values) => {
-                setAtmosphere(values);
-                atmosphereRef.current = values;
-                twigs.bank.current?.setAtmosphere(values);
-              }}
-              onEnter={async () => {
-                if (atmosphereStart.current) await atmosphereStart.current;
-                await enterUniverse(
-                  UNIVERSES[
-                    atmosphereMixRef.current.indexOf(
-                      Math.max(...atmosphereMixRef.current),
-                    )
-                  ],
-                );
-              }}
-            />
-            <ArtisticIntroduction />
+            <button
+              className="enter-landscape"
+              onClick={() => enterUniverse(UNIVERSES[0])}
+            >
+              Entrer dans le paysage
+            </button>
+            <details className="artistic-about">
+              <summary>La démarche artistique</summary>
+              <ArtisticIntroduction />
+            </details>
           </section>
         )}
       {immersive && universe && mode !== "photo" && (
         <button
           className="universe-change"
-          aria-label="Changer d’univers"
+          aria-label="Revenir à l’accueil"
           onClick={() => {
             universeRequest.current++;
             twigs.bank.current?.stopAll();

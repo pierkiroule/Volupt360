@@ -53,12 +53,6 @@ export function createTwigBank({
       : ambience && !ambience.element.paused
         ? readAudioFeatures(ambience.graph)
         : {};
-    if (ambience?.background && !instrument?.stats.active)
-      music = {
-        ...music,
-        rms: (music.rms || 0) * ambience.gain.gain.value,
-        energy: (music.energy || 0) * ambience.gain.gain.value,
-      };
     const dt = Number.isFinite(visualReadAt)
       ? Math.min(0.1, Math.max(0.001, now - visualReadAt))
       : 0.04;

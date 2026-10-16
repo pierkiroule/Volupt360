@@ -189,6 +189,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uPigment: { value: 1.12 },
       uAudioEnergy: { value: 0 },
       uAudioLow: { value: 0 },
+      uAudioPulse: { value: 0 },
       uOpacity: { value: brush.opacity * opacity },
       uLayer: { value: 0 },
       uSeed: { value: seed },

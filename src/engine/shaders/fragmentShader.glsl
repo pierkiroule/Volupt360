@@ -1,3 +1,4 @@
+uniform float uAudioEnergy,uAudioLow,uAudioPulse;
 uniform sampler2D uBrushMask;
 uniform float uPhotograph;
 uniform float uHasMask,uMaskAspect,uMaskRepeat;
@@ -8,7 +9,9 @@ float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fra
 float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash21(i),hash21(i+vec2(1.,0.)),f.x),mix(hash21(i+vec2(0.,1.)),hash21(i+vec2(1.,1.)),f.x),f.y);}
 float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+vec2(13.1,7.7);a*=.49;}return v;}
 void main(){
-vec2 uv=vUv;float across=abs(uv.x*2.-1.);
+vec2 uv=vUv;
+uv+=vec2(sin(uTime*.075+uSeed+uv.y*3.),cos(uTime*.053+uSeed+uv.x*4.))*(.009+.012*uAudioEnergy);
+float across=abs(uv.x*2.-1.);
 float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085)));
 float wet=exp(-uAge*dryingRate);
 float settled=1.-wet;
@@ -118,6 +121,9 @@ if(uHasMask>.5){
   alpha*=1.-pow(1.-imageAlpha,1.9);
   col*=.88+.12*imageAlpha;
 }
+col*=1.-uAudioLow*.16;
+col=mix(col,base,.12*uAudioPulse);
+alpha*=.8+uAudioEnergy*.42+uAudioPulse*.22;
 if(alpha<.012)discard;
 gl_FragColor=vec4(col,alpha);
 #include <colorspace_fragment>

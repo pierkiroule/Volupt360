@@ -3,6 +3,7 @@ export async function createBrush(page, seed = 1) {
     .getByRole("button", { name: "Créer une brosse", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
+  await dialog.getByText("Affiner", { exact: true }).click();
   await dialog.getByLabel("Nom", { exact: true }).fill(`Matière ${seed}`);
   await dialog
     .getByLabel("Forme", { exact: true })
@@ -11,7 +12,7 @@ export async function createBrush(page, seed = 1) {
     .getByLabel("Couleur", { exact: true })
     .fill(seed % 2 ? "#208578" : "#d44763");
   await dialog
-    .getByLabel("Effet", { exact: true })
+    .getByLabel("Matière", { exact: true })
     .selectOption(seed % 2 ? "Lavis" : "Nervures");
   await dialog
     .getByRole("button", { name: "Créer la brosse", exact: true })
