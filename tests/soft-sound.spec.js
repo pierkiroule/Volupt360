@@ -71,3 +71,58 @@ test("procedural reverb renders a diffuse decaying tail and releases its nodes",
   expect(result.tail).toBeLessThan(result.early);
   expect(result.ending).toBeLessThan(result.tail);
 });
+
+test("wood resonator is finite, reproducible, pitched and smoothly damped", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { WaterDSP } = await import("/src/audio/WaterDSP.js");
+    return [16000, 24000, 48000].map((sampleRate) => {
+      const options = {
+        sampleRate,
+        type: "wood",
+        frequency: 196,
+        duration: 1,
+        seed: 37,
+        velocity: 0.7,
+      };
+      const a = new WaterDSP(options),
+        b = new WaterDSP(options);
+      let energy = 0,
+        roughness = 0,
+        previous = 0,
+        same = true,
+        finite = true,
+        crossings = 0;
+      for (let i = 0; i < sampleRate * 1.2; i++) {
+        const x = a.render(0.5, 0.5),
+          y = b.render(0.5, 0.5);
+        same &&= x === y;
+        finite &&= Number.isFinite(x);
+        if (i > sampleRate * 0.1 && i < sampleRate * 0.6) {
+          energy += x * x;
+          roughness += (x - previous) ** 2;
+          if (x > 0 && previous <= 0) crossings++;
+        }
+        previous = x;
+      }
+      return {
+        same,
+        finite,
+        energy,
+        roughness: roughness / energy,
+        frequency: crossings / 0.5,
+        tail: previous,
+      };
+    });
+  });
+  for (const result of results) {
+    expect(result.same).toBe(true);
+    expect(result.finite).toBe(true);
+    expect(result.energy).toBeGreaterThan(0.1);
+    expect(result.roughness).toBeLessThan(0.04);
+    expect(Math.abs(result.frequency - 196)).toBeLessThan(5);
+    expect(result.tail).toBe(0);
+  }
+});

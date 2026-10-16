@@ -19,20 +19,24 @@ export function createChillDrums(ctx, destination) {
     const start = Math.max(ctx.currentTime, time),
       kick = kind === "kick";
     const duration = kick ? 0.38 : kind === "wood" ? 0.17 : 0.065;
-    const source = kick ? ctx.createOscillator() : ctx.createBufferSource();
+    const source =
+      kind !== "shaker" ? ctx.createOscillator() : ctx.createBufferSource();
     const envelope = ctx.createGain(),
       tone = ctx.createBiquadFilter(),
       pan = ctx.createStereoPanner();
-    if (kick) {
+    if (kind !== "shaker") {
       source.type = "sine";
-      source.frequency.setValueAtTime(110, start);
-      source.frequency.exponentialRampToValueAtTime(46, start + 0.12);
+      source.frequency.setValueAtTime(kick ? 85 : 185, start);
+      source.frequency.exponentialRampToValueAtTime(
+        kick ? 46 : 138,
+        start + (kick ? 0.12 : 0.08),
+      );
       tone.type = "lowpass";
-      tone.frequency.value = 350;
+      tone.frequency.value = kick ? 350 : 850;
     } else {
       source.buffer = noise;
-      tone.type = kind === "wood" ? "bandpass" : "highpass";
-      tone.frequency.value = kind === "wood" ? 1500 : 2200;
+      tone.type = "bandpass";
+      tone.frequency.value = 1100;
       tone.Q.value = 0.55;
     }
     pan.pan.value = kind === "shaker" ? (counts.shaker % 2 ? 0.22 : -0.22) : 0;

@@ -1,9 +1,9 @@
 /** Gentle full-mix voicing, including percussion and reverb returns. */
 export const SOFT_TONE = Object.freeze({
   highpass: 32,
-  presence: 2800,
-  presenceGain: -4,
-  lowpass: 2800,
+  presence: 2000,
+  presenceGain: -5,
+  lowpass: 2200,
 });
 export function createSoftTone(ctx, destination) {
   const highpass = ctx.createBiquadFilter(),

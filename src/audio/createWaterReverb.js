@@ -33,7 +33,7 @@ export function createWaterReverb(ctx, destination, profile) {
   sendFilter.connect(predelay);
   predelay.delayTime.value = 0.028;
   damping.type = "lowpass";
-  damping.frequency.value = 2200;
+  damping.frequency.value = 1700;
   damping.Q.value = 0.5;
   convolver.buffer = response;
   wet.gain.value = profile.waterColor === 2 ? 0.25 : 0.24;

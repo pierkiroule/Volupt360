@@ -298,7 +298,9 @@ export async function createEchoInstrument(
         : voiceType ||
           (imageCell
             ? imageCell.light > 0.55
-              ? "felt"
+              ? chill
+                ? "wood"
+                : "felt"
               : "string"
             : world.type),
       startAt: start,
