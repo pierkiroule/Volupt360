@@ -80,7 +80,7 @@ test("a sounding remembered trace resonates locally, forget and pause stop its r
   await page.goto("/");
   const result = await page.evaluate(async () => {
     const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
-    const bank = createTwigBank({ ids: ["voiles"] });
+    const bank = createTwigBank({ ids: ["voiles"], birdSongs: false });
     await bank.preparePlayback();
     await bank.startInstrument("souffle");
     for (let i = 0; i < 12; i++) {

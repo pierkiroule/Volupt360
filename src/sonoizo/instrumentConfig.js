@@ -3,3 +3,5 @@ export const ENABLE_ECHO_INSTRUMENT =
   new URLSearchParams(location.search).get("instrument") !== "off";
 export const ENABLE_POETIC_VOICES =
   import.meta.env.VITE_ENABLE_POETIC_VOICES === "true";
+
+export const ENABLE_BIRD_SONGS = true;

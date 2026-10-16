@@ -1,3 +1,5 @@
+import { ENABLE_BIRD_SONGS } from "./instrumentConfig.js";
+import { createBirdSongs } from "../audio/birds/createBirdSongs.js";
 import { createAmbientMixer } from "../audio/createAmbientMixer.js";
 import { createVisualAudioResponse } from "../audio/createVisualAudioResponse.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
@@ -21,6 +23,7 @@ export function createTwigBank({
   onChange = () => {},
   onError = () => {},
   initialSamples = [],
+  birdSongs = ENABLE_BIRD_SONGS,
 }) {
   if (ids.length > 18 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
@@ -31,6 +34,12 @@ export function createTwigBank({
   let instrument = null,
     instrumentRequest = 0,
     instrumentPlayingRequested = false;
+  const birds = createBirdSongs({
+    ids,
+    context,
+    destination: () => master,
+    onChange: () => emit(),
+  });
   const respond = createVisualAudioResponse();
   let visualFeatures = null,
     visualReadAt = -Infinity;
@@ -49,7 +58,11 @@ export function createTwigBank({
     visualReadAt = now;
     visualFeatures = respond(
       music,
-      voice ? readAudioFeatures(voice.graph) : {},
+      birdSongs
+        ? birds.features()
+        : voice
+          ? readAudioFeatures(voice.graph)
+          : {},
       dt,
     );
     return visualFeatures;
@@ -97,6 +110,7 @@ export function createTwigBank({
             startedAt: recording.startedAt,
           }
         : null,
+      birds: birds.snapshot(),
       poemLoading,
       fireflies,
       activeVocalId: [...voices.keys()][0] || pendingVocal?.id || null,
@@ -294,6 +308,7 @@ export function createTwigBank({
     emit();
   }
   function stopAll() {
+    birds.stop();
     brushGestures.clear();
     playbackRevision++;
     pendingVocal = null;
@@ -612,6 +627,10 @@ export function createTwigBank({
     }
   }
   return {
+    prepareBirdCatalog: (force = false) => birds.prepare(force),
+    preloadBirdSong: (id) => (birdSongs ? birds.warm(id) : Promise.resolve()),
+    beginSculpture: (id) => (birdSongs ? birds.start(id) : Promise.resolve()),
+    endSculpture: () => birds.stop(),
     async startInstrument(universe = "souffle") {
       const request = ++instrumentRequest;
       instrumentPlayingRequested = true;
@@ -640,13 +659,13 @@ export function createTwigBank({
       instrument?.setBrushImage?.(id, profile);
     },
     depositSound(id, position, energy, key) {
-      return instrument?.deposit(id, position, energy, key);
+      if (!birdSongs) return instrument?.deposit(id, position, energy, key);
     },
     forgetSound(key) {
       instrument?.forget(key);
     },
     recallSound(id, position, key) {
-      return instrument?.recall(id, position, key);
+      if (!birdSongs) return instrument?.recall(id, position, key);
     },
     getTraceResonance(key) {
       return instrument?.traceResonance?.(key) || 0;
@@ -842,6 +861,7 @@ export function createTwigBank({
       cancelRecording();
       stopAll();
       disposed = true;
+      birds.dispose();
       poemRequest++;
       poemAbort?.abort();
       instrument?.dispose();

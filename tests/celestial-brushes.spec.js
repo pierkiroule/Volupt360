@@ -4,6 +4,9 @@ test.use({ hasTouch: true });
 test("3D planets select only on double tap and show a single blue halo", async ({
   page,
 }) => {
+  await page.route("https://api.inaturalist.org/**", (route) =>
+    route.fulfill({ json: { results: [] } }),
+  );
   await page.goto("/");
   await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
@@ -97,6 +100,9 @@ test("mobile atelier paints without imports or pads and keeps photo framing", as
     if (message.type() === "error") errors.push(message.text());
   });
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("https://api.inaturalist.org/**", (route) =>
+    route.fulfill({ json: { results: [] } }),
+  );
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   const canvas = page.locator("#stage canvas");
@@ -125,6 +131,9 @@ test("all eighteen original brush geometries render their fixed watercolor in We
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
+  await page.route("https://api.inaturalist.org/**", (route) =>
+    route.fulfill({ json: { results: [] } }),
+  );
   await page.goto("/");
   const output = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
