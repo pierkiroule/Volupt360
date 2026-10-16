@@ -1,10 +1,10 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Touchez **+** pour créer une brosse procédurale : forme, couleur, effet de matière, épaisseur et transparence. L’ambiance musicale anime les matières. La palette est sauvegardée automatiquement sur cet appareil et restaurée au retour ; le bouton « Sauvegarder la palette » confirme son enregistrement. Maintenir le canevas fait tracer l’oizo, glisser guide son vol : le doigt ne dessine jamais. Voir [l’atelier et la sauvegarde](docs/procedural-brush-palette.md).
+Un seul paysage **ÉCHO & HYPNOS** réunit le vol, la peinture et l’ambiance musicale. Touchez **+** pour créer une brosse procédurale : forme, couleur, effet de matière, épaisseur et transparence. L’ambiance musicale anime les matières. La palette est sauvegardée automatiquement sur cet appareil et restaurée au retour ; le bouton « Sauvegarder la palette » confirme son enregistrement. Maintenir le canevas fait tracer l’oizo, glisser guide son vol : le doigt ne dessine jamais. Voir [l’atelier et la sauvegarde](docs/procedural-brush-palette.md).
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 
-L’interface propose directement six pads par univers, sans outil de textures ni menu de réglage. Les textures automatiques des brosses d’origine sont conservées. La musique générée est incluse dans le mix des vidéodios. Aucun vocal n’est associé à une brosse et aucun mot n’est déposé dans la sculpture. Aucun import musical libre dans ce parcours : l’univers fournit sa musique.
+L’interface donne accès à une palette procédurale sauvegardée, une ambiance MP3 et aux vues FPV, gyro et photo. Aucun vocal ni mot déposé.
 
 Deux boutons discrets **Zoom − / +** restent visibles en bas à droite. La vue **Photo** permet de tourner et zoomer la sculpture, de télécharger une photo en **PNG HD jusqu’à 2 560 pixels**, ou une **vidéodio FPV de dix secondes avec son audio synchronisé**. Photos et vidéos restent locales. Voir [le fonctionnement et les limites](docs/videodio.md).
 
@@ -114,7 +114,7 @@ Les mondes sonores **Source, Rivière et Abysses** sont entièrement procédurau
 
 Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-instrument.md). `?instrument=off` restaure le parcours musical MP3 précédent pour comparaison.
 
-Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
+Le parcours actif conserve désormais un seul univers et son ambiance MP3. Les anciens moteurs de composition restent disponibles dans le code historique ; aucun sélecteur ni mélange de trois univers n’est affiché.
 
 ## Palette procédurale
 
@@ -125,3 +125,9 @@ Une collection de 1 à 18 brosses personnalisées, sans import photo. L’atelie
 L’oizo reste un petit V discret : deux ailes pondérées sur trois articulations chacune (épaule, coude, poignet). Les virages déclenchent de courts battements avec déphasage vers les extrémités et des transitions douces vers le vol plané, sans changer sa trajectoire ni la sculpture.
 
 Le skydome aquarelle traverse un crépuscule lent : étoiles fixes, lune voilée et deux rubans d’aurore très diffus. Le cycle dure environ dix minutes, sans textures externes ni passes de post-traitement. Le ciel garde son orientation en FPV et gyro ; son évolution se fige en mode photo pour préserver le cadrage. Les ressources des ailes et du ciel sont libérées à la fermeture. Le rendu sur téléphone physique reste à vérifier.
+
+### Vol proche et matières évolutives
+
+La FPV suit l’oizo à distance fixe : la taille de la sculpture, le silence et les phases de vol ne provoquent plus de recul automatique. Le zoom manuel reste disponible. Un suivi amorti plus réactif, une visée devant l’oiseau et une inclinaison légère dans les virages renforcent le voyage. Les ailes articulées gagnent une courbure et une silhouette centrale discrète.
+
+L’atelier présente trois choix : forme, couleur et matière. « Affiner » révèle le nom, l’épaisseur et l’opacité. Les 18 familles restent disponibles. Les traces déposées évoluent lentement dans leurs shaders et réagissent à l’énergie, aux basses et aux accents de l’ambiance ; les particules modulent aussi leur expansion et leur flottement. Aucune texture n’est régénérée pendant le rendu. Le signal d’analyse n’est plus atténué par le gain de fond, sans augmenter le volume sonore.

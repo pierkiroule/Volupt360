@@ -61,14 +61,6 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
           </span>
         </div>
         <label>
-          Nom
-          <input
-            value={draft.name}
-            maxLength={32}
-            onChange={(e) => change("name", e.target.value)}
-          />
-        </label>
-        <label>
           Forme
           <select
             aria-label="Forme"
@@ -77,7 +69,7 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
           >
             {BRUSHES.map((brush) => (
               <option key={brush.id} value={brush.id}>
-                {brush.name} · {brush.detail}
+                {brush.name}
               </option>
             ))}
           </select>
@@ -91,9 +83,9 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
           />
         </label>
         <label>
-          Effet
+          Matière
           <select
-            aria-label="Effet"
+            aria-label="Matière"
             value={draft.effect}
             onChange={(e) => change("effect", e.target.value)}
           >
@@ -102,28 +94,39 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
             ))}
           </select>
         </label>
-        <label>
-          Épaisseur
-          <input
-            type="range"
-            min="0.3"
-            max="2.5"
-            step="0.05"
-            value={draft.width}
-            onChange={(e) => change("width", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          Transparence
-          <input
-            type="range"
-            min="0.2"
-            max="1"
-            step="0.05"
-            value={draft.opacity}
-            onChange={(e) => change("opacity", Number(e.target.value))}
-          />
-        </label>
+        <details className="brush-refinements">
+          <summary>Affiner</summary>
+          <label>
+            Nom
+            <input
+              value={draft.name}
+              maxLength={32}
+              onChange={(e) => change("name", e.target.value)}
+            />
+          </label>
+          <label>
+            Épaisseur
+            <input
+              type="range"
+              min="0.3"
+              max="2.5"
+              step="0.05"
+              value={draft.width}
+              onChange={(e) => change("width", Number(e.target.value))}
+            />
+          </label>
+          <label>
+            Opacité
+            <input
+              type="range"
+              min="0.2"
+              max="1"
+              step="0.05"
+              value={draft.opacity}
+              onChange={(e) => change("opacity", Number(e.target.value))}
+            />
+          </label>
+        </details>
         <div className="workshop-actions">
           <button
             type="button"
@@ -140,8 +143,8 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
           </button>
         </div>
         <small>
-          La matière est générée ici. La palette est sauvegardée sur cet
-          appareil.
+          Chaque brosse évolue avec le temps et la musique. Palette sauvegardée
+          sur cet appareil.
         </small>
       </form>
     </dialog>

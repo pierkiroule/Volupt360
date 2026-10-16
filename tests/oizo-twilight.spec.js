@@ -20,8 +20,10 @@ test("articulated wings stay continuous through turns and release their GPU reso
       excursion = 0,
       disposed = 0,
       finite = true;
-    for (const wing of wings)
-      wing.geometry.addEventListener("dispose", () => disposed++);
+    bird.group.traverse((object) => {
+      if (object.geometry)
+        object.geometry.addEventListener("dispose", () => disposed++);
+    });
     wings[0].material.addEventListener("dispose", () => disposed++);
     for (let i = 0; i < 1200; i++) {
       const t = i / 60;
@@ -73,7 +75,7 @@ test("articulated wings stay continuous through turns and release their GPU reso
   expect(result.maximumStep).toBeLessThan(0.065);
   expect(result.excursion).toBeGreaterThan(0.25);
   expect(result.position).toBeCloseTo(1199 / 60);
-  expect(result.disposed).toBe(3);
+  expect(result.disposed).toBe(4);
 });
 
 test("twilight shader renders stars and moon with a seamless camera-relative dome and skinned bird", async ({
@@ -165,8 +167,8 @@ test("twilight shader renders stars and moon with a seamless camera-relative dom
   expect(result.nonzero).toBe(640 * 400);
   expect(result.advance).toBeCloseTo(1 / 60);
   expect(result.frozen).toBe(true);
-  expect(result.calls).toBe(3);
-  expect(result.resources.geometries).toBe(3);
+  expect(result.calls).toBe(4);
+  expect(result.resources.geometries).toBe(4);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.disposePreview());
 });

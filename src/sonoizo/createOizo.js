@@ -10,6 +10,19 @@ export function createOizo() {
     color: "#284c55",
     side: THREE.DoubleSide,
   });
+  const keel = new THREE.BufferGeometry();
+  keel.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      [
+        0, 0.012, 0.23, -0.024, 0, -0.1, 0.024, 0, -0.1, 0, 0, -0.08, -0.05,
+        -0.008, -0.23, 0.05, -0.008, -0.23,
+      ],
+      3,
+    ),
+  );
+  const silhouette = new THREE.Mesh(keel, material);
+  body.add(silhouette);
   const wings = [-1, 1].map((side) => {
     const positions = [],
       indices = [],
@@ -19,7 +32,7 @@ export function createOizo() {
     const spans = [0, 0.2, 0.37];
     for (let i = 0; i <= 16; i++) {
       const x = (i / 16) * 0.52;
-      const center = 0.1 - x * 0.58;
+      const center = 0.12 - x * 0.64 + Math.sin((i / 16) * Math.PI) * 0.045;
       const width = 0.014 + 0.09 * Math.pow(Math.sin((i / 16) * Math.PI), 0.7);
       const joint = x < spans[1] ? 0 : 1;
       const blend = THREE.MathUtils.smoothstep(
@@ -28,7 +41,11 @@ export function createOizo() {
         spans[joint + 1],
       );
       for (let edge = 0; edge < 2; edge++) {
-        positions.push(side * x, 0, center + (edge ? -1 : 1) * width * 0.5);
+        positions.push(
+          side * x,
+          Math.sin((i / 16) * Math.PI) * 0.018,
+          center + (edge ? -1 : 1) * width * 0.5,
+        );
         indices.push(joint, joint + 1, 0, 0);
         weights.push(1 - blend, blend, 0, 0);
         if (i < 16 && edge === 0) {
@@ -112,10 +129,14 @@ export function createOizo() {
       const progress = burst > 0 ? 1 - burst / 1.8 : 0;
       // Zero slope at each end: no snap between gliding and a turn's wingbeats.
       const envelope = Math.sin(progress * Math.PI) ** 2;
+      const lift = Math.min(0.12, Math.max(0, pose.acoustic?.low || 0) * 0.12);
       const amplitude = envelope * 0.34;
+      body.rotation.x = Math.sin(pose.time * 0.7) * 0.018 + lift * 0.1;
+      silhouette.rotation.y = bank * -0.12;
       body.rotation.z = bank;
       for (const { bones, side } of wings) {
-        bones[0].rotation.z = side * (0.13 + Math.sin(phase) * amplitude);
+        bones[0].rotation.z =
+          side * (0.13 + lift + Math.sin(phase) * amplitude);
         bones[1].rotation.z =
           side * (0.045 + Math.sin(phase - 0.48) * amplitude * 0.65);
         bones[2].rotation.z =
@@ -132,6 +153,7 @@ export function createOizo() {
         mesh.geometry.dispose();
         skeleton.dispose();
       }
+      keel.dispose();
       material.dispose();
       group.removeFromParent();
     },

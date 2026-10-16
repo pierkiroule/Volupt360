@@ -1696,3 +1696,21 @@ label:focus-visible {
 .save-brush-palette {
   flex: 0 0 2.4rem;
 }
+
+.enter-landscape {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 0.85rem;
+  background: #385a55;
+  color: #faf7ed;
+  padding: 1rem;
+  font: inherit;
+  margin: 1rem 0;
+}
+.artistic-about > summary,
+.brush-refinements > summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+  font-size: 0.8rem;
+}

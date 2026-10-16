@@ -624,10 +624,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           const uniforms = object.material?.uniforms;
           if (uniforms?.uPigment)
             uniforms.uPigment.value =
-              1.05 + (response.energy || 0) * 0.7 + (response.pulse || 0) * 0.3;
+              1.05 +
+              (response.energy || 0) * 1.05 +
+              (response.pulse || 0) * 0.65;
           if (uniforms?.uAudioEnergy)
             uniforms.uAudioEnergy.value = response.energy || 0;
           if (uniforms?.uAudioLow) uniforms.uAudioLow.value = visual.low || 0;
+          if (uniforms?.uAudioPulse)
+            uniforms.uAudioPulse.value = response.pulse || 0;
         });
       }
       if (boundsDirty) updateBounds();

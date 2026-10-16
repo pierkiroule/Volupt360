@@ -52,8 +52,8 @@ export function createPoeticParticleStroke(
         float phase = age * (uKind == 2.0 ? 1.2 : 0.7) + aSeed;
         vec3 drift = vec3(sin(phase), cos(phase * 0.83), sin(phase * 0.61 + aSeed)) * min(age * 0.3, 0.7);
         if (uKind == 3.0) drift *= 0.15;
-        float flutter = sin(phase * 2.3) * (uKind == 1.0 ? 0.65 : 0.2);
-        vec3 offset = aOffset * (0.85 + uAudioEnergy * 0.5 + uAudioLow * 0.15);
+        float flutter = sin(phase * 2.3) * (1.0 + uAudioEnergy * .7) * (uKind == 1.0 ? 0.65 : 0.2);
+        vec3 offset = aOffset * (0.8 + uAudioEnergy * 0.7 + uAudioLow * 0.3);
         offset.xz = mat2(cos(flutter), -sin(flutter), sin(flutter), cos(flutter)) * offset.xz;
         vUv = uv; vTint = aTint; vPhase = phase;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position + offset + drift, 1.0);

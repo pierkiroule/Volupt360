@@ -62,6 +62,7 @@ export function createSonoizoDance({ seed = 37 } = {}) {
         .clone()
         .multiplyScalar(steering.x * 10)
         .addScaledVector(steeringFrame?.up || pose.up, steering.y * 10);
+      desired.addScaledVector(pose.up, (features.low - features.high) * 0.9);
       wind.lerp(desired, 1 - Math.exp(-dt * 4));
       steering.multiplyScalar(Math.exp(-dt * 0.7));
       offset.addScaledVector(wind, dt).multiplyScalar(Math.exp(-dt * 0.15));

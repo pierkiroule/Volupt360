@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { droneIntent } from "./artDirection.js";
 
 /** Three viewpoints share an extended sculpture and a moving painter.
  * Pointer input rotates only the landscape. Every rotation reanchors the FPV
@@ -7,7 +6,6 @@ import { droneIntent } from "./artDirection.js";
  */
 export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   let mode = "drone",
-    phase = 0,
     dragging = null,
     revision = 0,
     disposed = false;
@@ -16,8 +14,6 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   let photoZoom = 1;
   const photoPointers = new Map();
   let pinchDistance = 0;
-  let tracking = 0,
-    calm = 0;
   const panoramaPosition = new THREE.Vector3();
   const painter = new THREE.Vector3(),
     direction = new THREE.Vector3(),
@@ -46,6 +42,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   const matrix = new THREE.Matrix4(),
     desiredQuaternion = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
+  const horizonUp = new THREE.Vector3(),
+    previousHeading = new THREE.Vector3();
+  let cameraBank = 0;
   const listeners = [];
   const listen = (node, name, fn) => {
     node.addEventListener(name, fn);
@@ -53,8 +52,6 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   };
   function reanchor(reset = false) {
     if (reset) {
-      tracking = 0;
-      calm = 0;
       landscape.updateMatrixWorld(true);
       panoramaPosition.set(0, 0, 0).applyMatrix4(landscape.matrixWorld);
     }
@@ -230,10 +227,6 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     direction.copy(state.direction).transformDirection(landscape.matrixWorld);
     velocity.copy(state.velocity).applyQuaternion(landscape.quaternion);
     center.copy(state.bounds.center).applyMatrix4(landscape.matrixWorld);
-    phase += dt * (state.active ? 0.11 : 0.055);
-    tracking +=
-      ((state.active ? 1 : 0) - tracking) * mix(state.active ? 1.4 : 0.38);
-    calm = state.active ? 0 : Math.min(20, calm + dt);
     if (mode === "photo") {
       const halfFov = Math.atan(
         Math.tan(THREE.MathUtils.degToRad(37)) * Math.min(1, camera.aspect),
@@ -262,68 +255,51 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
             .multiplyScalar(18),
         );
     } else {
-      const intent = droneIntent(
-        state.phrase || 0,
-        state.progress || 0,
-        state.energy,
-      );
-      canvas.dataset.droneIntent = intent.name;
-      // Film the bird-painter from behind and alongside its actual tangent.
-      // Velocity supplies look-ahead; audio controls dolly distance and lift.
+      canvas.dataset.droneIntent = "close-flight";
       lateral.crossVectors(direction, up);
       if (lateral.lengthSq() < 0.02) lateral.set(1, 0, 0);
       lateral.normalize();
-      const near = 8.5 + (1 - state.energy) * 4;
+      // Fixed close framing. Only the visitor's zoom can move toward an overview.
       follow
         .copy(painter)
-        .addScaledVector(direction, -near)
-        .addScaledVector(
-          lateral,
-          3.2 + Math.sin(phase) * 2 - intent.passage * 5,
-        )
-        .addScaledVector(up, 2.2 + state.energy * 2 + intent.passage * 1.5);
-      overview
-        .copy(center)
-        .lerp(painter, 0.45)
-        .addScaledVector(
-          direction,
-          -(16 + Math.min(70, state.bounds.radius * 0.8)),
-        )
-        .addScaledVector(lateral, 5 + Math.sin(phase * 0.6) * 3)
-        .addScaledVector(up, 8 + Math.min(25, state.bounds.radius * 0.25));
+        .addScaledVector(direction, -4.8)
+        .addScaledVector(lateral, 0.5)
+        .addScaledVector(up, 0.42);
       const halfFov = Math.atan(
-        Math.tan(THREE.MathUtils.degToRad(74 / 2)) * Math.min(1, camera.aspect),
+        Math.tan(THREE.MathUtils.degToRad(39)) * Math.min(1, camera.aspect),
       );
       overview
         .copy(center)
         .addScaledVector(
           behind.copy(direction).negate().addScaledVector(up, 0.45).normalize(),
-          (state.bounds.radius * 1.2) / Math.sin(halfFov),
+          Math.max(15, (state.bounds.radius * 1.2) / Math.sin(halfFov)),
         );
-      const intimacy =
-        tracking * (1 - distanceSetting) * (1 - intent.contemplation * 0.7);
-      desired.copy(overview).lerp(follow, intimacy);
-      focus.copy(painter).addScaledVector(velocity, 0.4);
-      target
-        .copy(center)
-        .lerp(
-          focus,
-          (0.4 + tracking * 0.6) *
-            (1 - distanceSetting) *
-            (1 - intent.contemplation * 0.7),
-        );
+      desired.copy(follow).lerp(overview, distanceSetting);
+      focus.copy(painter).addScaledVector(direction, 4.5);
+      target.copy(focus).lerp(center, distanceSetting);
+      const turn =
+        previousHeading.lengthSq() > 0
+          ? previousHeading.dot(lateral) / Math.max(0.001, dt)
+          : 0;
+      cameraBank +=
+        (THREE.MathUtils.clamp(turn * 0.12, -0.16, 0.16) - cameraBank) *
+        mix(2.2);
+      previousHeading.copy(direction);
+      canvas.dataset.fpvFollowDistance = "4.8";
     }
-    const positionBlend = mix(mode === "drone" ? 1.1 : 2.8);
+    const positionBlend = mix(mode === "drone" ? 4.2 : 2.8);
     camera.position.lerp(desired, positionBlend);
-    aim.lerp(target, mix(mode === "drone" ? 1.7 : 3.5));
-    matrix.lookAt(camera.position, aim, up);
+    aim.lerp(target, mix(mode === "drone" ? 4 : 3.5));
+    horizonUp.copy(up);
+    if (mode === "drone")
+      horizonUp
+        .addScaledVector(lateral, cameraBank * (1 - distanceSetting))
+        .normalize();
+    matrix.lookAt(camera.position, aim, horizonUp);
     desiredQuaternion.setFromRotationMatrix(matrix);
     if (mode === "gyro") desiredQuaternion.multiply(gyroRelative);
-    camera.quaternion.slerp(desiredQuaternion, mix(mode === "drone" ? 2.1 : 5));
-    const fov =
-      mode === "gyro"
-        ? 92 + distanceSetting * 20
-        : 74 + tracking * 8 + state.motion * 3;
+    camera.quaternion.slerp(desiredQuaternion, mix(mode === "drone" ? 4 : 5));
+    const fov = mode === "gyro" ? 92 + distanceSetting * 20 : 78;
     camera.fov += (fov - camera.fov) * mix(1.4);
     camera.far = Math.max(
       400,

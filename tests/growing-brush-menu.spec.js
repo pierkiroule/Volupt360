@@ -37,8 +37,7 @@ test("one initial brush grows into an independent collection with no planets", a
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
     .toBeGreaterThan(2);
-  await page.getByRole("button", { name: "Changer d’univers" }).click();
-  await page.getByRole("button", { name: "Choisir ABYSSE" }).click();
+  await page.getByRole("button", { name: "Revenir à l’accueil" }).click();
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(buttons).toHaveCount(2);
   expect(await buttons.first().locator("img").getAttribute("src")).toBe(
