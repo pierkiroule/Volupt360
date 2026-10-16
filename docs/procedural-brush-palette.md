@@ -23,3 +23,15 @@ Tests navigateur : choix des paramètres, création de plusieurs brosses, sculpt
 ## Matières évolutives
 
 Les shaders font dériver lentement les pigments et onduler les surfaces, avec un déphasage par trace. Les graves renforcent les ondulations, l’énergie nourrit le pigment et les accents ajoutent une impulsion brève. Les six familles de particules modulent leur expansion et leur flottement. Les anciennes traces répondent aussi, sans nouvelle génération de texture. La pause photo fige l’évolution avec le reste de la scène. L’analyse utilise le signal musical avant le gain de fond pour garder sa dynamique visuelle ; le volume de lecture reste inchangé.
+
+## Consolidation mobile
+
+Le caractère vivant (`life`) règle la vitesse et la sensibilité de la matière : Suspendue, Fluide ou Vibrante. Il est conservé dans la palette ; les anciennes entrées sans ce champ restent valides et prennent Fluide. Les couleurs proposées par Surprise viennent d’une palette de pigments contrastés. Les champs de lavis et granulation gagnent une composante cohérente, tout en conservant la graine reproductible.
+
+La prévisualisation est regroupée à une mise à jour par animation frame et n’est recalculée que pour la graine, la couleur ou l’effet de matière. Modifier le nom ou le mouvement ne régénère pas la texture. Les champs utilisent une police de 16 px et des cibles tactiles d’au moins 44 px sur mobile ; la fenêtre reste défilable.
+
+Le moteur sépare l’horloge du dépôt de l’horloge de vie des traces. Cette dernière continue entre les gestes et se fige en mode photo. Les références de matériaux sont mises en cache par trace et actualisées lorsque sa géométrie grandit. Les enveloppes graves, aiguës et d’accents sont lissées avec des constantes indépendantes de la fréquence d’affichage.
+
+`createRenderBudget` limite la résolution et ajuste progressivement le pixel ratio après une charge durable, puis remonte lentement après une période stable. Les grosses interruptions sont ignorées et aucune adaptation n’a lieu en mode photo. La limite est de 56 traces sur mobile et 80 sur ordinateur ; le mode mobile évite les cibles multisamplées supplémentaires. L’export PNG HD conserve sa résolution dédiée.
+
+Les tests de viewport mobile et les cadences simulées ne constituent pas une mesure de FPS, de mémoire ou de batterie sur téléphone physique.

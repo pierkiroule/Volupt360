@@ -12,14 +12,14 @@ const clamp = (v, min, max, fallback) =>
     : fallback;
 
 /** One reusable fullscreen pass. Neutral settings bypass all extra rendering. */
-export function createViewEffects(renderer) {
+export function createViewEffects(renderer, { antialias = true } = {}) {
   const size = new THREE.Vector2();
   renderer.getDrawingBufferSize(size);
   const target = new THREE.WebGLRenderTarget(size.x, size.y, {
     depthBuffer: true,
     stencilBuffer: false,
   });
-  target.samples = renderer.capabilities.isWebGL2 ? 2 : 0;
+  target.samples = antialias && renderer.capabilities.isWebGL2 ? 2 : 0;
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
     "position",

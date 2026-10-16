@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BRUSHES } from "../engine/brushes.js";
 import {
   EFFECTS,
+  LIFE_STYLES,
   createProceduralBrush,
   randomBrush,
 } from "../materials/proceduralBrush.js";
@@ -20,17 +21,20 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
     };
   }, []);
   useEffect(() => {
-    const profile = createProceduralBrush(draft);
-    const binding = createWatercolorTexture(
-      { color: profile.color },
-      profile.seed,
-      128,
-      profile.acoustic,
-      profile.visual,
-    );
-    setPreview(binding.texture.image.toDataURL());
-    binding.texture.dispose();
-  }, [draft]);
+    const frame = requestAnimationFrame(() => {
+      const profile = createProceduralBrush(draft);
+      const binding = createWatercolorTexture(
+        { color: profile.color },
+        profile.seed,
+        128,
+        profile.acoustic,
+        profile.visual,
+      );
+      setPreview(binding.texture.image.toDataURL());
+      binding.texture.dispose();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [draft.seed, draft.color, draft.effect]);
   const change = (key, value) =>
     setDraft((previous) => ({ ...previous, [key]: value }));
   return (
@@ -55,6 +59,7 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
           <img
             src={preview || undefined}
             alt="Aperçu de la matière procédurale"
+            style={{ opacity: draft.opacity }}
           />
           <span aria-hidden="true">
             {BRUSHES.find((item) => item.id === draft.baseId)?.glyph}
@@ -94,6 +99,19 @@ export default function BrushWorkshop({ busy, onCreate, onClose, error }) {
             ))}
           </select>
         </label>
+        <fieldset className="brush-life">
+          <legend>Mouvement vivant</legend>
+          {LIFE_STYLES.map((life) => (
+            <button
+              key={life}
+              type="button"
+              aria-pressed={draft.life === life}
+              onClick={() => change("life", life)}
+            >
+              {life}
+            </button>
+          ))}
+        </fieldset>
         <details className="brush-refinements">
           <summary>Affiner</summary>
           <label>

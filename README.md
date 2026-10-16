@@ -131,3 +131,9 @@ Le skydome aquarelle traverse un crépuscule lent : étoiles fixes, lune voilée
 La FPV suit l’oizo à distance fixe : la taille de la sculpture, le silence et les phases de vol ne provoquent plus de recul automatique. Le zoom manuel reste disponible. Un suivi amorti plus réactif, une visée devant l’oiseau et une inclinaison légère dans les virages renforcent le voyage. Les ailes articulées gagnent une courbure et une silhouette centrale discrète.
 
 L’atelier présente trois choix : forme, couleur et matière. « Affiner » révèle le nom, l’épaisseur et l’opacité. Les 18 familles restent disponibles. Les traces déposées évoluent lentement dans leurs shaders et réagissent à l’énergie, aux basses et aux accents de l’ambiance ; les particules modulent aussi leur expansion et leur flottement. Aucune texture n’est régénérée pendant le rendu. Le signal d’analyse n’est plus atténué par le gain de fond, sans augmenter le volume sonore.
+
+### Mobile et brosses vivantes
+
+Le rendu démarre avec un budget de pixels mobile et adapte sa résolution progressivement selon la cadence, avec hystérésis. Le multisampling de la passe d’étalonnage est désactivé sur mobile ; le nombre de traces reste borné à 56 (80 sur ordinateur). Les matériaux des traces terminées sont mis en cache, ce qui évite de reparcourir leur graphe à chaque image. Un onglet masqué n’effectue plus ces mises à jour graphiques.
+
+Les matières continuent d’évoluer entre deux gestes : leur horloge visuelle est distincte du temps de dépôt, et se fige en mode photo. L’atelier propose trois caractères, **Suspendue**, **Fluide** et **Vibrante**, avec des vitesses et sensibilités musicales différentes. Les basses, aigus et accents utilisent des enveloppes à attaque et relâchement progressifs. La palette sauvegardée reste compatible ; les anciennes brosses adoptent le caractère Fluide. Le comportement de résolution est testé avec des cadences simulées ; la fluidité sur téléphone physique reste à vérifier.
