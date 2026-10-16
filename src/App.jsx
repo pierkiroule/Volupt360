@@ -540,9 +540,17 @@ export default function App() {
           {ENABLE_BIRD_SONGS &&
             Object.keys(twigs.snapshot.birds?.assignments || {}).length > 0 && (
               <button onClick={() => downloadBirdCredits(twigs.snapshot.birds)}>
-                Crédits des matières et chants · à joindre aux exports
+                Crédits et licences · à joindre aux exports
               </button>
             )}
+          {Object.values(twigs.snapshot.birds?.assignments || {}).some(
+            (media) => media?.shareAlike || media?.photo?.shareAlike,
+          ) && (
+            <p className="export-license">
+              Médias CC BY-SA : partagez les adaptations exportées sous CC BY-SA
+              4.0 avec leurs crédits et les modifications indiquées.
+            </p>
+          )}
           {videoError && <p role="alert">{videoError}</p>}
           {video && (
             <a href={video.url} download={video.name}>

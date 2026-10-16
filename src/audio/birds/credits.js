@@ -1,6 +1,6 @@
 import { LICENSES } from "./catalog.js";
 export function mediaCredit(item) {
-  return `${item.commonName}\nAuteur : ${item.author}\n${item.credit ? `Crédit fourni : ${item.credit}\n` : ""}Source : ${item.source}\nLicence : ${item.licenseName || LICENSES[item.license]?.name} — ${item.licenseUrl || LICENSES[item.license]?.url}\n`;
+  return `${item.commonName}\nAuteur : ${item.author}\n${item.credit ? `Crédit fourni : ${item.credit}\n` : ""}Source : ${item.source}\nLicence : ${item.licenseName || LICENSES[item.license]?.name} — ${item.licenseUrl || LICENSES[item.license]?.url}\n${item.shareAlike ? "Condition CC BY-SA : adaptations combinées sous CC BY-SA 4.0, avec attribution et indication des modifications.\n" : ""}`;
 }
 export function birdCreditsText(birds) {
   const photos = [
@@ -27,7 +27,7 @@ export function birdCreditsText(birds) {
           "Utilisation : extrait jusqu’à 45 s, bouclé et mixé avec fondus.\n",
       )
       .join("\n") +
-    "\nConserver ces attributions avec les images et vidéos partagées sous CC BY.\n"
+    "\nConserver ces attributions avec les images et vidéos partagées. Pour les médias CC BY-SA, respecter également le partage à l’identique des adaptations.\n"
   );
 }
 export function downloadBirdCredits(birds) {

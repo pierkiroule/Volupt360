@@ -13,7 +13,7 @@ export default function BirdCredits({ birds, brush, onRetry }) {
       </summary>
       <p>
         Photographies de nature et chants réels · Wikimedia Commons. Licences
-        CC0 et CC BY. Aucun chant synthétique.
+        CC0, domaine public, CC BY et CC BY-SA. Aucun chant synthétique.
       </p>
       {birds?.state === "loading" && (
         <p role="status">Chargement du chant réel…</p>
@@ -26,6 +26,16 @@ export default function BirdCredits({ birds, brush, onRetry }) {
         <button onClick={() => downloadBirdCredits(birds)}>
           Télécharger les crédits des matières et chants
         </button>
+      )}
+      {Object.values(birds?.assignments || {}).some(
+        (media) => media?.shareAlike || media?.photo?.shareAlike,
+      ) && (
+        <p className="share-alike-note">
+          Cette collection contient des médias CC BY-SA : partagez leurs
+          adaptations sous la même licence ou une licence compatible, en
+          conservant les crédits. Cette condition concerne aussi les exports
+          photo et vidéo.
+        </p>
       )}
       <ul>
         {Object.entries(birds?.assignments || {}).map(([id, recording]) => (

@@ -9,7 +9,7 @@ export const THEMES = [
   "flower",
   "foliage",
 ];
-export const AUDIO_THEMES = ["bird song", "bird call", "birdsong"];
+export const AUDIO_THEMES = ["bird song", "bird call", "birdsong", "bird"];
 export const LICENSES = {
   cc0: {
     name: "CC0",
@@ -56,8 +56,20 @@ export function mediaUrl(value) {
 }
 export function licenseInfo(metadata = {}) {
   const raw = metadata.LicenseUrl?.value || "";
+  // Commons also supplies protocol-relative URLs and explicit public-domain metadata.
+  if (
+    !raw &&
+    /^public domain$/i.test(plainText(metadata.LicenseShortName?.value)) &&
+    /^false$/i.test(String(metadata.Copyrighted?.value))
+  )
+    return {
+      license: "public-domain",
+      licenseName: "Domaine public (Commons)",
+      licenseUrl: "https://commons.wikimedia.org/wiki/Commons:Public_domain",
+      shareAlike: false,
+    };
   try {
-    const url = new URL(raw);
+    const url = new URL(raw.startsWith("//") ? `https:${raw}` : raw);
     if (
       url.hostname !== "creativecommons.org" ||
       !["https:", "http:"].includes(url.protocol) ||
@@ -67,12 +79,16 @@ export function licenseInfo(metadata = {}) {
     )
       return null;
     const cc0 = /^\/publicdomain\/zero\/1\.0\/?$/.test(url.pathname),
-      by = /^\/licenses\/by\/(1\.0|2\.0|2\.5|3\.0|4\.0)\/?$/.exec(url.pathname);
+      by = /^\/licenses\/(by|by-sa)\/(1\.0|2\.0|2\.5|3\.0|4\.0)\/?$/.exec(
+        url.pathname,
+      );
     if (!cc0 && !by) return null;
+    if (by?.[1] === "by-sa" && !["3.0", "4.0"].includes(by[2])) return null;
     return {
-      license: cc0 ? "cc0" : "cc-by",
-      licenseName: cc0 ? "CC0 1.0" : `CC BY ${by[1]}`,
+      license: cc0 ? "cc0" : by[1],
+      licenseName: cc0 ? "CC0 1.0" : `CC ${by[1].toUpperCase()} ${by[2]}`,
       licenseUrl: `https://creativecommons.org${url.pathname.endsWith("/") ? url.pathname : url.pathname + "/"}`,
+      shareAlike: by?.[1] === "by-sa",
     };
   } catch {
     return null;
@@ -95,7 +111,10 @@ export function recordings(pages, kind = "audio") {
         return [];
       if (
         kind === "audio"
-          ? !/^audio\//.test(info.mime || "")
+          ? !(
+              /^audio\//.test(info.mime || "") ||
+              (info.mime === "application/ogg" && info.mediatype === "AUDIO")
+            )
           : !/^image\/(jpeg|png|webp)$/.test(info.mime || "")
       )
         return [];
@@ -172,11 +191,11 @@ export function searchParams(kind, theme, offset = 0) {
         ? `filetype:bitmap ${theme} nature -illustration -diagram -logo`
         : `filetype:audio ${theme}`,
     prop: "imageinfo",
-    iiprop: "url|mime|size|extmetadata",
+    iiprop: "url|mime|size|mediatype|extmetadata",
     iiurlwidth: "384",
     iiurlheight: "384",
     iiextmetadatafilter:
-      "LicenseShortName|LicenseUrl|Artist|Credit|ImageDescription|Categories",
+      "LicenseShortName|LicenseUrl|Copyrighted|Artist|Credit|ImageDescription|Categories",
   });
 }
 export async function drawMedia(
@@ -190,7 +209,12 @@ export async function drawMedia(
     const j = Math.floor(random() * (i + 1));
     [themes[i], themes[j]] = [themes[j], themes[i]];
   }
-  for (const theme of themes.slice(0, 3))
+  const searches =
+    kind === "audio"
+      ? [...themes.filter((theme) => theme !== "bird"), "bird"]
+      : themes.slice(0, 3);
+  let seen = 0;
+  for (const theme of searches)
     for (const offset of [0, 20, 40]) {
       const data = await withTimeout(signal, async (timedSignal) => {
         let response;
@@ -214,6 +238,9 @@ export async function drawMedia(
         if (data.error) throw new Error("La recherche Commons a échoué.");
         return data;
       });
+      seen += Array.isArray(data.query?.pages)
+        ? data.query.pages.length
+        : Object.keys(data.query?.pages || {}).length;
       const items = recordings(data.query?.pages || [], kind).filter(
         (item) => !skip.has(item.pageid),
       );
@@ -221,7 +248,9 @@ export async function drawMedia(
         return { ...items[Math.floor(random() * items.length)], theme };
     }
   throw new Error(
-    `Aucun ${kind === "image" ? "photographie" : "chant"} autorisé trouvé dans la sélection Commons.`,
+    seen === 0
+      ? `Aucun ${kind === "image" ? "photo de nature" : "enregistrement d’oiseau"} trouvé dans les recherches Commons. Réessayez.`
+      : `Les ${kind === "image" ? "photos" : "chants"} trouvés sont déjà utilisés ou ont un format ou une licence non pris en charge. Réessayez.`,
   );
 }
 export const drawRecording = (excluded, options) =>

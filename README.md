@@ -120,7 +120,7 @@ Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des hor
 
 ## Photographies et chants Wikimedia Commons
 
-« Nouvelle matière » associe une photographie de mousse, plume, écorce, eau, lichen, fleur ou feuillage à un vrai chant d’oiseau. Les deux fichiers proviennent de Wikimedia Commons. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0/CC BY uniquement, crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/commons-nature-materials.md).
+« Nouvelle matière » associe une photographie de mousse, plume, écorce, eau, lichen, fleur ou feuillage à un vrai chant d’oiseau. Les deux fichiers proviennent de Wikimedia Commons. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0, domaine public explicite, CC BY et CC BY-SA 3.0/4.0, conditions de partage affichées et crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/commons-nature-materials.md).
 
 Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis une nouvelle photographie et un chant par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.
 

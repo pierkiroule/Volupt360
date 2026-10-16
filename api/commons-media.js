@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         formatversion: "2",
         pageids: id,
         prop: "imageinfo",
-        iiprop: "url|mime|size|extmetadata",
+        iiprop: "url|mime|size|mediatype|extmetadata",
         iiurlwidth: "384",
         iiurlheight: "384",
       }),
