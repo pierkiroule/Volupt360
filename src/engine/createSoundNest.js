@@ -96,6 +96,8 @@ export function createSoundNest(
     lastReport = 0,
     reportState = null,
     boundsDirty = false;
+  let densityClock = 0;
+  const densityMidpoint = new THREE.Vector3();
   let palette = createTrackPalette();
   const generative = ENABLE_GENERATIVE_TEXTURES
     ? createGenerativeMaterials()
@@ -105,7 +107,7 @@ export function createSoundNest(
   for (const [index, definition] of BRUSHES.entries())
     textures.set(
       definition.id,
-      createWatercolorTexture(definition, index + 31),
+      createWatercolorTexture(definition, index + 31, 256),
     );
   const celestials = createCelestialBrushes(BRUSHES, textures, (id) => {
     if (id === brush) return;
@@ -114,14 +116,15 @@ export function createSoundNest(
     brush = id;
     if (nozzlePaint) nozzlePaint = { id, samples: 0 };
     renderer.domElement.dataset.activeBrush = id;
+    celestials.select(id);
     onBrushChange?.(id);
     onHint?.(
       `${BRUSHES.find((item) => item.id === id).name} · nouvelle matière`,
     );
   });
   landscape.add(celestials.group);
-  celestials.setBrushes(BRUSHES.map((item) => item.id));
-  renderer.domElement.dataset.celestialBrushes = String(BRUSHES.length);
+  celestials.setBrushes([]);
+  renderer.domElement.dataset.celestialBrushes = "0";
   renderer.domElement.dataset.activeBrush = brush;
   let cameraMode = "drone";
   let photo = false,
@@ -361,6 +364,11 @@ export function createSoundNest(
     renderer.domElement.dataset.nozzlePaint = "true";
     renderer.domElement.dataset.nozzleBrush = brush;
   }
+  const unbindCelestialInput = celestials.bindInput(
+    renderer.domElement,
+    camera,
+    () => Boolean(padSource) && !photo,
+  );
   let steeringGesture = null,
     steeringMoves = 0;
   function onSteeringDown(event) {
@@ -497,7 +505,7 @@ export function createSoundNest(
         } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         oizo.update(pose);
-        celestials.update(dt, pose.position);
+        celestials.update(dt);
         const hit = ENABLE_TRACE_MEMORY
           ? traceEncounter.update(pose.position, traceTime)
           : null;
@@ -568,20 +576,28 @@ export function createSoundNest(
         if (quiet > 0.35) closeStroke();
       }
       if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing) {
+        densityClock -= dt;
+        if (densityClock <= 0) {
+          densityClock = 0.6;
+          for (const mark of marks) {
+            mark.bounds.getCenter(densityMidpoint);
+            mark.neighbors = 0;
+            for (const other of marks)
+              if (
+                other !== mark &&
+                other.bounds.distanceToPoint(densityMidpoint) < 9
+              )
+                mark.neighbors++;
+          }
+        }
         for (let i = marks.length - 1; i >= 0; i--) {
           const item = marks[i],
             age = elapsed - item.born;
           // Dense nearby pigment accelerates dissolution of older marks smoothly.
-          let neighbors = 0;
-          const midpoint = item.bounds.getCenter(new THREE.Vector3());
-          for (const other of marks) {
-            if (other !== item && other.bounds.distanceToPoint(midpoint) < 9)
-              neighbors++;
-          }
           item.fade = dissolvePigment({
             age,
             count: marks.length,
-            neighbors,
+            neighbors: item.neighbors || 0,
             fade: item.fade,
             dt,
             significance: item.significance,
@@ -782,6 +798,7 @@ export function createSoundNest(
       renderer.domElement.dataset.celestialBrushes = String(ids.length);
     },
     setBrush(id) {
+      celestials.select(id);
       if (BRUSHES.some((item) => item.id === id) && id !== brush) {
         brush = id;
         renderer.domElement.dataset.activeBrush = id;
@@ -890,6 +907,7 @@ export function createSoundNest(
       traceMemory.clear();
       traceEncounter.reset();
       oizo?.dispose();
+      unbindCelestialInput();
       celestials.dispose();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);

@@ -1,25 +1,27 @@
-# Corps célestes aquarellés
+# Planètes aquarellées
 
-Les 18 brosses existantes gardent leurs géométries et leurs animations. Les six matières de chaque univers circulent maintenant comme des astres de pigment. Traverser un astre change la brosse active. Il n’y a plus de pads de sélection, de sélecteur de texture ni d’import photographique dans l’interface.
+Les 18 brosses gardent leurs géométries et leurs animations. Six planètes de matière circulent dans chaque univers. Un **double tap sur une planète** sélectionne sa brosse ; un halo bleu discret entoure la planète active. Traverser une planète avec l’oizo ne change plus la matière. Il n’y a ni menu des brosses ni import d’image.
 
-Glisser continue de guider le vol. Maintenir le canevas en FPV fait déposer la matière par l’oizo, jamais par le doigt. Si un astre est traversé pendant ce maintien, le dépôt reprend avec sa matière. Relâcher arrête le tracé. La matière de départ correspond à la première brosse de l’univers. Le nom actuel apparaît discrètement en bas de l’écran.
+Glisser guide le vol. Maintenir le canevas en FPV fait déposer la matière par l’oizo, jamais par le doigt. Relâcher arrête le tracé. La première brosse de l’univers est sélectionnée au départ, avec son halo. Le nom actuel et le geste de sélection sont rappelés discrètement en bas de l’écran. En mode photo, la sélection est désactivée et les planètes se figent avec la scène pour permettre le cadrage.
 
-## Matières fixes
+## Rendu et matières
 
-`createWatercolorTexture.js` prépare une texture RGBA de 512 × 512 par brosse à partir d’une graine fixe et de sa couleur. Des champs de bruit interpolés à plusieurs échelles produisent des migrations de pigment, des auréoles de séchage, des concentrations sur les bords, de la granulation et des fibres fines. Les textures sont identiques à chaque ouverture et ne sont pas modifiables par le visiteur. Ce sont des matières procédurales évoquant l’aquarelle, pas une simulation physique complète de l’eau et du papier.
+`CelestialBrushes.js` utilise une géométrie sphérique partagée de 24 × 16 segments, six matériaux opaques visibles et un halo partagé. Une ombre douce calculée à partir des normales fait lire le volume sans ajouter d’éclairage ou de passes de post-traitement. Les planètes tournent lentement sur elles-mêmes et conservent leurs orbites. Elles partagent les transformations de la sculpture. Elles ne sont pas dessinées derrière l’accueil.
 
-La préparation se fait à l’initialisation, jamais dans la boucle de rendu. Les mêmes textures servent aux corps célestes et aux brosses, y compris aux six brosses de particules. Les silhouettes originales restent intactes. Dix-huit textures avec mipmaps représentent environ 24 Mio de texels RGBA, hors copies CPU et ressources existantes. Les matériaux des astres ne possèdent pas leurs textures : celles-ci sont libérées une seule fois par le moteur après les tracés.
+`createWatercolorTexture.js` prépare une texture RGBA fixe par brosse : migrations de pigment, auréoles de séchage, concentrations sur les bords, granulation et fibres fines. Les brosses continuent d’utiliser l’alpha ; les sphères utilisent la couleur sur un volume opaque. Les matières évoquent l’aquarelle sans simulation physique complète de l’eau et du papier.
 
-## Traversées
+Les textures du moteur passent de 512 × 512 à 256 × 256 : environ **6 Mio** de texels RGBA avec mipmaps pour les 18 textures, contre 24 Mio auparavant, hors copies CPU et ressources existantes. Elles restent préparées hors boucle de rendu et partagées entre planètes et brosses. Le calcul quadratique des voisins qui pilote la dissolution est désormais réalisé toutes les 0,6 secondes de peinture, au lieu de chaque image ; son vecteur de travail est réutilisé. La dissolution conserve son interpolation à chaque image.
 
-`CelestialBrushes.js` gère des orbites lentes à rayons et hauteurs variables. Seuls les six corps de l’univers choisi sont affichés et interrogés. La collision utilise le segment de déplacement relatif entre l’oizo et chaque astre, avec un rayon de 2,6 unités : une projection visuelle ne suffit pas, et un passage rapide n’est pas perdu entre deux images. Une marge de sortie de 3,3 unités, un intervalle global de 2,5 secondes et un délai de 12 secondes par corps limitent les changements répétés.
+## Sélection
 
-L’oizo conserve son moteur de vol et n’est pas attiré ni téléporté vers les astres. Le changement de matière ferme les tracés en cours puis réutilise les fonctions de dépôt existantes. Les ambiances, la synthèse procédurale, les rencontres avec les anciennes traces, le gyroscope et l’export restent ceux du moteur existant. Les astres partagent les transformations de la sculpture et sont figés en mode photo.
+Un raycaster interroge uniquement les six sphères visibles, à la fin d’un tap court. Deux taps sur la même planète à moins de 420 ms, séparés de moins de 24 pixels, sélectionnent sa matière. Un déplacement de plus de 8 pixels, un maintien de plus de 320 ms ou une annulation invalident le geste. Les horodatages des événements sont utilisés pour ne pas ajouter le retard du traitement aux intervalles. La sélection n’est pas active en mode photo. Les intersections sont triées en profondeur et tiennent compte des transformations de la sculpture. Les buffers du raycaster sont réutilisés.
 
-## Vérifications et limites
+Le changement ferme les tracés en cours puis réutilise les fonctions de dépôt existantes. Le vol, l’audio et les rencontres avec les anciennes traces restent ceux du moteur existant. Les géométries et matériaux des planètes sont libérés au démontage, ainsi que leurs écouteurs ; les textures partagées restent sous la responsabilité du moteur.
 
-Les tests dédiés exercent la reproductibilité et la variété alpha, les collisions traversantes avec deux extrémités hors du corps, la protection contre les répétitions et la libération des matériaux. Le parcours mobile vérifie l’absence d’import et de pads, le tracé par maintien sans photo préalable et l’accès au cadrage PNG. Les tests musicaux ciblés contrôlent le son réel et ses variations.
+## Vérification
 
-La lisibilité artistique et la fluidité sur téléphone physique, la caméra/gyroscope matériels et l’encodage vidéo complet restent à vérifier. Les anciens composants photographiques sont conservés comme code inactif de prototype ; ils ne sont plus importés par l’application. Les anciens tests de parcours photographique sont remplacés par le parcours des corps célestes.
+Les tests couvrent le double tap tactile, le tap simple, le glissement, le blocage en mode photo, la sélection du volume 3D et l’alignement du halo. Le parcours mobile exerce la peinture sans import et le cadrage photo. Les 18 brosses sont réellement rendues en WebGL et les contrôles audio natifs sont conservés.
 
-Validation exécutée : 13 tests ciblés distincts réussis sous Chromium avec WebGL logiciel, dont le rendu effectif des 18 brosses, le parcours mobile et les contrôles audio natifs. Compilation Vite, contrôle Prettier et `git diff --check` réussis.
+La fluidité sur téléphone physique, le gyroscope matériel et l’encodage vidéo complet restent à vérifier. Les optimisations réduisent les coûts identifiés dans le code ; aucun gain en images/seconde sur appareil Android physique n’est revendiqué.
+
+Validation exécutée : 11 tests ciblés distincts réussis, dont les trois tests de planètes rejoués après l’ajustement visuel final. Compilation Vite réussie. Aucun test sur téléphone physique.
