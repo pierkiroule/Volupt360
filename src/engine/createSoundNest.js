@@ -634,7 +634,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
     rig.update(dt);
-    sky.update(camera);
+    sky.update(camera, photo ? 0 : dt);
     camera.updateMatrixWorld();
     if (!photo && padSource?.updateListener) {
       const inverse = landscape
