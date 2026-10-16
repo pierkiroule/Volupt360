@@ -35,6 +35,7 @@ export function createTwigBank({
   let instrument = null,
     instrumentRequest = 0,
     instrumentPlayingRequested = false;
+  let compositionUserPaused = false;
   const birds = createBirdSongs({
     ids,
     context,
@@ -112,6 +113,11 @@ export function createTwigBank({
           }
         : null,
       birds: birds.snapshot(),
+      composition: {
+        loaded: Boolean(instrument),
+        playing: Boolean(instrument?.stats.active),
+        userPaused: compositionUserPaused,
+      },
       poemLoading,
       fireflies,
       activeVocalId: [...voices.keys()][0] || pendingVocal?.id || null,
@@ -664,10 +670,12 @@ export function createTwigBank({
     },
     async startInstrument(universe = "souffle") {
       const request = ++instrumentRequest;
-      instrumentPlayingRequested = true;
+      instrumentPlayingRequested = !compositionUserPaused;
       instrument?.dispose();
       instrument = null;
-      const created = await createAmbientMixer(context(), master, universe);
+      const created = await createAmbientMixer(context(), master, universe, {
+        single: true,
+      });
       if (disposed || request !== instrumentRequest) {
         created.dispose();
         return;
@@ -677,6 +685,47 @@ export function createTwigBank({
         instrument.setBrushImage?.(id, profile),
       );
       if (instrumentPlayingRequested) instrument.resume();
+      emit();
+    },
+    setBrushSound(id, profile) {
+      if (!ids.includes(id) || !profile?.visual) return;
+      const visual = profile.visual;
+      const rgb = visual.palette[1] || visual.palette[0];
+      const luminance = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+      const saturation = Math.max(...rgb) - Math.min(...rgb);
+      const sampler = {
+        sample(point) {
+          const wrap = (n) =>
+            ((Math.floor(n) % visual.width) + visual.width) % visual.width;
+          const index =
+            (wrap(point.y * 3 + point.z) * visual.width + wrap(point.x * 3)) *
+            2;
+          return {
+            light: luminance * 0.65 + (visual.field[index] / 255) * 0.35,
+            edge: Math.min(1, (visual.field[index + 1] / 255) * profile.width),
+            saturation:
+              profile.life === "Vibrante"
+                ? Math.max(0.75, saturation)
+                : profile.life === "Suspendue"
+                  ? 0.25
+                  : 0.6,
+          };
+        },
+      };
+      imageBrushes.set(id, sampler);
+      instrument?.setBrushImage?.(id, sampler);
+    },
+    async toggleComposition() {
+      if (!instrument || disposed) return;
+      compositionUserPaused = !compositionUserPaused;
+      instrumentPlayingRequested = !compositionUserPaused;
+      if (compositionUserPaused) instrument.pause();
+      else {
+        const current = instrument;
+        await context().resume();
+        if (disposed || instrument !== current) return;
+        current.resume();
+      }
       emit();
     },
     setInstrumentMix(values) {
@@ -690,13 +739,13 @@ export function createTwigBank({
       instrument?.setBrushImage?.(id, profile);
     },
     depositSound(id, position, energy, key) {
-      if (!birdSongs) return instrument?.deposit(id, position, energy, key);
+      return instrument?.deposit(id, position, energy, key);
     },
     forgetSound(key) {
       instrument?.forget(key);
     },
     recallSound(id, position, key) {
-      if (!birdSongs) return instrument?.recall(id, position, key);
+      return instrument?.recall(id, position, key);
     },
     getTraceResonance(key) {
       return instrument?.traceResonance?.(key) || 0;
@@ -735,7 +784,7 @@ export function createTwigBank({
     },
     preparePlayback() {
       if (disposed) return Promise.resolve();
-      instrumentPlayingRequested = true;
+      instrumentPlayingRequested = !compositionUserPaused;
       const audio = context();
       // Unlock the device output inside the trusted touch-release/click gesture.
       if (audio.state !== "running") {
@@ -749,6 +798,7 @@ export function createTwigBank({
         .resume()
         .then(() => {
           if (instrumentPlayingRequested) instrument?.resume();
+          emit();
           if (
             universeAmbience &&
             !ambienceUserPaused &&

@@ -20,8 +20,9 @@ export default function ArtisticIntroduction() {
       <h3>Accompagner l’oizo</h3>
       <p>
         Vous guidez son vol, choisissez une matière et maintenez le geste pour
-        sculpter. Une ambiance musicale accompagne le voyage et anime les
-        visuels. Lorsque vous relâchez, le dépôt cesse ; sa trace demeure.
+        sculpter. Les brosses composent une musique spatialisée, qui anime en
+        retour leurs matières. Lorsque vous relâchez, le dépôt cesse ; sa trace
+        et ses résonances demeurent.
       </p>
       <h3>Un ciel pour se retrouver</h3>
       <p>

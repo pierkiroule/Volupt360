@@ -35,3 +35,9 @@ Le moteur sépare l’horloge du dépôt de l’horloge de vie des traces. Cette
 `createRenderBudget` limite la résolution et ajuste progressivement le pixel ratio après une charge durable, puis remonte lentement après une période stable. Les grosses interruptions sont ignorées et aucune adaptation n’a lieu en mode photo. La limite est de 56 traces sur mobile et 80 sur ordinateur ; le mode mobile évite les cibles multisamplées supplémentaires. L’export PNG HD conserve sa résolution dédiée.
 
 Les tests de viewport mobile et les cadences simulées ne constituent pas une mesure de FPS, de mémoire ou de batterie sur téléphone physique.
+
+## Composition par les brosses
+
+Chaque profil fournit un échantillonneur procédural léger au moteur musical existant : luminance de la couleur, contours de matière, épaisseur et caractère de mouvement. Les positions des dépôts déterminent ses lectures dans le champ procédural et la spatialisation. Les dépôts enregistrent des motifs, les rencontres peuvent les rappeler et le signal synthétisé anime les visuels. Aucun MP3 d’ambiance ni sample n’est utilisé dans le parcours actif.
+
+Un seul moteur d’univers est créé dans le mélangeur, au lieu de trois instances. Les anciens appels de lecture d’un MP3 restent disponibles pour l’atelier historique, sans appel automatique dans ce parcours. La composition démarre par un toucher explicite, respecte une pause manuelle et se suspend pendant le cadrage photo. Le bouton ♪ contrôle désormais la composition. L’écoute sur appareil physique et la qualité subjective du rendu musical restent à valider.

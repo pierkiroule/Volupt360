@@ -1,10 +1,10 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Un seul paysage **ÉCHO & HYPNOS** réunit le vol, la peinture et l’ambiance musicale. Touchez **+** pour créer une brosse procédurale : forme, couleur, effet de matière, épaisseur et transparence. L’ambiance musicale anime les matières. La palette est sauvegardée automatiquement sur cet appareil et restaurée au retour ; le bouton « Sauvegarder la palette » confirme son enregistrement. Maintenir le canevas fait tracer l’oizo, glisser guide son vol : le doigt ne dessine jamais. Voir [l’atelier et la sauvegarde](docs/procedural-brush-palette.md).
+Un seul paysage **ÉCHO & HYPNOS** réunit le vol, la peinture et la composition musicale par les brosses. Touchez **+** pour créer une brosse procédurale : forme, couleur, effet de matière, épaisseur et transparence. Les dépôts composent une musique spatialisée, qui anime les matières en retour. La palette est sauvegardée automatiquement sur cet appareil et restaurée au retour ; le bouton « Sauvegarder la palette » confirme son enregistrement. Maintenir le canevas fait tracer l’oizo, glisser guide son vol : le doigt ne dessine jamais. Voir [l’atelier et la sauvegarde](docs/procedural-brush-palette.md).
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 
-L’interface donne accès à une palette procédurale sauvegardée, une ambiance MP3 et aux vues FPV, gyro et photo. Aucun vocal ni mot déposé.
+L’interface donne accès à une palette procédurale sauvegardée, une composition procédurale native et aux vues FPV, gyro et photo. Aucun vocal ni mot déposé.
 
 Deux boutons discrets **Zoom − / +** restent visibles en bas à droite. La vue **Photo** permet de tourner et zoomer la sculpture, de télécharger une photo en **PNG HD jusqu’à 2 560 pixels**, ou une **vidéodio FPV de dix secondes avec son audio synchronisé**. Photos et vidéos restent locales. Voir [le fonctionnement et les limites](docs/videodio.md).
 
@@ -114,7 +114,7 @@ Les mondes sonores **Source, Rivière et Abysses** sont entièrement procédurau
 
 Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-instrument.md). `?instrument=off` restaure le parcours musical MP3 précédent pour comparaison.
 
-Le parcours actif conserve désormais un seul univers et son ambiance MP3. Les anciens moteurs de composition restent disponibles dans le code historique ; aucun sélecteur ni mélange de trois univers n’est affiché.
+Le parcours actif conserve désormais un seul univers de composition procédurale. Les anciens moteurs de composition restent disponibles dans le code historique ; aucun sélecteur ni mélange de trois univers n’est affiché.
 
 ## Palette procédurale
 
@@ -137,3 +137,9 @@ L’atelier présente trois choix : forme, couleur et matière. « Affiner » r�
 Le rendu démarre avec un budget de pixels mobile et adapte sa résolution progressivement selon la cadence, avec hystérésis. Le multisampling de la passe d’étalonnage est désactivé sur mobile ; le nombre de traces reste borné à 56 (80 sur ordinateur). Les matériaux des traces terminées sont mis en cache, ce qui évite de reparcourir leur graphe à chaque image. Un onglet masqué n’effectue plus ces mises à jour graphiques.
 
 Les matières continuent d’évoluer entre deux gestes : leur horloge visuelle est distincte du temps de dépôt, et se fige en mode photo. L’atelier propose trois caractères, **Suspendue**, **Fluide** et **Vibrante**, avec des vitesses et sensibilités musicales différentes. Les basses, aigus et accents utilisent des enveloppes à attaque et relâchement progressifs. La palette sauvegardée reste compatible ; les anciennes brosses adoptent le caractère Fluide. Le comportement de résolution est testé avec des cadences simulées ; la fluidité sur téléphone physique reste à vérifier.
+
+### Composer en peignant
+
+Le parcours actif ne charge plus d’ambiance MP3 : le fichier fourni et son appel automatique sont retirés. Un fond sonore procédural lance le voyage ; chaque dépôt enregistre un motif musical spatialisé, dont les retours peuvent rappeler la trace. Les couleurs, contours procéduraux, épaisseurs et caractères des brosses influencent le timbre et les choix de notes dans les règles harmoniques existantes. La musique générée nourrit l’audioréactivité des matières.
+
+Le moteur Web Audio existant est réutilisé, avec un seul univers initialisé. Le bouton musical met la composition en pause et la relance ; une pause manuelle est respectée lors des changements de vue. Le cadrage photo suspend le son, puis le vol le reprend. Le mix généré reste connecté à la capture audio de l’export. Aucun chant vocal n’est réactivé.

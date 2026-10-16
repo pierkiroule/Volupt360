@@ -1,7 +1,13 @@
 import { createEchoInstrument } from "./createEchoInstrument.js";
 const IDS = ["souffle", "marees", "ramure"];
 
-export async function createAmbientMixer(ctx, destination, initial) {
+export async function createAmbientMixer(
+  ctx,
+  destination,
+  initial,
+  { single = false } = {},
+) {
+  const ids = single ? [IDS.includes(initial) ? initial : IDS[0]] : IDS;
   const analyser = ctx.createAnalyser(),
     compressor = ctx.createDynamicsCompressor();
   analyser.fftSize = 2048;
@@ -10,7 +16,7 @@ export async function createAmbientMixer(ctx, destination, initial) {
   compressor.attack.value = 0.003;
   compressor.connect(analyser);
   analyser.connect(destination);
-  const gains = IDS.map(() => {
+  const gains = ids.map(() => {
     const gain = ctx.createGain();
     gain.gain.value = 0;
     gain.connect(compressor);
@@ -18,11 +24,11 @@ export async function createAmbientMixer(ctx, destination, initial) {
   });
   const instruments = [];
   try {
-    for (let i = 0; i < IDS.length; i++)
+    for (let i = 0; i < ids.length; i++)
       instruments.push(
         await createEchoInstrument(ctx, gains[i], {
-          universe: IDS[i],
-          seedBrush: ["voiles", "corolles", "falaises"][i],
+          universe: ids[i],
+          seedBrush: ["voiles", "corolles", "falaises"][IDS.indexOf(ids[i])],
         }),
       );
   } catch (error) {
@@ -33,7 +39,7 @@ export async function createAmbientMixer(ctx, destination, initial) {
     throw error;
   }
   instruments.forEach((item) => item.pause());
-  let weights = IDS.map((id) => (id === initial ? 1 : 0)),
+  let weights = ids.map((id) => (id === initial ? 1 : 0)),
     active = false,
     disposed = false;
   const timers = new Set();
@@ -75,7 +81,7 @@ export async function createAmbientMixer(ctx, destination, initial) {
       if (disposed) return;
       const sum = values.reduce((a, b) => a + Math.max(0, b), 0);
       if (!sum) return;
-      weights = IDS.map((_, i) => Math.max(0, values[i] || 0) / sum);
+      weights = ids.map((_, i) => Math.max(0, values[i] || 0) / sum);
       apply();
     },
     setBrushImage(id, profile) {
@@ -127,7 +133,7 @@ export async function createAmbientMixer(ctx, destination, initial) {
         ...instruments[primary].stats,
         active,
         mix: [...weights],
-        universe: IDS[primary],
+        universe: ids[primary],
       };
     },
     dispose() {
