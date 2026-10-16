@@ -1,69 +1,40 @@
 import { test, expect } from "@playwright/test";
 
-import { observation, wav } from "./helpers/birdFixtures.js";
+import { observation, wav, mockCommons } from "./helpers/birdFixtures.js";
 
-test("catalog prioritizes threatened species, unique associations and recording licenses", async ({
+test("Commons catalogue accepts verified free licenses and plain attribution", async ({
   page,
 }) => {
   await page.goto("/");
-  const fixtures = [
-    observation(2),
-    observation(1),
-    observation(1),
-    observation(3, false, "cc-by-nc"),
-    observation(4, false, null),
-  ];
-  const result = await page.evaluate(async (fixtures) => {
-    const { recordings, assignRecordings, fetchCatalog } =
-      await import("/src/audio/birds/catalog.js");
-    const candidates = recordings(fixtures, true);
-    const queries = [];
-    const assignments = await fetchCatalog(["a", "b", "c"], {
-      request: async (url) => {
-        queries.push(url);
-        return Response.json({
-          results: url.includes("threatened=true")
-            ? fixtures
-            : [
-                {
-                  ...fixtures[0],
-                  id: 7,
-                  taxon: { id: 7, rank: "species", name: "Test 7" },
-                  sounds: [
-                    {
-                      id: 107,
-                      license_code: "cc0",
-                      file_url: "https://static.inaturalist.org/sounds/7.wav",
-                    },
-                  ],
-                },
-              ],
-        });
-      },
-    });
-    return {
-      ids: Object.values(assignments).map((item) => item?.taxon),
-      licenses: candidates.map((item) => item.license),
-      queries,
-      missing: assignRecordings(["a", "b", "c"], candidates).c,
-    };
-  }, fixtures);
-  expect(result.ids).toEqual([1, 2, 7]);
-  expect(result.licenses.every((license) => license === "cc-by")).toBe(true);
-  expect(result.missing).toBeNull();
-  expect(result.queries[0]).toContain("threatened=true");
-  const rejected = await page.request.get(
-    "/api/bird-recording?observation=invalid&sound=9",
+  const result = await page.evaluate(
+    async (fixtures) => {
+      const { recordings, assignRecordings } =
+        await import("/src/audio/birds/catalog.js");
+      const items = recordings(fixtures);
+      return {
+        count: items.length,
+        author: items[0].author,
+        license: items[0].licenseUrl,
+        missing: assignRecordings(["a", "b", "c"], items).c,
+      };
+    },
+    [observation(1), observation(2), observation(3, false, "cc-by-nc")],
   );
-  expect(rejected.status()).toBe(400);
+  expect(result.count).toBe(2);
+  expect(result.author).toBe("test-recordist");
+  expect(result.license).toContain("/by/4.0/");
+  expect(result.missing).toBeNull();
+  expect(
+    (
+      await page.request.get("/api/commons-media?pageid=invalid&kind=audio")
+    ).status(),
+  ).toBe(400);
 });
 
 test("native recording playback analyzes real decoded data, fades, caches and cannot start after release", async ({
   page,
 }) => {
-  await page.route("https://api.inaturalist.org/**", (route) =>
-    route.fulfill({ json: { results: [observation(1)] } }),
-  );
+  await mockCommons(page, { count: 1 });
   await page.goto("/");
   const result = await page.evaluate(
     async (payload) => {
@@ -78,8 +49,8 @@ test("native recording playback analyzes real decoded data, fades, caches and ca
         relay = 0;
       const bytes = Uint8Array.from(atob(payload.wav), (c) => c.charCodeAt(0));
       const request = async (url) => {
-        if (url.includes("observations"))
-          return Response.json({ results: [payload.observation] });
+        if (url.includes("w/api.php"))
+          return Response.json({ query: { pages: [payload.observation] } });
         if (url.startsWith("https:")) {
           direct++;
           throw new TypeError("CORS blocked");
@@ -117,16 +88,16 @@ test("native recording playback analyzes real decoded data, fades, caches and ca
       await new Promise((r) => setTimeout(r, 250));
       const cached = second.features().rms;
       second.dispose();
-      await caches.delete("sonoizo-birds-v1");
-      localStorage.removeItem("sonoizo-bird-catalog-v1");
+      await caches.delete("sonoizo-commons-v2");
+      localStorage.removeItem("sonoizo-commons-audio-v2");
       let resolveBytes;
       const delayed = createBirdSongs({
         ids: ["voiles"],
         context: () => ctx,
         destination: () => output,
         request: async (url) =>
-          url.includes("observations")
-            ? Response.json({ results: [payload.observation] })
+          url.includes("w/api.php")
+            ? Response.json({ query: { pages: [payload.observation] } })
             : new Promise((resolve) => {
                 resolveBytes = () => resolve(new Response(bytes));
               }),
@@ -174,20 +145,11 @@ test("mobile sculpture starts birdsong only during the gesture and supplies attr
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("https://api.inaturalist.org/**", (route) =>
-    route.fulfill({
-      json: {
-        results: Array.from({ length: 18 }, (_, i) => observation(i + 1)),
-      },
-    }),
-  );
-  await page.route("https://static.inaturalist.org/**", (route) =>
-    route.fulfill({ body: wav(), contentType: "audio/wav" }),
-  );
+  await mockCommons(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(page.locator(".bird-credits summary")).toContainText(
-    "Oiseau test",
+    "Nature texture",
   );
   const canvas = page.locator("#stage canvas");
   await expect(page.locator(".bird-credits summary")).not.toContainText("♫");
@@ -203,25 +165,29 @@ test("mobile sculpture starts birdsong only during the gesture and supplies attr
   await page.locator(".bird-credits summary").click();
   await expect(page.locator(".bird-credits")).toContainText("test-recordist");
   await expect(
-    page.getByRole("button", { name: "Télécharger les crédits des chants" }),
+    page.getByRole("button", {
+      name: "Télécharger les crédits des matières et chants",
+    }),
   ).toBeVisible();
 });
 
 test("network failure stays silent with an explicit recoverable error", async ({
   page,
 }) => {
-  await page.route("https://api.inaturalist.org/**", (route) => route.abort());
-  await page.route("**/api/bird-catalog?**", (route) =>
+  await page.route("https://commons.wikimedia.org/**", (route) =>
+    route.abort(),
+  );
+  await page.route("**/api/commons-search?**", (route) =>
     route.fulfill({ status: 502, json: { error: "offline" } }),
   );
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await page.locator(".bird-credits summary").click();
   await expect(page.locator(".bird-credits")).toContainText(
-    "Création impossible",
+    "Nouvelle matière indisponible",
   );
   await expect(
-    page.getByRole("button", { name: "Réessayer le catalogue" }),
+    page.getByRole("button", { name: "Réessayer la matière" }),
   ).toBeVisible();
   const canvas = page.locator("#stage canvas");
   await page

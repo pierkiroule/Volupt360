@@ -201,7 +201,7 @@ export default function App() {
       const thumbnail = engine.current.setGeneratedBrush(id, result.profile);
       const item = {
         id,
-        name: result.recording.commonName,
+        name: result.profile.photo?.commonName || result.recording.commonName,
         ready: true,
         thumbnail,
         color: result.profile.color,
@@ -538,9 +538,9 @@ export default function App() {
             </a>
           )}
           {ENABLE_BIRD_SONGS &&
-            Object.keys(twigs.snapshot.birds?.used || {}).length > 0 && (
+            Object.keys(twigs.snapshot.birds?.assignments || {}).length > 0 && (
               <button onClick={() => downloadBirdCredits(twigs.snapshot.birds)}>
-                Télécharger les crédits des chants · à joindre à la vidéo
+                Crédits des matières et chants · à joindre aux exports
               </button>
             )}
           {videoError && <p role="alert">{videoError}</p>}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { observation, wav } from "./helpers/birdFixtures.js";
+import { mockCommons } from "./helpers/birdFixtures.js";
 
 test("one initial brush grows into an independent collection with no planets", async ({
   page,
@@ -8,17 +8,7 @@ test("one initial brush grows into an independent collection with no planets", a
   page.on("pageerror", (error) => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
   let queries = 0;
-  await page.route("https://api.inaturalist.org/**", (route) => {
-    queries++;
-    return route.fulfill({
-      json: {
-        results: Array.from({ length: 18 }, (_, i) => observation(i + 1)),
-      },
-    });
-  });
-  await page.route("https://static.inaturalist.org/**", (route) =>
-    route.fulfill({ body: wav(), contentType: "audio/wav" }),
-  );
+  await mockCommons(page, { onQuery: () => queries++ });
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   const menu = page.getByRole("region", { name: "Mes brosses d’oiseaux" }),
@@ -30,7 +20,7 @@ test("one initial brush grows into an independent collection with no planets", a
   await expect(canvas).toHaveAttribute("data-generated-brush-count", "1");
   const first = await buttons.first().getAttribute("aria-label"),
     thumbnail = await buttons.first().locator("img").getAttribute("src");
-  await menu.getByRole("button", { name: "Ajouter une brosse" }).click();
+  await menu.getByRole("button", { name: "Nouvelle matière" }).click();
   await expect(buttons).toHaveCount(2);
   await expect(buttons.nth(1)).toHaveAttribute("aria-pressed", "true");
   expect(await buttons.nth(1).getAttribute("aria-label")).not.toBe(first);
@@ -68,20 +58,9 @@ test("failed additions retain existing brush and can be retried without duplicat
   page,
 }) => {
   let fail = false;
-  await page.route("https://api.inaturalist.org/**", (route) =>
-    fail
-      ? route.abort()
-      : route.fulfill({
-          json: {
-            results: Array.from({ length: 4 }, (_, i) => observation(i + 1)),
-          },
-        }),
-  );
-  await page.route("**/api/bird-catalog?**", (route) =>
+  await mockCommons(page, { count: 4, fail: () => fail });
+  await page.route("**/api/commons-search?**", (route) =>
     route.fulfill({ status: 502, json: { error: "offline" } }),
-  );
-  await page.route("https://static.inaturalist.org/**", (route) =>
-    route.fulfill({ body: wav(), contentType: "audio/wav" }),
   );
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
@@ -89,15 +68,15 @@ test("failed additions retain existing brush and can be retried without duplicat
   await expect(buttons.first()).toBeEnabled();
   const original = await buttons.first().getAttribute("aria-label");
   fail = true;
-  await page.getByRole("button", { name: "Ajouter une brosse" }).click();
+  await page.getByRole("button", { name: "Nouvelle matière" }).click();
   await expect(page.locator(".growing-brush-error")).toContainText(
-    "Création impossible",
+    "Nouvelle matière indisponible",
   );
   await expect(buttons).toHaveCount(1);
   await expect(buttons.first()).toBeEnabled();
   expect(await buttons.first().getAttribute("aria-label")).toBe(original);
   fail = false;
-  await page.getByRole("button", { name: "Ajouter une brosse" }).click();
+  await page.getByRole("button", { name: "Nouvelle matière" }).click();
   await expect(buttons).toHaveCount(2);
   await expect(page.locator(".growing-brush-error")).toHaveCount(0);
 });

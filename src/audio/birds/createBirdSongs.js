@@ -1,10 +1,14 @@
 import {
+  drawNature,
+  combineNatureProfile,
+} from "../../materials/commonsNature.js";
+import {
   analyzeBirdRecording,
   createBirdBrushProfile,
 } from "./generativeBrush.js";
 import { readAudioFeatures } from "../audioGraph.js";
 import { fetchCatalog, drawRecording } from "./catalog.js";
-import { recordingBytes } from "./recordingCache.js";
+import { recordingBytes, forgetMedia } from "./recordingCache.js";
 
 export const BIRD_FADE = Object.freeze({ attack: 0.25, release: 0.7 });
 
@@ -55,7 +59,7 @@ export function createBirdSongs({
       try {
         let cached;
         try {
-          cached = JSON.parse(localStorage.getItem("sonoizo-bird-catalog-v1"));
+          cached = JSON.parse(localStorage.getItem("sonoizo-commons-audio-v2"));
         } catch {
           /* Optional cache. */
         }
@@ -70,7 +74,7 @@ export function createBirdSongs({
           catalog = await fetchCatalog(ids, { signal: abort.signal, request });
           try {
             localStorage.setItem(
-              "sonoizo-bird-catalog-v1",
+              "sonoizo-commons-audio-v2",
               JSON.stringify({ time: Date.now(), catalog }),
             );
           } catch {
@@ -126,7 +130,13 @@ export function createBirdSongs({
         request,
       });
       if (disposed) return null;
-      const full = await ctx.decodeAudioData(bytes.slice(0));
+      let full;
+      try {
+        full = await ctx.decodeAudioData(bytes.slice(0));
+      } catch (cause) {
+        await forgetMedia(item);
+        throw cause;
+      }
       if (disposed) return null;
       if (!full.length || full.duration > 180 || full.numberOfChannels > 2)
         throw new Error("Durée ou format d’enregistrement non pris en charge.");
@@ -243,6 +253,9 @@ export function createBirdSongs({
     emit();
     addTask = (async () => {
       try {
+        const excludedPhotos = [...profiles.values()]
+          .map((profile) => profile.photo?.pageid)
+          .filter(Boolean);
         const excluded = Object.values(catalog)
           .filter(Boolean)
           .map((item) => item.taxon);
@@ -255,16 +268,22 @@ export function createBirdSongs({
           try {
             const buffer = await loadBuffer(item, context());
             if (disposed || !buffer) return null;
-            const profile = createBirdBrushProfile(
-              item,
-              analyzeBirdRecording(buffer),
+            const nature = await drawNature(excludedPhotos, {
+              onCandidate: (pageid) => excludedPhotos.push(pageid),
+              signal: abort.signal,
+              request,
+            });
+            if (disposed) return null;
+            const profile = combineNatureProfile(
+              createBirdBrushProfile(item, analyzeBirdRecording(buffer)),
+              nature,
             );
-            catalog = { ...catalog, [id]: item };
+            catalog = { ...catalog, [id]: { ...item, photo: nature.photo } };
             profiles.set(id, profile);
             status = "ready";
             error = "";
             emit();
-            return { recording: item, profile };
+            return { recording: catalog[id], profile };
           } catch (cause) {
             if (attempt === 2 || disposed) throw cause;
           }
@@ -272,7 +291,7 @@ export function createBirdSongs({
       } catch (cause) {
         if (!disposed) {
           status = "error";
-          error = `Création impossible : ${cause.message}`;
+          error = `Nouvelle matière indisponible : ${cause.message}`;
           emit();
         }
         return null;

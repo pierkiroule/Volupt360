@@ -1,5 +1,5 @@
 import { withTimeout } from "./network.js";
-const NAME = "sonoizo-birds-v1";
+const NAME = "sonoizo-commons-v2";
 const LIMIT = 64 * 1024 * 1024;
 export const MAX_RECORDING_BYTES = 8 * 1024 * 1024;
 export async function boundedBytes(response, max = MAX_RECORDING_BYTES) {
@@ -36,13 +36,16 @@ export async function boundedBytes(response, max = MAX_RECORDING_BYTES) {
   }
   return bytes.buffer;
 }
-export async function recordingBytes(
-  recording,
-  { signal, request = fetch } = {},
-) {
-  const key = `${location.origin}/__bird-cache/${recording.observation}/${recording.sound}`;
+export async function mediaBytes(recording, { signal, request = fetch } = {}) {
+  const key = `${location.origin}/__commons-cache/${recording.kind || "audio"}/${recording.pageid || recording.sound}`;
   let cache;
   try {
+    try {
+      localStorage.removeItem("sonoizo-bird-catalog-v1");
+      await caches.delete("sonoizo-birds-v1");
+    } catch {
+      /* Optional migration. */
+    }
     cache = await caches.open(NAME);
     const hit = await cache.match(key);
     if (hit) return await boundedBytes(hit);
@@ -62,7 +65,7 @@ export async function recordingBytes(
       if (signal?.aborted) throw error;
       return boundedBytes(
         await request(
-          `/api/bird-recording?observation=${recording.observation}&sound=${recording.sound}`,
+          `/api/commons-media?pageid=${recording.pageid || recording.sound}&kind=${recording.kind || "audio"}`,
           { signal: timedSignal },
         ),
       );
@@ -111,4 +114,17 @@ function cacheWrite(action) {
   const result = writes.catch(() => {}).then(action);
   writes = result;
   return result;
+}
+
+export const recordingBytes = mediaBytes;
+
+export async function forgetMedia(item) {
+  try {
+    const cache = await caches.open(NAME);
+    await cache.delete(
+      `${location.origin}/__commons-cache/${item.kind || "audio"}/${item.pageid || item.sound}`,
+    );
+  } catch {
+    /* Optional cache. */
+  }
 }

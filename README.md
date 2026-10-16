@@ -1,6 +1,6 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Chaque ajout tire un nouvel enregistrement réel d’oiseau dans iNaturalist et construit une matière aquarellée à partir de ses caractéristiques acoustiques. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo et joue son chant. Relâcher arrête le dépôt et atténue le son. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [les licences, le cache et le relais CORS](docs/inaturalist-bird-brushes.md).
+Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Chaque ajout tire une photographie de nature et un chant réel sur Wikimedia Commons. Les couleurs, textures et contours de la photo composent une matière abstraite, animée par le chant pendant le geste. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo et joue son chant. Relâcher arrête le dépôt et atténue le son. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [les licences, le cache et le relais CORS](docs/commons-nature-materials.md).
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 
@@ -118,10 +118,10 @@ Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des hor
 
 **Matières issues des chants** : une collection de 1 à 18 brosses générées remplace les planètes et les textures fixes. Aucun import photographique. Voir [le menu et la génération acoustique](docs/growing-bird-brushes.md).
 
-## Chants réels iNaturalist
+## Photographies et chants Wikimedia Commons
 
-Les brosses peuvent désormais porter de vrais enregistrements d’oiseaux, prioritaires parmi les espèces signalées menacées. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0/CC BY uniquement, crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/inaturalist-bird-brushes.md).
+« Nouvelle matière » associe une photographie de mousse, plume, écorce, eau, lichen, fleur ou feuillage à un vrai chant d’oiseau. Les deux fichiers proviennent de Wikimedia Commons. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0/CC BY uniquement, crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/commons-nature-materials.md).
 
-Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis un nouvel oiseau et un visuel généré par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.
+Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis une nouvelle photographie et un chant par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.
 
 Le voyage est présenté comme la sculpture des traces du patrimoine sonore des oiseaux du monde. L’ambiance `ambiance01.mp3` accompagne de nouveau le vol, sous les chants qui entrent et sortent en fondu. Un [skydome de coucher de soleil aquarellé](docs/oizo-sunset-story.md) offre un horizon discret en FPV et en 360°.
