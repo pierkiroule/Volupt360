@@ -143,3 +143,9 @@ Les matières continuent d’évoluer entre deux gestes : leur horloge visuelle 
 Le parcours actif ne charge plus d’ambiance MP3 : le fichier fourni et son appel automatique sont retirés. Un fond sonore procédural lance le voyage ; chaque dépôt enregistre un motif musical spatialisé, dont les retours peuvent rappeler la trace. Les couleurs, contours procéduraux, épaisseurs et caractères des brosses influencent le timbre et les choix de notes dans les règles harmoniques existantes. La musique générée nourrit l’audioréactivité des matières.
 
 Le moteur Web Audio existant est réutilisé, avec un seul univers initialisé. Le bouton musical met la composition en pause et la relance ; une pause manuelle est respectée lors des changements de vue. Le cadrage photo suspend le son, puis le vol le reprend. Le mix généré reste connecté à la capture audio de l’export. Aucun chant vocal n’est réactivé.
+
+### Palette sonore adoucie
+
+Le paysage actif privilégie des timbres feutrés et des cordes amorties, dans un registre plus bas et une gamme pentatonique. Les attaques sont progressives ; les cloches conservent moins de modulation FM et des partiels harmoniques. Les notes trop aiguës sont ramenées à l’octave inférieure, sans changer leur hauteur harmonique.
+
+La réverbération procédurale gagne une queue diffuse de 5,8 secondes, un pré-délai de 28 ms et un amortissement des aigus. Le mix complet, percussions et réverbération comprises, traverse un coupe-bas à 32 Hz, un creux doux autour de 2,8 kHz et un passe-bas à 2,8 kHz. Les brosses continuent de composer et l’audioréactivité reste liée au signal musical obtenu. Ces réglages décrivent un choix de timbre ; ils ne garantissent aucun effet relaxant. L’écoute sur téléphone et casque reste à valider.

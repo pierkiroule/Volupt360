@@ -157,17 +157,11 @@ test("a worklet loading error is reported and the previous synth can be restored
     void probe.close();
   });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Choisir ÉTHER", exact: true })
-    .click();
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(page.locator(".universe-error")).toContainText(
-    "Synthèse aquatique",
+    "Composition indisponible",
   );
   await page.goto("/?sound=legacy");
-  await page
-    .getByRole("button", { name: "Choisir ÉTHER", exact: true })
-    .click();
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect
     .poll(async () =>

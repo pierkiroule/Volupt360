@@ -1,7 +1,7 @@
 // Seeded synthetic impulse response, calculated once, never fetched from a file.
 export function createWaterReverb(ctx, destination, profile) {
   const seconds =
-    profile.waterColor === 0 ? 4.5 : profile.waterColor === 2 ? 3.8 : 2.8;
+    profile.waterColor === 0 ? 5.8 : profile.waterColor === 2 ? 3.8 : 2.8;
   const response = ctx.createBuffer(
     2,
     Math.ceil(ctx.sampleRate * seconds),
@@ -16,21 +16,31 @@ export function createWaterReverb(ctx, destination, profile) {
     for (let i = 0; i < data.length; i++) {
       seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
       filtered +=
-        (profile.waterColor === 2 ? 0.12 : 0.3) *
+        (profile.waterColor === 2 ? 0.12 : 0.15) *
         (seed / 2147483648 - 1 - filtered);
       data[i] = filtered * envelope * Math.min(1, i / (ctx.sampleRate * 0.025));
       envelope *= decay;
     }
   }
   const convolver = ctx.createConvolver(),
-    wet = ctx.createGain();
+    wet = ctx.createGain(),
+    predelay = ctx.createDelay(0.1),
+    damping = ctx.createBiquadFilter();
+  predelay.delayTime.value = 0.028;
+  damping.type = "lowpass";
+  damping.frequency.value = 2200;
+  damping.Q.value = 0.5;
   convolver.buffer = response;
-  wet.gain.value = profile.waterColor === 2 ? 0.25 : 0.14;
-  convolver.connect(wet);
+  wet.gain.value = profile.waterColor === 2 ? 0.25 : 0.24;
+  predelay.connect(convolver);
+  convolver.connect(damping);
+  damping.connect(wet);
   wet.connect(destination);
   return {
-    input: convolver,
+    input: predelay,
     dispose() {
+      predelay.disconnect();
+      damping.disconnect();
       convolver.disconnect();
       wet.disconnect();
       convolver.buffer = null;

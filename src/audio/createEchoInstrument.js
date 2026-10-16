@@ -1,3 +1,4 @@
+import { createSoftTone } from "./createSoftTone.js";
 import { createWaterSource, prepareWaterAudio } from "./createWaterAudio.js";
 import { createWaterPercussion } from "./createWaterPercussion.js";
 import { createWaterReverb } from "./createWaterReverb.js";
@@ -55,7 +56,8 @@ export async function createEchoInstrument(
   filter.connect(gain);
   const reverb = createWaterReverb(ctx, gain, profile);
   filter.connect(reverb.input);
-  gain.connect(limiter);
+  const softTone = createSoftTone(ctx, limiter);
+  gain.connect(softTone.input);
   limiter.connect(analyser);
   analyser.connect(destination);
   const delay = ctx.createDelay(12),
@@ -66,7 +68,7 @@ export async function createEchoInstrument(
     universe === "ramure" ? 3.7 : universe === "marees" ? 2.9 : 4.3;
   feedback.gain.value = profile.feedback;
   echoFilter.type = "lowpass";
-  echoFilter.frequency.value = 2800;
+  echoFilter.frequency.value = 1700;
   wet.gain.value = profile.send;
   filter.connect(delay);
   delay.connect(echoFilter);
@@ -121,7 +123,13 @@ export async function createEchoInstrument(
   [0, 2, 4, 6].forEach((degree, i) =>
     pad.node.parameters
       .get(`tone${i + 1}`)
-      .setValueAtTime(2 ** (profile.scale[degree] / 12), ctx.currentTime),
+      .setValueAtTime(
+        2 **
+          ((profile.scale[degree % profile.scale.length] +
+            Math.floor(degree / profile.scale.length) * 12) /
+            12),
+        ctx.currentTime,
+      ),
   );
   const padGain = ctx.createGain();
   padGain.gain.value = 0;
@@ -197,14 +205,15 @@ export async function createEchoInstrument(
       chord +
       (degreeOverride ?? [0, 2, 4, 6][selection]) +
       (imageCell ? Math.round(imageCell.light * 2) : 0);
-    const octave = bass ? -12 : family === "ramure" ? 0 : 12;
+    const octave = bass ? -12 : 0;
     const semitone =
       profile.scale[
         ((degree % profile.scale.length) + profile.scale.length) %
           profile.scale.length
       ] +
       Math.floor(degree / profile.scale.length) * 12;
-    const frequency = profile.root * 2 ** ((semitone + octave) / 12);
+    let frequency = profile.root * 2 ** ((semitone + octave) / 12);
+    while (frequency > 784) frequency *= 0.5;
     const start =
         scheduled ?? Math.ceil((now + 0.04) / (beat / 2)) * (beat / 2),
       duration =
@@ -224,7 +233,7 @@ export async function createEchoInstrument(
     envelope.gain.linearRampToValueAtTime(
       level,
       start +
-        (melodicDuration ? 0.018 : bass ? 0.1 : profile.attacks[familyIndex]),
+        (melodicDuration ? 0.09 : bass ? 0.16 : profile.attacks[familyIndex]),
     );
     envelope.gain.exponentialRampToValueAtTime(
       level * (universe === "ramure" ? 0.35 : 0.6),
@@ -238,7 +247,7 @@ export async function createEchoInstrument(
         ? "bass"
         : imageCell
           ? imageCell.light > 0.55
-            ? "bell"
+            ? "felt"
             : "string"
           : voiceType || world.type,
       startAt: start,
@@ -575,6 +584,7 @@ export async function createEchoInstrument(
       analyser.disconnect();
       limiter.disconnect();
       gain.disconnect();
+      softTone.dispose();
       filter.disconnect();
       delay.disconnect();
       echoFilter.disconnect();
