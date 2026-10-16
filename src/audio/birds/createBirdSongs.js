@@ -1,5 +1,9 @@
+import {
+  analyzeBirdRecording,
+  createBirdBrushProfile,
+} from "./generativeBrush.js";
 import { readAudioFeatures } from "../audioGraph.js";
-import { fetchCatalog } from "./catalog.js";
+import { fetchCatalog, drawRecording } from "./catalog.js";
 import { recordingBytes } from "./recordingCache.js";
 
 export function createBirdSongs({
@@ -21,6 +25,9 @@ export function createBirdSongs({
     decoded = new Map(),
     tails = new Set(),
     used = new Map();
+  const profiles = new Map();
+  let generatedMode = false,
+    addTask = null;
   let playing = "",
     state = "idle";
   const emit = () => {
@@ -32,9 +39,12 @@ export function createBirdSongs({
     playing,
     state,
     assignments: catalog,
+    generated: generatedMode,
+    profiles: Object.fromEntries(profiles),
     used: Object.fromEntries(used),
   });
   async function prepare(force = false) {
+    if (generatedMode) return;
     if (catalogTask && (!force || status === "loading")) return catalogTask;
     status = "loading";
     error = "";
@@ -217,8 +227,59 @@ export function createBirdSongs({
       }
     }
   }
+  async function generate(id) {
+    if (disposed || !ids.includes(id)) return null;
+    if (profiles.has(id))
+      return { recording: catalog[id], profile: profiles.get(id) };
+    if (addTask) return null;
+    generatedMode = true;
+    status = "loading";
+    error = "";
+    emit();
+    addTask = (async () => {
+      try {
+        const excluded = Object.values(catalog)
+          .filter(Boolean)
+          .map((item) => item.taxon);
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const item = await drawRecording(excluded, {
+            signal: abort.signal,
+            request,
+          });
+          excluded.push(item.taxon);
+          try {
+            const buffer = await loadBuffer(item, context());
+            if (disposed || !buffer) return null;
+            const profile = createBirdBrushProfile(
+              item,
+              analyzeBirdRecording(buffer),
+            );
+            catalog = { ...catalog, [id]: item };
+            profiles.set(id, profile);
+            status = "ready";
+            error = "";
+            emit();
+            return { recording: item, profile };
+          } catch (cause) {
+            if (attempt === 2 || disposed) throw cause;
+          }
+        }
+      } catch (cause) {
+        if (!disposed) {
+          status = "error";
+          error = `Création impossible : ${cause.message}`;
+          emit();
+        }
+        return null;
+      } finally {
+        addTask = null;
+      }
+    })();
+    return addTask;
+  }
   return {
     prepare,
+    generate,
     warm,
     start,
     stop,
@@ -245,6 +306,7 @@ export function createBirdSongs({
       decoded.clear();
       catalog = {};
       used.clear();
+      profiles.clear();
     },
   };
 }

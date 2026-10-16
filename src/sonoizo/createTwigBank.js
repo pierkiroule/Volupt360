@@ -627,6 +627,7 @@ export function createTwigBank({
     }
   }
   return {
+    generateBirdBrush: (id) => birds.generate(id),
     prepareBirdCatalog: (force = false) => birds.prepare(force),
     preloadBirdSong: (id) => (birdSongs ? birds.warm(id) : Promise.resolve()),
     beginSculpture: (id) => (birdSongs ? birds.start(id) : Promise.resolve()),

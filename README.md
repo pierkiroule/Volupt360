@@ -1,6 +1,6 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Choisissez **Le Souffle**, **Les Marées** ou **La Ramure**, trois expériences avec six brosses chacune. Un premier son organique est généré localement, puis les traces composent progressivement une musique spatialisée qui influence à son tour les visuels. Les trois univers possèdent trois familles de timbres harmonisés. Six planètes aquarellées se déplacent dans chaque univers. Un double tap sélectionne leur brosse ; un halo bleu entoure la planète active, sans pads ni menu. Un appui long de 450 ms sur le canevas fait tracer l’oizo avec la dernière brosse choisie, le long de son vol continu. Le doigt guide uniquement l’orientation ; il ne dessine jamais. Relâcher arrête ce dépôt. En FPV, glisser sur le canevas infléchit l’orientation relative de l’oizo : vers le haut pour monter, vers le bas pour descendre, vers la droite ou la gauche pour tourner. La réponse est progressive et conserve une inertie douce au relâchement. Le réseau vocal préfabriqué est désactivé. Les positions réellement déposées constituent maintenant une mémoire légère ; le vol détecte ses retrouvailles en 3D avec les anciens passages. Les rencontres rappellent maintenant les motifs sonores des traces. Les vocaux restent une option rare, désactivée par défaut. Voir [le périmètre, le débogage et le retour arrière](docs/trace-memory.md).
+Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Chaque ajout tire un nouvel enregistrement réel d’oiseau dans iNaturalist et construit une matière aquarellée à partir de ses caractéristiques acoustiques. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo et joue son chant. Relâcher arrête le dépôt et atténue le son. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [les licences, le cache et le relais CORS](docs/inaturalist-bird-brushes.md).
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 
@@ -116,8 +116,10 @@ Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-i
 
 Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
 
-**18 matières aquarellées fixes** : six planètes par univers remplacent le menu des brosses. Un double tap sur une planète change la matière ; maintenir le canevas fait peindre l’oizo. Aucun import ni modification des textures. Voir [les corps aquarellés](docs/celestial-brushes.md).
+**Matières issues des chants** : une collection de 1 à 18 brosses générées remplace les planètes et les textures fixes. Aucun import photographique. Voir [le menu et la génération acoustique](docs/growing-bird-brushes.md).
 
 ## Chants réels iNaturalist
 
 Les brosses peuvent désormais porter de vrais enregistrements d’oiseaux, prioritaires parmi les espèces signalées menacées. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0/CC BY uniquement, crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/inaturalist-bird-brushes.md).
+
+Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis un nouvel oiseau et un visuel généré par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.

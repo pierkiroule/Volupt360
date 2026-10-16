@@ -1,7 +1,12 @@
 import * as THREE from "three";
 
 // Fixed seeded pigment fields: generated once per brush, never during flight.
-export function createWatercolorTexture(brush, seed, size = 512) {
+export function createWatercolorTexture(
+  brush,
+  seed,
+  size = 512,
+  acoustic = null,
+) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
@@ -30,7 +35,8 @@ export function createWatercolorTexture(brush, seed, size = 512) {
     for (let x = 0; x < size; x++) {
       const u = x / size,
         v = y / size;
-      const broad = noise(u * 5, v * 5),
+      const grainScale = 5 + (acoustic?.brightness || 0) * 7;
+      const broad = noise(u * grainScale, v * grainScale),
         flow = noise(u * 17 + broad * 3, v * 17);
       const fiber = noise(u * 110, v * 110);
       const radius = Math.hypot((u - 0.5) * 2, (v - 0.5) * 2);
@@ -42,7 +48,11 @@ export function createWatercolorTexture(brush, seed, size = 512) {
         1,
         0.26 + broad * 0.5 + pool * 0.38 + blooms * 0.2,
       );
-      const grain = 0.78 + 0.22 * hash(x, y);
+      const granulation = 0.15 + (acoustic?.contrast ?? 0.35) * 0.3;
+      const grain = 1 - granulation + granulation * hash(x, y);
+      const songEnvelope = acoustic
+        ? 0.6 + acoustic.envelope[Math.min(31, Math.floor(u * 32))] * 0.4
+        : 1;
       const k = (y * size + x) * 4;
       for (let c = 0; c < 3; c++) {
         const base = channels[c];
@@ -57,7 +67,12 @@ export function createWatercolorTexture(brush, seed, size = 512) {
           );
       }
       image.data[k + 3] =
-        255 * wet * (0.4 + pigment * 0.55) * grain * (0.85 + fiber * 0.15);
+        255 *
+        wet *
+        (0.4 + pigment * 0.55) *
+        grain *
+        songEnvelope *
+        (0.85 + fiber * 0.15);
     }
   ctx.putImageData(image, 0, 0);
   const texture = new THREE.CanvasTexture(canvas);

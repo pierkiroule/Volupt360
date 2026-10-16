@@ -124,3 +124,59 @@ export async function fetchCatalog(ids, { signal, request = fetch } = {}) {
   }
   return assignRecordings(ids, candidates);
 }
+
+export function randomUnit() {
+  const value = new Uint32Array(1);
+  crypto.getRandomValues(value);
+  return value[0] / 4294967296;
+}
+export async function drawRecording(
+  excluded,
+  { signal, request = fetch, random = randomUnit } = {},
+) {
+  const skipped = new Set(excluded);
+  for (const threatened of [true, false]) {
+    const pages = [1, 2, 3]; // Shuffle a finite API window; no claim of global uniformity.
+    for (let i = pages.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [pages[i], pages[j]] = [pages[j], pages[i]];
+    }
+    for (const page of pages) {
+      const params = new URLSearchParams({
+        sounds: "true",
+        taxon_id: "3",
+        rank: "species",
+        per_page: "100",
+        page: String(page),
+        order_by: "id",
+        order: "desc",
+      });
+      if (threatened) params.set("threatened", "true");
+      const data = await withTimeout(signal, async (timedSignal) => {
+        let response;
+        try {
+          response = await request(`${API}/observations?${params}`, {
+            signal: timedSignal,
+          });
+        } catch (error) {
+          if (signal?.aborted) throw error;
+          response = await request(
+            `/api/bird-catalog?threatened=${threatened}&page=${page}`,
+            { signal: timedSignal },
+          );
+        }
+        if (!response.ok)
+          throw new Error(`Catalogue indisponible (${response.status}).`);
+        return response.json();
+      });
+      const candidates = recordings(data.results || [], threatened).filter(
+        (item) => !skipped.has(item.taxon),
+      );
+      if (candidates.length)
+        return candidates[Math.floor(random() * candidates.length)];
+    }
+  }
+  throw new Error(
+    "Aucune nouvelle espèce avec un chant autorisé dans les pages disponibles.",
+  );
+}

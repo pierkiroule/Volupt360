@@ -32,7 +32,7 @@ export function createPoeticParticleStroke(
       uTime: { value: 0 },
       uAge: { value: 0 },
       uFade: { value: 1 },
-      uOpacity: { value: 0.92 },
+      uOpacity: { value: brush.opacity ?? 0.92 },
       uBrushMask: { value: texture?.texture || null },
       uHasMask: { value: texture?.photograph ? 1 : 0 },
       uKind: { value: brush.particle },
@@ -126,7 +126,7 @@ export function createPoeticParticleStroke(
     append(sample) {
       if (closed || count >= capacity) return;
       const energy = THREE.MathUtils.clamp(sample.energy || 0.3, 0, 1);
-      const scale = 0.45 + energy * 0.8;
+      const scale = (0.45 + energy * 0.8) * (brush.generatedWidth || 1);
       for (let i = 0; i < particles; i++) {
         const phase = seed * 1.7 + count * 2.399 + i * 1.57;
         center
