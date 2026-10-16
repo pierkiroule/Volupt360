@@ -125,3 +125,9 @@ Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des hor
 Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis une nouvelle photographie et un chant par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.
 
 Le voyage est présenté comme la sculpture des traces du patrimoine sonore des oiseaux du monde. L’ambiance `ambiance01.mp3` accompagne de nouveau le vol, sous les chants qui entrent et sortent en fondu. Un [skydome de coucher de soleil aquarellé](docs/oizo-sunset-story.md) offre un horizon discret en FPV et en 360°.
+
+### Vol articulé et ciel crépusculaire
+
+L’oizo reste un petit V discret : deux ailes pondérées sur trois articulations chacune (épaule, coude, poignet). Les virages déclenchent de courts battements avec déphasage vers les extrémités et des transitions douces vers le vol plané, sans changer sa trajectoire ni la sculpture.
+
+Le skydome aquarelle traverse un crépuscule lent : étoiles fixes, lune voilée et deux rubans d’aurore très diffus. Le cycle dure environ dix minutes, sans textures externes ni passes de post-traitement. Le ciel garde son orientation en FPV et gyro ; son évolution se fige en mode photo pour préserver le cadrage. Les ressources des ailes et du ciel sont libérées à la fermeture. Le rendu sur téléphone physique reste à vérifier.
