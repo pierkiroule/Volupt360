@@ -96,11 +96,15 @@ test("native recording playback analyzes real decoded data, fades, caches and ca
         request,
       });
       await player.start("voiles");
-      await new Promise((r) => setTimeout(r, 350));
+      await new Promise((r) => setTimeout(r, 40));
+      const attack = player.features().rms;
+      await new Promise((r) => setTimeout(r, 310));
       const sounding = player.features();
       const playing = player.snapshot();
       player.stop();
-      await new Promise((r) => setTimeout(r, 850));
+      await new Promise((r) => setTimeout(r, 250));
+      const fading = player.features().rms;
+      await new Promise((r) => setTimeout(r, 600));
       const silent = player.features();
       player.dispose();
       const second = createBirdSongs({
@@ -138,6 +142,8 @@ test("native recording playback analyzes real decoded data, fades, caches and ca
       await ctx.close();
       return {
         rms: sounding.rms,
+        attack,
+        fading,
         high: sounding.high,
         silence: silent.rms || 0,
         cached,
@@ -152,6 +158,9 @@ test("native recording playback analyzes real decoded data, fades, caches and ca
   );
   expect(result.rms).toBeGreaterThan(0.05);
   expect(result.high).toBeGreaterThan(0);
+  expect(result.attack).toBeLessThan(result.rms);
+  expect(result.fading).toBeGreaterThan(0.01);
+  expect(result.fading).toBeLessThan(result.rms);
   expect(result.silence).toBeLessThan(0.001);
   expect(result.cached).toBeGreaterThan(0.05);
   expect(result.direct).toBe(1);
@@ -181,11 +190,7 @@ test("mobile sculpture starts birdsong only during the gesture and supplies attr
     "Oiseau test",
   );
   const canvas = page.locator("#stage canvas");
-  await expect
-    .poll(
-      async () => Number(await canvas.getAttribute("data-music-energy")) || 0,
-    )
-    .toBeLessThan(0.01);
+  await expect(page.locator(".bird-credits summary")).not.toContainText("♫");
   await page.mouse.move(180, 350);
   await page.mouse.down();
   await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
@@ -219,6 +224,9 @@ test("network failure stays silent with an explicit recoverable error", async ({
     page.getByRole("button", { name: "Réessayer le catalogue" }),
   ).toBeVisible();
   const canvas = page.locator("#stage canvas");
+  await page
+    .getByRole("button", { name: "Mettre l’ambiance en pause" })
+    .click();
   await page.mouse.move(240, 500);
   await page.mouse.down();
   await page.waitForTimeout(900);

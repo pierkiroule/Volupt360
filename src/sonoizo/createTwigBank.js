@@ -28,7 +28,8 @@ export function createTwigBank({
   if (ids.length > 18 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
   let fireflies = false,
-    universeAmbience = false;
+    universeAmbience = false,
+    ambienceUserPaused = false;
   const brushGestures = new Map();
   const imageBrushes = new Map();
   let instrument = null,
@@ -47,11 +48,17 @@ export function createTwigBank({
     const now = ctx?.currentTime || 0;
     if (visualFeatures && now - visualReadAt < 0.035) return visualFeatures;
     const voice = [...voices.values()][0];
-    const music = instrument?.stats.active
+    let music = instrument?.stats.active
       ? readAudioFeatures(instrument.graph)
       : ambience && !ambience.element.paused
         ? readAudioFeatures(ambience.graph)
         : {};
+    if (ambience?.background && !instrument?.stats.active)
+      music = {
+        ...music,
+        rms: (music.rms || 0) * ambience.gain.gain.value,
+        energy: (music.energy || 0) * ambience.gain.gain.value,
+      };
     const dt = Number.isFinite(visualReadAt)
       ? Math.min(0.1, Math.max(0.001, now - visualReadAt))
       : 0.04;
@@ -120,6 +127,7 @@ export function createTwigBank({
         loaded: Boolean(ambience),
         playing: Boolean(ambience && !ambience.element.paused),
         loading: ambienceLoading,
+        userPaused: ambienceUserPaused,
       },
       slots: Object.fromEntries(
         ids.map((id) => [
@@ -309,6 +317,7 @@ export function createTwigBank({
   }
   function stopAll() {
     birds.stop();
+    duckAmbience(false);
     brushGestures.clear();
     playbackRevision++;
     pendingVocal = null;
@@ -533,7 +542,12 @@ export function createTwigBank({
     emit();
     const element = new Audio(),
       url = file.url || URL.createObjectURL(file),
-      candidate = { element, url, name: file.name };
+      candidate = {
+        element,
+        url,
+        name: file.name,
+        background: Boolean(file.background),
+      };
     try {
       if (file.size > 20 * 1024 * 1024)
         throw new Error("Choisissez une ambiance de 20 Mo maximum.");
@@ -573,7 +587,11 @@ export function createTwigBank({
       const audio = context();
       candidate.source = audio.createMediaElementSource(element);
       candidate.gain = audio.createGain();
-      candidate.gain.gain.value = 0.32;
+      candidate.gain.gain.value = candidate.background
+        ? birds.snapshot().state === "playing"
+          ? 0.06
+          : 0.18
+        : 0.32;
       const analyser = audio.createAnalyser();
       analyser.fftSize = 2048;
       analyser.smoothingTimeConstant = 0.25;
@@ -589,6 +607,7 @@ export function createTwigBank({
       candidate.gain.connect(master);
       releaseAmbience(ambience);
       ambience = candidate;
+      ambienceUserPaused = false;
       pendingAmbience = null;
       return true;
     } catch (error) {
@@ -603,6 +622,15 @@ export function createTwigBank({
       }
     }
   }
+  function duckAmbience(painting) {
+    if (!ambience?.background || !ctx) return;
+    ambience.gain.gain.cancelScheduledValues(ctx.currentTime);
+    ambience.gain.gain.setTargetAtTime(
+      painting ? 0.06 : 0.18,
+      ctx.currentTime,
+      0.2,
+    );
+  }
   function pauseAmbience() {
     instrumentPlayingRequested = false;
     instrument?.pause();
@@ -612,9 +640,11 @@ export function createTwigBank({
   async function toggleAmbience() {
     if (!ambience || disposed) return;
     if (!ambience.element.paused) {
+      ambienceUserPaused = true;
       pauseAmbience();
       return;
     }
+    ambienceUserPaused = false;
     const ticket = ambienceRequest;
     try {
       await context().resume();
@@ -630,8 +660,14 @@ export function createTwigBank({
     generateBirdBrush: (id) => birds.generate(id),
     prepareBirdCatalog: (force = false) => birds.prepare(force),
     preloadBirdSong: (id) => (birdSongs ? birds.warm(id) : Promise.resolve()),
-    beginSculpture: (id) => (birdSongs ? birds.start(id) : Promise.resolve()),
-    endSculpture: () => birds.stop(),
+    beginSculpture: (id) => {
+      duckAmbience(true);
+      return birdSongs ? birds.start(id) : Promise.resolve();
+    },
+    endSculpture: () => {
+      birds.stop();
+      duckAmbience(false);
+    },
     async startInstrument(universe = "souffle") {
       const request = ++instrumentRequest;
       instrumentPlayingRequested = true;
@@ -719,14 +755,23 @@ export function createTwigBank({
         .resume()
         .then(() => {
           if (instrumentPlayingRequested) instrument?.resume();
-          if (universeAmbience && ambience?.element.paused)
+          if (
+            universeAmbience &&
+            !ambienceUserPaused &&
+            ambience?.element.paused
+          )
             return toggleAmbience();
         })
         .catch((error) => onError(`Lecture indisponible : ${error.message}`));
     },
     loadUniverseAmbience(url) {
       universeAmbience = true;
-      return importAmbience({ url, name: "Ambiance · Le Souffle", size: 0 });
+      return importAmbience({
+        url,
+        name: "Ambiance musicale · Le voyage de l’oizo",
+        size: 0,
+        background: true,
+      });
     },
     getVisualFeatures,
     getVocalFeatures() {

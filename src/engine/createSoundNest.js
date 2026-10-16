@@ -1,3 +1,4 @@
+import { createSunsetSky } from "./createSunsetSky.js";
 import { createWatercolorTexture } from "./createWatercolorTexture.js";
 import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
 import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
@@ -35,7 +36,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   );
   container.append(renderer.domElement);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color("#f4f0e8");
+  const sky = createSunsetSky();
+  scene.add(sky.mesh);
+  renderer.domElement.dataset.skydome = "watercolor-sunset";
   const effects = createViewEffects(renderer);
   renderer.domElement.dataset.viewEffects = JSON.stringify(DEFAULT_VIEW);
   const camera = new THREE.PerspectiveCamera(
@@ -631,6 +634,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
     rig.update(dt);
+    sky.update(camera);
     camera.updateMatrixWorld();
     if (!photo && padSource?.updateListener) {
       const inverse = landscape
@@ -845,6 +849,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     async exportPhoto() {
       if (!photo) throw new Error("Cadrez votre photo dans la vue Photo.");
       rig.update(0);
+      sky.update(camera);
       const size = renderer.getSize(new THREE.Vector2()),
         ratio = renderer.getPixelRatio();
       const aspect = camera.aspect;
@@ -919,6 +924,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();
+      sky.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

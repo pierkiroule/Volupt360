@@ -307,19 +307,18 @@ test("the welcome presents the artistic experimentation and remains usable on mo
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("https://api.inaturalist.org/**", (route) =>
+    route.fulfill({ json: { results: [] } }),
+  );
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Explorer les phénomènes échohypnotiques",
+      name: "Sculpter les chants du monde",
     }),
   ).toBeVisible();
   const introduction = page.getByRole("article");
-  await expect(introduction).toContainText(
-    "expérimentation artistique interactive",
-  );
-  await expect(introduction).toContainText(
-    "proposition artistique exploratoire",
-  );
+  await expect(introduction).toContainText("patrimoine sonore vivant");
+  await expect(introduction).toContainText("recherche artistique");
   await expect(introduction).toContainText("hypnose contemporaine");
   await expect(introduction).toContainText("transnumérisme");
   await expect(introduction).toContainText("expériences transmodales");
@@ -330,5 +329,5 @@ test("the welcome presents the artistic experimentation and remains usable on mo
     .click();
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(introduction).toHaveCount(0);
-  await expect(page.locator(".twig-pad")).toHaveCount(6);
+  await expect(page.locator(".generated-brush")).toHaveCount(1);
 });

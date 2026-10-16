@@ -4,71 +4,58 @@ export default function ArtisticIntroduction() {
       className="artistic-introduction"
       aria-labelledby="artistic-intention"
     >
-      <span className="artistic-eyebrow">Démarche artistique</span>
-      <h2 id="artistic-intention">Explorer les phénomènes échohypnotiques</h2>
+      <span className="artistic-eyebrow">L’histoire de l’oizo</span>
+      <h2 id="artistic-intention">Sculpter les chants du monde</h2>
       <p className="artistic-lead">
-        ÉCHO & HYPNOS •° est une expérimentation artistique interactive à la
-        rencontre de la musique générative, de la peinture dans l’espace et de
-        la contemplation. Elle explore les phénomènes que nous proposons de
-        nommer
-        <em> échohypnotiques</em> : des moments où le son, le geste et l’image
-        se répondent, se transforment et invitent l’attention à habiter leurs
-        résonances.
+        Un petit oizo traverse un ciel d’aquarelle. Au fil de son voyage, il
+        recueille des chants d’oiseaux du monde et leur donne une présence dans
+        l’espace. Chaque envol dépose une trace : un fragment de ce patrimoine
+        sonore vivant, devenu couleur, mouvement et matière.
       </p>
-      <h3>Une boucle sensible entre entendre et voir</h3>
+      <h3>Un chant, une rencontre, une matière</h3>
       <p>
-        Un premier son ouvre un espace de possibles. Il influence la matière
-        visuelle, tandis que les traces déposées contribuent à composer la
-        musique. Cette réciprocité fait de l’œuvre un milieu vivant. Chaque
-        matière visuelle devient une source de transformation musicale, tandis
-        que chaque vibration sonore ouvre de nouvelles possibilités plastiques.
+        Le voyage commence avec un chant réel. Il fait naître une première
+        brosse, façonnée par ses vibrations, ses silences et ses variations.
+        Puis un autre oiseau rejoint la collection. Le hasard ouvre la rencontre
+        ; l’écoute lui donne une forme. Une attention particulière est portée
+        aux espèces signalées menacées dans les observations iNaturalist.
       </p>
-      <h3>Composer par le passage</h3>
+      <h3>Accompagner l’oizo</h3>
       <p>
-        Le visiteur accompagne le vol de l’oizo, choisit des matières et laisse
-        émerger un paysage. Ses gestes infléchissent une danse dont les formes
-        demeurent ouvertes. Les trajectoires deviennent une mémoire ; les
-        retrouvailles avec les anciens passages peuvent réveiller des motifs
-        sonores et ouvrir de nouvelles variations. L’œuvre se compose dans la
-        rencontre entre intention, hasard contraint et histoire des gestes.
+        Vous guidez son vol, choisissez un chant et maintenez le geste pour
+        sculpter. La voix de l’oiseau apparaît doucement et anime la matière.
+        Lorsque vous relâchez, elle s’éloigne peu à peu ; sa trace demeure dans
+        le paysage. Une ambiance musicale accompagne le voyage, en retrait des
+        chants.
       </p>
-      <h3>L’écho comme transformation, l’hypnose comme attention</h3>
+      <h3>Un ciel pour se retrouver</h3>
       <p>
-        Nous abordons l’écho comme un retour qui transforme ce qu’il reprend, et
-        le terme « hypnotique » comme une qualité poétique de l’attention :
-        répétitions, lenteurs, suspensions et différences discrètes.
-        L’échohypnose est ici une proposition artistique exploratoire : un
-        vocabulaire en construction pour observer, décrire et partager ces
-        expériences sensibles.
+        Un coucher de soleil aquarellé donne un horizon à l’espace. Ses nuances
+        discrètes accompagnent le vol et la contemplation à 360°. Vous pouvez
+        revenir sur vos passages, changer de regard et parcourir la mémoire
+        sensible que l’oizo a laissée derrière lui.
       </p>
-      <h3>Ouvrir des perspectives pour l’hypnose contemporaine</h3>
+      <h3>Les traces d’un patrimoine vivant</h3>
       <p>
-        Cette démarche cherche aussi à interroger de nouvelles perspectives pour
-        l’hypnose contemporaine, à partir des rencontres entre attention,
-        imaginaire et environnements numériques. Le transnumérisme, les
-        expériences transmodales et la synesthésie nourrissent cette exploration
-        : ils invitent à réfléchir aux formes de présence et aux circulations
-        sensibles que peuvent ouvrir les dispositifs interactifs.
+        Les enregistrements partagés par les contributeurs d’iNaturalist relient
+        l’expérience aux oiseaux et aux lieux où ils ont été entendus. Leurs
+        espèces, leurs auteurs, leurs sources et leurs licences restent
+        accessibles. Chaque sculpture devient une manière singulière
+        d’accueillir et de transmettre l’attention portée à ces présences
+        sonores.
       </p>
+      <h3>Une expérimentation échohypnotique</h3>
       <p>
-        Les correspondances entre sons, couleurs, formes et mouvements offrent
-        un terrain pour explorer les passages d’une modalité sensorielle à une
-        autre. Ces pistes sont abordées dans un cadre artistique et prospectif :
-        une recherche artistique par l’expérience, dont les propositions restent
-        ouvertes à l’observation, au dialogue et à l’évolution des pratiques de
-        l’hypnose.
-      </p>
-      <h3>Un monde à habiter et à écouter</h3>
-      <p>
-        La contemplation à 360° prolonge le geste de composition. Au casque, les
-        présences sonores prennent place dans le paysage et changent de
-        perspective avec le regard. L’expérimentation invite à alterner action
-        et écoute, à laisser du silence entre les événements et à découvrir une
-        œuvre singulière, issue des passages et des résonances de chaque
-        visiteur.
+        ÉCHO & HYPNOS •° explore les phénomènes que nous proposons de nommer
+        échohypnotiques : des moments où le son, le geste et l’image se
+        répondent et invitent l’attention à habiter leurs résonances. Cette
+        recherche artistique interroge de nouvelles perspectives pour l’hypnose
+        contemporaine, à travers le transnumérisme, les expériences transmodales
+        et la synesthésie. Ses propositions restent ouvertes à l’expérience, à
+        l’observation et au dialogue.
       </p>
       <p className="artistic-signature">
-        Le son inspire la matière. La matière prend voix. Le monde se répond.
+        Un chant se lève. L’oizo l’emporte. L’espace en garde la trace.
       </p>
     </article>
   );

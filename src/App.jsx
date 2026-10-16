@@ -90,7 +90,7 @@ export default function App() {
 
   useEffect(() => {
     document.title = ENABLE_SONOIZO
-      ? "ÉCHO & HYPNOS •° — Trois univers ambient génératifs"
+      ? "ÉCHO & HYPNOS •° — Les chants du monde prennent forme"
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
@@ -133,6 +133,22 @@ export default function App() {
     engine.current?.setPadSource(bank);
     if (ENABLE_BIRD_SONGS) {
       if (!collection[0].ready) void buildBrush(false);
+      if (!bank.getSnapshot().ambience.loaded) {
+        const loaded = await bank.loadUniverseAmbience(
+          `${import.meta.env.BASE_URL}${choice.ambience}`,
+        );
+        if (ticket !== universeRequest.current) return;
+        if (!loaded) {
+          setUniverseError("L’ambiance musicale n’a pas pu être chargée.");
+          return;
+        }
+      }
+      if (
+        ticket === universeRequest.current &&
+        !bank.getSnapshot().ambience.playing &&
+        !bank.getSnapshot().ambience.userPaused
+      )
+        await bank.toggleAmbience();
       return;
     }
     if (ENABLE_ECHO_INSTRUMENT) {
@@ -266,7 +282,7 @@ export default function App() {
       void twigs.bank.current?.preparePlayback();
     if (universe && mode === "photo" && id !== "photo") {
       const ambience = twigs.bank.current?.getSnapshot().ambience;
-      if (ambience?.loaded && !ambience.playing)
+      if (ambience?.loaded && !ambience.playing && !ambience.userPaused)
         void twigs.bank.current.toggleAmbience();
     }
     setMode(id);
@@ -345,6 +361,25 @@ export default function App() {
     >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
+      {universe && mode !== "photo" && twigs.snapshot.ambience?.loaded && (
+        <button
+          className="ambience-toggle"
+          aria-label={
+            twigs.snapshot.ambience.playing
+              ? "Mettre l’ambiance en pause"
+              : "Reprendre l’ambiance musicale"
+          }
+          aria-pressed={twigs.snapshot.ambience.playing}
+          onClick={() => twigs.bank.current?.toggleAmbience()}
+        >
+          ♪
+        </button>
+      )}
+      {universe && (universeError || twigs.error) && (
+        <p className="ambience-error" role="status">
+          {universeError || twigs.error}
+        </p>
+      )}
       {ENABLE_BIRD_SONGS && universe && (
         <BirdCredits
           birds={twigs.snapshot.birds}
@@ -358,8 +393,8 @@ export default function App() {
           <section className="universe-picker" aria-label="Choisir un univers">
             <h2>Choisissez votre univers</h2>
             <p>
-              Une expérimentation artistique du son, du geste et de leurs
-              résonances.
+              L’oizo voyage à travers les chants d’oiseaux du monde et sculpte
+              les traces de ce patrimoine sonore vivant.
             </p>
             <AtmosphereSpheres
               acousticControls={!ENABLE_BIRD_SONGS}

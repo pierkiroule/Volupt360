@@ -1,6 +1,6 @@
 # Chants réels des brosses — iNaturalist
 
-Le parcours actif commence maintenant par une brosse et permet d’en construire d’autres à partir de chants tirés au sort. Les planètes sont retirées. Voir [la collection progressive](growing-bird-brushes.md). Le catalogue fixe décrit ci-dessous appartient au chemin historique, conservé pour compatibilité. Maintenir le canevas fait sculpter l’oizo et déclenche le chant ; relâcher produit un fondu de sortie d’environ 650 ms. Le fondu d’entrée dure 180 ms.
+Le parcours actif commence maintenant par une brosse et permet d’en construire d’autres à partir de chants tirés au sort. Les planètes sont retirées. Voir [la collection progressive](growing-bird-brushes.md). Le catalogue fixe décrit ci-dessous appartient au chemin historique, conservé pour compatibilité. Maintenir le canevas fait sculpter l’oizo et déclenche le chant ; relâcher produit un fondu de sortie d’environ 700 ms. Le fondu d’entrée dure 250 ms.
 
 ## Catalogue et priorité aux espèces menacées
 

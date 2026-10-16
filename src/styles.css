@@ -1584,3 +1584,31 @@ label:focus-visible {
   max-height: 5rem;
   overflow: auto;
 }
+
+.ambience-toggle {
+  position: fixed;
+  z-index: 20;
+  right: 1rem;
+  top: 4rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid #9eaea540;
+  border-radius: 0.6rem;
+  background: #f4f0e8c9;
+  color: #536f68;
+  font-size: 1.2rem;
+}
+.ambience-toggle[aria-pressed="false"] {
+  opacity: 0.55;
+}
+.ambience-error {
+  position: fixed;
+  z-index: 21;
+  top: 9.6rem;
+  left: 1rem;
+  max-width: 70vw;
+  padding: 0.4rem;
+  background: #f4f0e8e8;
+  border-radius: 0.4rem;
+  font-size: 0.7rem;
+}

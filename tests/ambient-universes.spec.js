@@ -135,5 +135,5 @@ test("universe navigation remains available when the first birdsong cannot be cr
     page.getByRole("button", { name: "Choisir ÉTHER" }),
   ).toBeVisible();
   expect(errors).toEqual([]);
-  expect(files).toEqual([]);
+  expect(files.some((url) => url.includes("ambiance01.mp3"))).toBe(true);
 });
