@@ -11,7 +11,7 @@ test("one initial brush grows into an independent collection with no planets", a
   await mockCommons(page, { onQuery: () => queries++ });
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
-  const menu = page.getByRole("region", { name: "Mes brosses d’oiseaux" }),
+  const menu = page.getByRole("region", { name: "Mes matières naturelles" }),
     buttons = menu.locator(".generated-brush"),
     canvas = page.locator("#stage canvas");
   await expect(buttons).toHaveCount(1);
@@ -34,7 +34,7 @@ test("one initial brush grows into an independent collection with no planets", a
   await page.mouse.move(180, 350);
   await page.mouse.down();
   await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
-  await expect(page.locator(".bird-credits summary")).toContainText("♫");
+  await expect(page.locator(".bird-credits summary")).not.toContainText("♫");
   await page.waitForTimeout(400);
   await page.mouse.up();
   await expect

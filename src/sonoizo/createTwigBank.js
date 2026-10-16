@@ -661,7 +661,7 @@ export function createTwigBank({
     prepareBirdCatalog: (force = false) => birds.prepare(force),
     preloadBirdSong: (id) => (birdSongs ? birds.warm(id) : Promise.resolve()),
     beginSculpture: (id) => {
-      duckAmbience(true);
+      // Keep the musical ambience audible: materials no longer play birdsong.
       return birdSongs ? birds.start(id) : Promise.resolve();
     },
     endSculpture: () => {

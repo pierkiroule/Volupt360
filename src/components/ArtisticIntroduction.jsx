@@ -5,30 +5,22 @@ export default function ArtisticIntroduction() {
       aria-labelledby="artistic-intention"
     >
       <span className="artistic-eyebrow">L’histoire de l’oizo</span>
-      <h2 id="artistic-intention">Sculpter les chants du monde</h2>
+      <h2 id="artistic-intention">Sculpter les matières du monde</h2>
       <p className="artistic-lead">
-        Un petit oizo traverse un ciel d’aquarelle. Au fil de son voyage, il
-        recueille des chants d’oiseaux du monde et leur donne une présence dans
-        l’espace. Chaque envol dépose une trace : un fragment de ce patrimoine
-        sonore vivant, devenu couleur, mouvement et matière.
+        Un petit oizo traverse un ciel d’aquarelle. Il transforme les couleurs,
+        les contours et les textures de la nature en traces dans l’espace.
       </p>
-      <h3>Un chant, une rencontre, une matière</h3>
+      <h3>Une image, une rencontre, une matière</h3>
       <p>
-        Le voyage commence avec un chant réel. Il fait naître une première
-        brosse, façonnée par ses vibrations, ses silences et ses variations.
-        Puis un autre oiseau rejoint la collection. Le hasard ouvre la rencontre
-        ; l’écoute lui donne une forme. Une photographie de mousse, de plume ou
-        de feuillage apporte ses couleurs, ses contours et ses textures. Chaque
-        nouvelle matière associe cette photographie réelle à un chant tiré sur
-        Wikimedia Commons.
+        Chaque nouvelle matière naît d’une photographie tirée sur Wikimedia
+        Commons : mousse, plume, écorce, eau, lichen ou feuillage. Son analyse
+        compose une brosse abstraite, organique et singulière.
       </p>
       <h3>Accompagner l’oizo</h3>
       <p>
-        Vous guidez son vol, choisissez un chant et maintenez le geste pour
-        sculpter. La voix de l’oiseau apparaît doucement et anime la matière.
-        Lorsque vous relâchez, elle s’éloigne peu à peu ; sa trace demeure dans
-        le paysage. Une ambiance musicale accompagne le voyage, en retrait des
-        chants.
+        Vous guidez son vol, choisissez une matière et maintenez le geste pour
+        sculpter. Une ambiance musicale accompagne le voyage et anime les
+        visuels. Lorsque vous relâchez, le dépôt cesse ; sa trace demeure.
       </p>
       <h3>Un ciel pour se retrouver</h3>
       <p>
@@ -37,14 +29,11 @@ export default function ArtisticIntroduction() {
         revenir sur vos passages, changer de regard et parcourir la mémoire
         sensible que l’oizo a laissée derrière lui.
       </p>
-      <h3>Les traces d’un patrimoine vivant</h3>
+      <h3>Les traces d’une nature partagée</h3>
       <p>
-        Les enregistrements partagés par les contributeurs de Wikimedia Commons
-        relient l’expérience aux oiseaux et aux lieux où ils ont été entendus.
-        Leurs espèces, leurs auteurs, leurs sources et leurs licences restent
-        accessibles. Chaque sculpture devient une manière singulière
-        d’accueillir et de transmettre l’attention portée à ces présences
-        sonores.
+        Les photographies des contributeurs de Wikimedia Commons ouvrent une
+        rencontre avec les matières du vivant. Leurs auteurs, leurs sources et
+        leurs licences restent accessibles et accompagnent les œuvres partagées.
       </p>
       <h3>Une expérimentation échohypnotique</h3>
       <p>
@@ -57,7 +46,7 @@ export default function ArtisticIntroduction() {
         l’observation et au dialogue.
       </p>
       <p className="artistic-signature">
-        Un chant se lève. L’oizo l’emporte. L’espace en garde la trace.
+        Une matière apparaît. L’oizo l’emporte. L’espace en garde la trace.
       </p>
     </article>
   );

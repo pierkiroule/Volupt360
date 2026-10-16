@@ -11,20 +11,12 @@ export function birdCreditsText(birds) {
     ).values(),
   ];
   return (
-    "SUNOIZO — Matières et chants Wikimedia Commons\n\nPHOTOGRAPHIES\n\n" +
+    "SUNOIZO — Matières naturelles Wikimedia Commons\n\nPHOTOGRAPHIES\n\n" +
     photos
       .map(
         (photo) =>
           mediaCredit(photo) +
           "Transformation : palette, contours et texture analysés puis recomposés en matière abstraite.\n",
-      )
-      .join("\n") +
-    "\nCHANTS\n\n" +
-    Object.values(birds?.used || {})
-      .map(
-        (item) =>
-          mediaCredit(item) +
-          "Utilisation : extrait jusqu’à 45 s, bouclé et mixé avec fondus.\n",
       )
       .join("\n") +
     "\nConserver ces attributions avec les images et vidéos partagées. Pour les médias CC BY-SA, respecter également le partage à l’identique des adaptations.\n"

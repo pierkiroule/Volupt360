@@ -85,10 +85,10 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
   await mockCommons(page, { count: 2 });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Sculpter les chants du monde" }),
+    page.getByRole("heading", { name: "Sculpter les matières du monde" }),
   ).toBeAttached();
   await expect(page.locator(".artistic-lead")).toContainText(
-    "patrimoine sonore vivant",
+    "textures de la nature",
   );
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   const canvas = page.locator("#stage canvas");

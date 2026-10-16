@@ -313,11 +313,11 @@ test("the welcome presents the artistic experimentation and remains usable on mo
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Sculpter les chants du monde",
+      name: "Sculpter les matières du monde",
     }),
   ).toBeVisible();
   const introduction = page.getByRole("article");
-  await expect(introduction).toContainText("patrimoine sonore vivant");
+  await expect(introduction).toContainText("textures de la nature");
   await expect(introduction).toContainText("recherche artistique");
   await expect(introduction).toContainText("hypnose contemporaine");
   await expect(introduction).toContainText("transnumérisme");

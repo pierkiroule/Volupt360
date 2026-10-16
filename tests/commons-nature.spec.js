@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mockCommons, naturePng } from "./helpers/birdFixtures.js";
 
-test("photo palette and contours transform the actual material even with an unchanged bird recording", async ({
+test("photo palette and contours transform the actual material independently of audio", async ({
   page,
 }) => {
   await page.goto("/");
@@ -67,7 +67,7 @@ test("photo palette and contours transform the actual material even with an unch
   expect(result.different).toBe(true);
 });
 
-test("photo CORS fallback decodes an untainted blob and both media credits are downloadable", async ({
+test("photo CORS fallback decodes an untainted blob and photo credits are downloadable", async ({
   page,
 }) => {
   await mockCommons(page);
@@ -85,17 +85,17 @@ test("photo CORS fallback decodes an untainted blob and both media credits are d
   expect(relays).toBeGreaterThan(0);
   await page.locator(".bird-credits summary").click();
   await expect(page.locator(".bird-credits")).toContainText("Photo");
-  await expect(page.locator(".bird-credits")).toContainText("Chant");
+  await expect(page.locator(".bird-credits")).not.toContainText("Chant");
   await expect(page.locator(".bird-credits")).toContainText("CC BY 4.0");
   await expect(
     page.locator(
       ".bird-credits a[href^='https://commons.wikimedia.org/wiki/']",
     ),
-  ).toHaveCount(2);
+  ).toHaveCount(1);
   const download = page.waitForEvent("download");
   await page
     .getByRole("button", {
-      name: "Télécharger les crédits des matières et chants",
+      name: "Télécharger les crédits des matières",
     })
     .click();
   expect((await download).suggestedFilename()).toBe(

@@ -1,6 +1,6 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Chaque ajout tire une photographie de nature et un chant réel sur Wikimedia Commons. Les couleurs, textures et contours de la photo composent une matière abstraite, animée par le chant pendant le geste. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo et joue son chant. Relâcher arrête le dépôt et atténue le son. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [les licences, le cache et le relais CORS](docs/commons-nature-materials.md).
+Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Chaque ajout tire uniquement une photographie de nature sur Wikimedia Commons. Les couleurs, textures et contours de la photo composent une matière abstraite, animée par l’ambiance musicale pendant le geste. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo. Relâcher arrête le dépôt et conserve l’ambiance musicale. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [les licences, le cache et le relais CORS](docs/commons-nature-materials.md).
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 
@@ -120,7 +120,7 @@ Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des hor
 
 ## Photographies et chants Wikimedia Commons
 
-« Nouvelle matière » associe une photographie de mousse, plume, écorce, eau, lichen, fleur ou feuillage à un vrai chant d’oiseau. Les deux fichiers proviennent de Wikimedia Commons. Maintenir pour sculpter déclenche le chant ; relâcher l’atténue. Le signal audio réel anime les matières. Licences CC0, domaine public explicite, CC BY et CC BY-SA 3.0/4.0, conditions de partage affichées et crédits téléchargeables, cache local et relais CORS Vercel. Aucun chant synthétique en cas d’échec. Voir [le fonctionnement, les licences et les limites de validation réseau](docs/commons-nature-materials.md).
+« Nouvelle matière » analyse une photographie de mousse, plume, écorce, eau, lichen, fleur ou feuillage sur Wikimedia Commons. Aucune recherche ni lecture de chant d’oiseau n’est nécessaire. Palette, contours et texture génèrent la matière ; l’ambiance musicale existante continue d’animer le visuel. Les crédits et conditions de licence restent accessibles. Voir [le fonctionnement et les limites](docs/commons-nature-materials.md).
 
 Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis une nouvelle photographie et un chant par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.
 

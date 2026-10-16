@@ -16,7 +16,10 @@ export default function GrowingBrushMenu({
     });
   }, [selected, brushes.length]);
   return (
-    <section className="growing-brush-menu" aria-label="Mes brosses d’oiseaux">
+    <section
+      className="growing-brush-menu"
+      aria-label="Mes matières naturelles"
+    >
       {error && (
         <p role="status" className="growing-brush-error">
           {error}
