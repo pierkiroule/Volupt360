@@ -1,46 +1,25 @@
-# Matières de nature — Wikimedia Commons
+# Matières naturelles Wikimedia Commons
 
-Le fournisseur unique des photos et des chants est l’API publique `https://commons.wikimedia.org/w/api.php`, sans clé. Le lecteur Web Audio, les fondus, le cache borné, l’audioréactivité du vol et des brosses, l’ambiance MP3 et le skydome sont conservés.
+## Photographies uniquement
 
-## Rencontre aléatoire
+La collection démarre avec une matière. « Nouvelle matière » tire une photographie parmi mousse, plume, écorce, eau, lichen, fleur et feuillage. Aucune recherche, aucun téléchargement et aucun décodage de chant d’oiseau ne sont nécessaires. Une bibliothèque audio indisponible ne bloque donc plus les textures.
 
-La collection démarre avec une matière. « Nouvelle matière » tire un nouveau fichier de chant d’oiseau et une nouvelle photographie parmi mousse, plume, écorce, eau, lichen, fleur et feuillage. Les identifiants déjà présents sont exclus. Les thèmes sont mélangés avec `crypto.getRandomValues`, puis un résultat autorisé est tiré dans une fenêtre de recherche bornée : au plus trois thèmes, trois pages et vingt fichiers par page. Ce n’est pas une sélection uniforme de tout Commons.
+L’image est décodée hors boucle de rendu, analysée à 64 × 64 pixels : palette, luminance, contraste et contours. Le profil reproductible dérivé de l’identifiant de la photographie choisit une famille de brosse existante. Le moteur aquarelle utilise les champs analysés pour composer sa texture. Il ne remplace pas les moteurs de peinture ni le mouvement de l’oizo.
 
-La recherche MediaWiki utilise `generator=search`, l’espace Fichier (6) et `imageinfo` avec URL, MIME, taille et métadonnées de licence. Les photos proviennent de recherches bitmap de nature ; les formats JPEG, PNG et WebP sont retenus. Les descriptions explicitement marquées comme images générées par IA ou diagrammes sont écartées. Le contenu et l’identification de l’oiseau reposent sur les métadonnées Commons : aucune reconnaissance sémantique ni garantie scientifique n’est ajoutée.
+La création essaie au plus trois photographies, exclut les candidates déjà essayées et conserve les matières précédentes en cas d’échec. La recherche reste bornée à trois thèmes, trois pages et vingt fichiers par page.
 
-Les chants utilisent les recherches audio « bird song », « bird call » et « birdsong ». Ce changement de fournisseur remplace la recherche et les URLs des enregistrements ; il ne réécrit pas leur moteur de lecture et ne produit aucun chant synthétique de remplacement.
+Le maintien du canevas fait sculpter l’oizo, jamais le doigt. L’ambiance musicale existante reste audible et alimente l’audioréactivité ; sculpter ne la réduit plus pour laisser place à un chant.
 
-## Transduction photographique
+## Compatibilité et ressources
 
-`commonsNature.js` décode la vignette Commons demandée à 384 pixels maximum, puis analyse une grille de 64 × 64 : palette de six couleurs dominantes, luminance, contraste, saturation et différences locales pour les contours. Le bitmap est fermé après lecture. Les originaux dépassant 16 mégapixels sans vignette ne sont pas retenus ; une seconde vérification est faite après décodage.
+`createBirdSongs` conserve temporairement son nom et son interface pour éviter de modifier les nombreux consommateurs de la collection. Son implémentation est désormais un adaptateur de matières photographiques : `prepare`, `warm`, `start` et `stop` n’effectuent aucune opération audio. Les entrées de collection contiennent uniquement la photographie et son profil. La destruction annule les requêtes et libère les références aux profils ; les textures GPU restent gérées par le moteur existant.
 
-La matière abstraite combine cette analyse avec le profil acoustique du chant et une graine dérivée des deux fichiers. La photo choisit une famille parmi les 18 primitives existantes, la palette, l’épaisseur et l’opacité. Son champ de luminance et de contours est déformé organiquement puis recomposé en pigment : ce n’est pas un rectangle photographique plaqué sur la sculpture. L’enveloppe sonore influence encore la texture initiale. Pendant le geste, l’analyse du vrai chant anime le mouvement, les vibrations et les particules par les chemins existants.
+Le cache média limité et le relais CORS existants sont réutilisés. Les téléchargements restent limités et les URL contrôlées par le serveur. Les erreurs réseau et de décodage sont présentées avec une possibilité de réessayer.
 
-La texture RGBA de 256 × 256 est créée hors boucle de rendu. Les champs de photo conservés représentent environ 8 Kio par matière ; le cache de sons décodés reste limité à deux extraits de 45 secondes. La collection reste limitée à 18 matières, conservées pendant la session. Aucun upload de photo personnelle ni nouvelle bibliothèque.
+## Licences
 
-## Licences et crédits
+CC0, domaine public explicitement identifié, CC BY et CC BY-SA 3.0/4.0 sont acceptés ; NC, ND et licences inconnues sont exclus. Les versions originales sont préservées. Les crédits téléchargeables contiennent les photographies transformées, leurs auteurs, sources, licences et les modifications. Les adaptations CC BY-SA sont proposées sous CC BY-SA 4.0 ; les conditions sont affichées dans les crédits et le cadrage des exports. Joindre les crédits aux images et vidéos partagées : ils ne sont pas automatiquement incrustés dans les fichiers.
 
-Seules CC0 1.0 et CC BY sont retenues. La version exacte et le lien de licence sont lus dans `extmetadata.LicenseUrl` : CC BY 1.0, 2.0, 2.5, 3.0 ou 4.0 ne sont pas confondues. Les licences absentes, NC, ND et SA sont exclues dans cette première version afin de garder les exports réutilisables sans nouvelle condition de partage à l’identique.
+## Vérification
 
-Les auteurs, crédits fournis, pages des deux fichiers et licences sont affichés dans le panneau repliable. Le texte exportable rassemble les photographies transformées et les chants effectivement lus, en indiquant les transformations, extraits, boucles et fondus. Ces crédits doivent accompagner les images et vidéos partagées sous CC BY. Ils ne sont pas incrustés automatiquement dans les pixels ni dans le conteneur vidéo.
-
-## Réseau, CORS et ressources
-
-Les appels directs à l’API comportent `origin=*`. Le téléchargement passe par `fetch` CORS puis par un Blob décodé localement : aucun canvas contaminé par une image interorigine. Un refus CORS déclenche un repli sur les fonctions Vercel de même origine :
-
-- `/api/commons-search` accepte uniquement un type, un thème autorisé et un décalage 0, 20 ou 40.
-- `/api/commons-media` accepte uniquement un identifiant de fichier et un type ; elle relit la licence et l’URL dans Commons avant de télécharger.
-
-Le relais n’accepte jamais d’URL arbitraire. Seul `upload.wikimedia.org/wikipedia/commons/` est autorisé, avec contrôle des redirections, du MIME et du poids du flux. Les fonctions s’exécutent aussi en développement via Vite et utilisent un User-Agent descriptif côté serveur.
-
-Les fichiers sont limités à 8 Mio. Le cache de médias est borné à 64 Mio et 24 entrées, partagé entre photos et sons ; les anciennes entrées expirent par éviction. Les fichiers non décodables sont retirés du cache. Les anciennes métadonnées et l’ancien cache de sons sont abandonnés lors de la migration. Les délais sont bornés, les requêtes abandonnées au démontage, et les quotas ou modes privés n’empêchent pas une lecture en mémoire.
-
-Un ajout est confirmé seulement après décodage du chant et analyse de la photo. Jusqu’à trois couples peuvent être essayés ; les fichiers refusés sont écartés de la tentative suivante. Un échec laisse intactes les matières précédentes et le bouton permet de réessayer. Aucun fournisseur de secours ni appel à l’ancienne API ne subsiste dans le code actif.
-
-## Vérification et limites
-
-La connexion réelle à Commons a été tentée dans cet environnement, puis retentée avec autorisation : le tunnel réseau a répondu HTTP 403. **Aucun téléchargement réel de photo ou de chant Commons n’est donc déclaré validé ici.** Les tests utilisent des réponses au format MediaWiki et des fixtures PNG/WAV non livrées ; la lecture du MP3 du dépôt reste testée réellement.
-
-Les tests couvrent les licences et versions, les attributions sans HTML, la combinaison photo/chant, le repli CORS, les textures calculées à partir de couleurs et contours différents, les erreurs de décodage, le menu, les fondus et les protections du relais. L’accès aux vrais médias sur le déploiement, le téléphone physique, le gyroscope matériel et l’encodage vidéo complet restent à vérifier.
-
-Validation exécutée : 22 tests navigateur ciblés et 5 tests Node du relais réussis, compilation Vite et contrôle Prettier réussis, `git diff --check` sans erreur. La recherche de références à l’ancien fournisseur dans le code actif et les tests ne retourne aucun appel résiduel.
+Les tests navigateur utilisent des photographies PNG et des réponses Commons simulées : création sans aucune recherche audio, ajout de matières, rendu pendant le maintien, crédits, conditions de partage, repli CORS et conservation de la collection lors d’une erreur. La disponibilité des vrais médias reste à vérifier sur le déploiement ; le réseau de l’environnement de développement bloque l’accès direct à Commons. Le téléphone physique et le gyroscope matériel ne sont pas validés par ces tests.

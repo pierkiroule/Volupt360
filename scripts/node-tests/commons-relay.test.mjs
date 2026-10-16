@@ -127,7 +127,7 @@ test("exact CC BY license version is preserved, incompatible rights are excluded
   );
   assert.equal(
     licenseInfo({
-      LicenseUrl: { value: "https://creativecommons.org/licenses/by-sa/4.0/" },
+      LicenseUrl: { value: "https://creativecommons.org/licenses/by-nc/4.0/" },
     }),
     null,
   );
@@ -148,4 +148,36 @@ test("streaming size limits work even without Content-Length", async () => {
     },
   });
   await assert.rejects(boundedBytes(new Response(stream), 6), /volumineux/);
+});
+
+test("Commons Ogg AUDIO and free metadata variants are accepted without admitting videos or unknown licenses", () => {
+  const page = commonsPage(3, "audio");
+  const info = page.imageinfo[0];
+  info.mime = "application/ogg";
+  info.mediatype = "AUDIO";
+  info.extmetadata.LicenseUrl.value =
+    "//creativecommons.org/licenses/by-sa/3.0/";
+  const items = recordings([page]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].shareAlike, true);
+  assert.equal(items[0].licenseName, "CC BY-SA 3.0");
+  info.mediatype = "VIDEO";
+  assert.equal(recordings([page]).length, 0);
+  assert.equal(
+    licenseInfo({
+      LicenseShortName: { value: "Public domain" },
+      Copyrighted: { value: "False" },
+    }).license,
+    "public-domain",
+  );
+  assert.equal(
+    licenseInfo({ LicenseShortName: { value: "Public domain" } }),
+    null,
+  );
+  assert.equal(
+    licenseInfo({
+      LicenseUrl: { value: "https://creativecommons.org/licenses/by-nd/4.0/" },
+    }),
+    null,
+  );
 });
