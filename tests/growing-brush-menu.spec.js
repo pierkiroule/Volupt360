@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { importPhoto } from "./helpers/localPhotos.js";
+import { createBrush } from "./helpers/proceduralBrushes.js";
 
 test("one initial brush grows into an independent collection with no planets", async ({
   page,
@@ -13,13 +13,13 @@ test("one initial brush grows into an independent collection with no planets", a
     buttons = menu.locator(".generated-brush"),
     canvas = page.locator("#stage canvas");
   await expect(buttons).toHaveCount(1);
-  await importPhoto(page, 1);
+  await createBrush(page, 1);
   await expect(buttons.first()).toBeEnabled();
   await expect(canvas).toHaveAttribute("data-celestial-brushes", "0");
   await expect(canvas).toHaveAttribute("data-generated-brush-count", "1");
   const first = await buttons.first().getAttribute("aria-label"),
     thumbnail = await buttons.first().locator("img").getAttribute("src");
-  await importPhoto(page, 2);
+  await createBrush(page, 2);
   await expect(buttons).toHaveCount(2);
   await expect(buttons.nth(1)).toHaveAttribute("aria-pressed", "true");
   expect(await buttons.nth(1).getAttribute("aria-label")).not.toBe(first);
@@ -32,7 +32,6 @@ test("one initial brush grows into an independent collection with no planets", a
   await page.mouse.move(180, 350);
   await page.mouse.down();
   await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
-  await expect(page.locator(".bird-credits summary")).not.toContainText("♫");
   await page.waitForTimeout(400);
   await page.mouse.up();
   await expect

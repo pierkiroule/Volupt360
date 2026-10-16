@@ -1,6 +1,6 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Importez ou prenez une photo pour créer la première brosse, puis ajoutez d’autres photos depuis le menu. Les couleurs, textures et contours de la photo composent une matière abstraite, animée par l’ambiance musicale pendant le geste. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo. Relâcher arrête le dépôt et conserve l’ambiance musicale. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [la création locale des matières](docs/local-photo-materials.md).
+Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Touchez **+** pour créer une brosse procédurale : forme, couleur, effet de matière, épaisseur et transparence. L’ambiance musicale anime les matières. La palette est sauvegardée automatiquement sur cet appareil et restaurée au retour ; le bouton « Sauvegarder la palette » confirme son enregistrement. Maintenir le canevas fait tracer l’oizo, glisser guide son vol : le doigt ne dessine jamais. Voir [l’atelier et la sauvegarde](docs/procedural-brush-palette.md).
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 
@@ -116,11 +116,9 @@ Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-i
 
 Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
 
-**Matières photographiques locales** : une collection de 1 à 18 brosses générées à partir de photos importées ou prises avec le téléphone. Voir [le menu et la génération](docs/growing-bird-brushes.md).
+## Palette procédurale
 
-## Importer ou prendre une photo
-
-Le menu propose **Importer une photo** et **Prendre une photo**. Les couleurs, contours et textures composent une brosse organique. Aucun appel à une API d’images, aucun upload ni chant d’oiseau ne sont nécessaires. L’ambiance musicale continue d’animer les visuels. Les brosses restent disponibles entre les univers pendant la session, jusqu’à 18 matières. Voir [le fonctionnement et les limites](docs/local-photo-materials.md).
+Une collection de 1 à 18 brosses personnalisées, sans import photo. L’atelier propose les 18 formes existantes, une couleur, quatre effets (lavis, granulation, nervures, marbrures), une épaisseur et une transparence. « Surprise » propose une combinaison. Les paramètres et graines sont conservés dans le stockage local ; les textures sont reconstruites à l’identique. Voir [le fonctionnement et les limites](docs/procedural-brush-palette.md).
 
 ### Vol articulé et ciel crépusculaire
 

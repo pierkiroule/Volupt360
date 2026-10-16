@@ -7,7 +7,7 @@ export default function Header({ sonoizo = false }) {
       </h1>
       <p className={sonoizo ? "sonoizo-tagline" : undefined}>
         {sonoizo
-          ? "Vos photos prennent forme"
+          ? "Vos matières prennent leur envol"
           : "Paysages d’aquarelle · habiter le son"}
       </p>
     </header>
