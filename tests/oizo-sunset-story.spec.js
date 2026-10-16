@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mockCommons } from "./helpers/birdFixtures.js";
+import { importPhoto } from "./helpers/localPhotos.js";
 
 test("actual repository MP3 plays in background, respects manual pause and resumes after contemplation pause", async ({
   page,
@@ -82,7 +82,6 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await mockCommons(page, { count: 2 });
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: "Sculpter les matières du monde" }),
@@ -96,6 +95,7 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
   await expect(
     page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
   ).toBeVisible();
+  await importPhoto(page, 1);
   await expect(page.locator(".generated-brush")).toBeEnabled();
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })

@@ -1,6 +1,3 @@
-import { drawMedia } from "../audio/birds/catalog.js";
-import { mediaBytes, forgetMedia } from "../audio/birds/recordingCache.js";
-
 export function analyzeNaturePixels(pixels, width, height) {
   const histogram = Array.from({ length: 64 }, () => ({
       r: 0,
@@ -64,30 +61,41 @@ export function analyzeNaturePixels(pixels, width, height) {
     saturation: saturation / light.length,
   };
 }
-export async function drawNature(
-  excluded,
-  { signal, request = fetch, random, onCandidate = () => {} } = {},
-) {
-  const photo = await drawMedia("image", excluded, { signal, request, random });
-  onCandidate(photo.pageid);
-  const bytes = await mediaBytes(photo, { signal, request });
+/** Decode only a bounded analysis image. The original file is never uploaded or retained. */
+export async function readNaturePhoto(file) {
+  if (!file || !file.type.startsWith("image/"))
+    throw new Error("Choisissez une photographie.");
+  if (file.size > 20 * 1024 * 1024)
+    throw new Error("Photo trop lourde (20 Mo maximum).");
   let bitmap;
   try {
-    bitmap = await createImageBitmap(new Blob([bytes], { type: photo.mime }));
-  } catch (cause) {
-    await forgetMedia(photo);
-    throw cause;
+    bitmap = await createImageBitmap(file, {
+      resizeWidth: 512,
+      resizeHeight: 512,
+      resizeQuality: "high",
+      imageOrientation: "from-image",
+    });
+  } catch {
+    throw new Error("Photo illisible. Essayez une image JPEG, PNG ou WebP.");
   }
   try {
-    if (bitmap.width * bitmap.height > 16000000)
-      throw new Error("Photo trop grande.");
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) throw new Error("L’analyse de la photo n’est pas disponible.");
     ctx.drawImage(bitmap, 0, 0, 64, 64);
+    const pixels = ctx.getImageData(0, 0, 64, 64).data;
+    let seed = 2166136261;
+    for (let i = 0; i < pixels.length; i++)
+      seed = Math.imul(seed ^ pixels[i], 16777619) >>> 0;
     return {
-      photo,
-      visual: analyzeNaturePixels(ctx.getImageData(0, 0, 64, 64).data, 64, 64),
+      photo: {
+        pageid: seed,
+        commonName: file.name || "Ma photo",
+        kind: "image",
+        local: true,
+      },
+      visual: analyzeNaturePixels(pixels, 64, 64),
     };
   } finally {
     bitmap.close();

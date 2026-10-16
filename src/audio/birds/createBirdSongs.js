@@ -1,11 +1,10 @@
 import {
-  drawNature,
+  readNaturePhoto,
   combineNatureProfile,
-} from "../../materials/commonsNature.js";
+} from "../../materials/naturePhoto.js";
 
 // Compatibility adapter for the existing collection API. Materials now use images only.
-export function createBirdSongs({ ids, onChange = () => {}, request = fetch }) {
-  const abort = new AbortController();
+export function createBirdSongs({ ids, onChange = () => {} }) {
   const profiles = new Map();
   let catalog = {},
     status = "idle",
@@ -15,7 +14,7 @@ export function createBirdSongs({ ids, onChange = () => {}, request = fetch }) {
   const emit = () => {
     if (!disposed) onChange();
   };
-  async function generate(id) {
+  async function generate(id, file) {
     if (disposed || !ids.includes(id)) return null;
     if (profiles.has(id))
       return { recording: catalog[id], profile: profiles.get(id) };
@@ -24,31 +23,18 @@ export function createBirdSongs({ ids, onChange = () => {}, request = fetch }) {
     error = "";
     emit();
     addTask = (async () => {
-      const excluded = [...profiles.values()].map(
-        (profile) => profile.photo.pageid,
-      );
       try {
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            const nature = await drawNature(excluded, {
-              onCandidate: (pageid) => excluded.push(pageid),
-              signal: abort.signal,
-              request,
-            });
-            if (disposed) return null;
-            const profile = combineNatureProfile(
-              { seed: nature.photo.pageid >>> 0 },
-              nature,
-            );
-            catalog = { ...catalog, [id]: { photo: nature.photo } };
-            profiles.set(id, profile);
-            status = "ready";
-            emit();
-            return { recording: catalog[id], profile };
-          } catch (cause) {
-            if (attempt === 2 || disposed) throw cause;
-          }
-        }
+        const nature = await readNaturePhoto(file);
+        if (disposed) return null;
+        const profile = combineNatureProfile(
+          { seed: nature.photo.pageid >>> 0 },
+          nature,
+        );
+        catalog = { ...catalog, [id]: { photo: nature.photo } };
+        profiles.set(id, profile);
+        status = "ready";
+        emit();
+        return { recording: catalog[id], profile };
       } catch (cause) {
         if (!disposed) {
           status = "error";
@@ -81,7 +67,6 @@ export function createBirdSongs({ ids, onChange = () => {}, request = fetch }) {
     }),
     dispose() {
       disposed = true;
-      abort.abort();
       profiles.clear();
       catalog = {};
     },

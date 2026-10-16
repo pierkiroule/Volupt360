@@ -1,9 +1,9 @@
 # Collection progressive de matières
 
-Une seule matière apparaît au début. « Nouvelle matière » ajoute une rencontre entre une photographie de nature et un vrai chant, tous deux tirés sur Wikimedia Commons. La matière est confirmée après téléchargement, décodage et analyse des deux médias. Un échec conserve la collection et permet une nouvelle tentative.
+Le menu commence par un emplacement vide. Importer ou prendre une photo crée la première brosse ; chaque ajout génère une nouvelle matière à partir de sa palette, de ses textures et de ses contours, dans une limite de 18.
 
-La collection contient au maximum 18 matières, demeure disponible entre les univers et est remise à zéro au rechargement. Les photos et fichiers audio déjà présents sont exclus des prochains tirages. Un toucher sélectionne une matière ; maintenir le canevas fait sculpter l’oizo, sans tracer avec le doigt. Le chant entre et sort en fondu ; son signal réel anime le vol et les matériaux. Le menu se masque pour le cadrage photo.
+La collection reste disponible entre les univers et disparaît au rechargement. Un toucher sélectionne une matière ; maintenir le canevas fait sculpter l’oizo, sans dessiner avec le doigt. L’ambiance musicale anime les visuels. Le menu se masque pour le cadrage photo.
 
-Les 18 moteurs artistiques restent des primitives paramétrables : rubans, dépôts, réseaux et particules. La photographie fournit la palette, le contraste, les contours et le champ de texture ; le chant apporte son profil acoustique et l’animation en temps réel. Les textures sont fabriquées hors rendu et libérées avec le moteur. Les anciennes planètes ne sont pas chargées par l’application.
+Les 18 moteurs artistiques restent des primitives paramétrables : rubans, dépôts, réseaux et particules. Les textures sont fabriquées hors rendu et libérées avec le moteur. Les anciennes planètes et les API de médias ne sont plus chargées par l’application.
 
-Voir [Wikimedia Commons, la transduction, les licences, le cache et les limites](commons-nature-materials.md).
+Voir [le traitement local des photos et les limites](local-photo-materials.md).

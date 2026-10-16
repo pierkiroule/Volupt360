@@ -1,6 +1,6 @@
 # echohypnosis — L’Oizo échohypnotique
 
-Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Chaque ajout tire uniquement une photographie de nature sur Wikimedia Commons. Les couleurs, textures et contours de la photo composent une matière abstraite, animée par l’ambiance musicale pendant le geste. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo. Relâcher arrête le dépôt et conserve l’ambiance musicale. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [les licences, le cache et le relais CORS](docs/commons-nature-materials.md).
+Choisissez **ÉTHER**, **ABYSSE** ou **MÉMOIRE**. Le menu en bas commence avec une seule brosse. Importez ou prenez une photo pour créer la première brosse, puis ajoutez d’autres photos depuis le menu. Les couleurs, textures et contours de la photo composent une matière abstraite, animée par l’ambiance musicale pendant le geste. La collection conserve ses brosses entre les univers ; les planètes sont retirées. Un maintien de 450 ms sur le canevas fait tracer l’oizo. Relâcher arrête le dépôt et conserve l’ambiance musicale. Glisser guide le vol avec inertie ; le doigt ne dessine jamais. Les brosses, la caméra 3D, la mémoire géométrique des passages et le cadrage photo réutilisent les moteurs existants. Voir [la collection progressive](docs/growing-bird-brushes.md) et [la création locale des matières](docs/local-photo-materials.md).
 
 Voir [l’architecture et les vérifications](docs/echohypnosis.md).
 
@@ -116,15 +116,11 @@ Voir [le fonctionnement, les tests et les limites de l’instrument](docs/echo-i
 
 Les trois compositions **ÉTHER, ABYSSE et MÉMOIRE** suivent maintenant des horloges indépendantes et se mélangent par glissement entre les sphères. Voir [les règles, les contrôles ÉCHO/HYPNOS et les limites](docs/ambient-universes.md).
 
-**Matières issues des chants** : une collection de 1 à 18 brosses générées remplace les planètes et les textures fixes. Aucun import photographique. Voir [le menu et la génération acoustique](docs/growing-bird-brushes.md).
+**Matières photographiques locales** : une collection de 1 à 18 brosses générées à partir de photos importées ou prises avec le téléphone. Voir [le menu et la génération](docs/growing-bird-brushes.md).
 
-## Photographies et chants Wikimedia Commons
+## Importer ou prendre une photo
 
-« Nouvelle matière » analyse une photographie de mousse, plume, écorce, eau, lichen, fleur ou feuillage sur Wikimedia Commons. Aucune recherche ni lecture de chant d’oiseau n’est nécessaire. Palette, contours et texture génèrent la matière ; l’ambiance musicale existante continue d’animer le visuel. Les crédits et conditions de licence restent accessibles. Voir [le fonctionnement et les limites](docs/commons-nature-materials.md).
-
-Le parcours actif utilise désormais une [collection progressive de brosses](docs/growing-bird-brushes.md) : une matière au départ, puis une nouvelle photographie et un chant par ajout, dans une limite de 18. Les anciens documents de planètes et de catalogue fixe sont conservés comme historique.
-
-Le voyage est présenté comme la sculpture des traces du patrimoine sonore des oiseaux du monde. L’ambiance `ambiance01.mp3` accompagne de nouveau le vol, sous les chants qui entrent et sortent en fondu. Un [skydome de coucher de soleil aquarellé](docs/oizo-sunset-story.md) offre un horizon discret en FPV et en 360°.
+Le menu propose **Importer une photo** et **Prendre une photo**. Les couleurs, contours et textures composent une brosse organique. Aucun appel à une API d’images, aucun upload ni chant d’oiseau ne sont nécessaires. L’ambiance musicale continue d’animer les visuels. Les brosses restent disponibles entre les univers pendant la session, jusqu’à 18 matières. Voir [le fonctionnement et les limites](docs/local-photo-materials.md).
 
 ### Vol articulé et ciel crépusculaire
 
