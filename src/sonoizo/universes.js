@@ -13,6 +13,5 @@ export const UNIVERSES = [
       "plumes",
       "lucioles",
     ],
-    ambience: "ambiances/ambiance01.mp3",
   },
 ];

@@ -1,37 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { createBrush } from "./helpers/proceduralBrushes.js";
 
-test("actual repository MP3 plays in background, respects manual pause and resumes after contemplation pause", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
-    const bank = createTwigBank({ ids: ["voiles"], birdSongs: false });
-    await bank.preparePlayback();
-    const loaded = await bank.loadUniverseAmbience("/ambiances/ambiance01.mp3");
-    await bank.toggleAmbience();
-    await new Promise((resolve) => setTimeout(resolve, 2500));
-    const playing = bank.getSnapshot().ambience.playing,
-      rms = bank.getVisualFeatures().rms;
-    await bank.toggleAmbience();
-    await bank.preparePlayback();
-    const manual = bank.getSnapshot().ambience;
-    await bank.toggleAmbience();
-    bank.pauseAmbience();
-    await bank.preparePlayback();
-    const resumed = bank.getSnapshot().ambience.playing;
-    bank.dispose();
-    return { loaded, playing, rms, manual, resumed };
-  });
-  expect(result.loaded).toBe(true);
-  expect(result.playing).toBe(true);
-  expect(result.rms).toBeGreaterThan(0.00001);
-  expect(result.manual.playing).toBe(false);
-  expect(result.manual.userPaused).toBe(true);
-  expect(result.resumed).toBe(true);
-});
-
 test("sunset sphere provides a seamless directional horizon and releases resources", async ({
   page,
 }) => {
@@ -73,7 +42,7 @@ test("sunset sphere provides a seamless directional horizon and releases resourc
   expect(result.disposed).toBe(2);
 });
 
-test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", async ({
+test("narrative, sunset, brush-generated music and brush menu coexist in FPV and 360", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -94,7 +63,7 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-skydome", "watercolor-sunset");
   await expect(
-    page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
+    page.getByRole("button", { name: "Mettre la composition en pause" }),
   ).toBeVisible();
   await createBrush(page, 1);
   await expect(page.locator(".generated-brush")).toBeEnabled();
@@ -108,7 +77,7 @@ test("narrative, sunset, ambient music and brush menu coexist in FPV and 360", a
   await expect(page.getByRole("button", { name: /PNG HD/ })).toBeVisible();
   await page.getByRole("button", { name: "FPV drone", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
+    page.getByRole("button", { name: "Mettre la composition en pause" }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });

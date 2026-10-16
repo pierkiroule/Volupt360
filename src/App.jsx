@@ -6,7 +6,6 @@ import {
 } from "./materials/proceduralBrush.js";
 import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
-import { ENABLE_ECHO_INSTRUMENT } from "./sonoizo/instrumentConfig.js";
 import { UNIVERSES } from "./sonoizo/universes.js";
 import { BRUSHES } from "./engine/brushes.js";
 import { useEffect, useRef, useState } from "react";
@@ -53,11 +52,7 @@ export default function App() {
   const brushBusy = useRef(false),
     brushTicket = useRef(0);
   const [universe, setUniverse] = useState(null);
-  const [atmosphereMix, setAtmosphereMix] = useState([1, 0, 0]);
-  const [atmosphere, setAtmosphere] = useState({ echo: 0.5, hypnos: 0.3 });
   const atmosphereRef = useRef({ echo: 0.5, hypnos: 0.3 });
-  const atmosphereMixRef = useRef([1, 0, 0]);
-  const atmosphereStart = useRef(null);
   const universeRequest = useRef(0);
   const [universeError, setUniverseError] = useState("");
   const [atelier, setAtelier] = useState(() =>
@@ -123,17 +118,15 @@ export default function App() {
       });
       if (collection.some((item) => item.ready)) {
         setCollection(
-          collection.map((item) =>
-            item.ready
-              ? {
-                  ...item,
-                  thumbnail: engine.current.setGeneratedBrush(
-                    item.id,
-                    createProceduralBrush(item.config),
-                  ),
-                }
-              : item,
-          ),
+          collection.map((item) => {
+            if (!item.ready) return item;
+            const profile = createProceduralBrush(item.config);
+            twigs.bank.current?.setBrushSound(item.id, profile);
+            return {
+              ...item,
+              thumbnail: engine.current.setGeneratedBrush(item.id, profile),
+            };
+          }),
         );
       }
       if (ENABLE_SONOIZO && atelier !== "mp3") {
@@ -162,7 +155,6 @@ export default function App() {
     setUniverseError("");
     const bank = twigs.bank.current;
     if (!bank) return;
-    void bank.preparePlayback();
     setUniverse(choice.id);
     engine.current?.reset();
     chooseBrush(ENABLE_BIRD_SONGS ? brush : choice.brushes[0]);
@@ -170,49 +162,19 @@ export default function App() {
     setDistance(0);
     engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
-    if (ENABLE_BIRD_SONGS) {
-      if (!bank.getSnapshot().ambience.loaded) {
-        const loaded = await bank.loadUniverseAmbience(
-          `${import.meta.env.BASE_URL}${choice.ambience}`,
-        );
-        if (ticket !== universeRequest.current) return;
-        if (!loaded) {
-          setUniverseError("L’ambiance musicale n’a pas pu être chargée.");
-          return;
-        }
-      }
-      if (
-        ticket === universeRequest.current &&
-        !bank.getSnapshot().ambience.playing &&
-        !bank.getSnapshot().ambience.userPaused
-      )
-        await bank.toggleAmbience();
-      return;
-    }
-    if (ENABLE_ECHO_INSTRUMENT) {
+    try {
       await bank.preparePlayback();
-      if (ticket === universeRequest.current) {
-        try {
-          if (atmosphereStart.current) await atmosphereStart.current;
-          if (!bank.getInstrumentStats()) await bank.startInstrument(choice.id);
-          bank.setInstrumentMix(atmosphereMixRef.current);
-          bank.setAtmosphere(atmosphereRef.current);
-        } catch (error) {
-          if (ticket === universeRequest.current)
-            setUniverseError(`Synthèse aquatique : ${error.message}`);
-        }
+      if (ticket !== universeRequest.current) return;
+      if (!bank.getInstrumentStats()) await bank.startInstrument(choice.id);
+      if (ticket !== universeRequest.current) {
+        bank.pauseAmbience();
+        return;
       }
-      return;
+      bank.setAtmosphere(atmosphereRef.current);
+    } catch (cause) {
+      if (ticket === universeRequest.current)
+        setUniverseError(`Composition indisponible : ${cause.message}`);
     }
-    const loaded = await bank.loadUniverseAmbience(
-      `${import.meta.env.BASE_URL}${choice.ambience}`,
-    );
-    if (ticket !== universeRequest.current) return;
-    if (loaded) await bank.toggleAmbience();
-    else
-      setUniverseError(
-        "L’ambiance de cet univers est indisponible : ambiance01.mp3 manque ou ne peut pas être lu.",
-      );
   }
   async function buildBrush(config) {
     if (brushBusy.current || !twigs.bank.current) return;
@@ -236,6 +198,7 @@ export default function App() {
         );
         return;
       }
+      twigs.bank.current.setBrushSound(id, result.profile);
       const thumbnail = engine.current.setGeneratedBrush(id, result.profile);
       const item = {
         id,
@@ -401,16 +364,16 @@ export default function App() {
     >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
-      {universe && mode !== "photo" && twigs.snapshot.ambience?.loaded && (
+      {universe && mode !== "photo" && twigs.snapshot.composition?.loaded && (
         <button
           className="ambience-toggle"
           aria-label={
-            twigs.snapshot.ambience.playing
-              ? "Mettre l’ambiance en pause"
-              : "Reprendre l’ambiance musicale"
+            twigs.snapshot.composition.playing
+              ? "Mettre la composition en pause"
+              : "Reprendre la composition"
           }
-          aria-pressed={twigs.snapshot.ambience.playing}
-          onClick={() => twigs.bank.current?.toggleAmbience()}
+          aria-pressed={twigs.snapshot.composition.playing}
+          onClick={() => twigs.bank.current?.toggleComposition()}
         >
           ♪
         </button>
@@ -451,6 +414,7 @@ export default function App() {
           onClick={() => {
             universeRequest.current++;
             twigs.bank.current?.stopAll();
+            twigs.bank.current?.pauseAmbience();
             engine.current?.setPadSource(null);
             setUniverse(null);
             setUniverseError("");
