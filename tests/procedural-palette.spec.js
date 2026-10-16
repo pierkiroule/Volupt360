@@ -74,6 +74,7 @@ test("workshop cancellation, surprise and unavailable storage leave the session 
     .getByRole("button", { name: "Créer une brosse", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
+  await expect(dialog.locator("img")).toHaveAttribute("src", /^data:image/);
   const before = await dialog.locator("img").getAttribute("src");
   await dialog.getByRole("button", { name: "Surprise", exact: true }).click();
   await expect(dialog.locator("img")).not.toHaveAttribute("src", before);

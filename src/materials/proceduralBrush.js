@@ -1,13 +1,24 @@
 import { Color } from "three";
 import { BRUSHES } from "../engine/brushes.js";
 export const PALETTE_KEY = "echohypnos-procedural-palette-v1";
+export const LIFE_STYLES = ["Suspendue", "Fluide", "Vibrante"];
 export const EFFECTS = ["Lavis", "Granulation", "Nervures", "Marbrures"];
 export function randomBrush() {
   const values = crypto.getRandomValues(new Uint32Array(3));
   return {
     name: "Matière libre",
     baseId: BRUSHES[values[0] % BRUSHES.length].id,
-    color: `#${(values[1] & 0xffffff).toString(16).padStart(6, "0")}`,
+    color: [
+      "#216f86",
+      "#aa435d",
+      "#286d58",
+      "#bb7138",
+      "#61578d",
+      "#3b8290",
+      "#9b4f39",
+      "#486e47",
+    ][values[1] % 8],
+    life: "Fluide",
     effect: EFFECTS[values[2] % EFFECTS.length],
     width: 1,
     opacity: 0.8,
@@ -27,6 +38,7 @@ export function normalizeBrush(value) {
       String(value.name || "Matière libre")
         .trim()
         .slice(0, 32) || "Matière libre",
+    life: LIFE_STYLES.includes(value.life) ? value.life : "Fluide",
     baseId: value.baseId,
     color: value.color,
     effect: value.effect,
@@ -54,12 +66,12 @@ export function createProceduralBrush(value) {
         0.5 * Math.sin(u * 16 + Math.sin(v * 11 + (config.seed % 17)) * 3);
       const pigment =
         config.effect === "Granulation"
-          ? grain
+          ? 0.25 + grain * 0.55 + wave * 0.2
           : config.effect === "Nervures"
             ? Math.pow(wave, 5)
             : config.effect === "Marbrures"
               ? wave * 0.8 + grain * 0.2
-              : 0.55 + 0.22 * Math.sin(u * 5 + v * 8) + grain * 0.12;
+              : 0.52 + 0.18 * Math.sin(u * 5 + v * 8 + wave * 2) + grain * 0.1;
       const i = (y * size + x) * 2;
       field[i] = Math.round(pigment * 255);
       field[i + 1] = Math.round(

@@ -1714,3 +1714,66 @@ label:focus-visible {
   padding: 0.5rem 0;
   font-size: 0.8rem;
 }
+
+.brush-life {
+  display: flex;
+  gap: 0.35rem;
+  border: 0;
+  padding: 0.35rem 0;
+  margin: 0.5rem 0;
+  min-width: 0;
+}
+.brush-life legend {
+  font-size: 0.8rem;
+  padding: 0.2rem 0;
+}
+.brush-life button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #b3c2b7;
+  border-radius: 0.6rem;
+  background: #f8f5ef;
+  color: #384e47;
+  font-size: 0.8rem;
+}
+.brush-life button[aria-pressed="true"] {
+  background: #385a55;
+  color: #faf7ed;
+}
+@media (pointer: coarse), (max-width: 600px) {
+  .brush-workshop {
+    width: min(94vw, 26rem);
+    max-height: 88dvh;
+    padding: 0.9rem;
+  }
+  .brush-workshop input:not([type="range"]),
+  .brush-workshop select {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .brush-workshop input[type="range"] {
+    min-height: 44px;
+  }
+  .brush-workshop label {
+    grid-template-columns: 5.3rem minmax(0, 1fr);
+    margin: 0.45rem 0;
+  }
+  .brush-preview {
+    height: 80px;
+  }
+  .workshop-actions button {
+    min-height: 44px;
+  }
+  .growing-brush-row {
+    gap: 0.3rem;
+  }
+  .growing-brush-list {
+    flex: 1 1 0;
+  }
+  .generated-brush {
+    flex-basis: 4.6rem;
+  }
+  .add-bird-brush {
+    flex-basis: 3rem;
+  }
+}

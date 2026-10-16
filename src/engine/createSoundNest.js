@@ -1,3 +1,4 @@
+import { createRenderBudget } from "./createRenderBudget.js";
 import { createSunsetSky } from "./createSunsetSky.js";
 import { createWatercolorTexture } from "./createWatercolorTexture.js";
 import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
@@ -25,8 +26,22 @@ import { createPainterFlight } from "./createPainterFlight.js";
  * and the drone films that movement instead of circling a fixed installation.
  */
 export function createSoundNest(container, { onHint, onError } = {}) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  const mobile =
+    matchMedia("(pointer: coarse)").matches ||
+    Math.min(innerWidth, innerHeight) < 600;
+  const renderer = new THREE.WebGLRenderer({
+    antialias: !mobile,
+    alpha: false,
+  });
+  const budget = createRenderBudget({
+    mobile,
+    dpr: devicePixelRatio || 1,
+    width: innerWidth,
+    height: innerHeight,
+  });
+  renderer.setPixelRatio(budget.ratio);
+  renderer.domElement.dataset.renderScale = budget.ratio.toFixed(3);
+  renderer.domElement.dataset.mobileQuality = String(mobile);
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor("#f4f0e8");
@@ -39,7 +54,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   const sky = createSunsetSky();
   scene.add(sky.mesh);
   renderer.domElement.dataset.skydome = "watercolor-sunset";
-  const effects = createViewEffects(renderer);
+  const effects = createViewEffects(renderer, { antialias: !mobile });
   renderer.domElement.dataset.viewEffects = JSON.stringify(DEFAULT_VIEW);
   const camera = new THREE.PerspectiveCamera(
     80,
@@ -84,6 +99,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     player = null,
     disposed = false,
     frameId;
+  let lifeTime = 0;
   let elapsed = 0,
     sampleClock = 0,
     paintedSamples = 0,
@@ -145,6 +161,18 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     activeStroke?.stroke.finish();
     activeStroke = null;
   }
+  function uniformsFor(mark) {
+    const stamp = mark.stroke.count ?? mark.object.children.length;
+    if (mark.uniformStamp !== stamp) {
+      mark.uniforms.length = 0;
+      mark.object.traverse((object) => {
+        if (object.material?.uniforms)
+          mark.uniforms.push(object.material.uniforms);
+      });
+      mark.uniformStamp = stamp;
+    }
+    return mark.uniforms;
+  }
   function beginStroke(id, pose) {
     closeStroke();
     const color =
@@ -178,6 +206,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           ? 0.85
           : 0.15,
       opening: region.opening,
+      uniforms: [],
+      uniformStamp: -1,
+      life: generated?.life || "Fluide",
       bounds: new THREE.Box3(),
     };
     marks.push(activeStroke);
@@ -193,7 +224,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         );
       activeStroke.bounds.expandByPoint(lastSample.position);
     }
-    while (marks.length > 80) {
+    while (marks.length > budget.maxMarks) {
       const index = marks.findIndex((mark) => !isActive(mark));
       if (index < 0) break;
       destroyStroke(marks.splice(index, 1)[0]);
@@ -450,12 +481,21 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   function frame(now) {
     if (disposed) return;
     frameId = requestAnimationFrame(frame);
-    const dt = Math.min(0.1, (now - lastTime) / 1000);
+    const milliseconds = now - lastTime;
+    const dt = Math.max(0, Math.min(0.1, milliseconds / 1000));
     lastTime = now;
+    if (document.hidden) return;
+    if (!photo && budget.update(milliseconds, dt)) {
+      renderer.setPixelRatio(budget.ratio);
+      renderer.setSize(innerWidth, innerHeight);
+      effects.resize();
+      renderer.domElement.dataset.renderScale = budget.ratio.toFixed(3);
+    }
     const playback = player?.getState();
     const f = player?.getFeatures();
     const voices = photo ? [] : padSource?.getVoices() || [];
     if (!photo) {
+      lifeTime += dt;
       traceTime += dt;
       const painting = Boolean(playback?.playing && f?.rms > 0.006);
       navigation.active = padSource ? true : painting;
@@ -593,13 +633,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
             opening: item.opening,
           });
           const fade = item.fade;
-          item.object.traverse((object) => {
-            if (object.material?.uniforms) {
-              object.material.uniforms.uTime.value = elapsed;
-              object.material.uniforms.uAge.value = age;
-              object.material.uniforms.uFade.value = fade;
-            }
-          });
+          for (const uniforms of uniformsFor(item)) {
+            if (uniforms.uAge) uniforms.uAge.value = age;
+            if (uniforms.uFade) uniforms.uFade.value = fade;
+          }
           if (fade < 0.012 && !isActive(item)) {
             destroyStroke(item);
             marks.splice(i, 1);
@@ -619,24 +656,42 @@ export function createSoundNest(container, { onHint, onError } = {}) {
                 pulse: Math.min(1, (visual.pulse || 0) + resonance * 0.55),
               }
             : visual;
-        mark.stroke.update?.(dt, response);
-        mark.object.traverse((object) => {
-          const uniforms = object.material?.uniforms;
-          if (uniforms?.uPigment)
+        const suspended = mark.life === "Suspendue",
+          vibrant = mark.life === "Vibrante";
+        const speed = suspended ? 0.55 : vibrant ? 1.3 : 0.85;
+        const sensitivity = suspended ? 0.72 : vibrant ? 1.15 : 1;
+        mark.stroke.update?.(dt * speed, response);
+        for (const uniforms of uniformsFor(mark)) {
+          if (uniforms.uTime) uniforms.uTime.value = lifeTime * speed;
+          if (uniforms.uPigment)
             uniforms.uPigment.value =
               1.05 +
               (response.energy || 0) * 1.05 +
               (response.pulse || 0) * 0.65;
-          if (uniforms?.uAudioEnergy)
-            uniforms.uAudioEnergy.value = response.energy || 0;
-          if (uniforms?.uAudioLow) uniforms.uAudioLow.value = visual.low || 0;
-          if (uniforms?.uAudioPulse)
-            uniforms.uAudioPulse.value = response.pulse || 0;
-        });
+          if (uniforms.uAudioEnergy)
+            uniforms.uAudioEnergy.value = Math.min(
+              1,
+              (response.energy || 0) * sensitivity,
+            );
+          if (uniforms.uAudioLow)
+            uniforms.uAudioLow.value = Math.min(
+              1,
+              (response.low || 0) * sensitivity,
+            );
+          if (uniforms.uAudioPulse)
+            uniforms.uAudioPulse.value = Math.min(
+              1,
+              (response.pulse || 0) * sensitivity,
+            );
+        }
       }
       if (boundsDirty) updateBounds();
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
+    renderer.domElement.dataset.lifeTime = lifeTime.toFixed(3);
+    renderer.domElement.dataset.materialTime = (
+      marks[0]?.uniforms[0]?.uTime?.value ?? 0
+    ).toFixed(3);
     rig.update(dt);
     sky.update(camera, photo ? 0 : dt);
     camera.updateMatrixWorld();
