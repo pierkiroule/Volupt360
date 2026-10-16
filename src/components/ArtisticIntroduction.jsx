@@ -12,9 +12,9 @@ export default function ArtisticIntroduction() {
       </p>
       <h3>Une image, une rencontre, une matière</h3>
       <p>
-        Chaque nouvelle matière naît d’une photographie tirée sur Wikimedia
-        Commons : mousse, plume, écorce, eau, lichen ou feuillage. Son analyse
-        compose une brosse abstraite, organique et singulière.
+        Chaque nouvelle matière naît d’une photographie importée ou prise avec
+        votre appareil : mousse, plume, écorce, eau, lichen ou feuillage. Son
+        analyse compose une brosse abstraite, organique et singulière.
       </p>
       <h3>Accompagner l’oizo</h3>
       <p>
@@ -31,9 +31,9 @@ export default function ArtisticIntroduction() {
       </p>
       <h3>Les traces d’une nature partagée</h3>
       <p>
-        Les photographies des contributeurs de Wikimedia Commons ouvrent une
-        rencontre avec les matières du vivant. Leurs auteurs, leurs sources et
-        leurs licences restent accessibles et accompagnent les œuvres partagées.
+        Vos photographies ouvrent une rencontre avec les matières du vivant.
+        Elles sont analysées sur votre appareil, sans être envoyées à un
+        serveur. Les brosses créées restent dans la session en cours.
       </p>
       <h3>Une expérimentation échohypnotique</h3>
       <p>

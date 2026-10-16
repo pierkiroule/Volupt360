@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mockCommons } from "./helpers/birdFixtures.js";
+import { importPhoto } from "./helpers/localPhotos.js";
 
 test("one initial brush grows into an independent collection with no planets", async ({
   page,
@@ -7,27 +7,25 @@ test("one initial brush grows into an independent collection with no planets", a
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
-  let queries = 0;
-  await mockCommons(page, { onQuery: () => queries++ });
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   const menu = page.getByRole("region", { name: "Mes matières naturelles" }),
     buttons = menu.locator(".generated-brush"),
     canvas = page.locator("#stage canvas");
   await expect(buttons).toHaveCount(1);
+  await importPhoto(page, 1);
   await expect(buttons.first()).toBeEnabled();
   await expect(canvas).toHaveAttribute("data-celestial-brushes", "0");
   await expect(canvas).toHaveAttribute("data-generated-brush-count", "1");
   const first = await buttons.first().getAttribute("aria-label"),
     thumbnail = await buttons.first().locator("img").getAttribute("src");
-  await menu.getByRole("button", { name: "Nouvelle matière" }).click();
+  await importPhoto(page, 2);
   await expect(buttons).toHaveCount(2);
   await expect(buttons.nth(1)).toHaveAttribute("aria-pressed", "true");
   expect(await buttons.nth(1).getAttribute("aria-label")).not.toBe(first);
   expect(await buttons.nth(1).locator("img").getAttribute("src")).not.toBe(
     thumbnail,
   );
-  expect(queries).toBeGreaterThanOrEqual(2);
   await buttons.first().click();
   await expect(buttons.first()).toHaveAttribute("aria-pressed", "true");
   await expect(canvas).toHaveAttribute("data-active-brush", "voiles");
@@ -52,33 +50,6 @@ test("one initial brush grows into an independent collection with no planets", a
   await expect(menu).toHaveCount(0);
   await expect(page.getByRole("button", { name: /PNG HD/ })).toBeVisible();
   expect(errors).toEqual([]);
-});
-
-test("failed additions retain existing brush and can be retried without duplicates", async ({
-  page,
-}) => {
-  let fail = false;
-  await mockCommons(page, { count: 4, fail: () => fail });
-  await page.route("**/api/commons-search?**", (route) =>
-    route.fulfill({ status: 502, json: { error: "offline" } }),
-  );
-  await page.goto("/");
-  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
-  const buttons = page.locator(".generated-brush");
-  await expect(buttons.first()).toBeEnabled();
-  const original = await buttons.first().getAttribute("aria-label");
-  fail = true;
-  await page.getByRole("button", { name: "Nouvelle matière" }).click();
-  await expect(page.locator(".growing-brush-error")).toContainText(
-    "Nouvelle matière indisponible",
-  );
-  await expect(buttons).toHaveCount(1);
-  await expect(buttons.first()).toBeEnabled();
-  expect(await buttons.first().getAttribute("aria-label")).toBe(original);
-  fail = false;
-  await page.getByRole("button", { name: "Nouvelle matière" }).click();
-  await expect(buttons).toHaveCount(2);
-  await expect(page.locator(".growing-brush-error")).toHaveCount(0);
 });
 
 test("different real waveform features build reproducible, different visual profiles", async ({

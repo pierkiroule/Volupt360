@@ -1,5 +1,4 @@
 import GrowingBrushMenu from "./components/GrowingBrushMenu.jsx";
-import { downloadBirdCredits } from "./audio/birds/credits.js";
 import BirdCredits from "./components/BirdCredits.jsx";
 import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
@@ -132,7 +131,6 @@ export default function App() {
     engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
     if (ENABLE_BIRD_SONGS) {
-      if (!collection[0].ready) void buildBrush(false);
       if (!bank.getSnapshot().ambience.loaded) {
         const loaded = await bank.loadUniverseAmbience(
           `${import.meta.env.BASE_URL}${choice.ambience}`,
@@ -176,9 +174,9 @@ export default function App() {
         "L’ambiance de cet univers est indisponible : ambiance01.mp3 manque ou ne peut pas être lu.",
       );
   }
-  async function buildBrush(add = true) {
+  async function buildBrush(file) {
     if (brushBusy.current || !twigs.bank.current) return;
-    const id = add
+    const id = collection[0].ready
       ? BRUSHES.find(
           (item) => !collection.some((brush) => brush.id === item.id),
         )?.id
@@ -189,7 +187,7 @@ export default function App() {
     setBrushError("");
     const ticket = ++brushTicket.current;
     try {
-      const result = await twigs.bank.current.generateBirdBrush(id);
+      const result = await twigs.bank.current.generateBirdBrush(id, file);
       if (ticket !== brushTicket.current || !engine.current) return;
       if (!result) {
         setBrushError(
@@ -381,11 +379,7 @@ export default function App() {
         </p>
       )}
       {ENABLE_BIRD_SONGS && universe && (
-        <BirdCredits
-          birds={twigs.snapshot.birds}
-          brush={brush}
-          onRetry={() => buildBrush(collection[0].ready)}
-        />
+        <BirdCredits birds={twigs.snapshot.birds} brush={brush} />
       )}
       {immersive &&
         !universe &&
@@ -537,20 +531,6 @@ export default function App() {
               Retélécharger la photo PNG HD
             </a>
           )}
-          {ENABLE_BIRD_SONGS &&
-            Object.keys(twigs.snapshot.birds?.assignments || {}).length > 0 && (
-              <button onClick={() => downloadBirdCredits(twigs.snapshot.birds)}>
-                Crédits et licences · à joindre aux exports
-              </button>
-            )}
-          {Object.values(twigs.snapshot.birds?.assignments || {}).some(
-            (media) => media?.shareAlike || media?.photo?.shareAlike,
-          ) && (
-            <p className="export-license">
-              Médias CC BY-SA : partagez les adaptations exportées sous CC BY-SA
-              4.0 avec leurs crédits et les modifications indiquées.
-            </p>
-          )}
           {videoError && <p role="alert">{videoError}</p>}
           {video && (
             <a href={video.url} download={video.name}>
@@ -565,7 +545,7 @@ export default function App() {
           busy={creatingBrush}
           error={brushError}
           onSelect={chooseBrush}
-          onAdd={() => buildBrush(collection[0].ready)}
+          onAdd={buildBrush}
           max={BRUSHES.length}
         />
       ) : (

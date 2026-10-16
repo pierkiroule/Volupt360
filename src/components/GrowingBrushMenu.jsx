@@ -9,6 +9,13 @@ export default function GrowingBrushMenu({
   max,
 }) {
   const selectedButton = useRef(null);
+  const importInput = useRef(null),
+    cameraInput = useRef(null);
+  const receive = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) onAdd(file);
+  };
   useEffect(() => {
     selectedButton.current?.scrollIntoView({
       block: "nearest",
@@ -51,28 +58,44 @@ export default function GrowingBrushMenu({
             </button>
           ))}
         </div>
+        <input
+          ref={importInput}
+          data-photo-import
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={receive}
+        />
+        <input
+          ref={cameraInput}
+          data-photo-camera
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={receive}
+        />
         <button
           className="add-bird-brush"
-          onClick={onAdd}
+          onClick={() => importInput.current?.click()}
           disabled={busy || brushes.length >= max}
-          aria-label={
-            brushes[0].ready
-              ? "Nouvelle matière"
-              : "Réessayer la première brosse"
-          }
         >
           <span aria-hidden="true">{busy ? "…" : "+"}</span>
-          <small>
-            {busy
-              ? "Création…"
-              : brushes[0].ready
-                ? "Nouvelle matière"
-                : "Réessayer"}
-          </small>
+          <small>{busy ? "Création…" : "Importer une photo"}</small>
+        </button>
+        <button
+          className="add-bird-brush"
+          onClick={() => cameraInput.current?.click()}
+          disabled={busy || brushes.length >= max}
+        >
+          <span aria-hidden="true">◎</span>
+          <small>Prendre une photo</small>
         </button>
       </div>
       <p className="growing-brush-hint">
-        Glisser pour guider · maintenir le canevas pour sculpter
+        {brushes[0].ready
+          ? "Glisser pour guider · maintenir le canevas pour sculpter"
+          : "Importez ou prenez une photo pour créer votre première brosse"}
         {brushes.length >= max ? ` · ${max} brosses` : ""}
       </p>
     </section>
