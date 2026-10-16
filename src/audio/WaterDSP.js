@@ -81,7 +81,7 @@ export class WaterDSP {
     if (this.type === "bell" || this.type === "felt") {
       this.phase[0] += (2 * Math.PI * this.frequency) / this.rate;
       this.phase[1] +=
-        (2 * Math.PI * this.frequency * (this.type === "bell" ? 2.01 : 1)) /
+        (2 * Math.PI * this.frequency * (this.type === "bell" ? 2 : 1)) /
         this.rate;
       for (let i = 0; i < 2; i++)
         if (this.phase[i] > Math.PI * 2) this.phase[i] -= Math.PI * 2;
@@ -92,16 +92,16 @@ export class WaterDSP {
         this.phase[0] +
           Math.sin(this.phase[1]) *
             decay *
-            (this.type === "bell" ? 0.8 : 0.22) *
+            (this.type === "bell" ? 0.26 : 0.12) *
             (0.5 + shape * 1.5),
       );
-      const partial = Math.sin(this.phase[0] * 2) * 0.13 * decay;
+      const partial = Math.sin(this.phase[0] * 2) * 0.065 * decay;
       return (
         (fm + partial) *
         decay *
         this.velocity *
         0.42 *
-        Math.min(1, t / 0.012) *
+        Math.min(1, t / 0.045) *
         Math.min(1, Math.max(0, (this.duration - t) / 0.08))
       );
     }
