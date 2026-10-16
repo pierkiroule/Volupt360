@@ -149,3 +149,7 @@ Le moteur Web Audio existant est réutilisé, avec un seul univers initialisé. 
 Le paysage actif privilégie des timbres feutrés et des cordes amorties, dans un registre plus bas et une gamme pentatonique. Les attaques sont progressives ; les cloches conservent moins de modulation FM et des partiels harmoniques. Les notes trop aiguës sont ramenées à l’octave inférieure, sans changer leur hauteur harmonique.
 
 La réverbération procédurale gagne une queue diffuse de 5,8 secondes, un pré-délai de 28 ms et un amortissement des aigus. Le mix complet, percussions et réverbération comprises, traverse un coupe-bas à 32 Hz, un creux doux autour de 2,8 kHz et un passe-bas à 2,8 kHz. Les brosses continuent de composer et l’audioréactivité reste liée au signal musical obtenu. Ces réglages décrivent un choix de timbre ; ils ne garantissent aucun effet relaxant. L’écoute sur téléphone et casque reste à valider.
+
+### Électro chill générative
+
+Le parcours actif dispose maintenant d’une grammaire électro chill à 78 BPM : harmonie partagée, basse centrée, nappes, motifs mélodiques et percussions électroniques natives. L’arrangement alterne ouverture, sillage, envol et respiration. Les brosses infléchissent l’activité et le timbre dans les accords en cours ; elles ne produisent plus des hauteurs indépendantes de l’arrangement. Les cellules se transforment par phrases, avec des silences et des réponses. La pause conserve la position musicale. Voir [l’architecture, les règles et les limites](docs/chill-composition.md).
