@@ -210,9 +210,12 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
  */
 export function createBrushStroke(
   id,
-  { seed, color, texture = null, surprise = 0 },
+  { seed, color, texture = null, surprise = 0, dynamics = null },
 ) {
-  const brush = BRUSHES.find((item) => item.id === id) || BRUSHES[0];
+  const template = BRUSHES.find((item) => item.id === id) || BRUSHES[0];
+  const brush = dynamics
+    ? { ...template, opacity: dynamics.opacity, generatedWidth: dynamics.width }
+    : template;
   if (brush.particle !== undefined)
     return createPoeticParticleStroke(brush, { seed, color, texture });
   const group = new THREE.Group();
@@ -404,7 +407,10 @@ export function createBrushStroke(
         const opening = Math.min(1, (count + 1) / 5);
         const pulse = 0.6 + 0.4 * Math.sin(pose.time * 1.7 + seed) ** 2;
         let width =
-          (0.45 + pose.energy * 1.35 + pose.low * 0.9) * opening * pulse;
+          (0.45 + pose.energy * 1.35 + pose.low * 0.9) *
+          opening *
+          pulse *
+          (dynamics?.width || 1);
         if (id === "falaises") width *= 2.1;
         if (id === "corolles")
           width *=

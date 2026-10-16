@@ -1,3 +1,4 @@
+import GrowingBrushMenu from "./components/GrowingBrushMenu.jsx";
 import { downloadBirdCredits } from "./audio/birds/credits.js";
 import BirdCredits from "./components/BirdCredits.jsx";
 import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
@@ -20,6 +21,13 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
+  const [collection, setCollection] = useState([
+    { id: "voiles", name: "Première brosse", ready: false },
+  ]);
+  const [creatingBrush, setCreatingBrush] = useState(false);
+  const [brushError, setBrushError] = useState("");
+  const brushBusy = useRef(false),
+    brushTicket = useRef(0);
   const [universe, setUniverse] = useState(null);
   const [atmosphereMix, setAtmosphereMix] = useState([1, 0, 0]);
   const [atmosphere, setAtmosphere] = useState({ echo: 0.5, hypnos: 0.3 });
@@ -86,7 +94,6 @@ export default function App() {
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
-        onBrushChange: setBrush,
         onHint: setHint,
         onError: setSceneError,
       });
@@ -101,6 +108,7 @@ export default function App() {
       );
     }
     return () => {
+      brushTicket.current++;
       loadRequest.current++;
       universeRequest.current++;
       engine.current?.dispose();
@@ -118,16 +126,13 @@ export default function App() {
     void bank.preparePlayback();
     setUniverse(choice.id);
     engine.current?.reset();
-    chooseBrush(choice.brushes[0]);
-    engine.current?.setCelestialBrushes(choice.brushes);
+    chooseBrush(ENABLE_BIRD_SONGS ? brush : choice.brushes[0]);
     chooseCamera("drone");
     setDistance(0);
     engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
     if (ENABLE_BIRD_SONGS) {
-      void bank
-        .prepareBirdCatalog()
-        .then(() => bank.preloadBirdSong(choice.brushes[0]));
+      if (!collection[0].ready) void buildBrush(false);
       return;
     }
     if (ENABLE_ECHO_INSTRUMENT) {
@@ -154,6 +159,53 @@ export default function App() {
       setUniverseError(
         "L’ambiance de cet univers est indisponible : ambiance01.mp3 manque ou ne peut pas être lu.",
       );
+  }
+  async function buildBrush(add = true) {
+    if (brushBusy.current || !twigs.bank.current) return;
+    const id = add
+      ? BRUSHES.find(
+          (item) => !collection.some((brush) => brush.id === item.id),
+        )?.id
+      : collection[0].id;
+    if (!id) return;
+    brushBusy.current = true;
+    setCreatingBrush(true);
+    setBrushError("");
+    const ticket = ++brushTicket.current;
+    try {
+      const result = await twigs.bank.current.generateBirdBrush(id);
+      if (ticket !== brushTicket.current || !engine.current) return;
+      if (!result) {
+        setBrushError(
+          twigs.bank.current?.getSnapshot().birds.error ||
+            "Le chant est indisponible. Réessayez.",
+        );
+        return;
+      }
+      const thumbnail = engine.current.setGeneratedBrush(id, result.profile);
+      const item = {
+        id,
+        name: result.recording.commonName,
+        ready: true,
+        thumbnail,
+        color: result.profile.color,
+        baseId: result.profile.baseId,
+      };
+      setCollection((previous) =>
+        previous.some((entry) => entry.id === id)
+          ? previous.map((entry) => (entry.id === id ? item : entry))
+          : [...previous, item],
+      );
+      chooseBrush(id);
+    } catch (cause) {
+      if (ticket === brushTicket.current)
+        setBrushError(`Création impossible : ${cause.message}`);
+    } finally {
+      if (ticket === brushTicket.current) {
+        brushBusy.current = false;
+        setCreatingBrush(false);
+      }
+    }
   }
   function chooseBrush(id) {
     setBrush(id);
@@ -297,7 +349,7 @@ export default function App() {
         <BirdCredits
           birds={twigs.snapshot.birds}
           brush={brush}
-          onRetry={() => twigs.bank.current?.prepareBirdCatalog(true)}
+          onRetry={() => buildBrush(collection[0].ready)}
         />
       )}
       {immersive &&
@@ -464,10 +516,15 @@ export default function App() {
           )}
         </section>
       ) : atelier !== "mp3" ? (
-        <p className="celestial-instruction" role="status">
-          {BRUSHES.find((item) => item.id === brush)?.name} · Double tap sur une
-          planète pour changer de matière
-        </p>
+        <GrowingBrushMenu
+          brushes={collection}
+          selected={brush}
+          busy={creatingBrush}
+          error={brushError}
+          onSelect={chooseBrush}
+          onAdd={() => buildBrush(collection[0].ready)}
+          max={BRUSHES.length}
+        />
       ) : (
         <ControlPanel
           brush={brush}

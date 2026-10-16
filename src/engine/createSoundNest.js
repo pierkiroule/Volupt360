@@ -1,4 +1,3 @@
-import { createCelestialBrushes } from "./CelestialBrushes.js";
 import { createWatercolorTexture } from "./createWatercolorTexture.js";
 import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
 import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
@@ -24,10 +23,7 @@ import { createPainterFlight } from "./createPainterFlight.js";
 /** A living XYZ trail: the painter moves, the watercolor grows behind it,
  * and the drone films that movement instead of circling a fixed installation.
  */
-export function createSoundNest(
-  container,
-  { onHint, onError, onBrushChange } = {},
-) {
+export function createSoundNest(container, { onHint, onError } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.setSize(innerWidth, innerHeight);
@@ -104,30 +100,7 @@ export function createSoundNest(
     : null;
   const textures = new Map();
   const imageBrushes = new Map();
-  for (const [index, definition] of BRUSHES.entries())
-    textures.set(
-      definition.id,
-      createWatercolorTexture(definition, index + 31, 256),
-    );
-  const celestials = createCelestialBrushes(BRUSHES, textures, (id) => {
-    if (id === brush) return;
-    bridge.close();
-    closeStroke();
-    brush = id;
-    if (nozzlePaint) {
-      nozzlePaint = { id, samples: 0 };
-      void padSource?.beginSculpture?.(id);
-    }
-    renderer.domElement.dataset.activeBrush = id;
-    celestials.select(id);
-    void padSource?.preloadBirdSong?.(id);
-    onBrushChange?.(id);
-    onHint?.(
-      `${BRUSHES.find((item) => item.id === id).name} · nouvelle matière`,
-    );
-  });
-  landscape.add(celestials.group);
-  celestials.setBrushes([]);
+  const generatedBrushes = new Map();
   renderer.domElement.dataset.celestialBrushes = "0";
   renderer.domElement.dataset.activeBrush = brush;
   let cameraMode = "drone";
@@ -173,13 +146,17 @@ export function createSoundNest(
     closeStroke();
     const color =
       imageBrushes.get(id)?.sample(pose.position).color.clone() ||
-      palette.colorFor(id, serial);
+      (generatedBrushes.has(id)
+        ? new THREE.Color(generatedBrushes.get(id).color)
+        : palette.colorFor(id, serial));
     const region = compositionAt(pose.position);
     const textureLease = textures.has(id)
       ? null
       : generative?.acquire(id, pose.acoustic || pose);
-    const stroke = createBrushStroke(id, {
-      seed: serial++ * 1.37,
+    const generated = generatedBrushes.get(id);
+    const stroke = createBrushStroke(generated?.baseId || id, {
+      dynamics: generated,
+      seed: serial++ * 1.37 + ((generated?.seed || 0) % 10000),
       color,
       texture: textures.get(id) || textureLease?.binding,
       surprise: graphicSurprise(serial - 1, pose.acoustic || pose),
@@ -363,17 +340,21 @@ export function createSoundNest(
       cameraMode !== "drone"
     )
       return;
+    if (
+      padSource?.getSnapshot?.().birds?.generated &&
+      !generatedBrushes.has(brush)
+    ) {
+      onHint?.(
+        "La première brosse attend son chant réel. Réessayez sa création dans le menu.",
+      );
+      return;
+    }
     bridge.close();
     nozzlePaint = { id: brush, samples: 0 };
     void padSource?.beginSculpture?.(brush);
     renderer.domElement.dataset.nozzlePaint = "true";
     renderer.domElement.dataset.nozzleBrush = brush;
   }
-  const unbindCelestialInput = celestials.bindInput(
-    renderer.domElement,
-    camera,
-    () => Boolean(padSource) && !photo,
-  );
   let steeringGesture = null,
     steeringMoves = 0;
   function onSteeringDown(event) {
@@ -511,7 +492,6 @@ export function createSoundNest(
         } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         oizo.update(pose);
-        celestials.update(dt);
         const hit = ENABLE_TRACE_MEMORY
           ? traceEncounter.update(pose.position, traceTime)
           : null;
@@ -799,16 +779,33 @@ export function createSoundNest(
       palette = createTrackPalette(analysis);
       renderer.domElement.dataset.trackPalette = palette.colors.join(",");
     },
-    setCelestialBrushes(ids) {
-      celestials.setBrushes(ids);
-      renderer.domElement.dataset.celestialBrushes = String(ids.length);
+    setGeneratedBrush(id, profile) {
+      if (!BRUSHES.some((item) => item.id === id) || generatedBrushes.has(id))
+        return null;
+      const binding = createWatercolorTexture(
+        { color: profile.color },
+        profile.seed,
+        256,
+        profile.acoustic,
+      );
+      generatedBrushes.set(id, profile);
+      this.setBrushTexture(id, binding);
+      renderer.domElement.dataset.generatedBrushCount = String(
+        generatedBrushes.size,
+      );
+      return binding.texture.image.toDataURL("image/png");
     },
     setBrush(id) {
-      celestials.select(id);
       if (BRUSHES.some((item) => item.id === id) && id !== brush) {
+        if (nozzlePaint) {
+          finishPad(nozzlePaint.id);
+          nozzlePaint = { id, samples: 0 };
+          void padSource?.beginSculpture?.(id);
+        }
         brush = id;
-        renderer.domElement.dataset.activeBrush = id;
         closeStroke();
+        renderer.domElement.dataset.activeBrush = id;
+        void padSource?.preloadBirdSong?.(id);
       }
     },
     setImageBrush(id, profile) {
@@ -913,8 +910,7 @@ export function createSoundNest(
       traceMemory.clear();
       traceEncounter.reset();
       oizo?.dispose();
-      unbindCelestialInput();
-      celestials.dispose();
+      generatedBrushes.clear();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       marks.forEach(destroyStroke);

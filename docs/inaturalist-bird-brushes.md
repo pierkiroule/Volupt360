@@ -1,6 +1,6 @@
 # Chants réels des brosses — iNaturalist
 
-Les 18 brosses existantes reçoivent chacune l’enregistrement d’une espèce distincte, lorsque le catalogue fournit suffisamment d’enregistrements compatibles. Les planètes, le double tap, le halo bleu et le vol sont conservés. Maintenir le canevas fait sculpter l’oizo et déclenche le chant ; relâcher produit un fondu de sortie d’environ 650 ms. Le fondu d’entrée dure 180 ms.
+Le parcours actif commence maintenant par une brosse et permet d’en construire d’autres à partir de chants tirés au sort. Les planètes sont retirées. Voir [la collection progressive](growing-bird-brushes.md). Le catalogue fixe décrit ci-dessous appartient au chemin historique, conservé pour compatibilité. Maintenir le canevas fait sculpter l’oizo et déclenche le chant ; relâcher produit un fondu de sortie d’environ 650 ms. Le fondu d’entrée dure 180 ms.
 
 ## Catalogue et priorité aux espèces menacées
 
@@ -18,7 +18,7 @@ Le panneau repliable indique espèce, attribution fournie par iNaturalist (à d�
 
 ## Lecture et réactivité
 
-`createBirdSongs.js` utilise exclusivement les octets des enregistrements reçus et un `AudioBufferSourceNode`, sans oscillateur, synthèse, TTS ou chant de remplacement. Un préchargement silencieux de la matière initiale, puis de la planète sélectionnée, réduit le délai du premier geste. Si le téléchargement n’est pas terminé, le panneau indique le chargement. Un relâchement invalide le départ différé : le son ne se met pas à jouer après le geste.
+`createBirdSongs.js` utilise exclusivement les octets des enregistrements reçus et un `AudioBufferSourceNode`, sans oscillateur, synthèse, TTS ou chant de remplacement. Le parcours progressif décode le chant avant de confirmer sa matière ; une sélection ultérieure peut précharger de nouveau son extrait. Si le téléchargement n’est pas terminé, le panneau indique le chargement. Un relâchement invalide le départ différé : le son ne se met pas à jouer après le geste.
 
 Les fichiers sont décodés par le navigateur. Les 45 premières secondes maximum sont conservées pour la lecture en boucle pendant le geste ; les fichiers de plus de trois minutes ou de plus de deux canaux sont refusés après décodage. Le décodage natif initial peut donc temporairement utiliser plus de mémoire que l’extrait conservé. La transition de boucle dépend du contenu de l’enregistrement ; il n’y a ni reconstruction ni remplacement des silences ou bruits naturels.
 
@@ -26,7 +26,7 @@ L’analyseur situé après le gain de fondu mesure RMS, énergie, graves, aigus
 
 ## Cache et réseau
 
-- Métadonnées dans `localStorage`, pendant 24 heures, sans compte ni données personnelles ajoutées.
+- Les associations et profils générés restent en session. Le catalogue historique, qui n’est plus le parcours par défaut, conserve son cache de métadonnées de 24 heures dans `localStorage`.
 - Octets dans Cache Storage, avec plafond de 64 Mio et 24 entrées, éviction des plus anciennes entrées. Les écritures sont sérialisées dans la page. Les modes privés ou quotas pleins n’empêchent pas une lecture en mémoire.
 - Deux extraits décodés maximum dans le cache mémoire, soit environ 33 Mio pour deux extraits stéréo de 45 s à 48 kHz, hors lecture active, fondus et décodage temporaire.
 - Requêtes bornées dans le temps ; abandon au démontage. Fichiers limités à 8 Mio, avec contrôle pendant la lecture du flux même sans Content-Length.

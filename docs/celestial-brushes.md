@@ -1,3 +1,5 @@
+> Archive : les planètes sont retirées du moteur actif. Voir [le menu progressif des brosses](growing-bird-brushes.md).
+
 # Planètes aquarellées
 
 Les 18 brosses gardent leurs géométries et leurs animations. Six planètes de matière circulent dans chaque univers. Un **double tap sur une planète** sélectionne sa brosse ; un halo bleu discret entoure la planète active. Traverser une planète avec l’oizo ne change plus la matière. Il n’y a ni menu des brosses ni import d’image.

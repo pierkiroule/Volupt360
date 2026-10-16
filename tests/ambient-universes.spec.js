@@ -84,7 +84,7 @@ test("native ambient synthesis emits sound, mixed worlds keep playing and pause 
   expect(result.silence).toBeLessThan(0.001);
 });
 
-test("universe spheres preserve navigation and painting works without synthetic sound on mobile", async ({
+test("universe navigation remains available when the first birdsong cannot be created", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -116,11 +116,20 @@ test("universe spheres preserve navigation and painting works without synthetic 
   await expect(page.locator(".bird-credits")).toBeVisible();
   await page.mouse.move(170, 350);
   await page.mouse.down();
-  await expect(page.locator("#stage canvas")).toHaveAttribute(
-    "data-nozzle-paint",
-    "true",
-  );
+  await page.mouse.move(230, 300, { steps: 5 });
   await page.mouse.up();
+  await expect
+    .poll(async () =>
+      Number(
+        await page.locator("#stage canvas").getAttribute("data-steering-moves"),
+      ),
+    )
+    .toBeGreaterThan(0);
+  expect(
+    Number(
+      await page.locator("#stage canvas").getAttribute("data-painted-samples"),
+    ) || 0,
+  ).toBe(0);
   await page.getByRole("button", { name: "Changer d’univers" }).click();
   await expect(
     page.getByRole("button", { name: "Choisir ÉTHER" }),
