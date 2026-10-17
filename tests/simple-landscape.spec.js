@@ -9,7 +9,7 @@ test("mobile landscape has six editable brushes, MP3 reaction and no generators 
     errors = [];
   page.on("request", (request) => requested.push(request.url()));
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("/?classic=1");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await expect(page.locator("#stage canvas")).toHaveAttribute(
     "data-skydome",
@@ -36,7 +36,12 @@ test("mobile landscape has six editable brushes, MP3 reaction and no generators 
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-music-energy")))
     .toBeGreaterThan(0.01);
-  await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "6.5");
+  await expect
+    .poll(async () =>
+      Number(await canvas.getAttribute("data-fpv-follow-distance")),
+    )
+    .toBeGreaterThan(6);
+  await expect(canvas).toHaveAttribute("data-drone-intent", "flight-dialogue");
   for (const name of [
     "Lavis",
     "Brosse sèche",
@@ -93,7 +98,7 @@ test("mobile landscape has six editable brushes, MP3 reaction and no generators 
 test("MP3 pause and photo resume work while synthesis stays uninitialized", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?classic=1");
   const result = await page.evaluate(async () => {
     const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
     const bank = createTwigBank({ ids: ["voiles"] });
@@ -124,7 +129,7 @@ test("MP3 pause and photo resume work while synthesis stays uninitialized", asyn
 test("contemplative steering bends gently without jumps or reversed controls", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?classic=1");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");

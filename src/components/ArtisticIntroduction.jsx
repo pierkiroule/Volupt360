@@ -10,17 +10,18 @@ export default function ArtisticIntroduction() {
         Un petit oizo traverse un papier sans horizon. Il dépose des pigments,
         des lavis secs et des encres fines dans un espace en trois dimensions.
       </p>
-      <h3>Six matières, un paysage</h3>
+      <h3>Cinq gestes, un univers</h3>
       <p>
-        Lavis, Brosse sèche, Encre fine, Éclaboussures, Diffusion et Tampons
-        offrent six gestes abstraits : des grains de papier, des réserves et des
-        bords pigmentés, sans motif figuratif.
+        Souffle, Plume, Battement, Éclosion et Envol naissent de la rencontre de
+        vos emojis. Couleurs, grains, épaisseurs, ramifications et mouvements
+        sont interprétés ensemble, sans diagnostic émotionnel.
       </p>
       <h3>Accompagner l’oizo</h3>
       <p>
-        Glissez doucement pour infléchir le vol. Maintenez le canevas pour
-        peindre avec la brosse choisie. Votre MP3 anime les matières ; les
-        traces continuent de vivre entre les gestes.
+        Glissez sur le canevas pour sculpter directement la matière dans
+        l’espace. La pression et la vitesse du geste participent au tracé. La
+        musique anime les dépôts, qui poursuivent leur danse après le geste. La
+        vue FPV permet aussi de guider l’oizo et de peindre depuis sa queue.
       </p>
       <h3>Une matière qui continue sa danse</h3>
       <p>
@@ -32,7 +33,7 @@ export default function ArtisticIntroduction() {
       </p>
       <h3>Un atelier contemplatif</h3>
       <p>
-        Six brosses personnalisables, votre musique et un papier blanc cassé
+        Cinq brosses personnalisables, un paysage musical et un papier teinté
         laissent la place au voyage. Explorez en FPV, contemplez à 360° et
         cadrez une photo lorsque le paysage vous appelle.
       </p>

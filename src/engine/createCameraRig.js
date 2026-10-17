@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createDroneChoreography } from "./createDroneChoreography.js";
 
 /** Three viewpoints share an extended sculpture and a moving painter.
  * Pointer input rotates only the landscape. Every rotation reanchors the FPV
@@ -43,9 +44,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   const matrix = new THREE.Matrix4(),
     desiredQuaternion = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
-  const horizonUp = new THREE.Vector3(),
-    previousHeading = new THREE.Vector3();
-  let cameraBank = 0;
+  const horizonUp = new THREE.Vector3();
+  const choreography = createDroneChoreography();
+  let cameraBank = 0,
+    droneFov = 86;
   const listeners = [];
   const listen = (node, name, fn) => {
     node.addEventListener(name, fn);
@@ -60,7 +62,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     canvas.dataset.flightRevision = String(revision);
   }
   listen(canvas, "pointerdown", (event) => {
-    if (mode === "drone" && getFlight().windEnabled) return;
+    if (mode === "sculpt" || (mode === "drone" && getFlight().windEnabled))
+      return;
     if (mode === "photo" || mode === "global") {
       photoPointers.set(event.pointerId, {
         x: event.clientX,
@@ -179,6 +182,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   async function setMode(next) {
     const request = ++sensorRequest;
     mode = next;
+    choreography.resetHeading();
     if (next === "photo" || next === "global") setPhotoZoom(1);
     photoPointers.clear();
     dragging = null;
@@ -244,6 +248,14 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     direction.copy(state.direction).transformDirection(landscape.matrixWorld);
     velocity.copy(state.velocity).applyQuaternion(landscape.quaternion);
     center.copy(state.bounds.center).applyMatrix4(landscape.matrixWorld);
+    if (mode === "sculpt") {
+      camera.position.set(0, 4, 30);
+      camera.lookAt(0, 0, 0);
+      camera.fov = 70;
+      camera.far = 1000;
+      camera.updateProjectionMatrix();
+      return;
+    }
     if (mode === "photo" || mode === "global") {
       const halfFov = Math.atan(
         Math.tan(THREE.MathUtils.degToRad(37)) * Math.min(1, camera.aspect),
@@ -276,16 +288,18 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
             .multiplyScalar(18),
         );
     } else {
-      canvas.dataset.droneIntent = "close-flight";
+      canvas.dataset.droneIntent = "flight-dialogue";
+      const shot = choreography.update(direction, velocity, dt);
+      droneFov = shot.fov;
       lateral.crossVectors(direction, up);
       if (lateral.lengthSq() < 0.02) lateral.set(1, 0, 0);
       lateral.normalize();
-      // Fixed close framing. Only the visitor's zoom can move toward an overview.
+      // Gentle pursuit opens in curves and rises with the bird.
       follow
         .copy(painter)
-        .addScaledVector(direction, -6.5)
-        .addScaledVector(lateral, 0.5)
-        .addScaledVector(up, 0.42);
+        .addScaledVector(direction, -shot.distance)
+        .addScaledVector(lateral, shot.side)
+        .addScaledVector(up, shot.height);
       const halfFov = Math.atan(
         Math.tan(THREE.MathUtils.degToRad(39)) * Math.min(1, camera.aspect),
       );
@@ -296,17 +310,14 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           Math.max(15, (state.bounds.radius * 1.2) / Math.sin(halfFov)),
         );
       desired.copy(follow).lerp(overview, distanceSetting);
-      focus.copy(painter);
+      focus
+        .copy(painter)
+        .addScaledVector(direction, shot.lookAhead)
+        .addScaledVector(lateral, shot.frameSide * Math.min(1, camera.aspect))
+        .addScaledVector(up, shot.frameUp);
       target.copy(focus).lerp(center, distanceSetting);
-      const turn =
-        previousHeading.lengthSq() > 0
-          ? previousHeading.dot(lateral) / Math.max(0.001, dt)
-          : 0;
-      cameraBank +=
-        (THREE.MathUtils.clamp(turn * 0.12, -0.16, 0.16) - cameraBank) *
-        mix(2.2);
-      previousHeading.copy(direction);
-      canvas.dataset.fpvFollowDistance = "6.5";
+      cameraBank = shot.bank;
+      canvas.dataset.fpvFollowDistance = shot.distance.toFixed(3);
     }
     const positionBlend = mix(mode === "drone" ? 4.2 : 2.8);
     camera.position.lerp(desired, positionBlend);
@@ -322,7 +333,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (mode === "gyro") desiredQuaternion.multiply(gyroRelative);
     if (mode === "drone") camera.quaternion.copy(desiredQuaternion);
     else camera.quaternion.slerp(desiredQuaternion, mix(5));
-    const fov = mode === "gyro" ? 92 + distanceSetting * 20 : 86;
+    const fov = mode === "gyro" ? 92 + distanceSetting * 20 : droneFov;
     camera.fov += (fov - camera.fov) * mix(1.4);
     camera.far = Math.max(
       400,

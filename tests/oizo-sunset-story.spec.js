@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("sunset sphere provides a seamless directional horizon and releases resources", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?classic=1");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createSunsetSky } = await import("/src/engine/createSunsetSky.js");
@@ -50,7 +50,7 @@ test("narrative, paper background, imported music and abstract brushes coexist i
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/?classic=1");
   await page.getByText("La démarche artistique", { exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Sculpter les matières du monde" }),

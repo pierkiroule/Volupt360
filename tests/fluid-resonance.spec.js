@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("native spectrum separates bass and treble, and materials respond independently with smooth release", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?classic=1");
   const result = await page.evaluate(async () => {
     const { createAudioGraph, readAudioFeatures } =
       await import("/src/audio/audioGraph.js");
@@ -60,7 +60,7 @@ test("native spectrum separates bass and treble, and materials respond independe
 test("orbital flight covers the sanctuary, stays bounded and responds promptly without discontinuities", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?classic=1");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");
@@ -146,7 +146,7 @@ test("six musical materials build a living orbital landscape without WebGL error
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?classic=1");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
   await page
     .getByLabel("Importer un MP3", { exact: true })

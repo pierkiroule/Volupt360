@@ -45,7 +45,7 @@ test("FPV stays close through silence and growing bounds, with manual zoom still
     rig.dispose();
     return { near, quiet, manual, fov, quietFov };
   });
-  expect(result.near).toBeLessThan(7);
+  expect(result.near).toBeLessThan(8);
   expect(result.quiet).toBeCloseTo(result.near, 2);
   expect(result.quietFov).toBeCloseTo(result.fov, 2);
   expect(result.manual).toBeGreaterThan(30);

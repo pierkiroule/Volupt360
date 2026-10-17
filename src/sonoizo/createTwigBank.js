@@ -25,6 +25,8 @@ export function createTwigBank({
 }) {
   if (ids.length > 18 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
+  const retiringAmbiences = new Set();
+  let ambienceVolume = 0.45;
   let fireflies = false,
     ambienceUserPaused = false;
   const brushGestures = new Map();
@@ -128,6 +130,7 @@ export function createTwigBank({
         loaded: Boolean(ambience),
         playing: Boolean(ambience && !ambience.element.paused),
         loading: ambienceLoading,
+        volume: ambienceVolume,
         userPaused: ambienceUserPaused,
       },
       slots: Object.fromEntries(
@@ -588,11 +591,7 @@ export function createTwigBank({
       const audio = context();
       candidate.source = audio.createMediaElementSource(element);
       candidate.gain = audio.createGain();
-      candidate.gain.gain.value = candidate.background
-        ? birds.snapshot().state === "playing"
-          ? 0.06
-          : 0.18
-        : 0.32;
+      candidate.gain.gain.value = 0;
       const analyser = audio.createAnalyser();
       analyser.fftSize = 2048;
       analyser.smoothingTimeConstant = 0.25;
@@ -606,14 +605,27 @@ export function createTwigBank({
       candidate.source.connect(analyser);
       analyser.connect(candidate.gain);
       candidate.gain.connect(master);
-      releaseAmbience(ambience);
+      if (ambience) {
+        const retired = { item: ambience, timer: null };
+        ambience.gain.gain.setTargetAtTime(0, audio.currentTime, 0.12);
+        retired.timer = setTimeout(() => {
+          releaseAmbience(retired.item);
+          retiringAmbiences.delete(retired);
+        }, 600);
+        retiringAmbiences.add(retired);
+      }
+      candidate.gain.gain.setTargetAtTime(
+        ambienceVolume,
+        audio.currentTime,
+        0.25,
+      );
       ambience = candidate;
       ambienceUserPaused = false;
       pendingAmbience = null;
       return true;
     } catch (error) {
       releaseAmbience(candidate);
-      if (!disposed && ticket === ambienceRequest)
+      if (!disposed && ticket === ambienceRequest && !file.silent)
         onError(`Ambiance : ${error.message}`);
     } finally {
       if (!disposed && ticket === ambienceRequest) {
@@ -627,7 +639,7 @@ export function createTwigBank({
     if (!ambience?.background || !ctx) return;
     ambience.gain.gain.cancelScheduledValues(ctx.currentTime);
     ambience.gain.gain.setTargetAtTime(
-      painting ? 0.06 : 0.18,
+      ambienceVolume * (painting ? 0.6 : 1),
       ctx.currentTime,
       0.2,
     );
@@ -814,6 +826,36 @@ export function createTwigBank({
         background: true,
       });
     },
+    cancelAmbienceLoad() {
+      ambienceRequest++;
+      pendingAmbience?.cancel();
+      pendingAmbience = null;
+      ambienceLoading = false;
+      emit();
+    },
+    loadMoodAmbience(url) {
+      return importAmbience({
+        url,
+        name: "Paysage musical ÉchoMood",
+        size: 0,
+        background: true,
+        silent: true,
+      });
+    },
+    setAmbienceVolume(value) {
+      ambienceVolume = Math.max(0, Math.min(1, Number(value) || 0));
+      if (ambience?.gain && ctx)
+        ambience.gain.gain.setTargetAtTime(
+          ambienceVolume,
+          ctx.currentTime,
+          0.15,
+        );
+      emit();
+    },
+    fadeAmbience() {
+      if (ambience?.gain && ctx)
+        ambience.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.18);
+    },
     getVisualFeatures,
     getVocalFeatures() {
       const voice = [...voices.values()][0];
@@ -958,6 +1000,11 @@ export function createTwigBank({
       ambienceRequest++;
       pendingAmbience?.cancel();
       releaseAmbience(ambience);
+      for (const retired of retiringAmbiences) {
+        clearTimeout(retired.timer);
+        releaseAmbience(retired.item);
+      }
+      retiringAmbiences.clear();
       ambience = null;
       buffers.clear();
       captureTap = null;

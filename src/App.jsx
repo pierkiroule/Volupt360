@@ -1,3 +1,9 @@
+import EchoMoodPicker from "./components/EchoMoodPicker.jsx";
+import { echoMoodEngine } from "./echoMood/echoMoodEngine.js";
+import { universeGenerator } from "./echoMood/universeGenerator.js";
+import { brushFactory } from "./echoMood/brushFactory.js";
+import { musicSelector } from "./echoMood/musicSelector.js";
+import musicCatalog from "virtual:echo-music";
 import BrushEditor from "./components/BrushEditor.jsx";
 import LandscapeBrushMenu from "./components/LandscapeBrushMenu.jsx";
 import { LANDSCAPE_BRUSHES } from "./materials/landscapePalette.js";
@@ -18,7 +24,11 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
+  const classic = new URLSearchParams(location.search).has("classic");
   const [universe, setUniverse] = useState(null);
+  const [echoMood, setEchoMood] = useState(null),
+    [blooming, setBlooming] = useState(false);
+  const moodSeed = useRef(0);
   const universeRequest = useRef(0);
   const [universeError, setUniverseError] = useState("");
   const [atelier, setAtelier] = useState(() =>
@@ -77,15 +87,16 @@ export default function App() {
 
   useEffect(() => {
     document.title = ENABLE_SONOIZO
-      ? "ÉCHO & HYPNOS •° — Les matières du monde prennent forme"
+      ? "OIZO •° — ÉchoMood"
       : "NID SONORE•° — Paysages d’aquarelle";
     try {
       engine.current = createSoundNest(stage.current, {
         onHint: setHint,
         onError: setSceneError,
       });
-      for (const profile of LANDSCAPE_BRUSHES)
-        engine.current.setGeneratedBrush(profile.id, profile);
+      if (classic || new URLSearchParams(location.search).has("samples"))
+        for (const profile of LANDSCAPE_BRUSHES)
+          engine.current.setGeneratedBrush(profile.id, profile);
       if (ENABLE_SONOIZO && atelier !== "mp3") {
         if (new URLSearchParams(location.search).has("samples"))
           engine.current.setPadSource(twigs.bank.current);
@@ -123,10 +134,43 @@ export default function App() {
     if (ambience.loaded && !ambience.playing && !ambience.userPaused)
       await bank.toggleAmbience();
   }
+  async function bloomMood(emojis) {
+    const ticket = ++universeRequest.current;
+    setBlooming(true);
+    setUniverseError("");
+    twigs.clearError();
+    try {
+      const mood = echoMoodEngine(emojis, moodSeed.current++),
+        profiles = brushFactory(mood);
+      const bank = twigs.bank.current;
+      await bank.preparePlayback();
+      if (ticket !== universeRequest.current) return;
+      engine.current.setMood(universeGenerator(mood), profiles);
+      engine.current.setPadSource(bank);
+      setEchoMood(mood);
+      setBrushes(profiles);
+      chooseBrush(profiles[0].id);
+      chooseCamera("sculpt");
+      setUniverse("echo-mood");
+      const selected = musicSelector(mood, musicCatalog);
+      if (selected) {
+        const loaded = await bank.loadMoodAmbience(
+          `${import.meta.env.BASE_URL}${selected}`,
+        );
+        if (ticket === universeRequest.current && loaded)
+          await bank.toggleAmbience();
+      } else bank.removeAmbience();
+    } catch (cause) {
+      setUniverseError(cause.message);
+    } finally {
+      if (ticket === universeRequest.current) setBlooming(false);
+    }
+  }
   function toggleGlobal() {
     if (mode === "global") chooseCamera(previousView.current);
     else {
-      previousView.current = mode === "gyro" ? "gyro" : "drone";
+      previousView.current =
+        mode === "gyro" ? "gyro" : mode === "sculpt" ? "sculpt" : "drone";
       chooseCamera("global");
     }
   }
@@ -349,16 +393,13 @@ export default function App() {
       )}
       {immersive &&
         !universe &&
-        !new URLSearchParams(location.search).has("samples") && (
+        !new URLSearchParams(location.search).has("samples") &&
+        (classic ? (
           <section
             className="universe-picker"
             aria-label="Entrer dans le paysage"
           >
             <h2>Le papier devient espace</h2>
-            <p>
-              Importez votre musique et laissez l’oizo déposer des matières
-              aquarellées. Elles dérivent et dansent autour de vous.
-            </p>
             <button
               className="enter-landscape"
               onClick={() => enterUniverse(UNIVERSES[0])}
@@ -370,15 +411,19 @@ export default function App() {
               <ArtisticIntroduction />
             </details>
           </section>
-        )}
+        ) : (
+          <EchoMoodPicker onBloom={bloomMood} busy={blooming} />
+        ))}
       {immersive && universe && mode !== "photo" && (
         <button
           className="universe-change"
-          aria-label="Revenir à l’accueil"
+          aria-label="Changer d’ÉchoMood"
           onClick={() => {
             universeRequest.current++;
+            setBlooming(false);
+            twigs.bank.current?.cancelAmbienceLoad();
             twigs.bank.current?.stopAll();
-            twigs.bank.current?.pauseAmbience();
+            twigs.bank.current?.fadeAmbience();
             engine.current?.setPadSource(null);
             setUniverse(null);
             setUniverseError("");
@@ -392,6 +437,37 @@ export default function App() {
         <p className="universe-error" role="alert">
           {universeError}
         </p>
+      )}
+      {immersive && universe && (
+        <>
+          <div className="mood-badge" aria-label="ÉchoMood choisi">
+            {echoMood?.emojis.join(" ")}
+          </div>
+          <button
+            className="sculpt-mode"
+            aria-label="Sculpter au geste"
+            aria-pressed={mode === "sculpt"}
+            onClick={() => chooseCamera("sculpt")}
+          >
+            ⌁
+          </button>
+          {twigs.snapshot.ambience?.loaded && (
+            <label className="mood-volume">
+              Volume
+              <input
+                aria-label="Volume musical"
+                type="range"
+                min="0"
+                max="1"
+                step=".01"
+                value={twigs.snapshot.ambience.volume ?? 0.45}
+                onChange={(event) =>
+                  twigs.bank.current.setAmbienceVolume(event.target.value)
+                }
+              />
+            </label>
+          )}
+        </>
       )}
       <CameraViews
         disabled={videoBusy || photoBusy}

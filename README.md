@@ -1,12 +1,14 @@
-# ÉCHO & HYPNOS •° — Paysage aquarelle
+# OIZO •° — ÉchoMood
 
-Un oizo sculpte un paysage abstrait en trois dimensions, sur un fond blanc cassé, accompagné par un **MP3 importé depuis votre appareil**. La musique anime les matières ; aucune composition musicale n’est générée dans le parcours actif.
+**1 à 3 emojis → un univers pictural et musical → cinq brosses → votre OIZO.**
 
-Six brosses composent la palette : **Lavis, Brosse sèche, Encre fine, Éclaboussures, Diffusion et Tampons**. Un appui long ouvre un éditeur local : couleur, taille, opacité et import de texture alpha. Les changements concernent les prochains dépôts et restent dans la session. Glisser doucement guide le vol ; maintenir le canevas fait peindre l’oizo, jamais le doigt.
+Choisissez parmi 28 inspirations, puis « Faire éclore mon OIZO ». Souffle, Plume, Battement, Éclosion et Envol composent un kit dont les couleurs, textures, mouvements et réponses musicales varient avec la combinaison. Les emojis inspirent la création ; ils ne sont ni un diagnostic ni des éléments décoratifs de la scène.
 
-La caméra FPV suit l’oiseau à environ **6,5 unités** par défaut, avec un grand angle de 86° et une visée centrée sur l’oizo. Le bouton **Vue globale 360°** remplace le zoom : il cadre toute l’œuvre vivante et permet sa rotation ; un second appui revient au mode FPV ou gyro précédent. La contemplation gyro 360°, le cadrage photo, le PNG HD et la vidéodio FPV avec audio sont conservés. Les dépôts dansent avec des enveloppes musicales locales sur six bandes de fréquences : vagues souples, dérive et déformations lentes. Le pilotage infléchit directement un vol orbital autour du centre ; les rubans sont interpolés et leurs extrémités adoucies. Le bouton musical permet de suspendre l’ambiance. En FPV ou gyro, « Photographier la vue actuelle » télécharge un instantané PNG HD sans changer de vue.
+Sculptez directement au doigt ou à la souris dans un espace en trois dimensions, puis contemplez la matière vivante en vue globale ou gyro. Le vol de l’oizo et son sillage restent accessibles en FPV. L’éditeur de brosse par appui long, le PNG HD et la vidéodio FPV sont conservés.
 
-Voir [l’architecture, les vérifications et les limites](docs/simple-watercolor-landscape.md). Les documents des anciennes versions décrivent des fonctionnalités historiques, parfois retirées du parcours actif.
+La musique utilise les MP3 présents dans `public/ambiances`, découverts au démarrage de Vite et au build. Le dépôt contient actuellement **une seule composition** : toutes les combinaisons la partagent jusqu’à l’ajout d’autres ambiances. Les fragments vocaux sont exclus de ce catalogue. Lecture, volume et import personnel restent disponibles ; l’expérience fonctionne silencieusement si la musique est indisponible. Aucun son synthétique ni service externe n’est ajouté.
+
+Voir [l’architecture, le fonctionnement et les limites](docs/echo-mood.md). L’atelier précédent reste accessible à `/?classic=1`, et l’atelier MP3 historique à `/?atelier=mp3`.
 
 ## Développement
 
@@ -30,7 +32,7 @@ Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend n
 
 ```sh
 npx playwright install chromium
-npm test -- tests/fluid-resonance.spec.js tests/centered-flight-editor.spec.js tests/simple-landscape.spec.js tests/pictorial-flow.spec.js tests/mobile-living-brushes.spec.js tests/living-flight.spec.js tests/oizo-sunset-story.spec.js tests/oizo-twilight.spec.js
+npm test -- tests/echo-mood.spec.js tests/centered-flight-editor.spec.js tests/tail-wake.spec.js tests/drone-dialogue.spec.js tests/fluid-resonance.spec.js tests/simple-landscape.spec.js tests/living-flight.spec.js tests/pictorial-flow.spec.js tests/mobile-living-brushes.spec.js tests/oizo-sunset-story.spec.js tests/oizo-twilight.spec.js
 ```
 
 L’ancien atelier MP3 reste disponible à `/?atelier=mp3`. Ses fonctions et les modules musicaux historiques ne définissent pas le parcours principal.
