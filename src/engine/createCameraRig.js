@@ -61,7 +61,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   }
   listen(canvas, "pointerdown", (event) => {
     if (mode === "drone" && getFlight().windEnabled) return;
-    if (mode === "photo") {
+    if (mode === "photo" || mode === "global") {
       photoPointers.set(event.pointerId, {
         x: event.clientX,
         y: event.clientY,
@@ -74,14 +74,18 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     }
     if (!event.isPrimary || event.button > 0) return;
     dragging = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    if (mode === "photo") localPivot.copy(getFlight().bounds.center);
+    if (mode === "photo" || mode === "global")
+      localPivot.copy(getFlight().bounds.center);
     else localPivot.set(0, 0, 0);
     landscape.updateMatrixWorld(true);
     worldPivot.copy(localPivot).applyMatrix4(landscape.matrixWorld);
     canvas.setPointerCapture(event.pointerId);
   });
   listen(canvas, "pointermove", (event) => {
-    if (mode === "photo" && photoPointers.has(event.pointerId)) {
+    if (
+      (mode === "photo" || mode === "global") &&
+      photoPointers.has(event.pointerId)
+    ) {
       photoPointers.set(event.pointerId, {
         x: event.clientX,
         y: event.clientY,
@@ -102,9 +106,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (!dragging || event.pointerId !== dragging.id) return;
     const dx = event.clientX - dragging.x;
     const dy = event.clientY - dragging.y;
-    if (dx !== 0 || (mode === "photo" && dy !== 0)) {
+    if (dx !== 0 || ((mode === "photo" || mode === "global") && dy !== 0)) {
       landscape.rotation.y += dx * 0.006;
-      if (mode === "photo") landscape.rotation.x += dy * 0.006;
+      if (mode === "photo" || mode === "global")
+        landscape.rotation.x += dy * 0.006;
       landscape.position
         .copy(worldPivot)
         .sub(localPivot.clone().applyQuaternion(landscape.quaternion));
@@ -126,7 +131,11 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   const release = (event) => {
     photoPointers.delete(event.pointerId);
     pinchDistance = 0;
-    if (dragging && mode === "photo" && photoPointers.has(dragging.id)) {
+    if (
+      dragging &&
+      (mode === "photo" || mode === "global") &&
+      photoPointers.has(dragging.id)
+    ) {
       const position = photoPointers.get(dragging.id);
       dragging.x = position.x;
       dragging.y = position.y;
@@ -170,7 +179,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   async function setMode(next) {
     const request = ++sensorRequest;
     mode = next;
-    if (next === "photo") setPhotoZoom(1);
+    if (next === "photo" || next === "global") setPhotoZoom(1);
     photoPointers.clear();
     dragging = null;
     reanchor();
@@ -183,7 +192,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           ? getFlight().windEnabled
             ? "Glisser pour guider · maintenir pour tracer"
             : "Dans le sillage du pinceau · voyage en 3D"
-          : "La sculpture dans son ensemble",
+          : next === "global"
+            ? "Vue globale · glisser pour faire pivoter l’œuvre à 360°"
+            : "La sculpture dans son ensemble",
       );
       return;
     }
@@ -233,7 +244,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     direction.copy(state.direction).transformDirection(landscape.matrixWorld);
     velocity.copy(state.velocity).applyQuaternion(landscape.quaternion);
     center.copy(state.bounds.center).applyMatrix4(landscape.matrixWorld);
-    if (mode === "photo") {
+    if (mode === "photo" || mode === "global") {
       const halfFov = Math.atan(
         Math.tan(THREE.MathUtils.degToRad(37)) * Math.min(1, camera.aspect),
       );
@@ -272,7 +283,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       // Fixed close framing. Only the visitor's zoom can move toward an overview.
       follow
         .copy(painter)
-        .addScaledVector(direction, -3)
+        .addScaledVector(direction, -6.5)
         .addScaledVector(lateral, 0.5)
         .addScaledVector(up, 0.42);
       const halfFov = Math.atan(
@@ -285,7 +296,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           Math.max(15, (state.bounds.radius * 1.2) / Math.sin(halfFov)),
         );
       desired.copy(follow).lerp(overview, distanceSetting);
-      focus.copy(painter).addScaledVector(direction, 4.5);
+      focus.copy(painter);
       target.copy(focus).lerp(center, distanceSetting);
       const turn =
         previousHeading.lengthSq() > 0
@@ -295,11 +306,12 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         (THREE.MathUtils.clamp(turn * 0.12, -0.16, 0.16) - cameraBank) *
         mix(2.2);
       previousHeading.copy(direction);
-      canvas.dataset.fpvFollowDistance = "3";
+      canvas.dataset.fpvFollowDistance = "6.5";
     }
     const positionBlend = mix(mode === "drone" ? 4.2 : 2.8);
     camera.position.lerp(desired, positionBlend);
-    aim.lerp(target, mix(mode === "drone" ? 4 : 3.5));
+    if (mode === "drone") aim.copy(target);
+    else aim.lerp(target, mix(3.5));
     horizonUp.copy(up);
     if (mode === "drone")
       horizonUp
@@ -308,8 +320,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     matrix.lookAt(camera.position, aim, horizonUp);
     desiredQuaternion.setFromRotationMatrix(matrix);
     if (mode === "gyro") desiredQuaternion.multiply(gyroRelative);
-    camera.quaternion.slerp(desiredQuaternion, mix(mode === "drone" ? 4 : 5));
-    const fov = mode === "gyro" ? 92 + distanceSetting * 20 : 78;
+    if (mode === "drone") camera.quaternion.copy(desiredQuaternion);
+    else camera.quaternion.slerp(desiredQuaternion, mix(5));
+    const fov = mode === "gyro" ? 92 + distanceSetting * 20 : 86;
     camera.fov += (fov - camera.fov) * mix(1.4);
     camera.far = Math.max(
       400,

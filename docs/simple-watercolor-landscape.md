@@ -2,9 +2,9 @@
 
 ## Palette et fond
 
-Le parcours principal présente huit matières abstraites : Lavis, Brosse sèche, Encre fine, Taches, Éclaboussures, Calligraphie, Diffusion et Tampons. `landscapePalette` définit leurs couleurs, épaisseurs et textures. Les familles existantes sont réutilisées ; Tampons utilise les dépôts plans des taches avec une matière colorée, sans silhouette végétale. Le masque sec ajoute des réserves anisotropes et un grain de papier. Les shaders ajoutent le détail fin et la diffusion.
+Le parcours principal présente six matières abstraites : Lavis, Brosse sèche, Encre fine, Éclaboussures, Diffusion et Tampons. `landscapePalette` définit leurs couleurs, épaisseurs et textures. Les familles existantes sont réutilisées ; Tampons utilise les dépôts plans des taches avec une matière colorée, sans silhouette végétale. Le masque sec ajoute des réserves anisotropes et un grain de papier. Les shaders ajoutent le détail fin et la diffusion.
 
-Le fond est le papier uniforme `#f4f0e8`. Le skydome crépusculaire n’est plus instancié ni chargé par ce moteur. Les surprises décoratives ne sont plus appliquées aux dépôts. Le générateur de brosses reste absent de l’interface.
+Le fond est le papier uniforme `#f4f0e8`. Le skydome crépusculaire n’est plus instancié ni chargé par ce moteur. Les surprises décoratives ne sont plus appliquées aux dépôts. Un appui long (ou F2 / Majuscule + Entrée) ouvre un éditeur : couleur, taille, opacité et masque alpha local. Les réglages affectent les nouveaux dépôts ; les précédents conservent leur apparence. Les textures remplacées restent référencées tant que des dépôts les utilisent, puis sont libérées. La remise à zéro et le démontage libèrent aussi ces références. Les réglages sont propres à la session.
 
 ## Évolution de la matière
 
@@ -22,12 +22,22 @@ La pause manuelle est respectée en changeant de vue. La pause temporaire de cad
 
 ## Regard et photographie
 
-La FPV conserve sa distance par défaut de trois unités et le pilotage doux. À l’entrée en gyro, le regard s’oriente vers le centre de la matière existante, avec son élévation, avant de laisser le visiteur explorer. Il ne suit pas ensuite automatiquement les déplacements des dépôts.
+La FPV suit à 6,5 unités par défaut, avec un grand angle de 86°. La position amortie de la caméra accompagne le vol, tandis que la visée cible exactement la position courante de l’oizo. Le bouton Vue globale 360° remplace les commandes de zoom. Cette vue cadre la sculpture entière et accepte la rotation horizontale et verticale sans suspendre la matière ni le son. Un second appui restaure le mode FPV ou gyro précédent. À l’entrée en gyro, le regard s’oriente vers le centre de la matière existante, avec son élévation, avant de laisser le visiteur explorer. Il ne suit pas ensuite automatiquement les déplacements des dépôts.
 
 « Photographier la vue actuelle » utilise l’export PNG existant, jusqu’à 2560 pixels sur le grand côté. Il capture le regard courant sans changer de mode ni couper la musique ; aucune interface n’est incluse. Le mode de cadrage Photo et la vidéodio sont conservés.
 
 ## Contrôles et limites
 
-Les tests ciblés couvrent le MP3 effectivement importé, son énergie mesurée, ses pauses/reprises, les huit matières avec leurs masques, la réponse graphique à la musique, la dérive bornée et continue à 30/60 Hz simulés, la pause des forces, les réserves des textures, le PNG HD téléchargé depuis le gyro, la caméra et le budget mobile. Les références au coucher de soleil restantes sont des modules historiques et des tests unitaires isolés, sans effet sur le parcours actif.
+Les tests ciblés couvrent le MP3 effectivement importé, son énergie mesurée, ses pauses/reprises, les six matières avec leurs masques, la réponse graphique à la musique, la dérive bornée et continue à 30/60 Hz simulés, la pause des forces, les réserves des textures, le PNG HD téléchargé depuis le gyro, la caméra et le budget mobile. Les références au coucher de soleil restantes sont des modules historiques et des tests unitaires isolés, sans effet sur le parcours actif.
 
 Le champ est une simulation artistique légère, sans collisions entre fluides ni simulation physique de pigments. L’écoute et la cadence sur téléphone physique, les permissions des capteurs et tous les codecs vidéo restent à vérifier. Les tests de navigateur utilisent Chromium avec rendu WebGL logiciel.
+
+## Éditeur et rig
+
+Les images alpha sont décodées sur l’appareil, limitées à 8 Mo et réduites à 256 pixels sur mobile ou 512 sur ordinateur. Une image transparente conserve son alpha ; une image opaque devient un masque où les zones sombres déposent le pigment. Aucun téléversement. La texture d’origine peut être rétablie.
+
+Les ailes conservent leur squelette à trois articulations pondérées. L’attitude utilise le cap et la pente du vol, amortis, avec une inclinaison latérale dans les virages. Les montées sollicitent les battements ; les plongées réduisent leur amplitude et replient les extrémités. La silhouette reste un petit V stylisé. Ce rig évoque une dynamique de vol et ne constitue pas une simulation aérodynamique.
+
+## Validation de cette évolution
+
+18 tests Chromium ciblés exécutés avec succès, ainsi que le build de production, Prettier et `git diff --check`. Ils couvrent notamment le centrage projeté de l’oizo pendant un vol mobile, le cadrage global et son retour vers FPV/gyro, l’ouverture tactile de l’éditeur, la conservation des réglages, l’import d’alpha réel, la libération des textures remplacées, les attitudes de montée/plongée et les deux sens de virage, puis les régressions audio, matières, capture et budget mobile. Les captures ont été inspectées. Ces contrôles ne remplacent pas une validation sur téléphone physique.

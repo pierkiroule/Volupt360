@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
-test("mobile landscape has eight fixed brushes, MP3 reaction and no generators loaded", async ({
+test("mobile landscape has six editable brushes, MP3 reaction and no generators loaded", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -26,7 +26,7 @@ test("mobile landscape has eight fixed brushes, MP3 reaction and no generators l
   ).toBeVisible();
   const brushes = page.locator(".landscape-palette button"),
     canvas = page.locator("#stage canvas");
-  await expect(brushes).toHaveCount(8);
+  await expect(brushes).toHaveCount(6);
   await expect(
     page.getByRole("button", { name: "Créer une brosse", exact: true }),
   ).toHaveCount(0);
@@ -36,14 +36,12 @@ test("mobile landscape has eight fixed brushes, MP3 reaction and no generators l
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-music-energy")))
     .toBeGreaterThan(0.01);
-  await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "3");
+  await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "6.5");
   for (const name of [
     "Lavis",
     "Brosse sèche",
     "Encre fine",
-    "Taches",
     "Éclaboussures",
-    "Calligraphie",
     "Diffusion",
     "Tampons",
   ]) {
@@ -58,7 +56,7 @@ test("mobile landscape has eight fixed brushes, MP3 reaction and no generators l
   }
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(8);
+    .toBeGreaterThan(6);
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-matter-drift")))
     .toBeGreaterThan(0.01);

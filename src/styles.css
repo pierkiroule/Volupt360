@@ -1233,44 +1233,6 @@ label:focus-visible {
   margin-top: 3px;
 }
 
-.camera-zoom {
-  position: fixed;
-  z-index: 6;
-  right: max(14px, env(safe-area-inset-right));
-  bottom: calc(90px + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: center;
-  opacity: 0.7;
-  color: #343039;
-}
-.camera-zoom > span {
-  font-size: 10px;
-  letter-spacing: 0.04em;
-}
-.camera-zoom > div {
-  display: flex;
-  gap: 4px;
-}
-.camera-zoom button {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: 10px;
-  border: 1px solid #bcb5ac70;
-  background: #faf7efc9;
-  color: inherit;
-  font-size: 20px;
-}
-.camera-zoom button:disabled {
-  opacity: 0.35;
-}
-.camera-zoom:focus-within,
-.camera-zoom:hover {
-  opacity: 1;
-}
-
 .universe-change {
   position: fixed;
   z-index: 5;
@@ -1635,4 +1597,100 @@ label:focus-visible {
   background: rgba(250, 247, 239, 0.82);
   color: #38514e;
   font-size: 1.3rem;
+}
+
+.global-view-toggle {
+  position: fixed;
+  z-index: 20;
+  bottom: max(1.2rem, env(safe-area-inset-bottom));
+  right: 0.8rem;
+  width: 3.3rem;
+  min-height: 3.3rem;
+  display: grid;
+  place-content: center;
+  border: 1px solid #ced5ce;
+  border-radius: 0.8rem;
+  background: rgba(250, 247, 239, 0.88);
+  color: #38514e;
+}
+.global-view-toggle span {
+  font-size: 1.4rem;
+}
+.global-view-toggle small {
+  font-size: 0.6rem;
+}
+.global-view-toggle[aria-pressed="true"] {
+  background: #456961;
+  color: #fff;
+}
+.landscape-palette button {
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.brush-editor {
+  width: min(90vw, 25rem);
+  max-height: 85dvh;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 1.2rem;
+  border: 1px solid #c7d0c7;
+  border-radius: 1rem;
+  color: #38514e;
+  background: #f4f0e8;
+}
+.brush-editor::backdrop {
+  background: rgba(29, 43, 40, 0.25);
+}
+.brush-editor h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.7rem;
+}
+.brush-editor p,
+.brush-editor small {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.brush-editor label {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+.brush-editor input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+}
+.brush-editor input[type="color"] {
+  margin-left: auto;
+  width: 4rem;
+  height: 2.5rem;
+}
+.brush-editor .alpha-import {
+  display: block;
+}
+.alpha-import input {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.6rem;
+}
+.brush-editor button {
+  min-height: 44px;
+  border: 1px solid #c7d0c7;
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  background: #faf7ef;
+  color: #38514e;
+}
+.brush-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.brush-editor-actions button:last-child {
+  background: #456961;
+  color: white;
 }

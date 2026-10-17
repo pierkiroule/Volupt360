@@ -373,9 +373,10 @@ export function createBrushStroke(
             ),
           );
           const scale =
-            0.6 +
-            sample.energy * 1.4 +
-            Math.sin(seed + count * 0.67 + layer) ** 2;
+            (0.6 +
+              sample.energy * 1.4 +
+              Math.sin(seed + count * 0.67 + layer) ** 2) *
+            (dynamics?.width || 1);
           mesh.scale.set(
             isMist
               ? scale * 1.6

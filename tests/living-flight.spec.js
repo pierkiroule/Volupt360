@@ -45,13 +45,13 @@ test("FPV stays close through silence and growing bounds, with manual zoom still
     rig.dispose();
     return { near, quiet, manual, fov, quietFov };
   });
-  expect(result.near).toBeLessThan(3.3);
+  expect(result.near).toBeLessThan(7);
   expect(result.quiet).toBeCloseTo(result.near, 2);
   expect(result.quietFov).toBeCloseTo(result.fov, 2);
   expect(result.manual).toBeGreaterThan(30);
 });
 
-test("the eight landscape brushes render evolving and music-reactive matter without WebGL errors", async ({
+test("the six landscape brushes render evolving and music-reactive matter without WebGL errors", async ({
   page,
 }) => {
   const errors = [];
@@ -151,7 +151,7 @@ test("the eight landscape brushes render evolving and music-reactive matter with
     renderer.forceContextLoss();
     return results;
   });
-  expect(results).toHaveLength(8);
+  expect(results).toHaveLength(6);
   for (const result of results) {
     expect(result.sound, `${result.id}: musical resonance`).toBeGreaterThan(0);
     expect(result.evolution, `${result.id}: evolution`).toBeGreaterThan(0);
