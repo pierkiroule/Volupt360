@@ -2,7 +2,7 @@ uniform float uAudioEnergy,uAudioLow,uAudioPulse;
 uniform sampler2D uBrushMask;
 uniform float uPhotograph;
 uniform float uHasMask,uMaskAspect,uMaskRepeat;
-uniform float uAge,uSurprise;
+uniform float uAge,uSurprise,uStrokeExtent;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
 float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -124,6 +124,12 @@ if(uHasMask>.5){
 col*=1.-uAudioLow*.16;
 col=mix(col,base,.12*uAudioPulse);
 alpha*=.8+uAudioEnergy*.42+uAudioPulse*.22;
+if(uStrokeExtent>0.){
+  float cap=min(.035,uStrokeExtent*.35);
+  float endDistance=min(vUv.y,uStrokeExtent-vUv.y)/max(.0001,cap);
+  float roundness=1.-clamp(endDistance,0.,1.);
+  alpha*=smoothstep(0.,.75,endDistance)*(1.-smoothstep(.75,1.08,across+roundness*.55));
+}
 if(alpha<.012)discard;
 gl_FragColor=vec4(col,alpha);
 #include <colorspace_fragment>

@@ -158,7 +158,10 @@ test("contemplative steering bends gently without jumps or reversed controls", a
       }
       if (i === 60)
         delta = pose.position.clone().sub(baseline.position).toArray();
-      previous = pose;
+      previous = {
+        position: pose.position.clone(),
+        direction: pose.direction.clone(),
+      };
     }
     return { maxStep, maxAngle, delta };
   });

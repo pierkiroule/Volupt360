@@ -1,5 +1,6 @@
 import { createRenderBudget } from "./createRenderBudget.js";
 import { loadAlphaTexture } from "./loadAlphaTexture.js";
+import { createMaterialResponse } from "./createMaterialResponse.js";
 import { createPictorialFlow } from "./createPictorialFlow.js";
 import { createWatercolorTexture } from "./createWatercolorTexture.js";
 import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
@@ -219,6 +220,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           ? 0.85
           : 0.15,
       opening: region.opening,
+      respond: createMaterialResponse(id, serial),
       uniforms: [],
       uniformStamp: -1,
       life: generated?.life || "Fluide",
@@ -284,10 +286,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     boundsDirty = true;
   }
   function isActive(mark) {
-    return (
-      mark === activeStroke ||
-      [...padStates.values()].some((state) => state.mark === mark)
-    );
+    if (mark === activeStroke) return true;
+    for (const state of padStates.values())
+      if (state.mark === mark) return true;
+    return false;
   }
   function feedPad(id, pose) {
     if (!BRUSHES.some((item) => item.id === id)) return;
@@ -656,19 +658,20 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const visual = padSource?.getVisualFeatures?.() || f || {};
       let drift = 0;
       for (const mark of marks) {
+        const local = mark.respond(visual, dt);
         drift = Math.max(
           drift,
-          pictorialFlow.update(mark, dt, visual, lifeTime, isActive(mark)),
+          pictorialFlow.update(mark, dt, local, lifeTime, isActive(mark)),
         );
         const resonance = padSource?.getTraceResonance?.(mark.traceId) || 0;
         const response =
           resonance > 0
             ? {
-                ...visual,
-                energy: Math.min(1, (visual.energy || 0) + resonance * 0.35),
-                pulse: Math.min(1, (visual.pulse || 0) + resonance * 0.55),
+                ...local,
+                energy: Math.min(1, local.energy + resonance * 0.35),
+                pulse: Math.min(1, local.pulse + resonance * 0.55),
               }
-            : visual;
+            : local;
         const suspended = mark.life === "Suspendue",
           vibrant = mark.life === "Vibrante";
         const speed = suspended ? 0.55 : vibrant ? 1.3 : 0.85;
@@ -678,9 +681,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           if (uniforms.uTime) uniforms.uTime.value = lifeTime * speed;
           if (uniforms.uPigment)
             uniforms.uPigment.value =
-              1.05 +
-              (response.energy || 0) * 1.05 +
-              (response.pulse || 0) * 0.65;
+              1.12 +
+              (response.energy || 0) * 0.65 +
+              (response.pulse || 0) * 0.25;
           if (uniforms.uAudioEnergy)
             uniforms.uAudioEnergy.value = Math.min(
               1,

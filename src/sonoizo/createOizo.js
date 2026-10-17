@@ -33,7 +33,7 @@ export function createOizo() {
     for (let i = 0; i <= 16; i++) {
       const x = (i / 16) * 0.52;
       const center = 0.12 - x * 0.64 + Math.sin((i / 16) * Math.PI) * 0.045;
-      const width = 0.014 + 0.09 * Math.pow(Math.sin((i / 16) * Math.PI), 0.7);
+      const width = 0.018 + 0.12 * Math.pow(Math.sin((i / 16) * Math.PI), 0.7);
       const joint = x < spans[1] ? 0 : 1;
       const blend = THREE.MathUtils.smoothstep(
         x,
@@ -43,7 +43,7 @@ export function createOizo() {
       for (let edge = 0; edge < 2; edge++) {
         positions.push(
           side * x,
-          Math.sin((i / 16) * Math.PI) * 0.018,
+          Math.sin((i / 16) * Math.PI) * 0.035,
           center + (edge ? -1 : 1) * width * 0.5,
         );
         indices.push(joint, joint + 1, 0, 0);
@@ -148,8 +148,9 @@ export function createOizo() {
       body.rotation.z = bank;
       for (const { bones, side } of wings) {
         bones[0].rotation.z =
-          side * (0.13 + lift - dive * 0.07 + Math.sin(phase) * amplitude) +
+          side * (0.18 + lift - dive * 0.07 + Math.sin(phase) * amplitude) +
           bank * 0.1;
+        bones[0].rotation.y = side * (dive * 0.07 + Math.min(0.4, turn) * 0.06);
         bones[1].rotation.z =
           side *
           (0.045 + dive * 0.18 + Math.sin(phase - 0.48) * amplitude * 0.65);

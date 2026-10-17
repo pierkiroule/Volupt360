@@ -21,11 +21,12 @@ export function createPictorialFlow() {
           offset: new THREE.Vector3(),
           velocity: new THREE.Vector3(),
           emergence: 0,
+          breath: 0,
         };
         states.set(mark, state);
       }
       const p = state.phase,
-        t = time * 0.085;
+        t = time * 0.16;
       const energy = THREE.MathUtils.clamp(audio.energy || 0, 0, 1);
       const low = THREE.MathUtils.clamp(audio.low || 0, 0, 1);
       // A slow, moving attractor and a curl-like field; no beat-driven jumps.
@@ -43,16 +44,25 @@ export function createPictorialFlow() {
         .multiplyScalar(Math.exp(-dt * 0.85));
       state.offset.addScaledVector(state.velocity, dt).clampLength(0, 3.5);
       state.emergence += (1 - state.emergence) * (1 - Math.exp(-dt * 0.35));
-      const turn = (0.04 + energy * 0.055) * state.emergence;
+      state.breath += (energy - state.breath) * (1 - Math.exp(-dt * 2.5));
+      const turn = (0.07 + state.breath * 0.24) * state.emergence;
       rotation.set(
         Math.sin(t * 0.8 + p) * turn,
         Math.sin(t * 0.6 + p * 1.4) * turn,
         Math.cos(t * 0.7 + p) * turn,
       );
       mark.object.quaternion.setFromEuler(rotation);
+      const stretch =
+        1 + state.emergence * state.breath * 0.09 * Math.sin(t * 1.8 + p);
+      mark.object.scale.set(
+        stretch,
+        1 + state.emergence * state.breath * 0.07 * Math.cos(t * 1.4 + p),
+        1 / stretch,
+      );
       // Rotate about this deposit's own centre, never the scene origin.
       mark.object.position
         .copy(state.center)
+        .multiply(mark.object.scale)
         .applyQuaternion(mark.object.quaternion)
         .negate()
         .add(state.center)
