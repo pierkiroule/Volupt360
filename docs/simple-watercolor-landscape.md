@@ -22,7 +22,7 @@ La pause manuelle est respectée en changeant de vue. La pause temporaire de cad
 
 ## Regard et photographie
 
-La FPV suit à 6,5 unités par défaut, avec un grand angle de 86°. La position amortie de la caméra accompagne le vol, tandis que la visée cible exactement la position courante de l’oizo. Le bouton Vue globale 360° remplace les commandes de zoom. Cette vue cadre la sculpture entière et accepte la rotation horizontale et verticale sans suspendre la matière ni le son. Un second appui restaure le mode FPV ou gyro précédent. À l’entrée en gyro, le regard s’oriente vers le centre de la matière existante, avec son élévation, avant de laisser le visiteur explorer. Il ne suit pas ensuite automatiquement les déplacements des dépôts.
+La FPV accompagne le vol avec une distance modulée autour de 6 à 8 unités et un grand angle de 86 à 88°. Un léger décentrage garde l’oizo proche du centre tout en ouvrant le cadre devant son mouvement. Le bouton Vue globale 360° remplace les commandes de zoom. Cette vue cadre la sculpture entière et accepte la rotation horizontale et verticale sans suspendre la matière ni le son. Un second appui restaure le mode FPV ou gyro précédent. À l’entrée en gyro, le regard s’oriente vers le centre de la matière existante, avec son élévation, avant de laisser le visiteur explorer. Il ne suit pas ensuite automatiquement les déplacements des dépôts.
 
 « Photographier la vue actuelle » utilise l’export PNG existant, jusqu’à 2560 pixels sur le grand côté. Il capture le regard courant sans changer de mode ni couper la musique ; aucune interface n’est incluse. Le mode de cadrage Photo et la vidéodio sont conservés.
 
@@ -57,3 +57,9 @@ Les buffers n’envoient au GPU que les nouvelles rangées de sommets. Les vecte
 Les tests supplémentaires utilisent des signaux Web Audio réels grave/aigu, des réponses locales indépendantes, des simulations orbitales de 90 secondes à 30/60 Hz et une sculpture MP3 avec les six matières. La fluidité sur téléphone physique n’est pas déduite du rendu logiciel de Chromium.
 
 Validation de la résonance orbitale : 21 tests distincts exécutés avec succès (suite de 20 contrôles puis les trois contrôles de résonance, incluant la nouvelle sculpture prolongée). Build de production, formatage et contrôle de diff réussis. Les captures de la sculpture MP3 en vue globale et gyro ont été inspectées ; aucune erreur JavaScript/WebGL relevée dans ce parcours. La qualité artistique reste à apprécier dans la pratique et aucune cadence sur téléphone physique n’est revendiquée.
+
+## Dialogue du drone avec le vol
+
+`createDroneChoreography` reçoit la direction et la vitesse réelles du vol. La courbure horizontale, la pente et la vitesse sont filtrées avant d’influencer le recul, le décalage latéral, la hauteur, l’anticipation du regard et une légère inclinaison du cadre. Les transitions utilisent des amortissements exponentiels indépendants de la cadence. La distance reste proche de l’oizo ; la taille de l’œuvre et le volume sonore ne déclenchent aucun recul automatique.
+
+Le module réutilise ses vecteurs et son état, sans allocation par image. Le cadrage se décale légèrement et reste dirigé près de l’oizo, tandis que la position de caméra possède sa propre inertie. Le retour depuis les vues globale, photo et gyro réinitialise la mesure du changement de cap pour éviter une fausse impulsion. Les fonctions des autres vues sont conservées.

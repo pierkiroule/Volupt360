@@ -36,7 +36,12 @@ test("mobile landscape has six editable brushes, MP3 reaction and no generators 
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-music-energy")))
     .toBeGreaterThan(0.01);
-  await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "6.5");
+  await expect
+    .poll(async () =>
+      Number(await canvas.getAttribute("data-fpv-follow-distance")),
+    )
+    .toBeGreaterThan(6);
+  await expect(canvas).toHaveAttribute("data-drone-intent", "flight-dialogue");
   for (const name of [
     "Lavis",
     "Brosse sèche",

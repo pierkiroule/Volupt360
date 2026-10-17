@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("FPV keeps the moving bird exactly centred with a wider, more distant view", async ({
+test("FPV drone keeps the moving bird within a gentle off-centre composition", async ({
   page,
 }) => {
   await page.goto("/");
@@ -58,9 +58,11 @@ test("FPV keeps the moving bird exactly centred with a wider, more distant view"
       globalFits: Math.abs(point.x) < 1 && Math.abs(point.y) < 1,
     };
   });
-  expect(result.error).toBeLessThan(0.00001);
+  expect(result.error).toBeLessThan(0.2);
+  expect(result.error).toBeGreaterThan(0.005);
   expect(result.distance).toBeGreaterThan(5);
-  expect(result.fov).toBeCloseTo(86, 1);
+  expect(result.fov).toBeGreaterThanOrEqual(86);
+  expect(result.fov).toBeLessThanOrEqual(88);
   expect(result.globalFits).toBe(true);
 });
 
