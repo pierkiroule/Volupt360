@@ -1,15 +1,15 @@
 import { test, expect } from "@playwright/test";
 
-test("24 voice passages require real aperture crossing and respect silence", async ({
+test("24 floating bubbles require real volume entry and respect silence", async ({
   page,
 }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
-    const { createVocalRings } =
-      await import("/src/sonoizo/createVocalRings.js");
+    const { createVocalBubbles } =
+      await import("/src/sonoizo/createVocalBubbles.js");
     let calls = 0;
-    const rings = createVocalRings({
+    const rings = createVocalBubbles({
       fragments: Array.from({ length: 24 }, (_, i) => ({
         id: `firefly-${i + 1}`,
       })),
@@ -21,14 +21,14 @@ test("24 voice passages require real aperture crossing and respect silence", asy
     const first = rings.group.children[0],
       normal = new THREE.Vector3(0, 0, 1).applyQuaternion(first.quaternion);
     const pose = {
-      position: first.position.clone().addScaledVector(normal, 1),
+      position: first.position.clone().addScaledVector(normal, 4),
     };
     rings.update(0.016, pose);
-    pose.position.copy(first.position).addScaledVector(normal, -1);
+    pose.position.copy(first.position).addScaledVector(normal, -4);
     rings.update(0.016, pose);
     await new Promise((resolve) => setTimeout(resolve, 0));
     const count = rings.collisionCount;
-    pose.position.copy(first.position).addScaledVector(normal, 1);
+    pose.position.copy(first.position).addScaledVector(normal, 4);
     rings.update(0.016, pose);
     await new Promise((resolve) => setTimeout(resolve, 0));
     const actualCalls = calls;

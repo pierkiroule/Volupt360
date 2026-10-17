@@ -9,7 +9,7 @@ import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
 import { createTraceMemory } from "../sonoizo/TraceMemory.js";
 import { createTraceEncounter } from "../sonoizo/TraceEncounter.js";
 import { createTraceDebug } from "../sonoizo/createTraceDebug.js";
-import { createVocalRings } from "../sonoizo/createVocalRings.js";
+import { createVocalBubbles } from "../sonoizo/createVocalBubbles.js";
 import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
@@ -748,7 +748,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           ? padSource.getFragments?.() || []
           : null;
         if (!vocalFireflies && fragments?.length) {
-          vocalFireflies = createVocalRings({
+          vocalFireflies = createVocalBubbles({
             fragments,
             collide: (id) => padSource.collide(id),
           });
