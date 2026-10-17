@@ -252,7 +252,10 @@ export function createTwigBank({
       source.buffer = buffers.get(id);
       source.loop = loop || Boolean(owner?.looping);
       gain.gain.setValueAtTime(0, audio.currentTime);
-      gain.gain.linearRampToValueAtTime(1, audio.currentTime + 0.006);
+      gain.gain.linearRampToValueAtTime(
+        1,
+        audio.currentTime + (exclusive ? 0.08 : 0.006),
+      );
       const analyser = audio.createAnalyser();
       analyser.fftSize = 2048;
       const graph = {

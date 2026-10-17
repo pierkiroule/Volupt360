@@ -7,8 +7,9 @@ export default function ArtisticIntroduction() {
       <span className="artistic-eyebrow">L’histoire de l’oizo</span>
       <h2 id="artistic-intention">Sculpter les matières du monde</h2>
       <p className="artistic-lead">
-        Un petit oizo traverse un papier sans horizon. Il dépose des pigments,
-        des lavis secs et des encres fines dans un espace en trois dimensions.
+        Un petit oizo traverse un ciel de papier inspiré par votre ÉchoMood. Il
+        dépose des pigments, des lavis secs et des encres fines dans un espace
+        en trois dimensions.
       </p>
       <h3>Cinq gestes, un univers</h3>
       <p>
@@ -22,6 +23,15 @@ export default function ArtisticIntroduction() {
         l’espace. La pression et la vitesse du geste participent au tracé. La
         musique anime les dépôts, qui poursuivent leur danse après le geste. La
         vue FPV permet aussi de guider l’oizo et de peindre depuis sa queue.
+      </p>
+      <h3>Traverser les voix</h3>
+      <p>
+        Vingt-quatre anneaux flottent dans le paysage comme des passages de
+        mémoire. En vol FPV, guidez l’oizo à travers leur ouverture : chacun
+        libère un fragment poétique enregistré. Une seule voix résonne à la
+        fois, avec des silences entre les rencontres. Le ciel se teinte des
+        couleurs de votre ÉchoMood, sans enfermer votre humeur dans un sens
+        imposé.
       </p>
       <h3>Une matière qui continue sa danse</h3>
       <p>

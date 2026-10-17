@@ -32,14 +32,47 @@ export function createMoodAtmosphere(universe, mobile) {
   });
   const object = new THREE.Points(geometry, material);
   object.frustumCulled = false;
+  const group = new THREE.Group();
+  const skyGeometry = new THREE.SphereGeometry(220, 32, 16);
+  const skyMaterial = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    uniforms: {
+      time: { value: 0 },
+      paper: { value: new THREE.Color(universe.background) },
+      sky: { value: new THREE.Color(universe.skyColor || universe.color) },
+      horizon: {
+        value: new THREE.Color(universe.horizonColor || universe.color),
+      },
+      fluidity: { value: universe.fluidity },
+    },
+    vertexShader: `varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader: `varying vec3 direction;uniform float time,fluidity;uniform vec3 paper,sky,horizon;
+      void main(){vec3 d=normalize(direction);float drift=time*.008;
+      float wash=sin(d.x*5.+sin(d.z*4.+drift)*1.2+d.y*3.)*.5+.5;
+      float grain=sin(d.x*171.+sin(d.z*137.))*sin(d.y*159.+d.z*91.);
+      float veil=smoothstep(.2,.9,wash)*(.12+fluidity*.08);
+      vec3 pigment=mix(horizon,sky,smoothstep(-.25,.8,d.y));
+      vec3 c=mix(paper,pigment,veil+exp(-abs(d.y)*4.)*.09+grain*.008);
+      gl_FragColor=vec4(c,1.);
+      #include <colorspace_fragment>
+      }`,
+  });
+  const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+  sky.renderOrder = -10;
+  sky.frustumCulled = false;
+  group.add(sky, object);
   return {
-    object,
+    object: group,
     update(time, audio) {
+      skyMaterial.uniforms.time.value = time * universe.speed;
       material.uniforms.time.value = time * universe.speed;
       material.uniforms.energy.value = audio.energy || 0;
     },
     dispose() {
-      object.removeFromParent();
+      group.removeFromParent();
+      skyGeometry.dispose();
+      skyMaterial.dispose();
       geometry.dispose();
       material.dispose();
     },

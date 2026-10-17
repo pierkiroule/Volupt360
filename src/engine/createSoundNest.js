@@ -9,7 +9,7 @@ import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
 import { createTraceMemory } from "../sonoizo/TraceMemory.js";
 import { createTraceEncounter } from "../sonoizo/TraceEncounter.js";
 import { createTraceDebug } from "../sonoizo/createTraceDebug.js";
-import { createVocalConstellation } from "../sonoizo/createVocalConstellation.js";
+import { createVocalRings } from "../sonoizo/createVocalRings.js";
 import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
@@ -744,21 +744,23 @@ export function createSoundNest(container, { onHint, onError } = {}) {
             );
           }
         }
-        const fragments =
-          !ENABLE_TRACE_MEMORY && !vocalFireflies
-            ? padSource.getFragments?.() || []
-            : null;
+        const fragments = !vocalFireflies
+          ? padSource.getFragments?.() || []
+          : null;
         if (!vocalFireflies && fragments?.length) {
-          vocalFireflies = createVocalConstellation({
+          vocalFireflies = createVocalRings({
             fragments,
             collide: (id) => padSource.collide(id),
-            getFeatures: () => padSource.getVisualFeatures(),
           });
           landscape.add(vocalFireflies.group);
         }
         if (vocalFireflies) {
           vocalFireflies.group.visible = true;
-          vocalFireflies.update(dt, pose, camera);
+          vocalFireflies.update(
+            dt,
+            pose,
+            !directSculpture && cameraMode === "drone",
+          );
           renderer.domElement.dataset.vocalFireflies = String(
             vocalFireflies.count,
           );
@@ -945,9 +947,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       renderer.domElement.dataset.traceCandidates = String(
         traceEncounter.stats.candidates,
       );
-      renderer.domElement.dataset.vocalFireflies = ENABLE_TRACE_MEMORY
-        ? "0"
-        : renderer.domElement.dataset.vocalFireflies || "0";
+      renderer.domElement.dataset.vocalFireflies = String(
+        vocalFireflies?.count || 0,
+      );
       renderer.domElement.dataset.videoFrames = String(
         videodio?.getHistory().frames || 0,
       );
