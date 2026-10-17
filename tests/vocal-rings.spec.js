@@ -32,10 +32,19 @@ test("24 floating bubbles require real volume entry and respect silence", async 
     rings.update(0.016, pose);
     await new Promise((resolve) => setTimeout(resolve, 0));
     const actualCalls = calls;
+    for (let i = 0; i < 60; i++) rings.update(1 / 60, pose);
+    const disappeared = !rings.group.children.includes(first);
+    const remaining = rings.remaining;
     rings.dispose();
-    return { count, actualCalls, total: rings.count };
+    return { count, actualCalls, total: rings.count, disappeared, remaining };
   });
-  expect(result).toEqual({ count: 1, actualCalls: 1, total: 24 });
+  expect(result).toEqual({
+    count: 1,
+    actualCalls: 1,
+    total: 24,
+    disappeared: true,
+    remaining: 23,
+  });
 });
 
 test("mood sky owns a bounded dome with different pigment palettes", async ({

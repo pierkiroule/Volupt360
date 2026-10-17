@@ -24,9 +24,10 @@ export function createVocalBubbles({ fragments, collide }) {
             value: new THREE.Color().setHSL((i * 0.061 + 0.55) % 1, 0.32, 0.52),
           },
           resonance: { value: 0 },
+          burst: { value: 0 },
         },
         vertexShader: `varying vec3 n,v;void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}`,
-        fragmentShader: `varying vec3 n,v;uniform vec3 color;uniform float resonance;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.2);float sheen=pow(max(0.,dot(normalize(n),normalize(vec3(-.4,.65,1.)))),18.);vec3 tint=mix(color,vec3(1.),sheen*.6);gl_FragColor=vec4(tint,.055+rim*.28+sheen*.14+resonance*.13);
+        fragmentShader: `varying vec3 n,v;uniform vec3 color;uniform float resonance,burst;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.2);float sheen=pow(max(0.,dot(normalize(n),normalize(vec3(-.4,.65,1.)))),18.);vec3 tint=mix(color,vec3(1.),sheen*.6);float tear=sin(n.x*19.+n.y*13.)*sin(n.z*17.-n.y*11.);if(burst>0. && tear<burst*2.-1.)discard;gl_FragColor=vec4(tint,(.055+rim*.28+sheen*.14+resonance*.13)*(1.-burst));
         #include <colorspace_fragment>
         }`,
         transparent: true,
@@ -46,12 +47,17 @@ export function createVocalBubbles({ fragments, collide }) {
       previous: mesh.position.clone(),
       cooldown: 0,
       resonance: 0,
+      burstAge: -1,
+      removed: false,
     };
   });
   return {
     group,
     get count() {
       return rings.length;
+    },
+    get remaining() {
+      return rings.filter((ring) => ring.burstAge < 0).length;
     },
     get collisionCount() {
       return collisions;
@@ -66,6 +72,19 @@ export function createVocalBubbles({ fragments, collide }) {
       for (let i = 0; i < rings.length; i++) {
         const ring = rings[i],
           mesh = ring.mesh;
+        if (ring.removed) continue;
+        if (ring.burstAge >= 0) {
+          ring.burstAge += dt;
+          const progress = Math.min(1, ring.burstAge / 0.7);
+          mesh.scale.setScalar(1 + progress * 0.45);
+          mesh.material.uniforms.burst.value = progress;
+          if (progress === 1) {
+            mesh.removeFromParent();
+            mesh.material.dispose();
+            ring.removed = true;
+          }
+          continue;
+        }
         ring.previous.copy(mesh.position);
         mesh.position
           .copy(ring.anchor)
@@ -101,16 +120,6 @@ export function createVocalBubbles({ fragments, collide }) {
         relative.addScaledVector(delta, closest);
         if (relative.lengthSq() > radius * radius) continue;
         pending = true;
-        ring.previous.copy(mesh.position);
-        mesh.position
-          .copy(ring.anchor)
-          .add(
-            relative.set(
-              Math.sin(time * 0.11 + i) * 0.65,
-              Math.sin(time * 0.17 + i * 1.3) * 0.85,
-              Math.cos(time * 0.09 + i) * 0.65,
-            ),
-          );
         ring.cooldown = 24;
         Promise.resolve()
           .then(() => (disposed ? false : collide(ring.id)))
@@ -118,6 +127,7 @@ export function createVocalBubbles({ fragments, collide }) {
             if (!disposed && played) {
               collisions++;
               ring.resonance = 1;
+              ring.burstAge = 0;
               silence = 10;
             }
           })
@@ -132,7 +142,9 @@ export function createVocalBubbles({ fragments, collide }) {
       disposed = true;
       group.removeFromParent();
       geometry.dispose();
-      rings.forEach((ring) => ring.mesh.material.dispose());
+      rings.forEach((ring) => {
+        if (!ring.removed) ring.mesh.material.dispose();
+      });
     },
   };
 }

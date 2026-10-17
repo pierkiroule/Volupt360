@@ -20,3 +20,5 @@ Les bulles translucides dérivent lentement autour de positions distribuées, sa
 ## Remplacement par des bulles
 
 `createVocalBubbles` remplace les anneaux : sphères à géométrie partagée, transparence à effet de bord, dérive lente et collision continue segment/sphère relative au mouvement. Une entrée déclenche la proposition vocale ; rester à l’intérieur ne redéclenche rien. Les délais, les 24 fichiers et l’exclusivité du lecteur sont conservés. Validation de cette évolution : 8 tests ciblés réussis et build Vite réussi. Fluidité sur téléphone physique non vérifiée.
+
+Lorsqu’une voix démarre réellement, sa bulle éclate en 0,7 seconde : légère expansion, membrane ajourée puis dissolution. Elle disparaît définitivement pour cette scène et son matériau GPU est libéré. Une voix refusée ou indisponible ne consomme pas la bulle. Validation : 3 tests ciblés réussis, incluant disparition et décompte de 23 bulles restantes, et build réussi.
