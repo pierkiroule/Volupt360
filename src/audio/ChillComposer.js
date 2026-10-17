@@ -131,7 +131,7 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
           emit("lead", 0.22 + clamp(brightness, 0, 1) * 0.12, {
             pitch,
             duration: beat * (1.1 + random() * 0.8),
-            type: random() < 0.22 ? "string" : "felt",
+            type: random() < 0.35 ? "string" : "wood",
             layer: 1,
           });
           if (h.bar % 8 === 7 && step === 14 && !breath) {
@@ -144,7 +144,7 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
                 motif[index] + rotation,
               ),
               duration: beat * 1.4,
-              type: "felt",
+              type: "wood",
               layer: 2,
             });
             count++;

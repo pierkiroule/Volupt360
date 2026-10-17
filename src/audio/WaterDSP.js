@@ -21,6 +21,15 @@ export class WaterDSP {
     this.phase = new Float64Array(4);
     this.low = 0;
     this.smooth = 0;
+    this.woodDamping = 1 - Math.exp((-2 * Math.PI * 1600) / sampleRate);
+    if (type === "wood") {
+      this.woodEnvelopes = new Float64Array([1, 1, 1]);
+      this.woodDecays = Float64Array.from([0.42, 0.18, 0.09], (decay) =>
+        Math.exp(-1 / (sampleRate * this.duration * decay)),
+      );
+      this.woodAttack = 0;
+      this.woodAttackRate = 1 - Math.exp(-1 / (sampleRate * 0.025));
+    }
     this.nextDrop = 0;
     this.bursts = Array.from({ length: 8 }, () => ({
       phase: 0,
@@ -76,6 +85,26 @@ export class WaterDSP {
         this.velocity *
         Math.min(1, t / 0.008) *
         Math.min(1, Math.max(0, (this.duration - t) / 0.1))
+      );
+    }
+    if (this.type === "wood") {
+      let sound = 0;
+      for (let i = 0; i < 3; i++) {
+        const ratio = i === 0 ? 1 : i === 1 ? 2.003 : 3.007;
+        this.phase[i] += (2 * Math.PI * this.frequency * ratio) / this.rate;
+        if (this.phase[i] > Math.PI * 2) this.phase[i] -= Math.PI * 2;
+        const weight = i === 0 ? 1 : i === 1 ? 0.1 + shape * 0.06 : 0.035;
+        sound += Math.sin(this.phase[i]) * weight * this.woodEnvelopes[i];
+        this.woodEnvelopes[i] *= this.woodDecays[i];
+      }
+      this.smooth += this.woodDamping * (sound - this.smooth);
+      this.woodAttack += (1 - this.woodAttack) * this.woodAttackRate;
+      return (
+        this.smooth *
+        this.velocity *
+        0.45 *
+        this.woodAttack *
+        Math.min(1, Math.max(0, (this.duration - t) / 0.12))
       );
     }
     if (this.type === "bell" || this.type === "felt") {

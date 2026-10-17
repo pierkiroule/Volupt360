@@ -153,3 +153,7 @@ La réverbération procédurale gagne une queue diffuse de 5,8 secondes, un pré
 ### Électro chill générative
 
 Le parcours actif dispose maintenant d’une grammaire électro chill à 78 BPM : harmonie partagée, basse centrée, nappes, motifs mélodiques et percussions électroniques natives. L’arrangement alterne ouverture, sillage, envol et respiration. Les brosses infléchissent l’activité et le timbre dans les accords en cours ; elles ne produisent plus des hauteurs indépendantes de l’arrangement. Les cellules se transforment par phrases, avec des silences et des réponses. La pause conserve la position musicale. Voir [l’architecture, les règles et les limites](docs/chill-composition.md).
+
+### Timbres organiques et aigus contenus
+
+La mélodie active alterne cordes amorties et résonateur boisé procédural à trois modes, avec une attaque douce et des harmoniques rapidement amorties. Les percussions utilisent un coup grave rond, une frappe boisée et un souffle filtré plutôt qu’un charleston aigu. Le passe-bas global descend à 2,2 kHz et la zone de présence est atténuée autour de 2 kHz ; la réverbération est amortie à 1,7 kHz. Le groove et les règles harmoniques sont conservés, sans sample. La perception de douceur reste à confirmer à l’écoute sur les appareils utilisés.
