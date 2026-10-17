@@ -185,6 +185,8 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uMaskRepeat: { value: texture?.repeat ?? 4 },
       uSurprise: { value: 0 },
       uTime: { value: 0 },
+      uWakeClock: { value: 0 },
+      uWakeOffset: { value: new THREE.Vector3() },
       uAge: { value: 0 },
       uStrokeExtent: { value: 0 },
       uPigment: { value: 1.12 },
@@ -196,6 +198,13 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uSeed: { value: seed },
       uStyle: { value: brush.style },
       uFade: { value: 1 },
+    },
+    defaultAttributeValues: {
+      color: [1, 1, 1],
+      uv: [0, 0],
+      uv1: [0, 0],
+      aTrailCenter: [0, 0, 0],
+      aBirth: [-10000],
     },
     vertexShader,
     fragmentShader,
@@ -231,8 +240,9 @@ export function createBrushStroke(
   let count = 0,
     finished = false;
   const ribbon = !["brumes", "lagons", "bulles", "network"].includes(id);
-  const layers =
-    id === "filaments"
+  const layers = dynamics?.wakeThread
+    ? 1
+    : id === "filaments"
       ? 4
       : ["corolles", "aurore", "echo"].includes(id)
         ? 3
@@ -243,6 +253,15 @@ export function createBrushStroke(
   const meshes = [];
   const warm = new THREE.Color("#e6d3b2");
   const echoHistory = [];
+  const wakeThread =
+    !ribbon && ["brumes", "lagons"].includes(id)
+      ? createBrushStroke("filaments", {
+          seed,
+          color,
+          dynamics: { width: 0.18, opacity: 0.75, wakeThread: true },
+        })
+      : null;
+  if (wakeThread) group.add(wakeThread.group);
   const pointScratch = new THREE.Vector3(),
     tintScratch = new THREE.Color();
   const previousSample = {
@@ -261,6 +280,7 @@ export function createBrushStroke(
   const smoothSample = {};
   let hasPreviousSample = false;
   function append(sample) {
+    if (sample.wake) wakeThread?.append(sample);
     if (finished || count >= capacity) return;
     if (!ribbon || !hasPreviousSample) appendRaw(sample);
     else {
@@ -304,6 +324,11 @@ export function createBrushStroke(
           sample.energy,
           t,
         );
+        smoothSample.depositionTime = THREE.MathUtils.lerp(
+          previousSample.depositionTime ?? sample.depositionTime ?? 0,
+          sample.depositionTime ?? 0,
+          t,
+        );
         smoothSample.low = THREE.MathUtils.lerp(
           previousSample.low,
           sample.low,
@@ -317,6 +342,7 @@ export function createBrushStroke(
     previousSample.side.copy(sample.side);
     previousSample.up.copy(sample.up);
     previousSample.time = sample.time;
+    previousSample.depositionTime = sample.depositionTime;
     previousSample.energy = sample.energy;
     previousSample.low = sample.low;
     hasPreviousSample = true;
@@ -339,6 +365,8 @@ export function createBrushStroke(
         ["normal", 3],
         ["color", 3],
         ["uv", 2],
+        ["aTrailCenter", 3],
+        ["aBirth", 1],
       ]) {
         geometry.setAttribute(
           name,
@@ -423,6 +451,22 @@ export function createBrushStroke(
         for (let layer = 0; layer < (id === "brumes" ? 2 : 6); layer++) {
           const isMist = id === "brumes";
           const geometry = new THREE.PlaneGeometry(1, 1, 8, 8);
+          geometry.setAttribute(
+            "aTrailCenter",
+            new THREE.Float32BufferAttribute(
+              new Float32Array(geometry.attributes.position.count * 3),
+              3,
+            ),
+          );
+          geometry.setAttribute(
+            "aBirth",
+            new THREE.Float32BufferAttribute(
+              new Float32Array(geometry.attributes.position.count).fill(
+                sample.wake ? sample.depositionTime : -10000,
+              ),
+              1,
+            ),
+          );
           geometry.computeBoundingSphere();
           geometry.boundingSphere.radius += 2.4;
           const vertices = geometry.attributes.position.count;
@@ -475,6 +519,14 @@ export function createBrushStroke(
                     : 0.1 + 0.2 * Math.cos(count + layer) ** 2),
             isMist ? 1 : scale * 0.85,
           );
+          if (sample.wake) {
+            material.uniforms.uWakeOffset.value
+              .copy(mesh.position)
+              .sub(sample.position)
+              .applyQuaternion(mesh.quaternion.clone().invert())
+              .divide(mesh.scale);
+            mesh.position.copy(sample.position);
+          }
           group.add(mesh);
         }
       }
@@ -550,7 +602,9 @@ export function createBrushStroke(
               Math.cos(pose.time * 1.1) * 0.7;
           } else if (id === "filaments") {
             const angle = u * Math.PI * 2;
-            const radius = 0.024 + pose.energy * 0.048 + pose.low * 0.015;
+            const radius =
+              (0.024 + pose.energy * 0.048 + pose.low * 0.015) *
+              (dynamics?.width || 1);
             lateral =
               (layer - 1.5) * 0.23 +
               Math.sin(pose.time * 1.6 + layer + seed) * 0.42 +
@@ -576,6 +630,10 @@ export function createBrushStroke(
               across ** 2 * Math.sin(pose.time * 0.8) * width * 0.45;
             lateral *= 1 + 0.08 * Math.sin(pose.time * 2 + u * 5);
           }
+          if (dynamics?.wakeThread) {
+            lateral = Math.cos(u * Math.PI * 2) * 0.012;
+            vertical = Math.sin(u * Math.PI * 2) * 0.012;
+          }
           vertical += layer * 0.09;
           const point = pointScratch
             .copy(pose.position)
@@ -585,6 +643,10 @@ export function createBrushStroke(
             t = (count * (columns + 1) + j) * 2;
           point.toArray(p, k);
           pose.up.toArray(n, k);
+          pose.position.toArray(g.attributes.aTrailCenter.array, k);
+          g.attributes.aBirth.array[count * (columns + 1) + j] = pose.wake
+            ? pose.depositionTime
+            : -10000;
           tint.toArray(c, k);
           uv[t] = u;
           uv[t + 1] = count / (capacity - 1);
@@ -616,6 +678,7 @@ export function createBrushStroke(
   function finish() {
     if (finished) return;
     finished = true;
+    wakeThread?.finish();
     network?.finish();
     echoHistory.length = 0;
     meshes.forEach((mesh) => {
@@ -663,7 +726,7 @@ export function createBrushStroke(
     append,
     finish,
     get full() {
-      return count >= capacity;
+      return count >= capacity || Boolean(wakeThread?.full);
     },
     get count() {
       return count;

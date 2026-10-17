@@ -166,6 +166,14 @@ export function createOizo() {
       previousDirection.copy(pose.direction);
       previousTime = pose.time;
     },
+    getTailPosition(target) {
+      return target
+        .set(0, -0.008, -0.23)
+        .applyQuaternion(body.quaternion)
+        .multiply(group.scale)
+        .applyQuaternion(group.quaternion)
+        .add(group.position);
+    },
     dispose() {
       for (const { mesh, skeleton } of wings) {
         mesh.geometry.dispose();

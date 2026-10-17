@@ -63,3 +63,9 @@ Validation de la résonance orbitale : 21 tests distincts exécutés avec succè
 `createDroneChoreography` reçoit la direction et la vitesse réelles du vol. La courbure horizontale, la pente et la vitesse sont filtrées avant d’influencer le recul, le décalage latéral, la hauteur, l’anticipation du regard et une légère inclinaison du cadre. Les transitions utilisent des amortissements exponentiels indépendants de la cadence. La distance reste proche de l’oizo ; la taille de l’œuvre et le volume sonore ne déclenchent aucun recul automatique.
 
 Le module réutilise ses vecteurs et son état, sans allocation par image. Le cadrage se décale légèrement et reste dirigé près de l’oizo, tandis que la position de caméra possède sa propre inertie. Le retour depuis les vues globale, photo et gyro réinitialise la mesure du changement de cap pour éviter une fausse impulsion. Les fonctions des autres vues sont conservées.
+
+## Sillage depuis la queue
+
+Le point de dépôt utilise la transformation du rig réel de l’oizo : son origine est au centre de la queue, avec la rotation du corps et l’échelle de la silhouette. L’oiseau est mis à jour avant les dépôts. Chaque sommet mémorise son centre de trajectoire et son instant de naissance ; le shader ouvre progressivement sa largeur sur environ 3,8 secondes. La déformation musicale et la dispersion augmentent avec cette ouverture, pour garder le fil attaché à la queue à la naissance. Les horloges restent figées en mode Photo.
+
+Les tampons et éclaboussures conservent leurs matières et leur dispersion, mais celle-ci apparaît progressivement. Un fin filament commun relie leurs dépôts. Les anciennes brosses de l’atelier historique conservent leur largeur immédiate lorsqu’elles ne reçoivent pas de naissance de sillage. Les attributs et le fil utilisent les buffers et la libération des ressources existants, sans génération de texture pendant l’animation.

@@ -138,6 +138,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   const dance = createSonoizoDance();
   const oizoScreen = new THREE.Vector3();
   const padStates = new Map();
+  const tailPosition = new THREE.Vector3();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
   const marks = [],
     totalBounds = new THREE.Box3(),
@@ -292,6 +293,13 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     return false;
   }
   function feedPad(id, pose) {
+    if (oizo)
+      pose = {
+        ...pose,
+        position: oizo.getTailPosition(tailPosition),
+        wake: true,
+        depositionTime: lifeTime,
+      };
     if (!BRUSHES.some((item) => item.id === id)) return;
     const previous = { mark: activeStroke, last: lastSample, brush };
     const state = padStates.get(id);
@@ -512,6 +520,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       if (padSource) {
         const visual = padSource.getVisualFeatures?.() || {};
         const pose = dance.update(dt, voices, visual);
+        oizo.update(pose);
         renderer.domElement.dataset.musicEnergy = (visual.energy || 0).toFixed(
           3,
         );
@@ -541,7 +550,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           }
         } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
-        oizo.update(pose);
         const hit =
           ENABLE_TRACE_MEMORY && (ENABLE_POETIC_VOICES || TRACE_DEBUG)
             ? traceEncounter.update(pose.position, traceTime)
@@ -679,6 +687,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         mark.stroke.update?.(dt * speed, response);
         for (const uniforms of uniformsFor(mark)) {
           if (uniforms.uTime) uniforms.uTime.value = lifeTime * speed;
+          if (uniforms.uWakeClock) uniforms.uWakeClock.value = lifeTime;
           if (uniforms.uPigment)
             uniforms.uPigment.value =
               1.12 +
