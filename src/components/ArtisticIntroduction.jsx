@@ -24,14 +24,14 @@ export default function ArtisticIntroduction() {
         musique anime les dépôts, qui poursuivent leur danse après le geste. La
         vue FPV permet aussi de guider l’oizo et de peindre depuis sa queue.
       </p>
-      <h3>Traverser les voix</h3>
+      <h3>Traverser les mots</h3>
       <p>
         Vingt-quatre bulles translucides flottent dans le paysage comme des
         passages de mémoire. En vol FPV, guidez l’oizo à travers leur volume :
-        chacun libère un fragment poétique enregistré. Une seule voix résonne à
-        la fois, avec des silences entre les rencontres. Le ciel se teinte des
-        couleurs de votre ÉchoMood, sans enfermer votre humeur dans un sens
-        imposé.
+        chaque bulle révèle un fragment existentiel choisi selon vos emojis, au
+        centre de l’écran pendant cinq secondes. Un seul texte apparaît à la
+        fois, puis laisse revenir le paysage. Le ciel se teinte des couleurs de
+        votre ÉchoMood, sans enfermer votre humeur dans un sens imposé.
       </p>
       <h3>Une matière qui continue sa danse</h3>
       <p>

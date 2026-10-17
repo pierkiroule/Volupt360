@@ -29,7 +29,7 @@ import { createPainterFlight } from "./createPainterFlight.js";
  */
 export function createSoundNest(
   container,
-  { onHint, onError, onBubbleScore } = {},
+  { onHint, onError, onBubbleScore, onPoeticFragment } = {},
 ) {
   const mobile =
     matchMedia("(pointer: coarse)").matches ||
@@ -135,6 +135,7 @@ export function createSoundNest(
     oizo = null,
     padInitialized = false;
   let vocalFireflies = null;
+  let poeticFragments = [];
   const traceMemory = createTraceMemory();
   const traceEncounter = createTraceEncounter(traceMemory);
   const traceDebug =
@@ -747,13 +748,14 @@ export function createSoundNest(
             );
           }
         }
-        const fragments = !vocalFireflies
-          ? padSource.getFragments?.() || []
-          : null;
+        const fragments = !vocalFireflies ? poeticFragments : null;
         if (!vocalFireflies && fragments?.length) {
           vocalFireflies = createVocalBubbles({
             fragments,
-            collide: (id) => padSource.collide(id),
+            collide: (id) =>
+              onPoeticFragment?.(
+                poeticFragments.find((fragment) => fragment.id === id),
+              ) || false,
             onScore: onBubbleScore,
           });
           landscape.add(vocalFireflies.group);
@@ -1151,6 +1153,9 @@ export function createSoundNest(
           retiredTextures.add(previous);
         else previous.texture.dispose();
       }
+    },
+    setPoeticFragments(fragments) {
+      poeticFragments = fragments;
     },
     setMood(universe, profiles) {
       reset();
