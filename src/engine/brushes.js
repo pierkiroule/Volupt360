@@ -186,6 +186,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uSurprise: { value: 0 },
       uTime: { value: 0 },
       uAge: { value: 0 },
+      uStrokeExtent: { value: 0 },
       uPigment: { value: 1.12 },
       uAudioEnergy: { value: 0 },
       uAudioLow: { value: 0 },
@@ -226,7 +227,7 @@ export function createBrushStroke(
     return createPoeticParticleStroke(brush, { seed, color, texture });
   const group = new THREE.Group();
   let textureBinding = texture;
-  const capacity = 52;
+  const capacity = 96;
   let count = 0,
     finished = false;
   const ribbon = !["brumes", "lagons", "bulles", "network"].includes(id);
@@ -238,10 +239,88 @@ export function createBrushStroke(
         : id === "calligraphie"
           ? 1
           : 2;
-  const columns = id === "filaments" ? 6 : 10;
+  const columns = id === "filaments" ? 8 : 12;
   const meshes = [];
   const warm = new THREE.Color("#e6d3b2");
   const echoHistory = [];
+  const pointScratch = new THREE.Vector3(),
+    tintScratch = new THREE.Color();
+  const previousSample = {
+    position: new THREE.Vector3(),
+    direction: new THREE.Vector3(),
+    side: new THREE.Vector3(),
+    up: new THREE.Vector3(),
+    time: 0,
+    energy: 0,
+    low: 0,
+  };
+  const curvePoint = new THREE.Vector3(),
+    curveDirection = new THREE.Vector3(),
+    curveSide = new THREE.Vector3(),
+    curveUp = new THREE.Vector3();
+  const smoothSample = {};
+  let hasPreviousSample = false;
+  function append(sample) {
+    if (finished || count >= capacity) return;
+    if (!ribbon || !hasPreviousSample) appendRaw(sample);
+    else {
+      const distance = previousSample.position.distanceTo(sample.position);
+      const steps = Math.min(
+        4,
+        capacity - count,
+        Math.max(1, Math.ceil(distance / 0.45)),
+      );
+      Object.assign(smoothSample, sample);
+      smoothSample.position = curvePoint;
+      smoothSample.direction = curveDirection;
+      smoothSample.side = curveSide;
+      smoothSample.up = curveUp;
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps,
+          t2 = t * t,
+          t3 = t2 * t;
+        curvePoint
+          .copy(previousSample.position)
+          .multiplyScalar(2 * t3 - 3 * t2 + 1)
+          .addScaledVector(
+            previousSample.direction,
+            (t3 - 2 * t2 + t) * distance,
+          )
+          .addScaledVector(sample.position, -2 * t3 + 3 * t2)
+          .addScaledVector(sample.direction, (t3 - t2) * distance);
+        curveDirection
+          .copy(previousSample.direction)
+          .lerp(sample.direction, t)
+          .normalize();
+        curveSide.copy(previousSample.side).lerp(sample.side, t).normalize();
+        curveUp.copy(previousSample.up).lerp(sample.up, t).normalize();
+        smoothSample.time = THREE.MathUtils.lerp(
+          previousSample.time,
+          sample.time,
+          t,
+        );
+        smoothSample.energy = THREE.MathUtils.lerp(
+          previousSample.energy,
+          sample.energy,
+          t,
+        );
+        smoothSample.low = THREE.MathUtils.lerp(
+          previousSample.low,
+          sample.low,
+          t,
+        );
+        appendRaw(smoothSample);
+      }
+    }
+    previousSample.position.copy(sample.position);
+    previousSample.direction.copy(sample.direction);
+    previousSample.side.copy(sample.side);
+    previousSample.up.copy(sample.up);
+    previousSample.time = sample.time;
+    previousSample.energy = sample.energy;
+    previousSample.low = sample.low;
+    hasPreviousSample = true;
+  }
   const network =
     id === "network"
       ? createNetworkStroke({
@@ -286,13 +365,15 @@ export function createBrushStroke(
         textureBinding,
       );
       material.uniforms.uSurprise.value = surprise;
+      if (textureBinding && !textureBinding.photograph)
+        material.uniforms.uMaskRepeat.value = 12;
       const mesh = new THREE.Mesh(geometry, material);
       mesh.frustumCulled = false;
       group.add(mesh);
       meshes.push(mesh);
     }
   }
-  function append(sample) {
+  function appendRaw(sample) {
     if (finished || count >= capacity) return;
     if (network) {
       network.append(sample, count);
@@ -341,7 +422,9 @@ export function createBrushStroke(
       } else if (count % 3 === 0 && accented) {
         for (let layer = 0; layer < (id === "brumes" ? 2 : 6); layer++) {
           const isMist = id === "brumes";
-          const geometry = new THREE.PlaneGeometry(1, 1, 6, 6);
+          const geometry = new THREE.PlaneGeometry(1, 1, 8, 8);
+          geometry.computeBoundingSphere();
+          geometry.boundingSphere.radius += 2.4;
           const vertices = geometry.attributes.position.count;
           const colors = new Float32Array(vertices * 3);
           for (let i = 0; i < vertices; i++) color.toArray(colors, i * 3);
@@ -427,8 +510,8 @@ export function createBrushStroke(
               0.8,
             ) *
               2.8;
-        const tint = color
-          .clone()
+        const tint = tintScratch
+          .copy(color)
           .lerp(warm, 0.08 + 0.15 * Math.sin(pose.time + layer) ** 2);
         for (let j = 0; j <= columns; j++) {
           const u = j / columns,
@@ -478,7 +561,7 @@ export function createBrushStroke(
           } else if (id === "falaises") {
             vertical =
               across * width * 0.9 +
-              Math.sin(u * 22 + pose.time * 3 + seed) * width * 0.22;
+              Math.sin(u * Math.PI * 2 + pose.time * 0.7 + seed) * width * 0.16;
             lateral =
               across * width * 0.32 + Math.sin(pose.time * 2.3 + layer) * 0.35;
           } else if (id === "corolles") {
@@ -491,11 +574,11 @@ export function createBrushStroke(
             vertical =
               Math.sin(u * 7 + pose.time * 2.3 + seed) * width * 0.3 +
               across ** 2 * Math.sin(pose.time * 0.8) * width * 0.45;
-            lateral *= 1 + 0.08 * Math.sin(pose.time * 11 + u * 17);
+            lateral *= 1 + 0.08 * Math.sin(pose.time * 2 + u * 5);
           }
           vertical += layer * 0.09;
-          const point = pose.position
-            .clone()
+          const point = pointScratch
+            .copy(pose.position)
             .addScaledVector(pose.side, lateral)
             .addScaledVector(pose.up, vertical);
           const k = (count * (columns + 1) + j) * 3,
@@ -507,7 +590,13 @@ export function createBrushStroke(
           uv[t + 1] = count / (capacity - 1);
         }
         g.setDrawRange(0, count * columns * 6);
-        for (const attr of Object.values(g.attributes)) attr.needsUpdate = true;
+        for (const attr of Object.values(g.attributes)) {
+          attr.addUpdateRange(
+            count * (columns + 1) * attr.itemSize,
+            (columns + 1) * attr.itemSize,
+          );
+          attr.needsUpdate = true;
+        }
         mesh.material.uniforms.uOpacity.value =
           brush.opacity *
           (pose.density ?? 1) *
@@ -520,6 +609,9 @@ export function createBrushStroke(
       });
     }
     count++;
+    for (const mesh of meshes)
+      mesh.material.uniforms.uStrokeExtent.value =
+        Math.max(1, count - 1) / (capacity - 1);
   }
   function finish() {
     if (finished) return;
@@ -545,6 +637,7 @@ export function createBrushStroke(
       );
       geometry.computeVertexNormals();
       geometry.computeBoundingSphere();
+      geometry.boundingSphere.radius += 2.4;
       mesh.geometry = geometry;
       mesh.frustumCulled = true;
       old.dispose();
@@ -559,11 +652,13 @@ export function createBrushStroke(
       uniforms.uHasMask.value = next ? 1 : 0;
       uniforms.uPhotograph.value = next?.photograph ? 1 : 0;
       uniforms.uMaskAspect.value = next?.aspect || 1;
-      uniforms.uMaskRepeat.value = next?.repeat ?? 4;
+      uniforms.uMaskRepeat.value =
+        next && !next.photograph && ribbon ? 12 : (next?.repeat ?? 4);
     });
   }
   return {
     group,
+    padding: 5 * (dynamics?.width || 1),
     setTexture,
     append,
     finish,

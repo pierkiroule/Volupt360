@@ -48,7 +48,7 @@ export function createTwigBank({
     visualReadAt = -Infinity;
   function getVisualFeatures() {
     const now = ctx?.currentTime || 0;
-    if (visualFeatures && now - visualReadAt < 0.035) return visualFeatures;
+    if (visualFeatures && now - visualReadAt < 0.016) return visualFeatures;
     const voice = [...voices.values()][0];
     let music = instrument?.stats.active
       ? readAudioFeatures(instrument.graph)

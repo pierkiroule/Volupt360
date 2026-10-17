@@ -10,7 +10,12 @@ export function createAudioGraph() {
   return { ctx, analyser, bins, wave, prev };
 }
 
-export function readAudioFeatures({ analyser, bins, wave, prev, ctx }) {
+export function readAudioFeatures(graph) {
+  const { analyser, bins, wave, prev, ctx } = graph;
+  const bands = (graph.bands ??= new Float32Array(6));
+  const counts = (graph.bandCounts ??= new Uint16Array(6));
+  bands.fill(0);
+  counts.fill(0);
   analyser.getByteFrequencyData(bins);
   analyser.getByteTimeDomainData(wave);
   let rms = 0;
@@ -29,6 +34,20 @@ export function readAudioFeatures({ analyser, bins, wave, prev, ctx }) {
     const hz = i * step;
     if (hz > 9500) break;
     const v = bins[i] / 255;
+    const band =
+      hz < 180
+        ? 0
+        : hz < 480
+          ? 1
+          : hz < 1200
+            ? 2
+            : hz < 3000
+              ? 3
+              : hz < 6000
+                ? 4
+                : 5;
+    bands[band] += v * v;
+    counts[band]++;
     total += v;
     cent += hz * v;
     if (hz < 850) low += v;
@@ -36,7 +55,10 @@ export function readAudioFeatures({ analyser, bins, wave, prev, ctx }) {
     flux += Math.max(0, v - prev[i]);
     prev[i] = v;
   }
+  for (let i = 0; i < 6; i++)
+    bands[i] = Math.sqrt(bands[i] / Math.max(1, counts[i]));
   return {
+    bands,
     rms,
     energy: Math.min(1, rms * 9),
     freq: total ? cent / total : 0,

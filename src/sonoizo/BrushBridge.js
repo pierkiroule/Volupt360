@@ -3,6 +3,7 @@ export function createBrushBridge({ paint, finish }) {
   const active = new Map();
   return {
     update(pose, voices, tick) {
+      if (!voices.length && !active.size) return;
       const audible = voices.filter((voice) => voice.features.rms > 0.006);
       const ids = new Set(audible.map((voice) => voice.id));
       for (const id of active.keys())

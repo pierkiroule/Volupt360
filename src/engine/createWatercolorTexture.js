@@ -126,5 +126,6 @@ export function createWatercolorTexture(
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearMipmapLinearFilter;
-  return { texture, aspect: 1, repeat: 1, photograph: true };
+  texture.wrapT = THREE.RepeatWrapping;
+  return { texture, aspect: 1, repeat: 1, photograph: Boolean(visual) };
 }

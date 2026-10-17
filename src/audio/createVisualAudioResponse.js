@@ -5,6 +5,7 @@ export function createVisualAudioResponse() {
     low = 0,
     high = 0,
     pulse = 0;
+  const bands = new Float32Array(6);
   return (music = {}, voice = {}, dt = 0.04) => {
     const rms = Math.max(music.rms || 0, voice.rms || 0);
     const musicRms = music.rms || 0;
@@ -27,7 +28,15 @@ export function createVisualAudioResponse() {
       (targetHigh - high) * (1 - Math.exp(-dt * (targetHigh > high ? 12 : 4)));
     const accent = Math.min(1, flux * 1.5 + Math.max(0, combined - energy) * 2);
     pulse += (accent - pulse) * (1 - Math.exp(-dt * (accent > pulse ? 24 : 6)));
+    for (let i = 0; i < 6; i++) {
+      const raw = Math.max(music.bands?.[i] || 0, voice.bands?.[i] || 0);
+      const targetBand = rms > 0.003 ? Math.min(1, raw * 1.35) : 0;
+      bands[i] +=
+        (targetBand - bands[i]) *
+        (1 - Math.exp(-dt * (targetBand > bands[i] ? 14 : 4)));
+    }
     return {
+      bands,
       rms,
       energy,
       low,

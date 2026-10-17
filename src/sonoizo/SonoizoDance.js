@@ -1,17 +1,16 @@
 import * as THREE from "three";
-import { createPainterFlight } from "../engine/createPainterFlight.js";
+import { createOrbitalFlight } from "../engine/createOrbitalFlight.js";
 
 /** Continuous flight, including silence. Triggers shape a bounded musical impulse. */
 export function createSonoizoDance({ seed = 37 } = {}) {
-  const flight = createPainterFlight(),
+  const flight = createOrbitalFlight(),
     triggers = new Map();
   const wind = new THREE.Vector3(),
-    offset = new THREE.Vector3();
+    desired = new THREE.Vector3(),
+    frameRight = new THREE.Vector3(-1, 0, 0),
+    frameUp = new THREE.Vector3(0, 1, 0);
   const steering = new THREE.Vector2();
-  let steeringFrame = null,
-    hasPrevious = false;
-  const previousPosition = new THREE.Vector3(),
-    smoothDirection = new THREE.Vector3();
+  let steeringFrame = null;
   let impulse = 0,
     bias = 0;
   const hash = (id) =>
@@ -25,9 +24,9 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       steeringFrame = frame
         ? { right: frame.right.clone(), up: frame.up.clone() }
         : null;
-      steering.x = THREE.MathUtils.clamp(steering.x + x * 2.2, -1, 1);
-      steering.y = THREE.MathUtils.clamp(steering.y + y * 2.2, -1, 1);
-      steering.clampLength(0, 0.65);
+      steering.x = THREE.MathUtils.clamp(steering.x + x * 4, -1, 1);
+      steering.y = THREE.MathUtils.clamp(steering.y + y * 4, -1, 1);
+      steering.clampLength(0, 0.95);
     },
     update(dt, voices, ambience = {}) {
       dt = THREE.MathUtils.clamp(dt, 0, 0.1);
@@ -57,57 +56,21 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       features.low = Math.min(1, features.low + impulse * bias * 0.3);
       features.high = Math.min(1, features.high + impulse * (1 - bias) * 0.4);
       features.flux = Math.min(1, features.flux + impulse * 0.2);
-      const pose = flight.update(dt * 0.72, {
-        ...features,
-        energy: features.energy * 0.6,
-        flux: features.flux * 0.35,
-      });
-      const desired = (steeringFrame?.right || pose.side)
-        .clone()
-        .multiplyScalar(steering.x * 5)
-        .addScaledVector(steeringFrame?.up || pose.up, steering.y * 5);
-      desired.addScaledVector(pose.up, (features.low - features.high) * 0.9);
-      wind.lerp(desired, 1 - Math.exp(-dt * 2));
+      desired
+        .copy(steeringFrame?.right || frameRight)
+        .multiplyScalar(steering.x * 7)
+        .addScaledVector(steeringFrame?.up || frameUp, steering.y * 7);
+      wind.lerp(desired, 1 - Math.exp(-dt * 7));
       steering.multiplyScalar(Math.exp(-dt * 1.15));
-      offset.addScaledVector(wind, dt).multiplyScalar(Math.exp(-dt * 0.22));
-      offset.clampLength(0, 8);
-      const position = pose.position.clone().add(offset);
-      const velocity =
-        hasPrevious && dt > 0
-          ? position.clone().sub(previousPosition).divideScalar(dt)
-          : pose.velocity.clone().add(wind);
-      const targetDirection =
-        velocity.lengthSq() > 0.001
-          ? velocity.clone().normalize()
-          : pose.direction.clone();
-      if (!hasPrevious) smoothDirection.copy(targetDirection);
-      else
-        smoothDirection
-          .lerp(targetDirection, 1 - Math.exp(-dt * 4))
-          .normalize();
-      previousPosition.copy(position);
-      hasPrevious = true;
-      const direction = smoothDirection.clone();
-      const rotation = new THREE.Quaternion().setFromUnitVectors(
-        pose.direction,
-        direction,
-      );
-      return {
-        ...pose,
-        position,
-        direction,
-        velocity,
-        side: pose.side.clone().applyQuaternion(rotation),
-        up: pose.up.clone().applyQuaternion(rotation),
-        acoustic: features,
-      };
+      const pose = flight.update(dt, features, wind);
+      frameRight.copy(pose.side).negate();
+      frameUp.copy(pose.up);
+      return { ...pose, acoustic: features };
     },
     reset() {
       wind.set(0, 0, 0);
-      offset.set(0, 0, 0);
       steering.set(0, 0);
       steeringFrame = null;
-      hasPrevious = false;
       flight.reset();
       triggers.clear();
       impulse = bias = 0;
