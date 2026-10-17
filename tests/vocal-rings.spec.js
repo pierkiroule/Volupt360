@@ -9,7 +9,9 @@ test("24 floating bubbles require real volume entry and respect silence", async 
     const { createVocalBubbles } =
       await import("/src/sonoizo/createVocalBubbles.js");
     let calls = 0;
+    const scores = [];
     const rings = createVocalBubbles({
+      onScore: (count, total) => scores.push([count, total]),
       fragments: Array.from({ length: 24 }, (_, i) => ({
         id: `firefly-${i + 1}`,
       })),
@@ -36,7 +38,14 @@ test("24 floating bubbles require real volume entry and respect silence", async 
     const disappeared = !rings.group.children.includes(first);
     const remaining = rings.remaining;
     rings.dispose();
-    return { count, actualCalls, total: rings.count, disappeared, remaining };
+    return {
+      count,
+      actualCalls,
+      total: rings.count,
+      disappeared,
+      remaining,
+      scores,
+    };
   });
   expect(result).toEqual({
     count: 1,
@@ -44,6 +53,7 @@ test("24 floating bubbles require real volume entry and respect silence", async 
     total: 24,
     disappeared: true,
     remaining: 23,
+    scores: [[1, 24]],
   });
 });
 

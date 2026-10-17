@@ -27,7 +27,10 @@ import { createPainterFlight } from "./createPainterFlight.js";
 /** A living XYZ trail: the painter moves, the watercolor grows behind it,
  * and the drone films that movement instead of circling a fixed installation.
  */
-export function createSoundNest(container, { onHint, onError } = {}) {
+export function createSoundNest(
+  container,
+  { onHint, onError, onBubbleScore } = {},
+) {
   const mobile =
     matchMedia("(pointer: coarse)").matches ||
     Math.min(innerWidth, innerHeight) < 600;
@@ -751,6 +754,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           vocalFireflies = createVocalBubbles({
             fragments,
             collide: (id) => padSource.collide(id),
+            onScore: onBubbleScore,
           });
           landscape.add(vocalFireflies.group);
         }
@@ -1042,6 +1046,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       vocalFireflies?.dispose();
       vocalFireflies = null;
+      onBubbleScore?.(0, 24);
       padSource = source;
       navigation.windEnabled = Boolean(source);
       if (source) {

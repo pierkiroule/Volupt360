@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 /** Shared lightweight spheres; swept relative motion detects actual volume entry. */
-export function createVocalBubbles({ fragments, collide }) {
+export function createVocalBubbles({ fragments, collide, onScore = () => {} }) {
   const group = new THREE.Group();
   const geometry = new THREE.SphereGeometry(2.1, 24, 16);
   const previous = new THREE.Vector3(),
@@ -126,6 +126,7 @@ export function createVocalBubbles({ fragments, collide }) {
           .then((played) => {
             if (!disposed && played) {
               collisions++;
+              onScore(collisions, fragments.length);
               ring.resonance = 1;
               ring.burstAge = 0;
               silence = 10;

@@ -24,6 +24,7 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
+  const [bubbleScore, setBubbleScore] = useState(0);
   const classic = new URLSearchParams(location.search).has("classic");
   const [universe, setUniverse] = useState(null);
   const [echoMood, setEchoMood] = useState(null),
@@ -93,6 +94,7 @@ export default function App() {
       engine.current = createSoundNest(stage.current, {
         onHint: setHint,
         onError: setSceneError,
+        onBubbleScore: setBubbleScore,
       });
       if (classic || new URLSearchParams(location.search).has("samples"))
         for (const profile of LANDSCAPE_BRUSHES)
@@ -440,6 +442,13 @@ export default function App() {
       )}
       {immersive && universe && (
         <>
+          <output
+            className="bubble-score"
+            aria-label="Bulles écoutées"
+            aria-live="polite"
+          >
+            Bulles écoutées · {bubbleScore}/24
+          </output>
           <div className="mood-badge" aria-label="ÉchoMood choisi">
             {echoMood?.emojis.join(" ")}
           </div>

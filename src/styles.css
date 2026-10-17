@@ -1805,3 +1805,19 @@ label:focus-visible {
     justify-content: flex-start;
   }
 }
+
+.bubble-score {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 4.2rem);
+  transform: translateX(-50%);
+  z-index: 15;
+  color: #38514e;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  padding: 0.35rem 0.65rem;
+  border-radius: 2rem;
+  background: #f4f0e8bb;
+  pointer-events: none;
+  white-space: nowrap;
+}
