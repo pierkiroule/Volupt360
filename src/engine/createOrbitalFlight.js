@@ -10,7 +10,9 @@ export function createOrbitalFlight() {
   const radial = new THREE.Vector3(),
     tangent = new THREE.Vector3(),
     desired = new THREE.Vector3(),
-    heading = new THREE.Vector3();
+    heading = new THREE.Vector3(),
+    visitVelocity = new THREE.Vector3(),
+    toVisit = new THREE.Vector3();
   const pose = {
     position,
     velocity,
@@ -30,7 +32,7 @@ export function createOrbitalFlight() {
   let angle = 0,
     previousAngle = 0;
   return {
-    update(dt, audio, wind) {
+    update(dt, audio, wind, visitTarget = null, visitMix = 0) {
       dt = THREE.MathUtils.clamp(dt, 0, 0.1);
       pose.time += dt;
       const radius = Math.max(1, Math.hypot(position.x, position.z));
@@ -51,6 +53,20 @@ export function createOrbitalFlight() {
         desired.addScaledVector(tangent, 2.4 - circulation);
       desired.y +=
         (Math.sin(angle * 1.5 + pose.time * 0.035) * 7 - position.y) * 0.65;
+      if (visitTarget && visitMix > 0) {
+        toVisit.copy(visitTarget).sub(position);
+        const distance = toVisit.length();
+        visitVelocity
+          .copy(toVisit)
+          .multiplyScalar(
+            Math.min(4.2, distance * 0.85) / Math.max(0.001, distance),
+          );
+        const orbit = Math.exp(-Math.max(0, distance - 3) * 0.35) * 2.1;
+        visitVelocity.x += (-toVisit.z / Math.max(1, distance)) * orbit;
+        visitVelocity.z += (toVisit.x / Math.max(1, distance)) * orbit;
+        visitVelocity.y += Math.sin(pose.time * 0.65) * 0.35;
+        desired.lerp(visitVelocity, visitMix * 0.96);
+      }
       desired.y = THREE.MathUtils.clamp(desired.y, -5, 5);
       desired.clampLength(0, 9);
       velocity.lerp(desired, 1 - Math.exp(-dt * 3.5));
