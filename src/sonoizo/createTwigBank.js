@@ -1,6 +1,4 @@
 import { ENABLE_BIRD_SONGS } from "./instrumentConfig.js";
-import { createBirdSongs } from "../audio/birds/createBirdSongs.js";
-import { createAmbientMixer } from "../audio/createAmbientMixer.js";
 import { createVisualAudioResponse } from "../audio/createVisualAudioResponse.js";
 import { readAudioFeatures } from "../audio/audioGraph.js";
 
@@ -36,12 +34,16 @@ export function createTwigBank({
     instrumentRequest = 0,
     instrumentPlayingRequested = false;
   let compositionUserPaused = false;
-  const birds = createBirdSongs({
-    ids,
-    context,
-    destination: () => master,
-    onChange: () => emit(),
-  });
+  // Compatibility snapshot for the old sample atelier. No brush/music generator is loaded.
+  const birds = {
+    stop() {},
+    dispose() {},
+    features: () => ({}),
+    snapshot: () => ({ state: "idle", generated: false, assignments: {} }),
+    prepare: async () => {},
+    warm: async () => {},
+    start: async () => {},
+  };
   const respond = createVisualAudioResponse();
   let visualFeatures = null,
     visualReadAt = -Infinity;
@@ -657,7 +659,6 @@ export function createTwigBank({
     }
   }
   return {
-    generateBirdBrush: (id, config) => birds.generate(id, config),
     prepareBirdCatalog: (force = false) => birds.prepare(force),
     preloadBirdSong: (id) => (birdSongs ? birds.warm(id) : Promise.resolve()),
     beginSculpture: (id) => {
@@ -673,6 +674,8 @@ export function createTwigBank({
       instrumentPlayingRequested = !compositionUserPaused;
       instrument?.dispose();
       instrument = null;
+      const { createAmbientMixer } =
+        await import("../audio/createAmbientMixer.js");
       const created = await createAmbientMixer(context(), master, universe, {
         single: true,
       });

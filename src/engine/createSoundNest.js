@@ -215,7 +215,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     // Reuse the previous endpoint to join successive strokes without a jump.
     if (lastSample) {
       stroke.append(lastSample);
-      if (ENABLE_TRACE_MEMORY)
+      if (ENABLE_TRACE_MEMORY && (ENABLE_POETIC_VOICES || TRACE_DEBUG))
         traceMemory.record(
           activeStroke.traceId,
           id,
@@ -251,7 +251,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       pose.energy || 0.3,
       activeStroke.traceId,
     );
-    if (ENABLE_TRACE_MEMORY)
+    if (ENABLE_TRACE_MEMORY && (ENABLE_POETIC_VOICES || TRACE_DEBUG))
       traceMemory.record(
         activeStroke.traceId,
         activeStroke.brush,
@@ -535,9 +535,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         } else bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         oizo.update(pose);
-        const hit = ENABLE_TRACE_MEMORY
-          ? traceEncounter.update(pose.position, traceTime)
-          : null;
+        const hit =
+          ENABLE_TRACE_MEMORY && (ENABLE_POETIC_VOICES || TRACE_DEBUG)
+            ? traceEncounter.update(pose.position, traceTime)
+            : null;
         traceDebug?.update(dt, hit);
         if (hit) {
           padSource.recallSound?.(hit.brushId, hit.position, hit.traceId);
@@ -848,7 +849,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const binding = createWatercolorTexture(
         { color: profile.color },
         profile.seed,
-        256,
+        mobile ? 128 : 256,
         profile.acoustic,
         profile.visual,
       );

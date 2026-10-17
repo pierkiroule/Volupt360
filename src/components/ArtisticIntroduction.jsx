@@ -10,19 +10,17 @@ export default function ArtisticIntroduction() {
         Un petit oizo traverse un ciel d’aquarelle. Il transforme les couleurs,
         les contours et les textures de la nature en traces dans l’espace.
       </p>
-      <h3>Un geste, une forme, une matière</h3>
+      <h3>Huit matières, un paysage</h3>
       <p>
-        Touchez + pour composer une brosse : choisissez sa forme, sa couleur,
-        ses effets de matière, son épaisseur et sa transparence. Une graine
-        procédurale lui donne ses détails singuliers. Sauvegardez votre palette
-        sur cet appareil pour la retrouver au prochain voyage.
+        Voiles, Falaises, Corolles, Filaments, Dilution, Calligraphie, Plumes et
+        Feuilles offrent huit gestes complémentaires pour composer une œuvre
+        aquarelle abstraite dans l’espace.
       </p>
       <h3>Accompagner l’oizo</h3>
       <p>
-        Vous guidez son vol, choisissez une matière et maintenez le geste pour
-        sculpter. Les brosses composent une musique spatialisée, qui anime en
-        retour leurs matières. Lorsque vous relâchez, le dépôt cesse ; sa trace
-        et ses résonances demeurent.
+        Glissez doucement pour infléchir le vol. Maintenez le canevas pour
+        peindre avec la brosse choisie. L’ambiance musicale anime les matières ;
+        les traces continuent de vivre entre les gestes.
       </p>
       <h3>Un ciel pour se retrouver</h3>
       <p>
@@ -31,11 +29,11 @@ export default function ArtisticIntroduction() {
         revenir sur vos passages, changer de regard et parcourir la mémoire
         sensible que l’oizo a laissée derrière lui.
       </p>
-      <h3>Un atelier sans images importées</h3>
+      <h3>Un atelier contemplatif</h3>
       <p>
-        Lavis, granulations, nervures et marbrures naissent du calcul et du
-        hasard contraint. Les matières sont créées localement, sans photo ni
-        appel à un service externe.
+        Une palette fixe, une musique et un ciel aquarellé laissent la place au
+        voyage. Explorez en FPV, contemplez à 360° et cadrez une photo lorsque
+        le paysage vous appelle.
       </p>
       <h3>Une expérimentation échohypnotique</h3>
       <p>

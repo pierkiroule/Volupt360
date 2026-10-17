@@ -16,11 +16,14 @@ export class WaterDSP {
     this.duration = Math.max(0.04, duration);
     this.seed = seed >>> 0 || 731;
     this.color = color;
+    this.voicePhase = (seed % 17) * 0.03;
     this.velocity = Math.max(0, Math.min(1, velocity));
     this.age = 0;
-    this.phase = new Float64Array(4);
+    this.phase = new Float64Array(8);
     this.low = 0;
     this.smooth = 0;
+    this.bodyDamping = 1 - Math.exp((-2 * Math.PI * 1700) / sampleRate);
+    this.breath = 0;
     this.woodDamping = 1 - Math.exp((-2 * Math.PI * 1600) / sampleRate);
     if (type === "wood") {
       this.woodEnvelopes = new Float64Array([1, 1, 1]);
@@ -86,6 +89,46 @@ export class WaterDSP {
         Math.min(1, t / 0.008) *
         Math.min(1, Math.max(0, (this.duration - t) / 0.1))
       );
+    }
+    if (this.type === "bowed" || this.type === "air") {
+      const bowed = this.type === "bowed";
+      const vibrato =
+        1 +
+        Math.sin(t * (bowed ? 30.1 : 27.7) + this.voicePhase) *
+          0.0013 *
+          Math.min(1, t / 0.9);
+      let sound = 0;
+      const modes = bowed ? 5 : 3;
+      for (let i = 0; i < modes; i++) {
+        this.phase[i] +=
+          (2 * Math.PI * this.frequency * (i + 1) * vibrato) / this.rate;
+        if (this.phase[i] > Math.PI * 2) this.phase[i] -= Math.PI * 2;
+        const weight =
+          i === 0
+            ? 1
+            : bowed
+              ? i === 1
+                ? 0.23
+                : i === 2
+                  ? 0.1
+                  : i === 3
+                    ? 0.05
+                    : 0.025
+              : i === 1
+                ? 0.055
+                : 0.012;
+        sound +=
+          Math.sin(this.phase[i]) * weight * (i === 0 ? 1 : 0.8 + shape * 0.25);
+      }
+      this.breath += this.bodyDamping * (noise - this.breath);
+      sound += this.breath * (bowed ? 0.007 : 0.035);
+      this.smooth += this.bodyDamping * (sound - this.smooth);
+      const bloom = Math.sin(Math.PI * Math.min(1, t / this.duration));
+      const envelope =
+        Math.sqrt(Math.max(0, bloom)) *
+        Math.min(1, t / (bowed ? 0.16 : 0.1)) *
+        Math.min(1, Math.max(0, (this.duration - t) / 0.18));
+      return this.smooth * this.velocity * (bowed ? 0.32 : 0.35) * envelope;
     }
     if (this.type === "wood") {
       let sound = 0;
@@ -154,6 +197,8 @@ export class WaterDSP {
               ? 0.55
               : 0.2 + shape * 0.12;
         sound += Math.sin(this.phase[i]) * weight;
+        if (this.type === "pad")
+          sound += Math.sin(this.phase[i] * 2) * weight * 0.075;
       }
       const envelope =
         this.type === "pad"

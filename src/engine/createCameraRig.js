@@ -262,7 +262,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       // Fixed close framing. Only the visitor's zoom can move toward an overview.
       follow
         .copy(painter)
-        .addScaledVector(direction, -4.8)
+        .addScaledVector(direction, -3)
         .addScaledVector(lateral, 0.5)
         .addScaledVector(up, 0.42);
       const halfFov = Math.atan(
@@ -285,7 +285,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         (THREE.MathUtils.clamp(turn * 0.12, -0.16, 0.16) - cameraBank) *
         mix(2.2);
       previousHeading.copy(direction);
-      canvas.dataset.fpvFollowDistance = "4.8";
+      canvas.dataset.fpvFollowDistance = "3";
     }
     const positionBlend = mix(mode === "drone" ? 4.2 : 2.8);
     camera.position.lerp(desired, positionBlend);

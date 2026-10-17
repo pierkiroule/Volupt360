@@ -128,6 +128,7 @@ test("native chill playback produces audio, drums and preserves its musical time
   expect(result.rms).toBeGreaterThan(0.0001);
   expect(result.before.composition.style).toBe("electro-chill");
   expect(result.before.bpm).toBe(78);
+  expect(result.before.composition.identity).toBe("chambre-cinématographique");
   expect(result.before.percussion.counts.kick).toBeGreaterThan(0);
   expect(
     result.before.voices + result.before.retiringVoices,

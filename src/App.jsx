@@ -1,13 +1,8 @@
-import GrowingBrushMenu from "./components/GrowingBrushMenu.jsx";
-import {
-  createProceduralBrush,
-  loadPalette,
-  savePalette,
-} from "./materials/proceduralBrush.js";
+import LandscapeBrushMenu from "./components/LandscapeBrushMenu.jsx";
+import { LANDSCAPE_BRUSHES } from "./materials/landscapePalette.js";
 import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
 import ArtisticIntroduction from "./components/ArtisticIntroduction.jsx";
 import { UNIVERSES } from "./sonoizo/universes.js";
-import { BRUSHES } from "./engine/brushes.js";
 import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header.jsx";
 import CameraViews from "./components/CameraViews.jsx";
@@ -22,37 +17,7 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 
 export default function App() {
   const twigs = useTwigBank();
-  const [collection, setCollection] = useState(() => {
-    const saved = loadPalette();
-    return saved.length
-      ? saved.map((config, index) => ({
-          id: BRUSHES[index].id,
-          name: config.name,
-          color: config.color,
-          ready: true,
-          config,
-        }))
-      : [{ id: "voiles", name: "Première brosse", ready: false }];
-  });
-  const [paletteMessage, setPaletteMessage] = useState("");
-  function persistPalette(entries = collection) {
-    try {
-      savePalette(
-        entries.filter((item) => item.ready).map((item) => item.config),
-      );
-      setPaletteMessage("Palette sauvegardée sur cet appareil");
-    } catch {
-      setPaletteMessage(
-        "Sauvegarde indisponible : votre palette reste dans cette session.",
-      );
-    }
-  }
-  const [creatingBrush, setCreatingBrush] = useState(false);
-  const [brushError, setBrushError] = useState("");
-  const brushBusy = useRef(false),
-    brushTicket = useRef(0);
   const [universe, setUniverse] = useState(null);
-  const atmosphereRef = useRef({ echo: 0.5, hypnos: 0.3 });
   const universeRequest = useRef(0);
   const [universeError, setUniverseError] = useState("");
   const [atelier, setAtelier] = useState(() =>
@@ -116,19 +81,8 @@ export default function App() {
         onHint: setHint,
         onError: setSceneError,
       });
-      if (collection.some((item) => item.ready)) {
-        setCollection(
-          collection.map((item) => {
-            if (!item.ready) return item;
-            const profile = createProceduralBrush(item.config);
-            twigs.bank.current?.setBrushSound(item.id, profile);
-            return {
-              ...item,
-              thumbnail: engine.current.setGeneratedBrush(item.id, profile),
-            };
-          }),
-        );
-      }
+      for (const profile of LANDSCAPE_BRUSHES)
+        engine.current.setGeneratedBrush(profile.id, profile);
       if (ENABLE_SONOIZO && atelier !== "mp3") {
         if (new URLSearchParams(location.search).has("samples"))
           engine.current.setPadSource(twigs.bank.current);
@@ -140,7 +94,6 @@ export default function App() {
       );
     }
     return () => {
-      brushTicket.current++;
       loadRequest.current++;
       universeRequest.current++;
       engine.current?.dispose();
@@ -162,69 +115,20 @@ export default function App() {
     setDistance(0);
     engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
-    try {
-      await bank.preparePlayback();
+    await bank.preparePlayback();
+    if (ticket !== universeRequest.current) return;
+    if (!bank.getSnapshot().ambience.loaded) {
+      const loaded = await bank.loadUniverseAmbience(
+        `${import.meta.env.BASE_URL}ambiances/ambiance01.mp3`,
+      );
       if (ticket !== universeRequest.current) return;
-      if (!bank.getInstrumentStats()) await bank.startInstrument(choice.id);
-      if (ticket !== universeRequest.current) {
-        bank.pauseAmbience();
+      if (!loaded) {
+        setUniverseError("L’ambiance musicale n’a pas pu être chargée.");
         return;
       }
-      bank.setAtmosphere(atmosphereRef.current);
-    } catch (cause) {
-      if (ticket === universeRequest.current)
-        setUniverseError(`Composition indisponible : ${cause.message}`);
     }
-  }
-  async function buildBrush(config) {
-    if (brushBusy.current || !twigs.bank.current) return;
-    const id = collection[0].ready
-      ? BRUSHES.find(
-          (item) => !collection.some((brush) => brush.id === item.id),
-        )?.id
-      : collection[0].id;
-    if (!id) return;
-    brushBusy.current = true;
-    setCreatingBrush(true);
-    setBrushError("");
-    const ticket = ++brushTicket.current;
-    try {
-      const result = await twigs.bank.current.generateBirdBrush(id, config);
-      if (ticket !== brushTicket.current || !engine.current) return;
-      if (!result) {
-        setBrushError(
-          twigs.bank.current?.getSnapshot().birds.error ||
-            "La brosse n’a pas pu être créée.",
-        );
-        return;
-      }
-      twigs.bank.current.setBrushSound(id, result.profile);
-      const thumbnail = engine.current.setGeneratedBrush(id, result.profile);
-      const item = {
-        id,
-        name: result.profile.name,
-        config: result.profile.config,
-        ready: true,
-        thumbnail,
-        color: result.profile.color,
-        baseId: result.profile.baseId,
-      };
-      const next = collection.some((entry) => entry.id === id)
-        ? collection.map((entry) => (entry.id === id ? item : entry))
-        : [...collection, item];
-      setCollection(next);
-      persistPalette(next);
-      chooseBrush(id);
-      return true;
-    } catch (cause) {
-      if (ticket === brushTicket.current)
-        setBrushError(`Création impossible : ${cause.message}`);
-    } finally {
-      if (ticket === brushTicket.current) {
-        brushBusy.current = false;
-        setCreatingBrush(false);
-      }
-    }
+    const ambience = bank.getSnapshot().ambience;
+    if (!ambience.playing && !ambience.userPaused) await bank.toggleAmbience();
   }
   function chooseBrush(id) {
     setBrush(id);
@@ -283,11 +187,6 @@ export default function App() {
     }
     if (id !== "photo" && (id === "gyro" || mode === "photo"))
       void twigs.bank.current?.preparePlayback();
-    if (universe && mode === "photo" && id !== "photo") {
-      const ambience = twigs.bank.current?.getSnapshot().ambience;
-      if (ambience?.loaded && !ambience.playing && !ambience.userPaused)
-        void twigs.bank.current.toggleAmbience();
-    }
     setMode(id);
     void engine.current?.setCameraMode(id);
   }
@@ -364,16 +263,16 @@ export default function App() {
     >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
-      {universe && mode !== "photo" && twigs.snapshot.composition?.loaded && (
+      {universe && mode !== "photo" && twigs.snapshot.ambience?.loaded && (
         <button
           className="ambience-toggle"
           aria-label={
-            twigs.snapshot.composition.playing
-              ? "Mettre la composition en pause"
-              : "Reprendre la composition"
+            twigs.snapshot.ambience.playing
+              ? "Mettre l’ambiance en pause"
+              : "Reprendre l’ambiance musicale"
           }
-          aria-pressed={twigs.snapshot.composition.playing}
-          onClick={() => twigs.bank.current?.toggleComposition()}
+          aria-pressed={twigs.snapshot.ambience.playing}
+          onClick={() => twigs.bank.current?.toggleAmbience()}
         >
           ♪
         </button>
@@ -511,16 +410,10 @@ export default function App() {
           )}
         </section>
       ) : atelier !== "mp3" ? (
-        <GrowingBrushMenu
-          brushes={collection}
+        <LandscapeBrushMenu
+          brushes={LANDSCAPE_BRUSHES}
           selected={brush}
-          busy={creatingBrush}
-          error={brushError}
           onSelect={chooseBrush}
-          onAdd={buildBrush}
-          onSave={() => persistPalette()}
-          saveMessage={paletteMessage}
-          max={BRUSHES.length}
         />
       ) : (
         <ControlPanel

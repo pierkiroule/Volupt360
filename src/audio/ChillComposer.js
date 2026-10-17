@@ -4,6 +4,12 @@ const CHORDS = [
   { name: "Fmaj7", root: -7, tones: [-7, -3, 0, 4] },
   { name: "G6", root: -5, tones: [-5, -1, 2, 4] },
 ];
+const SECOND_ACT = [
+  { name: "Em7", root: -8, tones: [-8, -5, -1, 2] },
+  { name: "Fmaj9", root: -7, tones: [-7, -3, 4, 7] },
+  { name: "Dm7", root: 2, tones: [2, 5, 9, 12] },
+  { name: "Gsus2", root: -5, tones: [-5, 2, 7, 9] },
+];
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 /** A shared transport, harmony and phrase grammar; no audio nodes or unbounded history. */
 export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
@@ -24,7 +30,8 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
   };
   function harmonyAt(time) {
     const bar = Math.floor(Math.max(0, time) / (beat * 4));
-    const chord = CHORDS[Math.floor(bar / 4) % CHORDS.length];
+    const bank = Math.floor(bar / 48) % 2 ? SECOND_ACT : CHORDS;
+    const chord = bank[Math.floor(bar / 4) % bank.length];
     const sectionBar = bar % 48;
     const section =
       sectionBar < 8
@@ -34,7 +41,8 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
           : sectionBar < 40
             ? "envol"
             : "respiration";
-    return { ...chord, bar, section, phrase: Math.floor(bar / 4) };
+    const arc = Math.sin((Math.PI * ((bar % 48) + 0.5)) / 48);
+    return { ...chord, bar, section, arc, phrase: Math.floor(bar / 4) };
   }
   function melodicPitch(chord, choice) {
     let pitch = chord.tones[((choice % 4) + 4) % 4] + 12;
@@ -81,10 +89,15 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
           step = cursor % 16;
         if (phrase !== h.phrase) {
           phrase = h.phrase;
-          rotation = Math.floor(random() * 4);
+          rotation = Math.floor(random() * 2);
           // Keep a recognizable cell; mutate one place per four-bar phrase.
-          motif = motif.slice();
-          motif[Math.floor(random() * motif.length)] = Math.floor(random() * 4);
+          if (phrase % 4 === 0) motif = [0, 2, 1, 3, 2];
+          else {
+            motif = motif.slice();
+            motif[Math.floor(random() * motif.length)] = Math.floor(
+              random() * 4,
+            );
+          }
         }
         const intro = h.section === "ouverture",
           breath = h.section === "respiration";
@@ -112,29 +125,39 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
             (step === 11 && h.bar % 4 === 3 && random() < 0.35)) &&
           (!breath || h.bar % 2 === 0)
         )
-          emit("kick", 0.62);
-        if ((step === 4 || step === 12) && !intro && (!breath || step === 12))
-          emit("wood", 0.25 + density * 0.13);
-        if (step % 2 === 0 && !intro && random() < density)
+          emit("kick", intro || breath ? 0.32 : 0.45);
+        if (step === 12 && h.bar % 2 === 1 && !intro && !breath)
+          emit("wood", 0.18 + density * 0.1);
+        if (step % 4 === 2 && !intro && random() < density * 0.45)
           emit("shaker", step % 4 === 2 ? 0.22 : 0.13);
-        if (step === 0 || (step === 10 && !breath && random() < density * 0.55))
+        if (
+          (step === 0 && h.bar % 2 === 0) ||
+          (step === 10 &&
+            h.bar % 4 === 3 &&
+            !breath &&
+            random() < density * 0.4)
+        )
           emit("bass", 0.32, {
             pitch: h.root - 12,
-            duration: beat * (step === 0 ? 2.2 : 1.25),
+            duration: beat * (step === 0 ? 6 : 1.25),
             type: "bass",
             layer: 0,
           });
-        const leadSteps = intro || breath ? [6, 14] : [2, 6, 9, 14];
+        const leadSteps = intro || breath ? [2, 12] : [0, 8, 14];
         if (leadSteps.includes(step) && random() < density) {
           const index = (h.bar * 3 + leadSteps.indexOf(step)) % motif.length;
           const pitch = melodicPitch(h, motif[index] + rotation);
-          emit("lead", 0.22 + clamp(brightness, 0, 1) * 0.12, {
-            pitch,
-            duration: beat * (1.1 + random() * 0.8),
-            type: random() < 0.35 ? "string" : "wood",
-            layer: 1,
-          });
-          if (h.bar % 8 === 7 && step === 14 && !breath) {
+          emit(
+            "lead",
+            (0.22 + clamp(brightness, 0, 1) * 0.12) * (0.7 + h.arc * 0.3),
+            {
+              pitch,
+              duration: beat * (2.3 + random() * 1.5),
+              type: h.bar % 4 === 3 ? "air" : "bowed",
+              layer: 1,
+            },
+          );
+          if (h.bar % 4 === 3 && step === 14 && !breath) {
             events.push({
               role: "lead",
               time: at + beat * 0.75,
@@ -143,8 +166,8 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
                 harmonyAt(at + beat * 0.75),
                 motif[index] + rotation,
               ),
-              duration: beat * 1.4,
-              type: "wood",
+              duration: beat * 2.4,
+              type: "air",
               layer: 2,
             });
             count++;
@@ -157,6 +180,8 @@ export function createChillComposer({ seed = 4103, bpm = 78 } = {}) {
       const h = harmonyAt(Math.max(0, lastTime));
       return {
         style: "electro-chill",
+        identity: "chambre-cinématographique",
+        arc: h.arc,
         bpm,
         bar: h.bar,
         section: h.section,

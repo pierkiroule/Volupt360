@@ -4,9 +4,9 @@ Le parcours actif utilise une composition procédurale à 78 BPM, sans sample ni
 
 ## Architecture
 
-`ChillComposer` est une grammaire indépendante de Web Audio : transport en doubles-croches, harmonie commune et phrases de quatre mesures. Les nappes, la basse, les motifs et les gestes partagent une progression Cmaj7 / Am7 / Fmaj7 / G6. Les mélodies privilégient les notes de l’accord et un registre de 5 à 19 demi-tons au-dessus de la fondamentale. La conduite mélodique favorise les déplacements courts.
+`ChillComposer` est une grammaire indépendante de Web Audio : transport en doubles-croches, harmonie commune et phrases de quatre mesures. Les nappes, la basse, les motifs et les gestes partagent deux actes harmoniques : Cmaj7 / Am7 / Fmaj7 / G6, puis Em7 / Fmaj9 / Dm7 / Gsus2. Les mélodies privilégient les notes de l’accord et un registre de 5 à 19 demi-tons au-dessus de la fondamentale. La conduite mélodique favorise les déplacements courts.
 
-Les phases ouverture, sillage, envol et respiration s’étendent sur 48 mesures. La cellule mélodique garde une identité, avec mutation limitée à chaque phrase, rotations, silences et réponses décalées. Le groove a un swing léger et des variations de vélocité bornées. Les gestes augmentent une activité amortie qui infléchit la densité, sans ouvrir de nouvelles notes hors harmonie.
+Les phases ouverture, sillage, envol et respiration s’étendent sur 48 mesures. La cellule mélodique revient tous les quatre groupes de phrases, avec mutations intermédiaires limitées, rotations courtes, silences et réponses. Un arc dynamique lent accompagne les 48 mesures. Les lignes soutenues utilisent des timbres de cordes et de souffle procéduraux ; la basse tient davantage ses notes et les percussions reculent. Le groove a un swing léger et des variations de vélocité bornées. Les gestes augmentent une activité amortie qui infléchit la densité, sans ouvrir de nouvelles notes hors harmonie.
 
 `createChillDrums` synthétise kick sinusoïdal, percussion de bruit filtré et charleston doux. Le bruit est calculé une seule fois. Les sources sont bornées à 12 et libérées après chaque événement. La synthèse mélodique conserve sa limite de 10 voix.
 
@@ -23,3 +23,9 @@ Les anciens générateurs restent disponibles pour les parcours historiques, san
 Tests de simulation sur deux heures : reproductibilité, diversité de phrases, conformité des notes à l’accord, registre et mémoire bornés. Tests de gestes arbitraires et de reprise sans rafale. Tests Web Audio natifs : signal mesuré, percussions déclenchées, limite des voix et continuité après pause. Contrôles ciblés de réverbération, filtres, composition par les brosses et mobile.
 
 Ces vérifications établissent les règles et le fonctionnement, pas une garantie esthétique. Une écoute critique sur casque et téléphone reste nécessaire pour juger l’équilibre, la musicalité et la fatigue d’écoute. La cohérence harmonique ne signifie pas absence de répétition : motifs et cycles composent une structure qui se transforme.
+
+## Orchestration de chambre
+
+Les timbres `bowed` et `air` ajoutent des modes harmoniques, un léger vibrato progressif, une composante de souffle filtré et une enveloppe qui se déploie au lieu d’une simple attaque pincée. Ils sont synthétisés : ils ne constituent pas des enregistrements acoustiques ni une simulation complète d’orchestre. Les nappes gagnent une composante harmonique discrète, tandis que le bruit de fond aquatique est réduit.
+
+Les gestes clairs appellent le timbre de souffle, les matières sombres les cordes soutenues. Le thème principal et ses réponses utilisent la même harmonie, avec un second acte enrichissant la couleur. Les tests vérifient les enveloppes, la hauteur et les signaux finis ; une capture native de 18 secondes est produite dans `/tmp/chamber-preview.wav` pour une revue à l’écoute, sans ajout de sample au produit.

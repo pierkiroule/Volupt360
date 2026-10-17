@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test";
-import { createBrush } from "./helpers/proceduralBrushes.js";
 
 test("mobile budget adapts gradually, recovers and ignores background stalls", async ({
   page,
@@ -38,69 +37,6 @@ test("mobile budget adapts gradually, recovers and ignores background stalls", a
   expect(result.recovered).toBeGreaterThan(result.slow);
   expect(result.recovered).toBeLessThanOrEqual(result.initial);
   expect(result.limit).toBe(56);
-});
-
-test("mobile workshop preserves living character and materials keep evolving between gestures", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
-  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
-  await page
-    .getByRole("button", { name: "Créer une brosse", exact: true })
-    .click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Vibrante", exact: true }).click();
-  await expect(
-    dialog.getByRole("button", { name: "Vibrante", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  const layout = await dialog.evaluate((node) => {
-    const rect = node.getBoundingClientRect();
-    const select = node.querySelector("select");
-    return {
-      width: rect.width,
-      left: rect.left,
-      font: parseFloat(getComputedStyle(select).fontSize),
-      scroll: node.scrollHeight > node.clientHeight,
-    };
-  });
-  expect(layout.left).toBeGreaterThanOrEqual(0);
-  expect(layout.width).toBeLessThanOrEqual(390);
-  expect(layout.font).toBeGreaterThanOrEqual(16);
-  await page.screenshot({ path: "/tmp/mobile-brush-workshop.png" });
-  await dialog
-    .getByRole("button", { name: "Créer la brosse", exact: true })
-    .click();
-  const canvas = page.locator("#stage canvas");
-  await expect(canvas).toHaveAttribute("data-mobile-quality", "true");
-  expect(
-    Number(await canvas.getAttribute("data-render-scale")),
-  ).toBeLessThanOrEqual(1.25);
-  await page.mouse.move(180, 350);
-  await page.mouse.down();
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(4);
-  await page.mouse.up();
-  const before = Number(await canvas.getAttribute("data-material-time"));
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-material-time")))
-    .toBeGreaterThan(before + 0.3);
-  await page.getByRole("button", { name: "Vue photo", exact: true }).click();
-  await expect(canvas).toHaveAttribute("data-sculpture-paused", "true");
-  const frozen = await canvas.getAttribute("data-material-time");
-  await page.waitForTimeout(250);
-  expect(await canvas.getAttribute("data-material-time")).toBe(frozen);
-  await page.reload();
-  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
-  await expect(page.locator(".generated-brush")).toBeEnabled();
-  const stored = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("echohypnos-procedural-palette-v1")),
-  );
-  expect(stored.brushes[0].life).toBe("Vibrante");
-  expect(errors).toEqual([]);
 });
 
 test("audio envelopes respond strongly and release smoothly at different frame rates", async ({

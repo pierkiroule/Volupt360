@@ -1,0 +1,139 @@
+import { test, expect } from "@playwright/test";
+
+test("mobile landscape has eight fixed brushes, MP3 reaction and no generators loaded", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const requested = [],
+    errors = [];
+  page.on("request", (request) => requested.push(request.url()));
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
+  await expect(
+    page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
+  ).toBeVisible();
+  const brushes = page.locator(".landscape-palette button"),
+    canvas = page.locator("#stage canvas");
+  await expect(brushes).toHaveCount(8);
+  await expect(
+    page.getByRole("button", { name: "Créer une brosse", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Sauvegarder la palette" }),
+  ).toHaveCount(0);
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-music-energy")))
+    .toBeGreaterThan(0.01);
+  await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "3");
+  for (const name of [
+    "Voiles",
+    "Falaises",
+    "Corolles",
+    "Filaments",
+    "Dilution",
+    "Calligraphie",
+    "Plumes",
+    "Feuilles",
+  ]) {
+    const button = page.getByRole("button", { name, exact: true });
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await page.mouse.move(180, 350);
+    await page.mouse.down();
+    await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+  }
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
+    .toBeGreaterThan(8);
+  await page.screenshot({ path: "/tmp/simple-watercolor-mobile.png" });
+  expect(requested.some((url) => url.includes("ambiance01.mp3"))).toBe(true);
+  expect(
+    requested.filter((url) =>
+      /createAmbientMixer|createEchoInstrument|ChillComposer|WaterProcessor|proceduralBrush/.test(
+        url,
+      ),
+    ),
+  ).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("MP3 pause and photo resume work while synthesis stays uninitialized", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createTwigBank } = await import("/src/sonoizo/createTwigBank.js");
+    const bank = createTwigBank({ ids: ["voiles"] });
+    await bank.preparePlayback();
+    const loaded = await bank.loadUniverseAmbience("/ambiances/ambiance01.mp3");
+    await bank.toggleAmbience();
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const rms = bank.getVisualFeatures().rms,
+      instrument = bank.getInstrumentStats();
+    await bank.toggleAmbience();
+    await bank.preparePlayback();
+    const manual = bank.getSnapshot().ambience;
+    await bank.toggleAmbience();
+    bank.pauseAmbience();
+    await bank.preparePlayback();
+    const resumed = bank.getSnapshot().ambience.playing;
+    bank.dispose();
+    return { loaded, rms, instrument, manual, resumed };
+  });
+  expect(result.loaded).toBe(true);
+  expect(result.rms).toBeGreaterThan(0.00001);
+  expect(result.instrument).toBeNull();
+  expect(result.manual.userPaused).toBe(true);
+  expect(result.manual.playing).toBe(false);
+  expect(result.resumed).toBe(true);
+});
+
+test("contemplative steering bends gently without jumps or reversed controls", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { createSonoizoDance } = await import("/src/sonoizo/SonoizoDance.js");
+    const a = createSonoizoDance(),
+      b = createSonoizoDance(),
+      features = { energy: 0.4, low: 0.3, high: 0.2 };
+    for (let i = 0; i < 30; i++) {
+      a.update(1 / 60, [], features);
+      b.update(1 / 60, [], features);
+    }
+    b.steer(0.5, 0.25, {
+      right: new THREE.Vector3(1, 0, 0),
+      up: new THREE.Vector3(0, 1, 0),
+    });
+    let previous = null,
+      maxStep = 0,
+      maxAngle = 0,
+      delta;
+    for (let i = 0; i < 180; i++) {
+      const baseline = a.update(1 / 60, [], features),
+        pose = b.update(1 / 60, [], features);
+      if (previous) {
+        maxStep = Math.max(
+          maxStep,
+          pose.position.distanceTo(previous.position),
+        );
+        maxAngle = Math.max(
+          maxAngle,
+          pose.direction.angleTo(previous.direction),
+        );
+      }
+      if (i === 60)
+        delta = pose.position.clone().sub(baseline.position).toArray();
+      previous = pose;
+    }
+    return { maxStep, maxAngle, delta };
+  });
+  expect(result.delta[0]).toBeGreaterThan(0.03);
+  expect(result.delta[1]).toBeGreaterThan(0.01);
+  expect(result.maxStep).toBeLessThan(2);
+  expect(result.maxAngle).toBeLessThan(0.35);
+});
