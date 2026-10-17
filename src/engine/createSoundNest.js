@@ -9,7 +9,7 @@ import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
 import { createTraceMemory } from "../sonoizo/TraceMemory.js";
 import { createTraceEncounter } from "../sonoizo/TraceEncounter.js";
 import { createTraceDebug } from "../sonoizo/createTraceDebug.js";
-import { createVocalRings } from "../sonoizo/createVocalRings.js";
+import { createVocalBubbles } from "../sonoizo/createVocalBubbles.js";
 import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
@@ -27,7 +27,10 @@ import { createPainterFlight } from "./createPainterFlight.js";
 /** A living XYZ trail: the painter moves, the watercolor grows behind it,
  * and the drone films that movement instead of circling a fixed installation.
  */
-export function createSoundNest(container, { onHint, onError } = {}) {
+export function createSoundNest(
+  container,
+  { onHint, onError, onBubbleScore } = {},
+) {
   const mobile =
     matchMedia("(pointer: coarse)").matches ||
     Math.min(innerWidth, innerHeight) < 600;
@@ -748,9 +751,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           ? padSource.getFragments?.() || []
           : null;
         if (!vocalFireflies && fragments?.length) {
-          vocalFireflies = createVocalRings({
+          vocalFireflies = createVocalBubbles({
             fragments,
             collide: (id) => padSource.collide(id),
+            onScore: onBubbleScore,
           });
           landscape.add(vocalFireflies.group);
         }
@@ -1042,6 +1046,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       vocalFireflies?.dispose();
       vocalFireflies = null;
+      onBubbleScore?.(0, 24);
       padSource = source;
       navigation.windEnabled = Boolean(source);
       if (source) {

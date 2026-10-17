@@ -26,10 +26,10 @@ export default function ArtisticIntroduction() {
       </p>
       <h3>Traverser les voix</h3>
       <p>
-        Vingt-quatre anneaux flottent dans le paysage comme des passages de
-        mémoire. En vol FPV, guidez l’oizo à travers leur ouverture : chacun
-        libère un fragment poétique enregistré. Une seule voix résonne à la
-        fois, avec des silences entre les rencontres. Le ciel se teinte des
+        Vingt-quatre bulles translucides flottent dans le paysage comme des
+        passages de mémoire. En vol FPV, guidez l’oizo à travers leur volume :
+        chacun libère un fragment poétique enregistré. Une seule voix résonne à
+        la fois, avec des silences entre les rencontres. Le ciel se teinte des
         couleurs de votre ÉchoMood, sans enfermer votre humeur dans un sens
         imposé.
       </p>
