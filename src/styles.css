@@ -1856,3 +1856,18 @@ label:focus-visible {
     animation-timing-function: linear;
   }
 }
+.fpv-aim-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38514e99;
+  border: 1px solid #fff9;
+  box-shadow: 0 0 0 5px #38514e0d;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+.fpv-aim-dot[hidden] {
+  display: none;
+}

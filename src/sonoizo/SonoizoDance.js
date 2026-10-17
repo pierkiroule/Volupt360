@@ -1,9 +1,10 @@
+import { createPointFlight } from "../engine/createPointFlight.js";
 import * as THREE from "three";
 import { createOrbitalFlight } from "../engine/createOrbitalFlight.js";
 
 /** Continuous flight, including silence. Triggers shape a bounded musical impulse. */
-export function createSonoizoDance({ seed = 37 } = {}) {
-  const flight = createOrbitalFlight(),
+export function createSonoizoDance({ seed = 37, firstPerson = false } = {}) {
+  const flight = firstPerson ? createPointFlight() : createOrbitalFlight(),
     triggers = new Map();
   const wind = new THREE.Vector3(),
     desired = new THREE.Vector3(),
@@ -25,12 +26,14 @@ export function createSonoizoDance({ seed = 37 } = {}) {
     );
   return {
     beginPilot() {
+      if (firstPerson) flight.beginPilot();
       holding = true;
       releaseTime = 0;
       steering.set(0, 0);
     },
     setPilot(x, y, frame) {
       if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      if (firstPerson && frame) flight.setPilot(x, y, frame);
       holding = true;
       steering.set(x, y).clampLength(0, 1);
       if (frame) {
@@ -43,6 +46,7 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       }
     },
     releasePilot() {
+      if (firstPerson) flight.releasePilot();
       holding = false;
       releaseTime = 0;
     },
@@ -94,7 +98,8 @@ export function createSonoizoDance({ seed = 37 } = {}) {
       wind.lerp(desired, 1 - Math.exp(-dt * 7));
       if (!holding) steering.multiplyScalar(Math.exp(-dt * 3.5));
       releaseTime = holding ? 0 : releaseTime + dt;
-      const visit = hasVisitTarget && !holding && releaseTime > 0.7 ? 1 : 0;
+      const visit =
+        !firstPerson && hasVisitTarget && !holding && releaseTime > 0.7 ? 1 : 0;
       visitMix +=
         (visit - visitMix) * (1 - Math.exp(-dt * (holding ? 5 : 1.1)));
       const pose = flight.update(

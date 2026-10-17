@@ -7,3 +7,9 @@ L’expérience ÉchoMood démarre en FPV. Les glissements orientent le vol via 
 Les bulles poétiques utilisent la même position que l’œil de la caméra en FPV. Leur éclatement, la sélection des 24 textes selon le mood, l’affichage de cinq secondes, le compteur et la musique ne changent pas.
 
 Les sources historiques du rig de l’oiseau restent disponibles pour réversibilité, sans être importées par le moteur actif. Les tests historiques spécifiques à la poursuite d’un avatar décrivent l’ancien comportement ; les tests de première personne vérifient la position et l’orientation réelles, l’absence d’avatar, le démarrage FPV, le pilotage et le dépôt par appui long. La qualité de navigation sur téléphone physique reste à valider.
+
+## Pilotage par point de visée
+
+Le mode actif utilise désormais `createPointFlight` plutôt que le champ orbital : un point projeté devant la caméra représente le cap visé. Le repère est capturé au début du glissement, afin qu’un doigt immobile ne produise pas de rotation infinie. Le déplacement tactile change la cible dans ce repère fixe ; la direction converge progressivement vers elle. Relâcher conserve immédiatement le cap atteint, sans retour autonome vers les traces. Lever puis reposer le doigt permet de poursuivre un virage. La vitesse est constante et douce (2,6 unités/seconde), sans modulation musicale du pilotage. Les brosses conservent leur audioreactivité.
+
+Validation : 3 tests ciblés réussis et build Vite réussi. Le test du point vérifie la convergence malgré un repère caméra changeant, la conservation du cap après relâchement et la vitesse. Essais sur téléphone physique encore nécessaires.

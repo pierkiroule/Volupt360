@@ -54,6 +54,12 @@ export function createSoundNest(
     "Paysage aquarelle : glisser pour tourner à 360 degrés",
   );
   container.append(renderer.domElement);
+  const aimDot = document.createElement("div");
+  aimDot.className = "fpv-aim-dot";
+  aimDot.setAttribute("aria-hidden", "true");
+  container.append(aimDot);
+  const aimScreen = new THREE.Vector3(),
+    aimLocal = new THREE.Vector3();
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#f4f0e8");
   renderer.domElement.dataset.skydome = "off-white-paper";
@@ -143,7 +149,7 @@ export function createSoundNest(
     visitClock = 0,
     visitMark = null;
   const visitPoint = new THREE.Vector3();
-  const dance = createSonoizoDance();
+  const dance = createSonoizoDance({ firstPerson: true });
   const padStates = new Map();
   const tailPosition = new THREE.Vector3();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
@@ -702,6 +708,7 @@ export function createSoundNest(
         renderer.domElement.dataset.musicEnergy = (visual.energy || 0).toFixed(
           3,
         );
+        if (pose.aimPoint) aimLocal.copy(pose.aimPoint);
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -786,6 +793,7 @@ export function createSoundNest(
         quiet = 0;
         sampleClock += dt;
         const pose = flight.update(dt, f);
+        if (pose.aimPoint) aimLocal.copy(pose.aimPoint);
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -913,6 +921,15 @@ export function createSoundNest(
       marks[0]?.uniforms[0]?.uTime?.value ?? 0
     ).toFixed(3);
     rig.update(dt);
+    aimDot.hidden = cameraMode !== "drone" || !padSource;
+    if (!aimDot.hidden) {
+      aimScreen
+        .copy(aimLocal)
+        .applyMatrix4(landscape.matrixWorld)
+        .project(camera);
+      aimDot.style.left = `${(aimScreen.x * 0.5 + 0.5) * 100}%`;
+      aimDot.style.top = `${(-aimScreen.y * 0.5 + 0.5) * 100}%`;
+    }
     camera.updateMatrixWorld();
     if (!photo && padSource?.updateListener) {
       const inverse = landscape
@@ -1256,6 +1273,7 @@ export function createSoundNest(
       tip.geometry.dispose();
       tip.material.dispose();
       effects.dispose();
+      aimDot.remove();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
