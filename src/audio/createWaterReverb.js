@@ -25,7 +25,12 @@ export function createWaterReverb(ctx, destination, profile) {
   const convolver = ctx.createConvolver(),
     wet = ctx.createGain(),
     predelay = ctx.createDelay(0.1),
+    sendFilter = ctx.createBiquadFilter(),
     damping = ctx.createBiquadFilter();
+  sendFilter.type = "highpass";
+  sendFilter.frequency.value = 180;
+  sendFilter.Q.value = 0.5;
+  sendFilter.connect(predelay);
   predelay.delayTime.value = 0.028;
   damping.type = "lowpass";
   damping.frequency.value = 2200;
@@ -37,8 +42,9 @@ export function createWaterReverb(ctx, destination, profile) {
   damping.connect(wet);
   wet.connect(destination);
   return {
-    input: predelay,
+    input: sendFilter,
     dispose() {
+      sendFilter.disconnect();
       predelay.disconnect();
       damping.disconnect();
       convolver.disconnect();
