@@ -1,17 +1,10 @@
+import { LANDSCAPE_BRUSHES } from "../materials/landscapePalette.js";
 export const UNIVERSES = [
   {
     id: "souffle",
     name: "ÉCHO & HYPNOS",
-    soundName: "Le ciel vivant",
-    description:
-      "Un voyage de matières évolutives en résonance avec la musique.",
-    brushes: [
-      "voiles",
-      "filaments",
-      "aurore",
-      "dilution",
-      "plumes",
-      "lucioles",
-    ],
+    soundName: "Paysage aquarelle",
+    description: "Un vol contemplatif dans les matières de la musique.",
+    brushes: LANDSCAPE_BRUSHES.map((brush) => brush.id),
   },
 ];

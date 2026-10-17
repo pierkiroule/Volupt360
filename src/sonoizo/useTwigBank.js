@@ -4,12 +4,12 @@ import {
   ENABLE_POETIC_VOICES,
 } from "./instrumentConfig.js";
 import { useEffect, useRef, useState } from "react";
-import { BRUSHES } from "../engine/brushes.js";
+import { LANDSCAPE_BRUSHES } from "../materials/landscapePalette.js";
 import { createTwigBank, emptyTwigSnapshot } from "./createTwigBank.js";
 import { FIREFLY_FRAGMENTS } from "./poems.js";
 import { ENABLE_SONOIZO } from "./config.js";
 
-const ids = BRUSHES.map((brush) => brush.id);
+const ids = LANDSCAPE_BRUSHES.map((brush) => brush.id);
 export function useTwigBank() {
   const bank = useRef(null);
   const [snapshot, setSnapshot] = useState(() => emptyTwigSnapshot(ids));

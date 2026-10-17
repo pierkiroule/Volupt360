@@ -1,50 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-test("one landscape and a simplified workshop retain refinement controls", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await expect(
-    page.getByRole("button", { name: /Choisir (ÉTHER|ABYSSE|MÉMOIRE)/ }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
-  await page
-    .getByRole("button", { name: "Créer une brosse", exact: true })
-    .click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog.getByLabel("Forme", { exact: true })).toBeVisible();
-  await expect(dialog.getByLabel("Matière", { exact: true })).toBeVisible();
-  await expect(dialog.getByLabel("Épaisseur")).not.toBeVisible();
-  await dialog.getByText("Affiner", { exact: true }).click();
-  await expect(dialog.getByLabel("Épaisseur")).toBeVisible();
-  await dialog
-    .getByRole("button", { name: "Créer la brosse", exact: true })
-    .click();
-  await expect(page.locator(".generated-brush")).toBeEnabled();
-  const canvas = page.locator("#stage canvas");
-  await expect
-    .poll(async () => {
-      const values = (
-        (await canvas.getAttribute("data-oizo-screen")) || "2,2,2"
-      )
-        .split(",")
-        .map(Number);
-      return (
-        Math.abs(values[0]) < 0.85 &&
-        Math.abs(values[1]) < 0.85 &&
-        values[2] < 1
-      );
-    })
-    .toBe(true);
-  await page.mouse.move(400, 350);
-  await page.mouse.down();
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(5);
-  await page.mouse.up();
-  await page.screenshot({ path: "/tmp/living-resonant-flight.png" });
-});
-
 test("FPV stays close through silence and growing bounds, with manual zoom still available", async ({
   page,
 }) => {
@@ -90,13 +45,13 @@ test("FPV stays close through silence and growing bounds, with manual zoom still
     rig.dispose();
     return { near, quiet, manual, fov, quietFov };
   });
-  expect(result.near).toBeLessThan(5.5);
+  expect(result.near).toBeLessThan(3.3);
   expect(result.quiet).toBeCloseTo(result.near, 2);
   expect(result.quietFov).toBeCloseTo(result.fov, 2);
   expect(result.manual).toBeGreaterThan(30);
 });
 
-test("all brush families render evolving and music-reactive matter without WebGL errors", async ({
+test("the eight landscape brushes render evolving and music-reactive matter without WebGL errors", async ({
   page,
 }) => {
   const errors = [];
@@ -119,7 +74,9 @@ test("all brush families render evolving and music-reactive matter without WebGL
     camera.lookAt(0, 0, 0);
     renderer.setRenderTarget(target);
     const results = [];
-    for (const brush of BRUSHES) {
+    const { LANDSCAPE_BRUSHES } =
+      await import("/src/materials/landscapePalette.js");
+    for (const brush of LANDSCAPE_BRUSHES) {
       const stroke = createBrushStroke(brush.id, {
         seed: 31,
         color: new THREE.Color("#376f87"),
@@ -184,7 +141,7 @@ test("all brush families render evolving and music-reactive matter without WebGL
     renderer.forceContextLoss();
     return results;
   });
-  expect(results).toHaveLength(18);
+  expect(results).toHaveLength(8);
   for (const result of results) {
     expect(result.sound, `${result.id}: musical resonance`).toBeGreaterThan(0);
     expect(result.evolution, `${result.id}: evolution`).toBeGreaterThan(0);

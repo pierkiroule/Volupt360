@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test";
-import { createBrush } from "./helpers/proceduralBrushes.js";
 
 test("sunset sphere provides a seamless directional horizon and releases resources", async ({
   page,
@@ -63,10 +62,9 @@ test("narrative, sunset, brush-generated music and brush menu coexist in FPV and
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-skydome", "watercolor-sunset");
   await expect(
-    page.getByRole("button", { name: "Mettre la composition en pause" }),
+    page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
   ).toBeVisible();
-  await createBrush(page, 1);
-  await expect(page.locator(".generated-brush")).toBeEnabled();
+  await expect(page.locator(".landscape-palette button")).toHaveCount(8);
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })
     .click();
@@ -77,7 +75,7 @@ test("narrative, sunset, brush-generated music and brush menu coexist in FPV and
   await expect(page.getByRole("button", { name: /PNG HD/ })).toBeVisible();
   await page.getByRole("button", { name: "FPV drone", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Mettre la composition en pause" }),
+    page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
