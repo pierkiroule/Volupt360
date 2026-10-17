@@ -112,13 +112,17 @@ export function createOizo() {
         cross.crossVectors(previousDirection, pose.direction);
         turn += (cross.length() / dt - turn) * (1 - Math.exp(-dt * 5));
         const targetBank = THREE.MathUtils.clamp(
-          (-cross.y / dt) * 0.9,
+          (-cross.y / dt) * 0.9 + (pose.pilotX || 0) * 0.24,
           -0.6,
           0.6,
         );
         bank += (targetBank - bank) * (1 - Math.exp(-dt * 4));
         cooldown = Math.max(0, cooldown - dt);
-        const vertical = pose.direction.y;
+        const vertical = THREE.MathUtils.clamp(
+          pose.direction.y + (pose.pilotY || 0) * 0.18,
+          -1,
+          1,
+        );
         climb += (Math.max(0, vertical) - climb) * (1 - Math.exp(-dt * 3));
         dive += (Math.max(0, -vertical) - dive) * (1 - Math.exp(-dt * 3));
         if ((turn > 0.18 || climb > 0.18) && cooldown === 0 && burst === 0) {

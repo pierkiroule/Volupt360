@@ -137,7 +137,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   const traceDebug =
     ENABLE_TRACE_MEMORY && TRACE_DEBUG ? createTraceDebug(traceMemory) : null;
   if (traceDebug) landscape.add(traceDebug.group);
-  let traceTime = 0;
+  let traceTime = 0,
+    visitClock = 0,
+    visitMark = null;
+  const visitPoint = new THREE.Vector3();
   const dance = createSonoizoDance();
   const oizoScreen = new THREE.Vector3();
   const padStates = new Map();
@@ -343,6 +346,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     bridge.close();
     padStates.clear();
     dance.reset();
+    visitMark = null;
+    visitClock = 0;
     closeStroke();
     marks.forEach(destroyStroke);
     marks.length = 0;
@@ -526,14 +531,38 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     )
       return;
     void padSource.preparePlayback();
+    dance.beginPilot();
     steeringGesture = {
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
+      anchorX: event.clientX,
+      anchorY: event.clientY,
       started: false,
       timer: setTimeout(beginNozzlePaint, 450),
     };
     renderer.domElement.setPointerCapture(event.pointerId);
+  }
+  const pilotInverse = new THREE.Quaternion(),
+    pilotRight = new THREE.Vector3(),
+    pilotUp = new THREE.Vector3();
+  const pilotFrame = { right: pilotRight, up: pilotUp };
+  function refreshPilot() {
+    if (!steeringGesture?.started) return;
+    landscape.getWorldQuaternion(pilotInverse).invert();
+    pilotRight
+      .set(1, 0, 0)
+      .applyQuaternion(camera.quaternion)
+      .applyQuaternion(pilotInverse);
+    pilotUp
+      .set(0, 1, 0)
+      .applyQuaternion(camera.quaternion)
+      .applyQuaternion(pilotInverse);
+    dance.setPilot(
+      steeringGesture.controlX || 0,
+      steeringGesture.controlY || 0,
+      pilotFrame,
+    );
   }
   function onSteeringMove(event) {
     if (directGesture?.id === event.pointerId) {
@@ -561,21 +590,19 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       return;
     clearTimeout(steeringGesture.timer);
     steeringGesture.started = true;
-    const dx = (event.clientX - steeringGesture.x) / scale;
-    const dy = (steeringGesture.y - event.clientY) / scale;
+    const reach = Math.max(60, Math.min(120, scale * 0.24));
+    const axis = (value) => {
+      const n = Math.min(1, Math.abs(value) / reach);
+      return Math.sign(value) * Math.max(0, (n - 0.035) / 0.965);
+    };
+    const dx = axis(event.clientX - steeringGesture.anchorX);
+    const dy = axis(steeringGesture.anchorY - event.clientY);
     steeringGesture.x = event.clientX;
     steeringGesture.y = event.clientY;
-    if (dx || dy) {
-      const inverse = landscape
-        .getWorldQuaternion(new THREE.Quaternion())
-        .invert();
-      const right = new THREE.Vector3(1, 0, 0)
-        .applyQuaternion(camera.quaternion)
-        .applyQuaternion(inverse);
-      const up = new THREE.Vector3(0, 1, 0)
-        .applyQuaternion(camera.quaternion)
-        .applyQuaternion(inverse);
-      dance.steer(dx, dy, { right, up });
+    {
+      steeringGesture.controlX = dx;
+      steeringGesture.controlY = dy;
+      refreshPilot();
       steeringMoves++;
       renderer.domElement.dataset.steeringMoves = String(steeringMoves);
       renderer.domElement.dataset.steeringInput = `${dx.toFixed(4)},${dy.toFixed(4)}`;
@@ -594,6 +621,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       nozzlePaint = null;
       renderer.domElement.dataset.nozzlePaint = "false";
     }
+    dance.releasePilot();
     steeringGesture = null;
     if (renderer.domElement.hasPointerCapture(event.pointerId))
       renderer.domElement.releasePointerCapture(event.pointerId);
@@ -638,7 +666,35 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       elapsed += dt;
       if (padSource) {
         const visual = padSource.getVisualFeatures?.() || {};
+        visitClock -= dt;
+        if (visitClock <= 0) {
+          visitClock = 0.5;
+          if (
+            !visitMark ||
+            !marks.includes(visitMark) ||
+            (lifeTime - (visitMark.visitStarted || 0) > 12 &&
+              navigation.position.distanceTo(visitPoint) < 5) ||
+            lifeTime - (visitMark.visitStarted || 0) > 40
+          ) {
+            const candidates = marks.filter(
+              (mark) => elapsed - mark.born > 2 && mark !== visitMark,
+            );
+            visitMark = candidates.length
+              ? candidates[Math.floor(lifeTime / 10) % candidates.length]
+              : marks.includes(visitMark)
+                ? visitMark
+                : null;
+            if (visitMark) visitMark.visitStarted = lifeTime;
+          }
+          dance.setVisitTarget(
+            visitMark ? visitMark.bounds.getCenter(visitPoint) : null,
+          );
+        }
+        refreshPilot();
         const pose = dance.update(dt, voices, visual);
+        renderer.domElement.dataset.flightVisiting = (
+          pose.visiting || 0
+        ).toFixed(3);
         oizo.update(pose);
         oizo.group.visible = !directSculpture;
         renderer.domElement.dataset.musicEnergy = (visual.energy || 0).toFixed(

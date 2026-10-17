@@ -42,3 +42,11 @@ Les tests ciblent la sélection et sa limite, la reproductibilité, les différe
 Les tests Chromium utilisent un rendu logiciel : ils ne certifient pas une cadence sur téléphone physique ni le ressenti artistique. Le gyroscope et tous les codecs vidéo nécessitent toujours une vérification sur les appareils concernés. La projection des gestes est une sculpture sur un champ de profondeur, pas une capture volumétrique du doigt. Les réglages et l’œuvre ne sont pas persistés après rechargement.
 
 Validation exécutée : les 29 tests ciblés listés dans le README passent, ainsi que `npm run build`, `npm run format:check` et `git diff --check`. Les captures en format mobile de deux combinaisons ont été inspectées. Aucun test de cadence sur téléphone physique n’a été réalisé.
+
+## Pilotage tactile et visites de la sculpture
+
+En FPV, le contact pose une origine de pilotage. Le déplacement du doigt détermine une commande maintenue, avec une petite zone neutre et une amplitude bornée ; le repère caméra est actualisé pendant le maintien pour préserver le sens relatif droite/gauche et haut/bas. La vitesse est amortie et le rig anticipe l’inclinaison et la montée demandées. L’appui long de peinture depuis la queue reste disponible.
+
+Au relâchement, la commande décroît rapidement, puis la trajectoire converge progressivement vers une ancienne matière. L’oizo ralentit et contourne les dépôts, sans changement instantané de position. Les cibles sont des centres géométriques de traces assez anciennes, actualisés à faible fréquence ; une nouvelle prise de contrôle donne la priorité au visiteur. Les visites se poursuivent vers d’autres matières une fois la cible approchée. Sans sculpture disponible, le vol orbital est conservé.
+
+Validation du pilotage : 21 tests ciblés distincts réussis, dont trois dédiés au maintien tactile, à l’approche de la matière après relâchement et à l’anticipation du rig. Les contrôles de caméra, ÉchoMood, audio, sillage et rendu GPU passent également. Build de production, formatage et contrôle du diff réussis. Le ressenti tactile sur téléphone physique reste à vérifier.
