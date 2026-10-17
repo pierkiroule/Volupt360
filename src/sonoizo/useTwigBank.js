@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LANDSCAPE_BRUSHES } from "../materials/landscapePalette.js";
 import { createTwigBank, emptyTwigSnapshot } from "./createTwigBank.js";
-import { FIREFLY_FRAGMENTS } from "./poems.js";
 import { ENABLE_SONOIZO } from "./config.js";
 
 const ids = LANDSCAPE_BRUSHES.map((brush) => brush.id);
@@ -25,7 +24,6 @@ export function useTwigBank() {
     setSnapshot(owner.getSnapshot());
     if (new URLSearchParams(location.search).get("samples") !== "empty") {
       owner.enableFireflies();
-      void owner.loadPoems(FIREFLY_FRAGMENTS);
     }
     const interrupt = () => {
       owner.cancelRecording();

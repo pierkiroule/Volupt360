@@ -1,3 +1,4 @@
+import { selectPoeticFragments } from "./echoMood/poeticFragments.js";
 import EchoMoodPicker from "./components/EchoMoodPicker.jsx";
 import { echoMoodEngine } from "./echoMood/echoMoodEngine.js";
 import { universeGenerator } from "./echoMood/universeGenerator.js";
@@ -25,6 +26,22 @@ const initialPlayback = { playing: false, position: 0, duration: 0 };
 export default function App() {
   const twigs = useTwigBank();
   const [bubbleScore, setBubbleScore] = useState(0);
+  const [poeticFragment, setPoeticFragment] = useState(null);
+  const fragmentTimer = useRef(null),
+    fragmentBusy = useRef(false);
+  function clearFragment() {
+    clearTimeout(fragmentTimer.current);
+    fragmentBusy.current = false;
+    setPoeticFragment(null);
+  }
+  function showFragment(fragment) {
+    if (!fragment || fragmentBusy.current || document.hidden) return false;
+    fragmentBusy.current = true;
+    setPoeticFragment(fragment);
+    fragmentTimer.current = setTimeout(clearFragment, 5000);
+    return true;
+  }
+  useEffect(() => () => clearTimeout(fragmentTimer.current), []);
   const classic = new URLSearchParams(location.search).has("classic");
   const [universe, setUniverse] = useState(null);
   const [echoMood, setEchoMood] = useState(null),
@@ -95,6 +112,7 @@ export default function App() {
         onHint: setHint,
         onError: setSceneError,
         onBubbleScore: setBubbleScore,
+        onPoeticFragment: showFragment,
       });
       if (classic || new URLSearchParams(location.search).has("samples"))
         for (const profile of LANDSCAPE_BRUSHES)
@@ -147,7 +165,9 @@ export default function App() {
       const bank = twigs.bank.current;
       await bank.preparePlayback();
       if (ticket !== universeRequest.current) return;
+      clearFragment();
       engine.current.setMood(universeGenerator(mood), profiles);
+      engine.current.setPoeticFragments(selectPoeticFragments(mood));
       engine.current.setPadSource(bank);
       setEchoMood(mood);
       setBrushes(profiles);
@@ -427,6 +447,7 @@ export default function App() {
             twigs.bank.current?.stopAll();
             twigs.bank.current?.fadeAmbience();
             engine.current?.setPadSource(null);
+            clearFragment();
             setUniverse(null);
             setUniverseError("");
             setToolsOpen(false);
@@ -442,12 +463,21 @@ export default function App() {
       )}
       {immersive && universe && (
         <>
+          {poeticFragment && (
+            <p
+              key={poeticFragment.id}
+              className="poetic-fragment"
+              role="status"
+            >
+              {poeticFragment.text}
+            </p>
+          )}
           <output
             className="bubble-score"
-            aria-label="Bulles écoutées"
+            aria-label="Bulles révélées"
             aria-live="polite"
           >
-            Bulles écoutées · {bubbleScore}/24
+            Bulles révélées · {bubbleScore}/24
           </output>
           <div className="mood-badge" aria-label="ÉchoMood choisi">
             {echoMood?.emojis.join(" ")}

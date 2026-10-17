@@ -1821,3 +1821,38 @@ label:focus-visible {
   pointer-events: none;
   white-space: nowrap;
 }
+
+.poetic-fragment {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  width: min(82vw, 34rem);
+  text-align: center;
+  font-family: Georgia, serif;
+  font-size: clamp(1.25rem, 4.7vw, 2rem);
+  line-height: 1.5;
+  color: #25332f;
+  text-shadow:
+    0 1px 12px #f4f0e8,
+    0 0 24px #f4f0e8;
+  pointer-events: none;
+  animation: poetic-reveal 5s ease-in-out both;
+}
+@keyframes poetic-reveal {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  16%,
+  80% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .poetic-fragment {
+    animation-timing-function: linear;
+  }
+}
