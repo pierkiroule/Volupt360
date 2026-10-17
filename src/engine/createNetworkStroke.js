@@ -1,10 +1,20 @@
 import * as THREE from "three";
 
 /** Three branching paths, packed into one bounded draw call per stroke. */
-export function createNetworkStroke({ material, color, seed, capacity }) {
-  const node = new THREE.OctahedronGeometry(1, 0);
-  const tube = new THREE.CylinderGeometry(1, 1, 1, 4, 1, true).toNonIndexed();
-  const vertices = Math.ceil(capacity / 4) * (3 * 24 + 6 * 24);
+export function createNetworkStroke({
+  material,
+  color,
+  seed,
+  capacity,
+  width = 1,
+  dispersion = 1,
+  opacity = 0.95,
+}) {
+  const node = new THREE.SphereGeometry(1, 5, 3).toNonIndexed();
+  const tube = new THREE.CylinderGeometry(1, 1, 1, 6, 1, true).toNonIndexed();
+  const vertices =
+    Math.ceil(capacity / 4) *
+    (3 * node.attributes.position.count + 6 * tube.attributes.position.count);
   let geometry = new THREE.BufferGeometry();
   for (const [name, size] of [
     ["position", 3],
@@ -57,7 +67,11 @@ export function createNetworkStroke({ material, color, seed, capacity }) {
     stamp(
       tube,
       a.clone().add(b).multiplyScalar(0.5),
-      new THREE.Vector3(0.025 + energy * 0.018, length, 0.025 + energy * 0.018),
+      new THREE.Vector3(
+        (0.025 + energy * 0.018) * width,
+        length,
+        (0.025 + energy * 0.018) * width,
+      ),
       quaternion,
       progress,
     );
@@ -73,26 +87,26 @@ export function createNetworkStroke({ material, color, seed, capacity }) {
           .clone()
           .addScaledVector(
             sample.side,
-            Math.cos(angle) * (0.7 + sample.energy * 0.9),
+            Math.cos(angle) * (0.7 + sample.energy * 0.9) * dispersion,
           )
           .addScaledVector(
             sample.up,
-            Math.sin(angle) * (0.7 + sample.energy * 0.9),
+            Math.sin(angle) * (0.7 + sample.energy * 0.9) * dispersion,
           );
       });
       points.forEach((p, branch) => {
         stamp(
           node,
           p,
-          new THREE.Vector3().setScalar(0.09 + sample.energy * 0.09),
+          new THREE.Vector3().setScalar((0.09 + sample.energy * 0.09) * width),
           new THREE.Quaternion(),
           progress,
         );
-        link(p, points[(branch + 1) % 3], progress, sample.energy);
+        link(sample.position, p, progress, sample.energy);
         if (previous) link(previous[branch], p, progress, sample.energy);
       });
       previous = points;
-      material.uniforms.uOpacity.value = 0.95 * (sample.density ?? 1);
+      material.uniforms.uOpacity.value = opacity * (sample.density ?? 1);
       geometry.setDrawRange(0, used);
       for (const attr of Object.values(geometry.attributes))
         attr.needsUpdate = true;

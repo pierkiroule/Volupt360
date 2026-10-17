@@ -1694,3 +1694,114 @@ label:focus-visible {
   background: #456961;
   color: white;
 }
+
+.echo-mood-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: auto;
+  max-width: 30rem;
+  max-height: 100dvh;
+  box-sizing: border-box;
+  padding: 1.3rem 1.2rem;
+  overflow: auto;
+  background: rgba(244, 240, 232, 0.97);
+  color: #38514e;
+}
+.echo-mood-picker h2 {
+  font-size: 1.8rem;
+  font-weight: 400;
+  margin: 0.6rem 0;
+}
+.echo-mood-picker p,
+.echo-mood-picker small {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.mood-emojis {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+  margin: 0.6rem 0;
+}
+.mood-emojis button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 0.7rem;
+  min-height: 44px;
+  font-size: 1.5rem;
+  padding: 0.2rem;
+  touch-action: manipulation;
+}
+.mood-emojis button[aria-pressed="true"] {
+  border-color: #638778;
+  background: #dce5d8;
+}
+.mood-emojis button:disabled:not([aria-pressed="true"]) {
+  opacity: 0.3;
+}
+.mood-selection {
+  min-height: 2rem;
+  text-align: center;
+  font-size: 1.5rem !important;
+  margin: 0;
+}
+.echo-mood-picker button:disabled {
+  cursor: default;
+}
+.echo-mood-picker .enter-landscape:disabled {
+  opacity: 0.5;
+}
+.mood-badge {
+  position: fixed;
+  left: 0.8rem;
+  top: 6.8rem;
+  z-index: 15;
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+.sculpt-mode {
+  position: fixed;
+  left: 0.8rem;
+  top: 9rem;
+  z-index: 15;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid #cad4c9;
+  border-radius: 0.6rem;
+  background: #f4f0e8;
+  color: #38514e;
+  font-size: 1.5rem;
+}
+.sculpt-mode[aria-pressed="true"] {
+  background: #456961;
+  color: white;
+}
+.mood-volume {
+  position: fixed;
+  right: 0.8rem;
+  top: 10rem;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6rem;
+  color: #38514e;
+  max-width: 8.4rem;
+}
+.mood-volume input {
+  width: 5.5rem;
+  min-height: 44px;
+  accent-color: #456961;
+}
+.echo-mood-picker .artistic-about {
+  margin-top: 0.4rem;
+}
+@media (max-height: 600px) {
+  .echo-mood-picker {
+    justify-content: flex-start;
+  }
+}

@@ -1,3 +1,4 @@
+import { createMoodAtmosphere } from "../echoMood/createMoodAtmosphere.js";
 import { createRenderBudget } from "./createRenderBudget.js";
 import { loadAlphaTexture } from "./loadAlphaTexture.js";
 import { createMaterialResponse } from "./createMaterialResponse.js";
@@ -122,7 +123,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   const generatedBrushes = new Map();
   renderer.domElement.dataset.celestialBrushes = "0";
   renderer.domElement.dataset.activeBrush = brush;
-  let cameraMode = "drone";
+  let cameraMode = "drone",
+    directSculpture = false,
+    moodAtmosphere = null;
   let photo = false,
     videodio = null;
   let padSource = null,
@@ -225,6 +228,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       uniforms: [],
       uniformStamp: -1,
       life: generated?.life || "Fluide",
+      motionScale: generated?.speed || 1,
+      responseGain: generated?.responseGain || 1,
       bounds: new THREE.Box3(),
     };
     marks.push(activeStroke);
@@ -293,7 +298,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     return false;
   }
   function feedPad(id, pose) {
-    if (oizo)
+    if (oizo && !pose.direct)
       pose = {
         ...pose,
         position: oizo.getTailPosition(tailPosition),
@@ -407,7 +412,110 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   }
   let steeringGesture = null,
     steeringMoves = 0;
+  let directGesture = null;
+  const directTarget = new THREE.Vector3(),
+    directPoint = new THREE.Vector3(),
+    directLast = new THREE.Vector3(),
+    directDirection = new THREE.Vector3(1, 0, 0),
+    directSide = new THREE.Vector3(0, 1, 0),
+    directUp = new THREE.Vector3(0, 0, -1),
+    directRay = new THREE.Vector3(),
+    viewNormal = new THREE.Vector3(),
+    directVelocity = new THREE.Vector3();
+  function updateDirect(dt, features) {
+    if (!directGesture || photo || cameraMode !== "sculpt") return;
+    const g = directGesture;
+    g.clock = (g.clock || 0) + dt;
+    if (g.samples > 1 && g.clock < 1 / 30) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    directRay
+      .set(
+        ((g.x - rect.left) / rect.width) * 2 - 1,
+        1 - ((g.y - rect.top) / rect.height) * 2,
+        0.5,
+      )
+      .unproject(camera)
+      .sub(camera.position)
+      .normalize();
+    camera.getWorldDirection(viewNormal);
+    const depth = 29 + (g.pressure - 0.5) * 6 + Math.sin(g.travel * 0.12) * 2;
+    directTarget
+      .copy(camera.position)
+      .addScaledVector(
+        directRay,
+        depth / Math.max(0.2, directRay.dot(viewNormal)),
+      );
+    landscape.worldToLocal(directTarget);
+    if (!g.samples) {
+      directPoint.copy(directTarget);
+      directLast.copy(directPoint);
+    } else directPoint.lerp(directTarget, 1 - Math.exp(-dt * 24));
+    const distance = directPoint.distanceTo(directLast);
+    if (g.samples > 1 && distance < 0.045) return;
+    directVelocity
+      .copy(directPoint)
+      .sub(directLast)
+      .divideScalar(Math.max(0.001, g.clock));
+    if (distance > 0.001) directDirection.copy(directVelocity).normalize();
+    const inverse = landscape.quaternion.clone().invert();
+    viewNormal.applyQuaternion(inverse);
+    directSide.crossVectors(directDirection, viewNormal).normalize();
+    if (directSide.lengthSq() < 0.1) directSide.set(0, 1, 0);
+    directUp.crossVectors(directSide, directDirection).normalize();
+    feedPad(brush, {
+      ...features,
+      position: directPoint,
+      direction: directDirection,
+      side: directSide,
+      up: directUp,
+      velocity: directVelocity,
+      time: lifeTime,
+      energy: Math.min(
+        1,
+        (features.energy || 0) * 0.65 + distance * 1.5 + 0.15,
+      ),
+      low: features.low || 0.1,
+      motion: Math.min(1, distance * 2),
+      accent: Math.min(1, distance),
+      direct: true,
+      wake: true,
+      depositionTime: lifeTime - 0.7,
+    });
+    directLast.copy(directPoint);
+    g.travel += distance;
+    g.samples++;
+    g.clock = 0;
+    renderer.domElement.dataset.directSamples = String(g.samples);
+  }
+  function endDirect() {
+    if (!directGesture) return;
+    finishPad(brush);
+    const id = directGesture.id;
+    directGesture = null;
+    if (renderer.domElement.hasPointerCapture(id))
+      renderer.domElement.releasePointerCapture(id);
+    renderer.domElement.dataset.directDrawing = "false";
+  }
   function onSteeringDown(event) {
+    if (
+      cameraMode === "sculpt" &&
+      padSource &&
+      event.isPrimary &&
+      event.button <= 0
+    ) {
+      void padSource.preparePlayback();
+      directGesture = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        pressure: event.pressure || 0.5,
+        samples: 0,
+        travel: 0,
+      };
+      renderer.domElement.setPointerCapture(event.pointerId);
+      renderer.domElement.dataset.directDrawing = "true";
+      return;
+    }
     if (
       !padSource ||
       !navigation.windEnabled ||
@@ -428,6 +536,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     renderer.domElement.setPointerCapture(event.pointerId);
   }
   function onSteeringMove(event) {
+    if (directGesture?.id === event.pointerId) {
+      directGesture.x = event.clientX;
+      directGesture.y = event.clientY;
+      directGesture.pressure = event.pressure || 0.5;
+      return;
+    }
     if (
       !steeringGesture ||
       event.pointerId !== steeringGesture.id ||
@@ -468,6 +582,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     }
   }
   function onSteeringEnd(event) {
+    if (directGesture?.id === event.pointerId) {
+      endDirect();
+      return;
+    }
     if (event.pointerId !== steeringGesture?.id) return;
     clearTimeout(steeringGesture.timer);
     if (nozzlePaint) {
@@ -481,6 +599,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       renderer.domElement.releasePointerCapture(event.pointerId);
   }
   function cancelSteering() {
+    endDirect();
     if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
   }
   window.addEventListener("blur", cancelSteering);
@@ -521,6 +640,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         const visual = padSource.getVisualFeatures?.() || {};
         const pose = dance.update(dt, voices, visual);
         oizo.update(pose);
+        oizo.group.visible = !directSculpture;
         renderer.domElement.dataset.musicEnergy = (visual.energy || 0).toFixed(
           3,
         );
@@ -591,9 +711,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
           );
         }
         if (!marks.length) {
-          navigation.bounds.center.copy(pose.position);
+          if (directSculpture) navigation.bounds.center.set(0, 0, 0);
+          else navigation.bounds.center.copy(pose.position);
           navigation.bounds.radius = 8;
-        } else {
+        } else if (!directSculpture) {
           navigation.bounds.radius = Math.max(
             navigation.bounds.radius,
             pose.position.distanceTo(navigation.bounds.center) + 3,
@@ -664,12 +785,20 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
+      moodAtmosphere?.update(lifeTime, visual);
+      updateDirect(dt, visual);
       let drift = 0;
       for (const mark of marks) {
         const local = mark.respond(visual, dt);
         drift = Math.max(
           drift,
-          pictorialFlow.update(mark, dt, local, lifeTime, isActive(mark)),
+          pictorialFlow.update(
+            mark,
+            dt * mark.motionScale,
+            local,
+            lifeTime * mark.motionScale,
+            isActive(mark),
+          ),
         );
         const resonance = padSource?.getTraceResonance?.(mark.traceId) || 0;
         const response =
@@ -682,8 +811,10 @@ export function createSoundNest(container, { onHint, onError } = {}) {
             : local;
         const suspended = mark.life === "Suspendue",
           vibrant = mark.life === "Vibrante";
-        const speed = suspended ? 0.55 : vibrant ? 1.3 : 0.85;
-        const sensitivity = suspended ? 0.72 : vibrant ? 1.15 : 1;
+        const speed =
+          (suspended ? 0.55 : vibrant ? 1.3 : 0.85) * mark.motionScale;
+        const sensitivity =
+          (suspended ? 0.72 : vibrant ? 1.15 : 1) * mark.responseGain;
         mark.stroke.update?.(dt * speed, response);
         for (const uniforms of uniformsFor(mark)) {
           if (uniforms.uTime) uniforms.uTime.value = lifeTime * speed;
@@ -765,6 +896,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         videodio?.getHistory().frames || 0,
       );
       renderer.domElement.dataset.oizo = String(Boolean(padSource));
+      renderer.domElement.dataset.oizoVisible = String(
+        Boolean(oizo?.group.visible),
+      );
       if (padSource) {
         oizo.group.getWorldPosition(oizoScreen);
         oizoScreen.project(camera);
@@ -955,7 +1089,26 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         else previous.texture.dispose();
       }
     },
+    setMood(universe, profiles) {
+      reset();
+      moodAtmosphere?.dispose();
+      textures.forEach((binding) => binding.texture.dispose());
+      textures.clear();
+      generatedBrushes.clear();
+      scene.background.set(universe.background);
+      effects.setPaper(universe.background);
+      renderer.setClearColor(universe.background);
+      for (const profile of profiles)
+        this.setGeneratedBrush(profile.id, profile);
+      moodAtmosphere = createMoodAtmosphere(universe, mobile);
+      landscape.add(moodAtmosphere.object);
+      renderer.domElement.dataset.echoMood = String(universe.seed);
+      renderer.domElement.dataset.moodBackground = universe.background;
+    },
     setCameraMode(next) {
+      endDirect();
+      if (next === "sculpt") directSculpture = true;
+      else if (next === "drone") directSculpture = false;
       if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       const wasPhoto = photo;
       const previousMode = cameraMode;
@@ -1040,6 +1193,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       traceMemory.clear();
       traceEncounter.reset();
       oizo?.dispose();
+      moodAtmosphere?.dispose();
       generatedBrushes.clear();
       window.removeEventListener("resize", resize);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);

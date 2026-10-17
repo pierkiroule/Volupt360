@@ -62,7 +62,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     canvas.dataset.flightRevision = String(revision);
   }
   listen(canvas, "pointerdown", (event) => {
-    if (mode === "drone" && getFlight().windEnabled) return;
+    if (mode === "sculpt" || (mode === "drone" && getFlight().windEnabled))
+      return;
     if (mode === "photo" || mode === "global") {
       photoPointers.set(event.pointerId, {
         x: event.clientX,
@@ -247,6 +248,14 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     direction.copy(state.direction).transformDirection(landscape.matrixWorld);
     velocity.copy(state.velocity).applyQuaternion(landscape.quaternion);
     center.copy(state.bounds.center).applyMatrix4(landscape.matrixWorld);
+    if (mode === "sculpt") {
+      camera.position.set(0, 4, 30);
+      camera.lookAt(0, 0, 0);
+      camera.fov = 70;
+      camera.far = 1000;
+      camera.updateProjectionMatrix();
+      return;
+    }
     if (mode === "photo" || mode === "global") {
       const halfFov = Math.atan(
         Math.tan(THREE.MathUtils.degToRad(37)) * Math.min(1, camera.aspect),

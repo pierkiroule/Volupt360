@@ -14,7 +14,7 @@ export default function LandscapeBrushMenu({
   };
   useEffect(() => cancel, []);
   return (
-    <section className="landscape-palette" aria-label="Six brosses aquarelles">
+    <section className="landscape-palette" aria-label="Palette de brosses">
       <div role="group" aria-label="Choisir une brosse">
         {brushes.map((brush) => (
           <button
@@ -73,10 +73,7 @@ export default function LandscapeBrushMenu({
           </button>
         ))}
       </div>
-      <p>
-        Glisser pour guider · maintenir pour peindre · appui long sur une brosse
-        pour éditer
-      </p>
+      <p>Glisser pour sculpter · appui long sur une brosse pour éditer</p>
     </section>
   );
 }

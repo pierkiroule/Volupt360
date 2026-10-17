@@ -30,19 +30,20 @@ export function createViewEffects(renderer, { antialias = true } = {}) {
     depthWrite: false,
     uniforms: {
       image: { value: target.texture },
+      paperColor: { value: new THREE.Color("#f4f0e8").convertLinearToSRGB() },
       contrast: { value: DEFAULT_VIEW.contrast },
       saturation: { value: DEFAULT_VIEW.saturation },
       threshold: { value: DEFAULT_VIEW.threshold },
     },
     vertexShader: `varying vec2 vUv; void main(){vUv=position.xy*.5+.5;gl_Position=vec4(position,1.);}`,
     fragmentShader: `uniform sampler2D image;
-      uniform float contrast,saturation,threshold;varying vec2 vUv;
+      uniform float contrast,saturation,threshold;uniform vec3 paperColor;varying vec2 vUv;
       void main(){
         vec3 linear=texture2D(image,vUv).rgb;
         vec3 original=pow(max(linear,vec3(0.)),vec3(1./2.2));
         float luma=dot(original,vec3(.2126,.7152,.0722));
         vec3 color=mix(vec3(luma),original,saturation);
-        vec3 paper=vec3(.95686,.94118,.90980);
+        vec3 paper=paperColor;
         // Paper-relative curve deepens washes without clipping dark pigment.
         color=paper*pow(max(color/paper,vec3(0.)),vec3(contrast));
         float ink=smoothstep(.42,.58,dot(color,vec3(.2126,.7152,.0722)));
@@ -62,6 +63,9 @@ export function createViewEffects(renderer, { antialias = true } = {}) {
   const camera = new THREE.Camera();
   let settings = { ...DEFAULT_VIEW };
   return {
+    setPaper(color) {
+      material.uniforms.paperColor.value.set(color).convertLinearToSRGB();
+    },
     set(next) {
       settings = {
         contrast: clamp(next.contrast, 0.6, 2.6, 1),

@@ -354,6 +354,9 @@ export function createBrushStroke(
           color,
           seed,
           capacity,
+          width: dynamics?.width || 1,
+          dispersion: dynamics?.dispersion || 1,
+          opacity: brush.opacity,
         })
       : null;
   if (network) group.add(network.mesh);
@@ -447,8 +450,12 @@ export function createBrushStroke(
             );
             group.add(mesh);
           }
-      } else if (count % 3 === 0 && accented) {
-        for (let layer = 0; layer < (id === "brumes" ? 2 : 6); layer++) {
+      } else if (count % (dynamics?.sampleStride || 3) === 0 && accented) {
+        for (
+          let layer = 0;
+          layer < (id === "brumes" ? 2 : dynamics?.particleCount || 6);
+          layer++
+        ) {
           const isMist = id === "brumes";
           const geometry = new THREE.PlaneGeometry(1, 1, 8, 8);
           geometry.setAttribute(
@@ -486,11 +493,15 @@ export function createBrushStroke(
             .copy(sample.position)
             .addScaledVector(
               sample.side,
-              Math.sin(count * 1.7 + layer) * (isMist ? 1.7 : 3.5),
+              Math.sin(count * 1.7 + layer) *
+                (isMist ? 1.7 : 3.5) *
+                (dynamics?.dispersion || 1),
             )
             .addScaledVector(
               sample.up,
-              Math.cos(count * 0.91 + layer) * (isMist ? 0.9 : 2.6),
+              Math.cos(count * 0.91 + layer) *
+                (isMist ? 0.9 : 2.6) *
+                (dynamics?.dispersion || 1),
             );
           mesh.quaternion.setFromRotationMatrix(
             new THREE.Matrix4().makeBasis(
