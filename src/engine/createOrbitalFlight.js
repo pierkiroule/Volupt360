@@ -46,8 +46,7 @@ export function createOrbitalFlight() {
       desired
         .copy(tangent)
         .multiplyScalar(4.8 + (audio.energy || 0) * 1.2)
-        .addScaledVector(radial, shell)
-        .add(wind);
+        .addScaledVector(radial, shell);
       const circulation = desired.dot(tangent);
       if (circulation < 2.4)
         desired.addScaledVector(tangent, 2.4 - circulation);
@@ -67,6 +66,11 @@ export function createOrbitalFlight() {
         visitVelocity.y += Math.sin(pose.time * 0.65) * 0.35;
         desired.lerp(visitVelocity, visitMix * 0.96);
       }
+      // Steering has priority over the orbital field, even on the inner shell
+      // or while the autonomous visit is fading out. Do not clamp its signed
+      // tangent component: that would force a turn back against the gesture.
+      const pilotMix = THREE.MathUtils.clamp(wind.length() / 5, 0, 1);
+      desired.lerp(wind, pilotMix * 0.96);
       desired.y = THREE.MathUtils.clamp(desired.y, -5, 5);
       desired.clampLength(0, 9);
       velocity.lerp(desired, 1 - Math.exp(-dt * 3.5));
