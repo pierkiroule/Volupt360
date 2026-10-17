@@ -1,8 +1,3 @@
-import {
-  ENABLE_ECHO_INSTRUMENT,
-  ENABLE_BIRD_SONGS,
-  ENABLE_POETIC_VOICES,
-} from "./instrumentConfig.js";
 import { useEffect, useRef, useState } from "react";
 import { LANDSCAPE_BRUSHES } from "../materials/landscapePalette.js";
 import { createTwigBank, emptyTwigSnapshot } from "./createTwigBank.js";
@@ -30,11 +25,7 @@ export function useTwigBank() {
     setSnapshot(owner.getSnapshot());
     if (new URLSearchParams(location.search).get("samples") !== "empty") {
       owner.enableFireflies();
-      if (
-        !ENABLE_BIRD_SONGS &&
-        (!ENABLE_ECHO_INSTRUMENT || ENABLE_POETIC_VOICES)
-      )
-        void owner.loadPoems(FIREFLY_FRAGMENTS);
+      void owner.loadPoems(FIREFLY_FRAGMENTS);
     }
     const interrupt = () => {
       owner.cancelRecording();

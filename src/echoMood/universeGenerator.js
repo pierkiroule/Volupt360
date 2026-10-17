@@ -7,6 +7,8 @@ export function universeGenerator(mood) {
         .setHSL(mood.hue, 0.06 + mood.density * 0.08, mood.brightness)
         .getHexString(),
     color: mood.palette[2],
+    skyColor: mood.palette[0],
+    horizonColor: mood.palette[4],
     seed: mood.seed,
     speed: mood.speed,
     density: mood.density,
