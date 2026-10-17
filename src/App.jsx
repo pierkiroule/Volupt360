@@ -172,7 +172,7 @@ export default function App() {
       setEchoMood(mood);
       setBrushes(profiles);
       chooseBrush(profiles[0].id);
-      chooseCamera("sculpt");
+      chooseCamera("drone");
       setUniverse("echo-mood");
       const selected = musicSelector(mood, musicCatalog);
       if (selected) {

@@ -7,9 +7,9 @@ export default function ArtisticIntroduction() {
       <span className="artistic-eyebrow">L’histoire de l’oizo</span>
       <h2 id="artistic-intention">Sculpter les matières du monde</h2>
       <p className="artistic-lead">
-        Un petit oizo traverse un ciel de papier inspiré par votre ÉchoMood. Il
-        dépose des pigments, des lavis secs et des encres fines dans un espace
-        en trois dimensions.
+        Votre regard traverse un ciel de papier inspiré par votre ÉchoMood. Vos
+        gestes y déposent des pigments, des lavis secs et des encres fines dans
+        un espace en trois dimensions.
       </p>
       <h3>Cinq gestes, un univers</h3>
       <p>
@@ -17,21 +17,21 @@ export default function ArtisticIntroduction() {
         vos emojis. Couleurs, grains, épaisseurs, ramifications et mouvements
         sont interprétés ensemble, sans diagnostic émotionnel.
       </p>
-      <h3>Accompagner l’oizo</h3>
+      <h3>Piloter le regard</h3>
       <p>
-        Glissez sur le canevas pour sculpter directement la matière dans
-        l’espace. La pression et la vitesse du geste participent au tracé. La
-        musique anime les dépôts, qui poursuivent leur danse après le geste. La
-        vue FPV permet aussi de guider l’oizo et de peindre depuis sa queue.
+        Glissez sur le canevas pour orienter le vol en première personne.
+        Maintenez le doigt immobile pour déposer la matière devant vous. La
+        musique anime les dépôts, qui poursuivent leur danse après le geste. Le
+        mode de sculpture directe reste accessible.
       </p>
       <h3>Traverser les mots</h3>
       <p>
         Vingt-quatre bulles translucides flottent dans le paysage comme des
-        passages de mémoire. En vol FPV, guidez l’oizo à travers leur volume :
-        chaque bulle révèle un fragment existentiel choisi selon vos emojis, au
-        centre de l’écran pendant cinq secondes. Un seul texte apparaît à la
-        fois, puis laisse revenir le paysage. Le ciel se teinte des couleurs de
-        votre ÉchoMood, sans enfermer votre humeur dans un sens imposé.
+        passages de mémoire. En vol FPV, traversez leur volume : chaque bulle
+        révèle un fragment existentiel choisi selon vos emojis, au centre de
+        l’écran pendant cinq secondes. Un seul texte apparaît à la fois, puis
+        laisse revenir le paysage. Le ciel se teinte des couleurs de votre
+        ÉchoMood, sans enfermer votre humeur dans un sens imposé.
       </p>
       <h3>Une matière qui continue sa danse</h3>
       <p>
@@ -58,7 +58,7 @@ export default function ArtisticIntroduction() {
         l’observation et au dialogue.
       </p>
       <p className="artistic-signature">
-        Une matière apparaît. L’oizo l’emporte. L’espace en garde la trace.
+        Une matière apparaît. Le regard voyage. L’espace en garde la trace.
       </p>
     </article>
   );

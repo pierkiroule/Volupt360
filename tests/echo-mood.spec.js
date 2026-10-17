@@ -85,7 +85,10 @@ test("mobile EchoMood blooms, plays its MP3 and sculpts all five materials direc
   await page.getByRole("button", { name: "🌿", exact: true }).click();
   await bloom.click();
   const canvas = page.locator("#stage canvas");
-  await expect(canvas).toHaveAttribute("data-camera-mode", "sculpt");
+  await expect(canvas).toHaveAttribute("data-camera-mode", "drone");
+  await page
+    .getByRole("button", { name: "Sculpter au geste", exact: true })
+    .click();
   await expect(canvas).toHaveAttribute("data-oizo-visible", "false");
   await expect(page.locator(".landscape-palette button")).toHaveCount(5);
   await expect(
@@ -148,7 +151,10 @@ test("unavailable musical library permits silent sculpture without an applicatio
   await page.getByRole("button", { name: "🫧", exact: true }).click();
   await page.getByRole("button", { name: "Faire éclore mon OIZO" }).click();
   const canvas = page.locator("#stage canvas");
-  await expect(canvas).toHaveAttribute("data-camera-mode", "sculpt");
+  await expect(canvas).toHaveAttribute("data-camera-mode", "drone");
+  await page
+    .getByRole("button", { name: "Sculpter au geste", exact: true })
+    .click();
   await page.mouse.move(100, 320);
   await page.mouse.down();
   await page.mouse.move(280, 410, { steps: 20 });

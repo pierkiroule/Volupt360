@@ -14,7 +14,6 @@ import * as THREE from "three";
 import { createVideodio } from "../video/createVideodio.js";
 import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
 import { createBrushBridge } from "../sonoizo/BrushBridge.js";
-import { createOizo } from "../sonoizo/createOizo.js";
 import { createViewEffects, DEFAULT_VIEW } from "./createViewEffects.js";
 import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
 import { createGenerativeMaterials } from "./createGenerativeMaterials.js";
@@ -132,7 +131,6 @@ export function createSoundNest(
   let photo = false,
     videodio = null;
   let padSource = null,
-    oizo = null,
     padInitialized = false;
   let vocalFireflies = null;
   let poeticFragments = [];
@@ -146,7 +144,6 @@ export function createSoundNest(
     visitMark = null;
   const visitPoint = new THREE.Vector3();
   const dance = createSonoizoDance();
-  const oizoScreen = new THREE.Vector3();
   const padStates = new Map();
   const tailPosition = new THREE.Vector3();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
@@ -305,10 +302,12 @@ export function createSoundNest(
     return false;
   }
   function feedPad(id, pose) {
-    if (oizo && !pose.direct)
+    if (!pose.direct)
       pose = {
         ...pose,
-        position: oizo.getTailPosition(tailPosition),
+        position: tailPosition
+          .copy(pose.position)
+          .addScaledVector(pose.direction, 2.4),
         wake: true,
         depositionTime: lifeTime,
       };
@@ -699,8 +698,7 @@ export function createSoundNest(
         renderer.domElement.dataset.flightVisiting = (
           pose.visiting || 0
         ).toFixed(3);
-        oizo.update(pose);
-        oizo.group.visible = !directSculpture;
+
         renderer.domElement.dataset.musicEnergy = (visual.energy || 0).toFixed(
           3,
         );
@@ -959,18 +957,8 @@ export function createSoundNest(
       renderer.domElement.dataset.videoFrames = String(
         videodio?.getHistory().frames || 0,
       );
-      renderer.domElement.dataset.oizo = String(Boolean(padSource));
-      renderer.domElement.dataset.oizoVisible = String(
-        Boolean(oizo?.group.visible),
-      );
-      if (padSource) {
-        oizo.group.getWorldPosition(oizoScreen);
-        oizoScreen.project(camera);
-        renderer.domElement.dataset.oizoScreen = oizoScreen
-          .toArray()
-          .map((value) => value.toFixed(4))
-          .join(",");
-      }
+      renderer.domElement.dataset.oizo = "false";
+      renderer.domElement.dataset.oizoVisible = "false";
       renderer.domElement.dataset.activePads = voices
         .map((voice) => voice.id)
         .join(",");
@@ -1056,12 +1044,7 @@ export function createSoundNest(
           reset();
           padInitialized = true;
         }
-        if (!oizo) {
-          oizo = createOizo();
-          landscape.add(oizo.group);
-        }
-        oizo.group.visible = true;
-      } else if (oizo) oizo.group.visible = false;
+      }
     },
     setTrackComposition(analysis) {
       palette = createTrackPalette(analysis);
@@ -1260,7 +1243,6 @@ export function createSoundNest(
       traceDebug?.dispose();
       traceMemory.clear();
       traceEncounter.reset();
-      oizo?.dispose();
       moodAtmosphere?.dispose();
       generatedBrushes.clear();
       window.removeEventListener("resize", resize);
