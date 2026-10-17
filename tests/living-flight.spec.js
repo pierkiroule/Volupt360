@@ -62,7 +62,7 @@ test("the eight landscape brushes render evolving and music-reactive matter with
   await page.goto("/");
   const results = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
-    const { BRUSHES, createBrushStroke, disposeMark } =
+    const { createBrushStroke, disposeMark } =
       await import("/src/engine/brushes.js");
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(96, 96);
@@ -76,10 +76,19 @@ test("the eight landscape brushes render evolving and music-reactive matter with
     const results = [];
     const { LANDSCAPE_BRUSHES } =
       await import("/src/materials/landscapePalette.js");
+    const { createWatercolorTexture } =
+      await import("/src/engine/createWatercolorTexture.js");
     for (const brush of LANDSCAPE_BRUSHES) {
-      const stroke = createBrushStroke(brush.id, {
+      const texture = createWatercolorTexture(
+        { color: brush.color, kind: brush.textureKind },
+        brush.seed,
+        128,
+      );
+      const stroke = createBrushStroke(brush.baseId, {
         seed: 31,
-        color: new THREE.Color("#376f87"),
+        color: new THREE.Color(brush.color),
+        texture,
+        dynamics: brush,
       });
       for (let i = 0; i < 24; i++)
         stroke.append({
@@ -135,6 +144,7 @@ test("the eight landscape brushes render evolving and music-reactive matter with
         evolution: difference(loud, later),
       });
       disposeMark(stroke.group);
+      texture.texture.dispose();
     }
     target.dispose();
     renderer.dispose();

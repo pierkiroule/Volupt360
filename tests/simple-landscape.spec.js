@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("mobile landscape has eight fixed brushes, MP3 reaction and no generators loaded", async ({
   page,
@@ -10,6 +11,16 @@ test("mobile landscape has eight fixed brushes, MP3 reaction and no generators l
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
+  await expect(page.locator("#stage canvas")).toHaveAttribute(
+    "data-skydome",
+    "off-white-paper",
+  );
+  await expect(
+    page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
+  ).toHaveCount(0);
+  await page
+    .getByLabel("Importer un MP3", { exact: true })
+    .setInputFiles("public/ambiances/ambiance01.mp3");
   await expect(
     page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
   ).toBeVisible();
@@ -27,14 +38,14 @@ test("mobile landscape has eight fixed brushes, MP3 reaction and no generators l
     .toBeGreaterThan(0.01);
   await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "3");
   for (const name of [
-    "Voiles",
-    "Falaises",
-    "Corolles",
-    "Filaments",
-    "Dilution",
+    "Lavis",
+    "Brosse sèche",
+    "Encre fine",
+    "Taches",
+    "Éclaboussures",
     "Calligraphie",
-    "Plumes",
-    "Feuilles",
+    "Diffusion",
+    "Tampons",
   ]) {
     const button = page.getByRole("button", { name, exact: true });
     await button.click();
@@ -42,14 +53,35 @@ test("mobile landscape has eight fixed brushes, MP3 reaction and no generators l
     await page.mouse.move(180, 350);
     await page.mouse.down();
     await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(650);
     await page.mouse.up();
   }
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
     .toBeGreaterThan(8);
-  await page.screenshot({ path: "/tmp/simple-watercolor-mobile.png" });
-  expect(requested.some((url) => url.includes("ambiance01.mp3"))).toBe(true);
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-matter-drift")))
+    .toBeGreaterThan(0.01);
+  await page
+    .getByRole("button", { name: "FPV 360° gyro", exact: true })
+    .click();
+  const download = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Photographier la vue actuelle" })
+    .click();
+  const photo = await download;
+  expect(photo.suggestedFilename()).toMatch(/photo.*\.png$/);
+  const png = await readFile(await photo.path());
+  expect(png.subarray(1, 4).toString()).toBe("PNG");
+  expect(Math.max(png.readUInt32BE(16), png.readUInt32BE(20))).toBe(2560);
+  await expect(
+    page.getByRole("button", { name: "FPV 360° gyro", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: "/tmp/living-pictorial-mobile.png" });
+  expect(
+    requested.some((url) => url.includes("ambiances/ambiance01.mp3")),
+  ).toBe(false);
   expect(
     requested.filter((url) =>
       /createAmbientMixer|createEchoInstrument|ChillComposer|WaterProcessor|proceduralBrush/.test(

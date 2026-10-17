@@ -9,6 +9,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     dragging = null,
     revision = 0,
     disposed = false;
+  let panoramaPitch = 0;
   let panoramaYaw = 0,
     distanceSetting = 0;
   let photoZoom = 1;
@@ -190,12 +191,17 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     landscape.updateMatrixWorld(true);
     panoramaPosition.set(0, 0, 0).applyMatrix4(landscape.matrixWorld);
     focus
-      .copy(state.position)
+      .copy(
+        Number(canvas.dataset.markCount) > 0
+          ? state.bounds.center
+          : state.position,
+      )
       .applyMatrix4(landscape.matrixWorld)
       .sub(panoramaPosition);
     if (focus.lengthSq() < 1)
       focus.copy(state.direction).transformDirection(landscape.matrixWorld);
     panoramaYaw = Math.atan2(focus.x, focus.z);
+    panoramaPitch = Math.atan2(focus.y, Math.hypot(focus.x, focus.z));
     onHint("Bougez votre appareil · glissez pour tourner le paysage");
     if (!window.DeviceOrientationEvent) {
       gyroEnabled = false;
@@ -251,7 +257,11 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         .copy(panoramaPosition)
         .add(
           behind
-            .set(Math.sin(panoramaYaw), 0, Math.cos(panoramaYaw))
+            .set(
+              Math.sin(panoramaYaw) * Math.cos(panoramaPitch),
+              Math.sin(panoramaPitch),
+              Math.cos(panoramaYaw) * Math.cos(panoramaPitch),
+            )
             .multiplyScalar(18),
         );
     } else {

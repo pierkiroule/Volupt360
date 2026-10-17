@@ -79,7 +79,24 @@ export function createWatercolorTexture(
         0.26 + broad * 0.5 + pool * 0.38 + blooms * 0.2,
       );
       const granulation = 0.15 + (acoustic?.contrast ?? 0.35) * 0.3;
-      const grain = 1 - granulation + granulation * hash(x, y);
+      const dry = brush.kind === "dry" || brush.kind === "fiber";
+      const fiberField = noise(u * 150 + broad * 3, v * 12);
+      const paperTooth = hash(x, y) * 0.55 + fiber * 0.45;
+      const dryReserve = dry
+        ? THREE.MathUtils.smoothstep(
+            fiberField * 0.6 + paperTooth * 0.4,
+            0.29,
+            0.64,
+          )
+        : 1;
+      const stampReserve =
+        brush.kind === "stamp"
+          ? THREE.MathUtils.smoothstep(flow * 0.5 + paperTooth * 0.5, 0.2, 0.7)
+          : 1;
+      const grain =
+        (1 - granulation + granulation * hash(x, y)) *
+        dryReserve *
+        stampReserve;
       const songEnvelope = acoustic
         ? 0.6 + acoustic.envelope[Math.min(31, Math.floor(u * 32))] * 0.4
         : 1;
