@@ -67,7 +67,7 @@ test("narrative, paper background, imported music and abstract brushes coexist i
   await expect(
     page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
   ).toBeVisible();
-  await expect(page.locator(".landscape-palette button")).toHaveCount(8);
+  await expect(page.locator(".landscape-palette button")).toHaveCount(6);
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })
     .click();

@@ -1,4 +1,5 @@
 import { createRenderBudget } from "./createRenderBudget.js";
+import { loadAlphaTexture } from "./loadAlphaTexture.js";
 import { createPictorialFlow } from "./createPictorialFlow.js";
 import { createWatercolorTexture } from "./createWatercolorTexture.js";
 import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
@@ -115,6 +116,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   let palette = createTrackPalette();
   let generative = null;
   const textures = new Map();
+  const retiredTextures = new Set();
   const imageBrushes = new Map();
   const generatedBrushes = new Map();
   renderer.domElement.dataset.celestialBrushes = "0";
@@ -153,6 +155,14 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     padSource?.forgetSound?.(mark.traceId);
     disposeMark(mark.object);
     mark.textureLease?.release();
+    const binding = mark.binding;
+    if (
+      retiredTextures.has(binding) &&
+      !marks.some((other) => other !== mark && other.binding === binding)
+    ) {
+      binding.texture.dispose();
+      retiredTextures.delete(binding);
+    }
   }
   function closeStroke() {
     activeStroke?.stroke.finish();
@@ -198,6 +208,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     activeStroke = {
       stroke,
       textureLease,
+      binding: textures.get(id) || textureLease?.binding,
       object: stroke.group,
       brush: id,
       traceId: `trace-${serial}`,
@@ -320,6 +331,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     closeStroke();
     marks.forEach(destroyStroke);
     marks.length = 0;
+    retiredTextures.forEach((binding) => binding.texture.dispose());
+    retiredTextures.clear();
     traceMemory.clear();
     traceEncounter.reset();
     traceTime = 0;
@@ -860,6 +873,41 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       );
       return binding.texture.image.toDataURL("image/png");
     },
+    async updateBrush(profile, { file = null, resetAlpha = false } = {}) {
+      if (!generatedBrushes.has(profile.id))
+        throw new Error("Brosse inconnue.");
+      const previous = textures.get(profile.id);
+      let binding;
+      if (file) binding = await loadAlphaTexture(file, mobile ? 256 : 512);
+      else if (
+        previous &&
+        !resetAlpha &&
+        (previous.importedAlpha ||
+          generatedBrushes.get(profile.id).color === profile.color)
+      )
+        binding = previous;
+      else
+        binding = createWatercolorTexture(
+          { color: profile.color, kind: profile.textureKind },
+          profile.seed,
+          mobile ? 128 : 256,
+        );
+      if (disposed) {
+        if (binding !== previous) binding.texture.dispose();
+        return;
+      }
+      cancelSteering();
+      bridge.close();
+      closeStroke();
+      const next = {
+        ...profile,
+        alphaName: file ? file.name : resetAlpha ? "" : profile.alphaName,
+      };
+      generatedBrushes.set(profile.id, next);
+      if (binding !== previous)
+        this.setBrushTexture(profile.id, binding, { preserveExisting: true });
+      return next;
+    },
     setBrush(id) {
       if (BRUSHES.some((item) => item.id === id) && id !== brush) {
         if (nozzlePaint) {
@@ -877,17 +925,23 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       imageBrushes.set(id, profile);
       this.setBrushTexture(id, profile.binding);
     },
-    setBrushTexture(id, binding) {
+    setBrushTexture(id, binding, { preserveExisting = false } = {}) {
       const previous = textures.get(id);
       textures.set(id, binding);
-      marks
-        .filter((mark) => mark.brush === id)
-        .forEach((mark) => {
-          mark.stroke.setTexture(binding);
-          mark.textureLease?.release();
-          mark.textureLease = null;
-        });
-      previous?.texture.dispose();
+      if (!preserveExisting)
+        marks
+          .filter((mark) => mark.brush === id)
+          .forEach((mark) => {
+            mark.stroke.setTexture(binding);
+            mark.binding = binding;
+            mark.textureLease?.release();
+            mark.textureLease = null;
+          });
+      if (previous && previous !== binding) {
+        if (marks.some((mark) => mark.binding === previous))
+          retiredTextures.add(previous);
+        else previous.texture.dispose();
+      }
     },
     setCameraMode(next) {
       if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
@@ -980,6 +1034,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       marks.forEach(destroyStroke);
       generative?.dispose();
       textures.forEach((binding) => binding.texture.dispose());
+      retiredTextures.forEach((binding) => binding.texture.dispose());
+      retiredTextures.clear();
       imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();

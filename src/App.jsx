@@ -1,3 +1,4 @@
+import BrushEditor from "./components/BrushEditor.jsx";
 import LandscapeBrushMenu from "./components/LandscapeBrushMenu.jsx";
 import { LANDSCAPE_BRUSHES } from "./materials/landscapePalette.js";
 import { ENABLE_BIRD_SONGS } from "./sonoizo/instrumentConfig.js";
@@ -61,7 +62,9 @@ export default function App() {
     engine = useRef(null),
     player = useRef(null),
     loadRequest = useRef(0);
-  const [distance, setDistance] = useState(0);
+  const [brushes, setBrushes] = useState(LANDSCAPE_BRUSHES);
+  const [editingBrush, setEditingBrush] = useState(null);
+  const previousView = useRef("drone");
   const [mode, setMode] = useState("drone"),
     [brush, setBrush] = useState("voiles");
   const [hint, setHint] = useState("Dans le sillage du pinceau · voyage en 3D");
@@ -112,7 +115,6 @@ export default function App() {
     engine.current?.reset();
     chooseBrush(ENABLE_BIRD_SONGS ? brush : choice.brushes[0]);
     chooseCamera("drone");
-    setDistance(0);
     engine.current?.setDroneDistance(0);
     engine.current?.setPadSource(bank);
     await bank.preparePlayback();
@@ -120,6 +122,20 @@ export default function App() {
     const ambience = bank.getSnapshot().ambience;
     if (ambience.loaded && !ambience.playing && !ambience.userPaused)
       await bank.toggleAmbience();
+  }
+  function toggleGlobal() {
+    if (mode === "global") chooseCamera(previousView.current);
+    else {
+      previousView.current = mode === "gyro" ? "gyro" : "drone";
+      chooseCamera("global");
+    }
+  }
+  async function applyBrush(profile, options) {
+    const updated = await engine.current.updateBrush(profile, options);
+    if (updated)
+      setBrushes((previous) =>
+        previous.map((item) => (item.id === updated.id ? updated : item)),
+      );
   }
   async function importMusic(file) {
     if (!file) return;
@@ -383,17 +399,7 @@ export default function App() {
         expanded={!immersive || toolsOpen}
         mode={mode}
         onChange={chooseCamera}
-        onPhotoZoom={(factor) => {
-          const zoom = Number(
-            stage.current.querySelector("canvas").dataset.photoZoom || 1,
-          );
-          engine.current?.setPhotoZoom(zoom * factor);
-        }}
-        distance={distance}
-        onDistance={(value) => {
-          setDistance(value);
-          engine.current?.setDroneDistance(value);
-        }}
+        onToggleGlobal={toggleGlobal}
       />
       <p className="view-hint" role="status">
         {hint}
@@ -406,30 +412,6 @@ export default function App() {
         <section className="photo-panel" aria-label="Cadrer une vidéodio">
           <p>Glisser pour tourner · pincer ou molette pour zoomer</p>
           <div className="photo-actions">
-            <button
-              aria-label="Dézoomer la photo"
-              disabled={videoBusy || photoBusy}
-              onClick={() => {
-                const zoom = Number(
-                  stage.current.querySelector("canvas").dataset.photoZoom || 1,
-                );
-                engine.current?.setPhotoZoom(zoom * 1.2);
-              }}
-            >
-              −
-            </button>
-            <button
-              aria-label="Zoomer la photo"
-              disabled={videoBusy || photoBusy}
-              onClick={() => {
-                const zoom = Number(
-                  stage.current.querySelector("canvas").dataset.photoZoom || 1,
-                );
-                engine.current?.setPhotoZoom(zoom / 1.2);
-              }}
-            >
-              +
-            </button>
             <button onClick={exportVideo} disabled={videoBusy || photoBusy}>
               {videoBusy
                 ? `Création… ${Math.round(videoProgress * 100)} %`
@@ -460,9 +442,10 @@ export default function App() {
         </section>
       ) : atelier !== "mp3" ? (
         <LandscapeBrushMenu
-          brushes={LANDSCAPE_BRUSHES}
+          brushes={brushes}
           selected={brush}
           onSelect={chooseBrush}
+          onEdit={setEditingBrush}
         />
       ) : (
         <ControlPanel
@@ -476,6 +459,14 @@ export default function App() {
           onFile={loadFile}
           onToggle={togglePlayback}
           onLoop={chooseLoop}
+        />
+      )}
+      {editingBrush && (
+        <BrushEditor
+          key={editingBrush.id}
+          brush={editingBrush}
+          onApply={applyBrush}
+          onClose={() => setEditingBrush(null)}
         />
       )}
       {sceneError && (

@@ -6,9 +6,7 @@ const views = [
 export default function CameraViews({
   mode,
   onChange,
-  distance,
-  onDistance,
-  onPhotoZoom,
+  onToggleGlobal,
   compact = false,
   expanded = true,
   disabled = false,
@@ -79,37 +77,21 @@ export default function CameraViews({
           </button>
         ))}
       </nav>
-      <nav className="camera-zoom" aria-label="Zoom">
-        <span>Zoom</span>
-        <div>
-          <button
-            aria-label="Éloigner la caméra"
-            disabled={disabled || (mode !== "photo" && distance >= 1)}
-            onClick={() =>
-              mode === "photo"
-                ? onPhotoZoom(1.2)
-                : onDistance(
-                    Math.min(1, Math.round((distance + 0.1) * 10) / 10),
-                  )
-            }
-          >
-            −
-          </button>
-          <button
-            aria-label="Rapprocher la caméra"
-            disabled={disabled || (mode !== "photo" && distance <= 0)}
-            onClick={() =>
-              mode === "photo"
-                ? onPhotoZoom(1 / 1.2)
-                : onDistance(
-                    Math.max(0, Math.round((distance - 0.1) * 10) / 10),
-                  )
-            }
-          >
-            +
-          </button>
-        </div>
-      </nav>
+      <button
+        className="global-view-toggle"
+        aria-label="Vue globale 360°"
+        aria-pressed={mode === "global"}
+        title={
+          mode === "global"
+            ? "Revenir à la vue précédente"
+            : "Voir et faire pivoter toute l’œuvre"
+        }
+        disabled={disabled}
+        onClick={onToggleGlobal}
+      >
+        <span aria-hidden="true">◎</span>
+        <small>360°</small>
+      </button>
     </>
   );
 }

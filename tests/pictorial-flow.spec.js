@@ -90,7 +90,7 @@ test("palette masks are non-figurative, detailed and contain dry paper reserves"
       return { id: brush.id, levels: levels.size, clear, opaque };
     });
   });
-  expect(result).toHaveLength(8);
+  expect(result).toHaveLength(6);
   expect(result.map((b) => b.id)).not.toContain("feuilles");
   expect(result.map((b) => b.id)).not.toContain("plumes");
   for (const item of result) {

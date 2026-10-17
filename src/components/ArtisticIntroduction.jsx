@@ -10,11 +10,11 @@ export default function ArtisticIntroduction() {
         Un petit oizo traverse un papier sans horizon. Il dépose des pigments,
         des lavis secs et des encres fines dans un espace en trois dimensions.
       </p>
-      <h3>Huit matières, un paysage</h3>
+      <h3>Six matières, un paysage</h3>
       <p>
-        Lavis, Brosse sèche, Encre fine, Taches, Éclaboussures, Calligraphie,
-        Diffusion et Tampons offrent huit gestes abstraits : des grains de
-        papier, des réserves et des bords pigmentés, sans motif figuratif.
+        Lavis, Brosse sèche, Encre fine, Éclaboussures, Diffusion et Tampons
+        offrent six gestes abstraits : des grains de papier, des réserves et des
+        bords pigmentés, sans motif figuratif.
       </p>
       <h3>Accompagner l’oizo</h3>
       <p>
@@ -32,9 +32,9 @@ export default function ArtisticIntroduction() {
       </p>
       <h3>Un atelier contemplatif</h3>
       <p>
-        Une palette fixe, votre musique et un papier blanc cassé laissent la
-        place au voyage. Explorez en FPV, contemplez à 360° et cadrez une photo
-        lorsque le paysage vous appelle.
+        Six brosses personnalisables, votre musique et un papier blanc cassé
+        laissent la place au voyage. Explorez en FPV, contemplez à 360° et
+        cadrez une photo lorsque le paysage vous appelle.
       </p>
       <h3>Une expérimentation échohypnotique</h3>
       <p>

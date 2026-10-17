@@ -90,13 +90,17 @@ export function createOizo() {
     cross = new THREE.Vector3();
   const basis = new THREE.Matrix4(),
     orientation = new THREE.Quaternion();
-  const right = new THREE.Vector3();
+  const right = new THREE.Vector3(),
+    flightUp = new THREE.Vector3(),
+    worldUp = new THREE.Vector3(0, 1, 0);
   let previousTime,
     turn = 0,
     bank = 0,
     burst = 0,
     cooldown = 0,
-    phase = 0;
+    phase = 0,
+    climb = 0,
+    dive = 0;
   return {
     group,
     update(pose) {
@@ -108,42 +112,55 @@ export function createOizo() {
         cross.crossVectors(previousDirection, pose.direction);
         turn += (cross.length() / dt - turn) * (1 - Math.exp(-dt * 5));
         const targetBank = THREE.MathUtils.clamp(
-          (-cross.dot(pose.up) / dt) * 0.65,
-          -0.4,
-          0.4,
+          (-cross.y / dt) * 0.9,
+          -0.6,
+          0.6,
         );
         bank += (targetBank - bank) * (1 - Math.exp(-dt * 4));
         cooldown = Math.max(0, cooldown - dt);
-        if (turn > 0.18 && cooldown === 0 && burst === 0) {
+        const vertical = pose.direction.y;
+        climb += (Math.max(0, vertical) - climb) * (1 - Math.exp(-dt * 3));
+        dive += (Math.max(0, -vertical) - dive) * (1 - Math.exp(-dt * 3));
+        if ((turn > 0.18 || climb > 0.18) && cooldown === 0 && burst === 0) {
           burst = 1.8;
           cooldown = 4.6;
         }
         burst = Math.max(0, burst - dt);
         phase += dt * Math.PI * 2 * (1.25 + Math.min(0.2, turn * 0.12));
       }
-      right.copy(pose.side).negate();
-      basis.makeBasis(right, pose.up, pose.direction);
+      right.crossVectors(worldUp, pose.direction);
+      if (right.lengthSq() < 0.001) right.copy(pose.side).negate();
+      right.normalize();
+      flightUp.crossVectors(pose.direction, right).normalize();
+      basis.makeBasis(right, flightUp, pose.direction);
       orientation.setFromRotationMatrix(basis);
       group.position.copy(pose.position);
-      group.quaternion.copy(orientation);
+      if (first) group.quaternion.copy(orientation);
+      else group.quaternion.slerp(orientation, 1 - Math.exp(-dt * 9));
       const progress = burst > 0 ? 1 - burst / 1.8 : 0;
       // Zero slope at each end: no snap between gliding and a turn's wingbeats.
       const envelope = Math.sin(progress * Math.PI) ** 2;
       const lift = Math.min(0.12, Math.max(0, pose.acoustic?.low || 0) * 0.12);
-      const amplitude = envelope * 0.34;
-      body.rotation.x = Math.sin(pose.time * 0.7) * 0.018 + lift * 0.1;
+      const amplitude = envelope * (0.34 + climb * 0.16) * (1 - dive * 0.6);
+      body.rotation.x =
+        Math.sin(pose.time * 0.7) * 0.012 + climb * 0.045 - dive * 0.025;
       silhouette.rotation.y = bank * -0.12;
       body.rotation.z = bank;
       for (const { bones, side } of wings) {
         bones[0].rotation.z =
-          side * (0.13 + lift + Math.sin(phase) * amplitude);
+          side * (0.13 + lift - dive * 0.07 + Math.sin(phase) * amplitude) +
+          bank * 0.1;
         bones[1].rotation.z =
-          side * (0.045 + Math.sin(phase - 0.48) * amplitude * 0.65);
+          side *
+          (0.045 + dive * 0.18 + Math.sin(phase - 0.48) * amplitude * 0.65);
         bones[2].rotation.z =
           side * (-0.02 + Math.sin(phase - 0.95) * amplitude * 0.5);
         bones[1].rotation.y =
-          side * envelope * (0.04 + Math.sin(phase - 0.35) * 0.045);
-        bones[2].rotation.x = Math.sin(phase - 0.8) * amplitude * 0.18;
+          side *
+          (dive * 0.3 + envelope * (0.04 + Math.sin(phase - 0.35) * 0.045));
+        bones[2].rotation.x =
+          Math.sin(phase - 0.8) * amplitude * 0.18 - dive * 0.07;
+        bones[2].rotation.y = side * dive * 0.18;
       }
       previousDirection.copy(pose.direction);
       previousTime = pose.time;
