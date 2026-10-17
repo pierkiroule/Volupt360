@@ -26,7 +26,6 @@ export function createTwigBank({
   if (ids.length > 18 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
   let fireflies = false,
-    universeAmbience = false,
     ambienceUserPaused = false;
   const brushGestures = new Map();
   const imageBrushes = new Map();
@@ -802,17 +801,12 @@ export function createTwigBank({
         .then(() => {
           if (instrumentPlayingRequested) instrument?.resume();
           emit();
-          if (
-            universeAmbience &&
-            !ambienceUserPaused &&
-            ambience?.element.paused
-          )
+          if (!ambienceUserPaused && ambience?.element.paused)
             return toggleAmbience();
         })
         .catch((error) => onError(`Lecture indisponible : ${error.message}`));
     },
     loadUniverseAmbience(url) {
-      universeAmbience = true;
       return importAmbience({
         url,
         name: "Ambiance musicale · Le voyage de l’oizo",

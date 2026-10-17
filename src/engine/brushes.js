@@ -215,7 +215,12 @@ export function createBrushStroke(
 ) {
   const template = BRUSHES.find((item) => item.id === id) || BRUSHES[0];
   const brush = dynamics
-    ? { ...template, opacity: dynamics.opacity, generatedWidth: dynamics.width }
+    ? {
+        ...template,
+        opacity: dynamics.opacity ?? template.opacity,
+        generatedWidth: dynamics.width,
+        style: dynamics.style ?? template.style,
+      }
     : template;
   if (brush.particle !== undefined)
     return createPoeticParticleStroke(brush, { seed, color, texture });

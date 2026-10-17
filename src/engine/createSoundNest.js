@@ -1,5 +1,5 @@
 import { createRenderBudget } from "./createRenderBudget.js";
-import { createSunsetSky } from "./createSunsetSky.js";
+import { createPictorialFlow } from "./createPictorialFlow.js";
 import { createWatercolorTexture } from "./createWatercolorTexture.js";
 import { ENABLE_POETIC_VOICES } from "../sonoizo/instrumentConfig.js";
 import { ENABLE_TRACE_MEMORY, TRACE_DEBUG } from "../sonoizo/traceConfig.js";
@@ -13,7 +13,6 @@ import { createSonoizoDance } from "../sonoizo/SonoizoDance.js";
 import { createBrushBridge } from "../sonoizo/BrushBridge.js";
 import { createOizo } from "../sonoizo/createOizo.js";
 import { createViewEffects, DEFAULT_VIEW } from "./createViewEffects.js";
-import { graphicSurprise } from "./graphicSurprises.js";
 import { ENABLE_GENERATIVE_TEXTURES } from "./generativeConfig.js";
 import { createGenerativeMaterials } from "./createGenerativeMaterials.js";
 import { BRUSHES, createBrushStroke, disposeMark } from "./brushes.js";
@@ -51,9 +50,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   );
   container.append(renderer.domElement);
   const scene = new THREE.Scene();
-  const sky = createSunsetSky();
-  scene.add(sky.mesh);
-  renderer.domElement.dataset.skydome = "watercolor-sunset";
+  scene.background = new THREE.Color("#f4f0e8");
+  renderer.domElement.dataset.skydome = "off-white-paper";
+  const pictorialFlow = createPictorialFlow();
   const effects = createViewEffects(renderer, { antialias: !mobile });
   renderer.domElement.dataset.viewEffects = JSON.stringify(DEFAULT_VIEW);
   const camera = new THREE.PerspectiveCamera(
@@ -114,9 +113,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
   let densityClock = 0;
   const densityMidpoint = new THREE.Vector3();
   let palette = createTrackPalette();
-  const generative = ENABLE_GENERATIVE_TEXTURES
-    ? createGenerativeMaterials()
-    : null;
+  let generative = null;
   const textures = new Map();
   const imageBrushes = new Map();
   const generatedBrushes = new Map();
@@ -183,14 +180,19 @@ export function createSoundNest(container, { onHint, onError } = {}) {
     const region = compositionAt(pose.position);
     const textureLease = textures.has(id)
       ? null
-      : generative?.acquire(id, pose.acoustic || pose);
+      : ENABLE_GENERATIVE_TEXTURES
+        ? (generative ??= createGenerativeMaterials()).acquire(
+            id,
+            pose.acoustic || pose,
+          )
+        : null;
     const generated = generatedBrushes.get(id);
     const stroke = createBrushStroke(generated?.baseId || id, {
       dynamics: generated,
       seed: serial++ * 1.37 + ((generated?.seed || 0) % 10000),
       color,
       texture: textures.get(id) || textureLease?.binding,
-      surprise: graphicSurprise(serial - 1, pose.acoustic || pose),
+      surprise: 0,
     });
     landscape.add(stroke.group);
     activeStroke = {
@@ -374,15 +376,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       cameraMode !== "drone"
     )
       return;
-    if (
-      padSource?.getSnapshot?.().birds?.generated &&
-      !generatedBrushes.has(brush)
-    ) {
-      onHint?.(
-        "La première brosse attend son chant réel. Réessayez sa création dans le menu.",
-      );
-      return;
-    }
     bridge.close();
     nozzlePaint = { id: brush, samples: 0 };
     void padSource?.beginSculpture?.(brush);
@@ -500,8 +493,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       const painting = Boolean(playback?.playing && f?.rms > 0.006);
       navigation.active = padSource ? true : painting;
       tip.visible = !padSource && painting;
-      if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing)
-        elapsed += dt;
+      elapsed += dt;
       if (padSource) {
         const visual = padSource.getVisualFeatures?.() || {};
         const pose = dance.update(dt, voices, visual);
@@ -597,7 +589,9 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.progress = pose.progress;
         tip.position.copy(pose.position);
         if (sampleClock >= 0.12) {
-          addSample(generative ? { ...pose, acoustic: f } : pose);
+          addSample(
+            ENABLE_GENERATIVE_TEXTURES ? { ...pose, acoustic: f } : pose,
+          );
           sampleClock %= 0.12;
         }
       } else {
@@ -605,7 +599,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         navigation.velocity.multiplyScalar(Math.exp(-dt * 3));
         if (quiet > 0.35) closeStroke();
       }
-      if (padSource ? voices.length > 0 || nozzlePaint : playback?.playing) {
+      if (marks.length) {
         densityClock -= dt;
         if (densityClock <= 0) {
           densityClock = 0.6;
@@ -647,7 +641,12 @@ export function createSoundNest(container, { onHint, onError } = {}) {
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
+      let drift = 0;
       for (const mark of marks) {
+        drift = Math.max(
+          drift,
+          pictorialFlow.update(mark, dt, visual, lifeTime, isActive(mark)),
+        );
         const resonance = padSource?.getTraceResonance?.(mark.traceId) || 0;
         const response =
           resonance > 0
@@ -686,6 +685,8 @@ export function createSoundNest(container, { onHint, onError } = {}) {
             );
         }
       }
+      renderer.domElement.dataset.matterDrift = drift.toFixed(4);
+      if (densityClock <= dt) boundsDirty = true;
       if (boundsDirty) updateBounds();
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
@@ -694,7 +695,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       marks[0]?.uniforms[0]?.uTime?.value ?? 0
     ).toFixed(3);
     rig.update(dt);
-    sky.update(camera, photo ? 0 : dt);
     camera.updateMatrixWorld();
     if (!photo && padSource?.updateListener) {
       const inverse = landscape
@@ -847,7 +847,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       if (!BRUSHES.some((item) => item.id === id) || generatedBrushes.has(id))
         return null;
       const binding = createWatercolorTexture(
-        { color: profile.color },
+        { color: profile.color, kind: profile.textureKind },
         profile.seed,
         mobile ? 128 : 256,
         profile.acoustic,
@@ -908,9 +908,7 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       return rig.setMode(next);
     },
     async exportPhoto() {
-      if (!photo) throw new Error("Cadrez votre photo dans la vue Photo.");
       rig.update(0);
-      sky.update(camera);
       const size = renderer.getSize(new THREE.Vector2()),
         ratio = renderer.getPixelRatio();
       const aspect = camera.aspect;
@@ -985,7 +983,6 @@ export function createSoundNest(container, { onHint, onError } = {}) {
       imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();
-      sky.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

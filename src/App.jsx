@@ -117,18 +117,25 @@ export default function App() {
     engine.current?.setPadSource(bank);
     await bank.preparePlayback();
     if (ticket !== universeRequest.current) return;
-    if (!bank.getSnapshot().ambience.loaded) {
-      const loaded = await bank.loadUniverseAmbience(
-        `${import.meta.env.BASE_URL}ambiances/ambiance01.mp3`,
-      );
-      if (ticket !== universeRequest.current) return;
-      if (!loaded) {
-        setUniverseError("L’ambiance musicale n’a pas pu être chargée.");
-        return;
-      }
-    }
     const ambience = bank.getSnapshot().ambience;
-    if (!ambience.playing && !ambience.userPaused) await bank.toggleAmbience();
+    if (ambience.loaded && !ambience.playing && !ambience.userPaused)
+      await bank.toggleAmbience();
+  }
+  async function importMusic(file) {
+    if (!file) return;
+    twigs.clearError();
+    setUniverseError("");
+    setLoading(true);
+    try {
+      const bank = twigs.bank.current;
+      await bank.preparePlayback();
+      const loaded = await bank.importAmbience(file);
+      if (loaded) await bank.toggleAmbience();
+    } catch (cause) {
+      setUniverseError(`Lecture indisponible : ${cause.message}`);
+    } finally {
+      setLoading(false);
+    }
   }
   function chooseBrush(id) {
     setBrush(id);
@@ -263,6 +270,48 @@ export default function App() {
     >
       <div id="stage" ref={stage} />
       <Header sonoizo={ENABLE_SONOIZO} />
+      {immersive && universe && mode !== "photo" && (
+        <div className="music-import">
+          <label
+            title={
+              twigs.snapshot.ambience?.name ||
+              "Votre musique reste sur cet appareil"
+            }
+          >
+            {loading
+              ? "Chargement…"
+              : twigs.snapshot.ambience?.loaded
+                ? "Changer le MP3"
+                : "Importer un MP3"}
+            <input
+              type="file"
+              accept="audio/mpeg,audio/mp3,.mp3"
+              aria-label="Importer un MP3"
+              disabled={loading}
+              onChange={(event) => {
+                void importMusic(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+      )}
+      {immersive && universe && mode !== "photo" && (
+        <button
+          className="instant-photo"
+          aria-label="Photographier la vue actuelle"
+          title="Instantané PNG HD"
+          onClick={exportPhoto}
+          disabled={photoBusy || videoBusy}
+        >
+          {photoBusy ? "…" : "◎"}
+        </button>
+      )}
+      {mode !== "photo" && videoError && (
+        <p className="ambience-error" role="alert">
+          {videoError}
+        </p>
+      )}
       {universe && mode !== "photo" && twigs.snapshot.ambience?.loaded && (
         <button
           className="ambience-toggle"
@@ -289,10 +338,10 @@ export default function App() {
             className="universe-picker"
             aria-label="Entrer dans le paysage"
           >
-            <h2>Un ciel, des matières vivantes</h2>
+            <h2>Le papier devient espace</h2>
             <p>
-              Composez vos brosses, puis laissez l’oizo en sculpter les
-              couleurs, les formes et les matières.
+              Importez votre musique et laissez l’oizo déposer des matières
+              aquarellées. Elles dérivent et dansent autour de vous.
             </p>
             <button
               className="enter-landscape"

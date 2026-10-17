@@ -41,7 +41,7 @@ test("sunset sphere provides a seamless directional horizon and releases resourc
   expect(result.disposed).toBe(2);
 });
 
-test("narrative, sunset, brush-generated music and brush menu coexist in FPV and 360", async ({
+test("narrative, paper background, imported music and abstract brushes coexist in FPV and 360", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -56,11 +56,14 @@ test("narrative, sunset, brush-generated music and brush menu coexist in FPV and
     page.getByRole("heading", { name: "Sculpter les matières du monde" }),
   ).toBeAttached();
   await expect(page.locator(".artistic-lead")).toContainText(
-    "textures de la nature",
+    "papier sans horizon",
   );
   await page.getByRole("button", { name: "Entrer dans le paysage" }).click();
+  await page
+    .getByLabel("Importer un MP3", { exact: true })
+    .setInputFiles("public/ambiances/ambiance01.mp3");
   const canvas = page.locator("#stage canvas");
-  await expect(canvas).toHaveAttribute("data-skydome", "watercolor-sunset");
+  await expect(canvas).toHaveAttribute("data-skydome", "off-white-paper");
   await expect(
     page.getByRole("button", { name: "Mettre l’ambiance en pause" }),
   ).toBeVisible();
@@ -68,7 +71,7 @@ test("narrative, sunset, brush-generated music and brush menu coexist in FPV and
   await page
     .getByRole("button", { name: "FPV 360° gyro", exact: true })
     .click();
-  await expect(canvas).toHaveAttribute("data-skydome", "watercolor-sunset");
+  await expect(canvas).toHaveAttribute("data-skydome", "off-white-paper");
   await page.waitForTimeout(600);
   await page.screenshot({ path: "/tmp/oizo-sunset-360.png" });
   await page.getByRole("button", { name: "Vue photo", exact: true }).click();

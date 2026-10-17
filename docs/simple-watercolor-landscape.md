@@ -1,19 +1,33 @@
-# Paysage aquarelle simplifié
+# Matières picturales vivantes
 
-## Parcours actif
+## Palette et fond
 
-La palette fixe est définie dans `src/materials/landscapePalette.js` et affichée par `LandscapeBrushMenu`. Les huit familles réutilisent les géométries et shaders existants ; elles ne remplacent pas les matières par des lignes génériques. Les masques sont préparés une fois au démarrage, en 128 pixels sur mobile et 256 sur ordinateur. Aucun atelier de création ni stockage de palette n’est chargé.
+Le parcours principal présente huit matières abstraites : Lavis, Brosse sèche, Encre fine, Taches, Éclaboussures, Calligraphie, Diffusion et Tampons. `landscapePalette` définit leurs couleurs, épaisseurs et textures. Les familles existantes sont réutilisées ; Tampons utilise les dépôts plans des taches avec une matière colorée, sans silhouette végétale. Le masque sec ajoute des réserves anisotropes et un grain de papier. Les shaders ajoutent le détail fin et la diffusion.
 
-`App` ouvre le MP3 fourni après le geste d’entrée. `createTwigBank` conserve le lecteur, l’analyse Web Audio, la capture et les pauses. La pause manuelle est respectée ; le mode photo suspend temporairement la lecture. Le moteur de composition historique reste accessible seulement par une méthode de compatibilité à import dynamique, jamais appelée dans ce parcours. Le navigateur ne charge donc ni son ordonnanceur ni son worklet de synthèse.
+Le fond est le papier uniforme `#f4f0e8`. Le skydome crépusculaire n’est plus instancié ni chargé par ce moteur. Les surprises décoratives ne sont plus appliquées aux dépôts. Le générateur de brosses reste absent de l’interface.
 
-`SonoizoDance` ralentit le vol et amortit les gestes, avec une influence musicale moins brusque sur la trajectoire. Les shaders conservent leur réponse aux caractéristiques musicales complètes. La caméra FPV reste à trois unités avant zoom manuel, sans recul dépendant du son.
+## Évolution de la matière
 
-## Allègement
+`createPictorialFlow` anime les dépôts terminés avec un champ lent et déterministe d’attracteurs mouvants. Une vitesse amortie conduit vers une cible bornée, dont l’amplitude varie avec les basses et l’énergie du MP3. La dérive est limitée à 3,5 unités ; une faible rotation apparaît progressivement autour du centre propre du dépôt. Les déformations locales se font dans le vertex shader. La géométrie et les masques ne sont pas reconstruits pendant l’animation.
 
-Les composants du générateur, son stockage, son ancien adaptateur sonore et ses styles ont été supprimés. Le budget adaptatif de pixels et la limite de traces restent actifs : 56 sur mobile, 80 sur ordinateur. La mémoire et les recherches de collisions inutilisées ne sont pas mises à jour dans le parcours normal. Les ailes articulées, le ciel, la navigation gyro et les exports sont conservés.
+Les gestes en cours restent attachés au sillage. Les bornes de chaque dépôt suivent sa transformation, pour conserver un cadrage cohérent. Les états sont stockés dans une WeakMap : ils deviennent récupérables avec les traces supprimées. La dissolution continue pendant la contemplation, avec un plafond de 56 traces sur mobile et 80 sur ordinateur. Le mode Photo fige les forces, les matières et la dissolution.
 
-## Vérification
+Le parcours fixe ne prépare plus les 24 textures historiques inutilisées : elles ne sont créées que si une ancienne brosse sans masque en a besoin. Les masques actifs sont préparés une seule fois, à 128 pixels sur mobile et 256 sur ordinateur, puis partagés. Le budget adaptatif de pixels est conservé.
 
-Onze tests Chromium ciblés exécutés avec succès : lecture effective du MP3 et énergie mesurée, pauses et reprise, absence de chargement du compositeur, huit brosses, budget mobile simulé, enveloppes musicales, direction des gestes et continuité du vol, distance caméra, ciel, ailes et transitions de vues. Une capture de l’interface mobile a été inspectée.
+## Musique locale
 
-La qualité perçue à l’écoute, la cadence sur téléphone physique, les autorisations des capteurs mobiles et tous les codecs d’export vidéo ne sont pas validés par ces tests. Les suites historiques consacrées aux anciens générateurs ne décrivent plus l’interface actuelle.
+Le visiteur importe un MP3 (20 Mo maximum). Aucun fond audio n’est chargé automatiquement, aucun son n’est synthétisé. Le lecteur Web Audio existant conserve son analyse, sa capture et ses pauses. Une nouvelle importation remplace la musique, sans effacer l’œuvre. Les fichiers et leurs URL restent locaux ; l’ancien lecteur et son URL sont libérés au remplacement.
+
+La pause manuelle est respectée en changeant de vue. La pause temporaire de cadrage reprend à la sortie du mode Photo, y compris pour un MP3 importé. La commande d’import reste disponible en FPV et gyro.
+
+## Regard et photographie
+
+La FPV conserve sa distance par défaut de trois unités et le pilotage doux. À l’entrée en gyro, le regard s’oriente vers le centre de la matière existante, avec son élévation, avant de laisser le visiteur explorer. Il ne suit pas ensuite automatiquement les déplacements des dépôts.
+
+« Photographier la vue actuelle » utilise l’export PNG existant, jusqu’à 2560 pixels sur le grand côté. Il capture le regard courant sans changer de mode ni couper la musique ; aucune interface n’est incluse. Le mode de cadrage Photo et la vidéodio sont conservés.
+
+## Contrôles et limites
+
+Les tests ciblés couvrent le MP3 effectivement importé, son énergie mesurée, ses pauses/reprises, les huit matières avec leurs masques, la réponse graphique à la musique, la dérive bornée et continue à 30/60 Hz simulés, la pause des forces, les réserves des textures, le PNG HD téléchargé depuis le gyro, la caméra et le budget mobile. Les références au coucher de soleil restantes sont des modules historiques et des tests unitaires isolés, sans effet sur le parcours actif.
+
+Le champ est une simulation artistique légère, sans collisions entre fluides ni simulation physique de pigments. L’écoute et la cadence sur téléphone physique, les permissions des capteurs et tous les codecs vidéo restent à vérifier. Les tests de navigateur utilisent Chromium avec rendu WebGL logiciel.
