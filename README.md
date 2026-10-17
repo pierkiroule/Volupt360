@@ -157,3 +157,7 @@ Le parcours actif dispose maintenant d’une grammaire électro chill à 78 BPM 
 ### Timbres organiques et aigus contenus
 
 La mélodie active alterne cordes amorties et résonateur boisé procédural à trois modes, avec une attaque douce et des harmoniques rapidement amorties. Les percussions utilisent un coup grave rond, une frappe boisée et un souffle filtré plutôt qu’un charleston aigu. Le passe-bas global descend à 2,2 kHz et la zone de présence est atténuée autour de 2 kHz ; la réverbération est amortie à 1,7 kHz. Le groove et les règles harmoniques sont conservés, sans sample. La perception de douceur reste à confirmer à l’écoute sur les appareils utilisés.
+
+### Orchestration de chambre cinématographique
+
+Le moteur actif donne davantage de place aux lignes soutenues : timbres procéduraux de cordes et de souffle, réponses mélodiques, basses tenues, deux actes harmoniques et un arc dynamique. Un thème revient régulièrement entre ses transformations ; les percussions sont plus discrètes. Les brosses restent à l’origine des inflexions musicales. Les tests incluent une capture Web Audio native de 18 secondes pour la revue à l’écoute ; la qualité artistique n’est pas déduite des seuls tests.

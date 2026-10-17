@@ -126,3 +126,60 @@ test("wood resonator is finite, reproducible, pitched and smoothly damped", asyn
     expect(result.tail).toBe(0);
   }
 });
+
+test("sustained chamber voices are pitched, finite and have a gradual bloom", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { WaterDSP } = await import("/src/audio/WaterDSP.js");
+    return ["bowed", "air"].flatMap((type) =>
+      [24000, 48000].map((sampleRate) => {
+        const a = new WaterDSP({
+          sampleRate,
+          type,
+          frequency: 220,
+          duration: 2,
+          seed: 37,
+          velocity: 0.7,
+        });
+        let early = 0,
+          body = 0,
+          ending = 0,
+          finite = true,
+          previous = 0,
+          step = 0,
+          crossings = 0;
+        for (let i = 0; i < sampleRate * 2.2; i++) {
+          const x = a.render(0.5, 0.5);
+          finite &&= Number.isFinite(x);
+          step = Math.max(step, Math.abs(x - previous));
+          if (i < sampleRate * 0.05) early += x * x;
+          if (i > sampleRate * 0.5 && i < sampleRate * 1.5) {
+            body += x * x;
+            if (x > 0 && previous <= 0) crossings++;
+          }
+          if (i > sampleRate * 2) ending += x * x;
+          previous = x;
+        }
+        return {
+          type,
+          finite,
+          early: early / (sampleRate * 0.05),
+          body: body / sampleRate,
+          ending,
+          step,
+          frequency: crossings,
+        };
+      }),
+    );
+  });
+  for (const result of results) {
+    expect(result.finite).toBe(true);
+    expect(result.body).toBeGreaterThan(result.early * 2);
+    expect(result.body).toBeGreaterThan(0.0001);
+    expect(result.ending).toBe(0);
+    expect(result.step).toBeLessThan(0.04);
+    expect(Math.abs(result.frequency - 220)).toBeLessThan(5);
+  }
+});

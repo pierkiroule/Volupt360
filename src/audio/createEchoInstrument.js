@@ -279,11 +279,24 @@ export async function createEchoInstrument(
       start +
         Math.min(
           duration * 0.2,
-          melodicDuration ? 0.09 : bass ? 0.16 : profile.attacks[familyIndex],
+          melodicDuration
+            ? voiceType === "bowed"
+              ? 0.22
+              : voiceType === "air"
+                ? 0.14
+                : 0.09
+            : bass
+              ? 0.16
+              : profile.attacks[familyIndex],
         ),
     );
     envelope.gain.exponentialRampToValueAtTime(
-      level * (universe === "ramure" ? 0.35 : 0.6),
+      level *
+        (voiceType === "bowed" || voiceType === "air"
+          ? 0.82
+          : universe === "ramure"
+            ? 0.35
+            : 0.6),
       start + duration * 0.65,
     );
     envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
@@ -299,9 +312,11 @@ export async function createEchoInstrument(
           (imageCell
             ? imageCell.light > 0.55
               ? chill
-                ? "wood"
+                ? "air"
                 : "felt"
-              : "string"
+              : chill
+                ? "bowed"
+                : "string"
             : world.type),
       startAt: start,
       duration,
@@ -390,7 +405,7 @@ export async function createEchoInstrument(
       .get("gate")
       .setValueAtTime(autonomous ? 1 : 0, ctx.currentTime);
     bedGain.gain.setTargetAtTime(
-      autonomous ? (chill ? 0.06 : 0.18) : 0,
+      autonomous ? (chill ? 0.015 : 0.18) : 0,
       ctx.currentTime,
       0.2,
     );
