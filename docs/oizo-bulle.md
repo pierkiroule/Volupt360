@@ -31,7 +31,7 @@ La collision balaie le déplacement relatif de l’oiseau et de la sphère ; une
 
 La rencontre termine proprement le dépôt tactile en cours, mémorise la pose et la brosse, suspend le vol et la timeline, et approche la caméra de la position de traversée en 1,2 seconde. Après cette transition, seul le regard tourne : ni translation du point de vue, ni rotation de l’œuvre, ni dessin. L’oiseau est masqué depuis cette vue subjective, son état de vol reste conservé.
 
-Une case facultative sur l’accueil permet de demander explicitement l’autorisation d’orientation au toucher du bouton de départ. En cas de refus, d’absence de capteur ou de choix de ne pas l’utiliser, le glissement tactile fonctionne. Aucun sélecteur gyro général n’est proposé pendant le vol.
+Une case facultative, activée par défaut sur l’accueil, permet de demander explicitement l’autorisation d’orientation au toucher du bouton de départ. En cas de refus, d’absence de capteur ou de choix de ne pas l’utiliser, le glissement tactile fonctionne. Aucun sélecteur gyro général n’est proposé pendant le vol. Les événements `deviceorientation` et `deviceorientationabsolute` sont pris en charge ; le premier flux valide est conservé pendant la contemplation pour éviter les sauts entre deux référentiels. Les états `ready`, `waiting`, `active`, `denied`, `unavailable`, `insecure` et `disabled` sont exposés sur le canvas pour le diagnostic. Un capteur dont le cap alpha est absent peut encore piloter l’inclinaison.
 
 Pendant la contemplation, seuls la phrase temporaire et « Reprendre le vol » sont affichés. Le bouton reste immédiatement utilisable, sans durée minimale. La reprise conserve les pigments, restaure la brosse et réactive le toucher sans attendre le retour visuel de la caméra.
 

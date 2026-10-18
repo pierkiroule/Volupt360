@@ -25,7 +25,7 @@ export default function ChillExperience() {
     [finalReady, setFinalReady] = useState(false),
     [paused, setPaused] = useState(false),
     [contemplating, setContemplating] = useState(false),
-    [useGyro, setUseGyro] = useState(false),
+    [useGyro, setUseGyro] = useState(true),
     [brush, setBrush] = useState(NEUTRAL_BRUSH.id),
     [departing, setDeparting] = useState(false),
     [phase, setPhase] = useState("night"),
