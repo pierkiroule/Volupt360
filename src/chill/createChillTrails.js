@@ -31,8 +31,8 @@ export function createChillTrails(mobile) {
     depthWrite: false,
     vertexColors: true,
     uniforms: { energy: { value: 0 } },
-    vertexShader: `attribute float age,style;varying vec3 c;varying float a,kind;uniform float energy;void main(){kind=style;c=color;a=(1.-age)*smoothstep(0.,.04,age);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_PointSize=clamp((22.+energy*20.)/max(1.,-p.z),1.,8.);}`,
-    fragmentShader: `varying vec3 c;varying float a,kind;void main(){vec2 q=(gl_PointCoord-.5)*2.;if(kind>.5&&kind<1.5)q*=vec2(2.,.7);if(kind>1.5&&kind<2.5)q*=vec2(.65,2.5);float r=length(q);float alpha=(1.-smoothstep(.05,1.,r))*a*.7;if(kind>4.5)alpha*=smoothstep(.18,.5,r);if(alpha<.002)discard;gl_FragColor=vec4(c,alpha);
+    vertexShader: `attribute float age,style;varying vec3 c;varying float a,kind;uniform float energy;void main(){kind=style;c=color;a=(1.-age)*smoothstep(0.,.04,age);vec4 p=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*p;gl_PointSize=clamp((12.+energy*10.)/max(1.,-p.z),1.,5.);}`,
+    fragmentShader: `varying vec3 c;varying float a,kind;void main(){vec2 q=(gl_PointCoord-.5)*2.;if(kind>.5&&kind<1.5)q*=vec2(2.,.7);if(kind>1.5&&kind<2.5)q*=vec2(.65,2.5);float r=length(q);float grain=fract(sin(dot(gl_PointCoord+kind,vec2(127.1,311.7)))*43758.5453);float edge=r+(grain-.5)*.16;float alpha=(1.-smoothstep(.05,1.,edge))*a*(.3+grain*.25);if(alpha<.002)discard;gl_FragColor=vec4(c,alpha);
  #include <colorspace_fragment>
  }`,
   });

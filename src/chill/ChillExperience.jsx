@@ -29,7 +29,8 @@ export default function ChillExperience() {
     [photo, setPhoto] = useState(null),
     [photoBusy, setPhotoBusy] = useState(false);
   useEffect(() => {
-    document.title = "L’Oizo chill — cinq minutes au fil de l’océan";
+    document.title =
+      "L’Oizo de l’Haïkuarelle Virtuelle — cinq minutes d’aquarelle et d’encre";
     try {
       engine.current = createSoundNest(stage.current, {
         onError: setError,
@@ -128,23 +129,23 @@ export default function ChillExperience() {
     <main className="immersive chill-experience">
       <div id="stage" ref={stage} />
       <header className="brand">
-        <h1>L’Oizo chill</h1>
-        <p>Cinq minutes au fil de l’océan</p>
+        <h1>L’Oizo de l’Haïkuarelle Virtuelle</h1>
+        <p>Cinq minutes d’aquarelle et d’encre</p>
       </header>
       {!started && (
         <section className="chill-welcome">
           <span>Un ciel. Un oiseau. Un peu d’espace.</span>
-          <h2>Laisser le jour se déposer</h2>
+          <h2>Laisser les couleurs respirer</h2>
           <p>
             Guidez l’oizo du bout du doigt. Ses traces deviennent un paysage.
-            Sans toucher, il rejoint les bulles de sagesse.
+            Sans toucher, il rejoint les bulles de haïkus.
           </p>
           <p>
-            Un coucher de soleil de cinq minutes, à votre rythme. Vous pouvez
-            faire une pause à tout moment.
+            Un voyage d’aquarelle et d’encre de cinq minutes, à votre rythme.
+            Vous pouvez faire une pause à tout moment.
           </p>
           <button disabled={busy} onClick={start}>
-            {busy ? "L’océan s’éveille…" : "Prendre cinq minutes"}
+            {busy ? "Le papier s’éveille…" : "Prendre cinq minutes"}
           </button>
           <small>
             Une expérience artistique pour faire une pause et explorer son
@@ -200,31 +201,28 @@ export default function ChillExperience() {
               ))}
             </div>
           </section>
-          <output className="bubble-score">
-            Instants de sagesse · {score}/24
-          </output>
+          <output className="bubble-score">Haïkus révélés · {score}/24</output>
           {text && (
             <div key={text.id} className="poetic-fragment" role="status">
               <p>{text.text}</p>
-              <small>{text.source}</small>
             </div>
           )}
           {seconds >= 300 && (
             <p className="chill-departure" role="status">
-              Le jour s’achève. L’oizo poursuit son chemin.
+              Le geste s’apaise. L’oizo poursuit son chemin.
             </p>
           )}
         </>
       )}
       {ended && (
         <section className="chill-ending">
-          <h2>Le jour se repose</h2>
+          <h2>Votre paysage se dépose</h2>
           <p>Votre passage a laissé ce paysage.</p>
           <button onClick={souvenir} disabled={photoBusy}>
             {photoBusy ? "Préparation…" : "Préparer ma photo souvenir"}
           </button>
           {photo && (
-            <a href={photo} download="L-Oizo-chill-souvenir.png">
+            <a href={photo} download="Haikuarelle-Virtuelle-souvenir.png">
               Télécharger la photo PNG HD
             </a>
           )}

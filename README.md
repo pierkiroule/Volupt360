@@ -1,10 +1,10 @@
-# L’Oizo chill
+# L’Oizo de l’Haïkuarelle Virtuelle
 
-Une seule expérience de cinq minutes : un oiseau, six brosses picturales et des sillages de particules audioreactifs, au-dessus d’un océan au coucher du soleil.
+Une seule expérience de cinq minutes : un oiseau, six brosses d’aquarelle et d’encre fine, des grains de pigment audioreactifs et une atmosphère de papier aquarellé sans horizon figuratif.
 
-Touchez pour tracer et glissez pour guider l’oizo. Sans contact, il rejoint les bulles de sagesse. Deux vues : FPV et gyro. Une pause suspend le voyage. Après cinq minutes, le soleil a disparu ; une courte sortie de huit secondes laisse l’oizo s’éloigner avant la vue d’ensemble et la proposition d’une photo PNG HD.
+Touchez pour tracer et glissez pour guider l’oizo. Sans contact, il rejoint les bulles de haïkus. Deux vues : FPV et gyro. Une pause suspend le voyage. Après cinq minutes, les lavis se sont doucement transformés ; une courte sortie de huit secondes laisse l’oizo s’éloigner avant la vue d’ensemble et la proposition d’une photo PNG HD.
 
-La musique utilise le MP3 local de `public/ambiances`. Pas de synthèse musicale ni de voix. Les 24 bulles révèlent des proverbes et des citations du domaine public, avec leur source. L’expérience est artistique : son effet auprès de patients n’a pas été évalué cliniquement.
+La musique utilise le MP3 local de `public/ambiances`. Pas de synthèse musicale ni de voix. Les 24 bulles révèlent des haïkus originaux en trois vers. L’expérience est artistique : son effet auprès de patients n’a pas été évalué cliniquement.
 
 Voir [architecture, validation et limites](docs/oizo-chill.md). L’entrée ÉchoMood historique reste réversible à `/?legacy=1` ; le paysage précédent à `/?classic=1`. Les outils de capture et l’éditeur ne sont pas proposés pendant le voyage chill.
 
