@@ -115,7 +115,7 @@ export default function PoeticLearningExperience() {
           .loadMoodAmbience(import.meta.env.BASE_URL + track)
           .then(async (loaded) => {
             if (!loaded || ticket !== generation.current) return;
-            bank.setExperienceMix({ night: 0.3, aurora: 0.5, dawn: 0.2 });
+            bank.setExperienceMix();
             if (!journey.current?.state.paused) await bank.toggleAmbience();
           })
           .catch(() => {

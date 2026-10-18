@@ -540,7 +540,6 @@ export function createTwigBank({
     item.element.pause();
     item.source?.disconnect();
     item.gain?.disconnect();
-    item.tone?.disconnect();
     item.graph?.analyser.disconnect();
     item.element.removeAttribute("src");
     item.element.load();
@@ -613,10 +612,9 @@ export function createTwigBank({
         wave: new Uint8Array(analyser.fftSize),
         prev: new Float32Array(analyser.frequencyBinCount),
       };
-      candidate.tone = audio.createBiquadFilter();
-      candidate.tone.type = "allpass";
-      candidate.source.connect(candidate.tone);
-      candidate.tone.connect(analyser);
+      // Keep the original stereo spectrum intact. The analyser observes the
+      // signal without altering it; only the user gain and fades affect playback.
+      candidate.source.connect(analyser);
       analyser.connect(candidate.gain);
       candidate.gain.connect(master);
       if (ambience) {
@@ -891,24 +889,10 @@ export function createTwigBank({
       experienceClockState.ended = item.element.ended;
       return experienceClockState;
     },
-    setExperienceMix(state) {
-      if (!ambience?.tone || !ctx) return;
-      if (!ambience.experienceMix) {
-        ambience.experienceMix = true;
-        // Contemplations may extend listening beyond six active flight minutes.
-        ambience.element.loop = true;
-        ambience.tone.type = "lowpass";
-        ambience.tone.Q.value = 0.35;
-      }
-      const hz = Math.exp(
-        Math.log(1300) * state.night +
-          Math.log(3200) * state.aurora +
-          Math.log(7500) * state.dawn,
-      );
-      if (Math.abs(hz - (ambience.lastMixHz || 0)) > 8) {
-        ambience.lastMixHz = hz;
-        ambience.tone.frequency.setTargetAtTime(hz, ctx.currentTime, 2);
-      }
+    setExperienceMix() {
+      if (!ambience) return;
+      // Keep long explorations continuous without changing the MP3 timbre.
+      ambience.element.loop = true;
     },
     getVisualFeatures,
     getVocalFeatures() {

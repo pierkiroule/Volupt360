@@ -15,7 +15,7 @@ Les quinze minutes sont indicatives : une escale est ensuite proposée, sans cou
 - createChillSky conserve l’atmosphère aquarellée, étirée sur quinze minutes.
 - Les douze brosses utilisent les moteurs createBrushStroke existants, leurs textures et shaders. Aucun remplacement par des lignes génériques.
 - Le petit OIZO utilise le rig existant. Il accompagne le regard, sans pilotage tactile de dessin.
-- useTwigBank et Web Audio réutilisent Gravity et son analyse. Aucun son synthétique, sample ajouté ou API externe.
+- useTwigBank et Web Audio réutilisent Gravity et son analyse. Lecture stéréo sans filtre tonal : seul le volume et les fondus affectent le MP3. Aucun son synthétique, sample ajouté ou API externe.
 
 createPoeticLearning coordonne EXPLORE/BUBBLE, regard, progression et ressources. createGazeInteraction isole la fixation. createLearningIllustration utilise un champ de points/lignes et des lavis partagés, avec douze lois de mouvement sensibles au regard. Ces animations illustrent un principe ; elles ne reproduisent pas un protocole expérimental et ne mesurent pas le visiteur.
 
@@ -60,3 +60,5 @@ L’émulation Chromium et les capteurs simulés ne remplacent pas un essai Andr
 - PNG mobile réellement téléchargé et vérifié : côté long de 1920 pixels, y compris avec Gravity bloqué.
 - Les 12 brosses ont été rendues et leurs compteurs de textures/géométries GPU sont revenus à zéro après destruction.
 - Build Vite, formatage des fichiers modifiés et contrôle des différences réussis.
+
+Le correctif de fidélité MP3 supprime le filtre passe-bas de la chaîne commune : source média → analyseur transparent → gain → sortie. Onze tests ciblés ont été exécutés avec succès, dont deux vérifications du graphe audio et les neuf tests du parcours ; build Vite réussi.
