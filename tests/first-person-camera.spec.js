@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("FPV eye follows the flight position and heading with no pursuit offset", async ({
+test("FPV follows the bird at a stable distance and keeps its heading", async ({
   page,
 }) => {
   await page.goto("/");
@@ -30,6 +30,7 @@ test("FPV eye follows the flight position and heading with no pursuit offset", a
     const forward = state.direction
       .clone()
       .transformDirection(landscape.matrixWorld);
+    expected.addScaledVector(forward, -5.5);
     const error = camera.position.distanceTo(expected),
       alignment = camera.getWorldDirection(new THREE.Vector3()).dot(forward);
     rig.dispose();
@@ -39,7 +40,7 @@ test("FPV eye follows the flight position and heading with no pursuit offset", a
   expect(r.alignment).toBeGreaterThan(0.9999);
 });
 
-test("mobile starts in avatar-free FPV, touch steers and long hold paints", async ({
+test("mobile starts in bird-follow FPV, touch steers and long hold paints", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -49,9 +50,12 @@ test("mobile starts in avatar-free FPV, touch steers and long hold paints", asyn
   await page.getByRole("button", { name: "🌊", exact: true }).click();
   await page.getByRole("button", { name: "Faire éclore mon OIZO" }).click();
   const canvas = page.locator("#stage canvas");
-  await expect(canvas).toHaveAttribute("data-drone-intent", "first-person");
-  await expect(canvas).toHaveAttribute("data-oizo-visible", "false");
-  await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "0");
+  await expect(canvas).toHaveAttribute(
+    "data-drone-intent",
+    "point-guided-follow",
+  );
+  await expect(canvas).toHaveAttribute("data-oizo-visible", "true");
+  await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "5.5");
   await page.mouse.move(150, 350);
   await page.mouse.down();
   await page.mouse.move(225, 310, { steps: 8 });

@@ -13,3 +13,7 @@ Les sources historiques du rig de l’oiseau restent disponibles pour réversibi
 Le mode actif utilise désormais `createPointFlight` plutôt que le champ orbital : un point projeté devant la caméra représente le cap visé. Le repère est capturé au début du glissement, afin qu’un doigt immobile ne produise pas de rotation infinie. Le déplacement tactile change la cible dans ce repère fixe ; la direction converge progressivement vers elle. Relâcher conserve immédiatement le cap atteint, sans retour autonome vers les traces. Lever puis reposer le doigt permet de poursuivre un virage. La vitesse est constante et douce (2,6 unités/seconde), sans modulation musicale du pilotage. Les brosses conservent leur audioreactivité.
 
 Validation : 3 tests ciblés réussis et build Vite réussi. Le test du point vérifie la convergence malgré un repère caméra changeant, la conservation du cap après relâchement et la vitesse. Essais sur téléphone physique encore nécessaires.
+
+## Retour de l’oizo
+
+L’oizo et son rig d’ailes sont de nouveau actifs. La caméra suit son cap à une distance fixe de 5,5 unités, sans décalage latéral. Le pilotage par point de visée et la conservation du cap au relâchement sont conservés ; le retour automatique orbital reste désactivé. Les brosses déposent de nouveau depuis sa queue. La sculpture directe masque l’oizo comme auparavant.
