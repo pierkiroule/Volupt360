@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { createDroneChoreography } from "./createDroneChoreography.js";
 
 /** Three viewpoints share an extended sculpture and a moving painter.
  * Pointer input rotates only the landscape. Every rotation reanchors the FPV
@@ -18,14 +17,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   let pinchDistance = 0;
   const panoramaPosition = new THREE.Vector3();
   const painter = new THREE.Vector3(),
-    direction = new THREE.Vector3(),
-    velocity = new THREE.Vector3();
+    direction = new THREE.Vector3();
   const center = new THREE.Vector3(),
-    lateral = new THREE.Vector3(),
     behind = new THREE.Vector3();
-  const aim = new THREE.Vector3(),
-    follow = new THREE.Vector3(),
-    overview = new THREE.Vector3();
+  const aim = new THREE.Vector3();
   const worldPivot = new THREE.Vector3(),
     localPivot = new THREE.Vector3();
   let gyroReference = null,
@@ -39,15 +34,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     -Math.PI / 2,
   );
   const desired = new THREE.Vector3(),
-    target = new THREE.Vector3(),
-    focus = new THREE.Vector3();
+    target = new THREE.Vector3();
   const matrix = new THREE.Matrix4(),
     desiredQuaternion = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
-  const horizonUp = new THREE.Vector3();
-  const choreography = createDroneChoreography();
-  let cameraBank = 0,
-    droneFov = 86;
   const listeners = [];
   const listen = (node, name, fn) => {
     node.addEventListener(name, fn);
@@ -182,7 +172,6 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   async function setMode(next) {
     const request = ++sensorRequest;
     mode = next;
-    choreography.resetHeading();
     if (next === "photo" || next === "global") setPhotoZoom(1);
     photoPointers.clear();
     dragging = null;
@@ -246,7 +235,6 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     landscape.updateMatrixWorld(true);
     painter.copy(state.position).applyMatrix4(landscape.matrixWorld);
     direction.copy(state.direction).transformDirection(landscape.matrixWorld);
-    velocity.copy(state.velocity).applyQuaternion(landscape.quaternion);
     center.copy(state.bounds.center).applyMatrix4(landscape.matrixWorld);
     if (mode === "sculpt") {
       camera.position.set(0, 4, 30);
@@ -288,52 +276,26 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
             .multiplyScalar(18),
         );
     } else {
-      canvas.dataset.droneIntent = "flight-dialogue";
-      const shot = choreography.update(direction, velocity, dt);
-      droneFov = shot.fov;
-      lateral.crossVectors(direction, up);
-      if (lateral.lengthSq() < 0.02) lateral.set(1, 0, 0);
-      lateral.normalize();
-      // Gentle pursuit opens in curves and rises with the bird.
-      follow
-        .copy(painter)
-        .addScaledVector(direction, -shot.distance)
-        .addScaledVector(lateral, shot.side)
-        .addScaledVector(up, shot.height);
-      const halfFov = Math.atan(
-        Math.tan(THREE.MathUtils.degToRad(39)) * Math.min(1, camera.aspect),
-      );
-      overview
-        .copy(center)
-        .addScaledVector(
-          behind.copy(direction).negate().addScaledVector(up, 0.45).normalize(),
-          Math.max(15, (state.bounds.radius * 1.2) / Math.sin(halfFov)),
-        );
-      desired.copy(follow).lerp(overview, distanceSetting);
-      focus
-        .copy(painter)
-        .addScaledVector(direction, shot.lookAhead)
-        .addScaledVector(lateral, shot.frameSide * Math.min(1, camera.aspect))
-        .addScaledVector(up, shot.frameUp);
-      target.copy(focus).lerp(center, distanceSetting);
-      cameraBank = shot.bank;
-      canvas.dataset.fpvFollowDistance = shot.distance.toFixed(3);
+      canvas.dataset.droneIntent = "first-person";
+      // The flight position is the eye, never a pursuit target behind an avatar.
+      camera.position.copy(painter);
+      target.copy(painter).add(direction);
+      matrix.lookAt(camera.position, target, up);
+      desiredQuaternion.setFromRotationMatrix(matrix);
+      camera.quaternion.copy(desiredQuaternion);
+      camera.fov = 88;
+      camera.far = Math.max(400, state.bounds.radius * 3);
+      camera.updateProjectionMatrix();
+      canvas.dataset.fpvFollowDistance = "0";
+      return;
     }
-    const positionBlend = mix(mode === "drone" ? 4.2 : 2.8);
-    camera.position.lerp(desired, positionBlend);
-    if (mode === "drone") aim.copy(target);
-    else aim.lerp(target, mix(3.5));
-    horizonUp.copy(up);
-    if (mode === "drone")
-      horizonUp
-        .addScaledVector(lateral, cameraBank * (1 - distanceSetting))
-        .normalize();
-    matrix.lookAt(camera.position, aim, horizonUp);
+    camera.position.lerp(desired, mix(2.8));
+    aim.lerp(target, mix(3.5));
+    matrix.lookAt(camera.position, aim, up);
     desiredQuaternion.setFromRotationMatrix(matrix);
-    if (mode === "gyro") desiredQuaternion.multiply(gyroRelative);
-    if (mode === "drone") camera.quaternion.copy(desiredQuaternion);
-    else camera.quaternion.slerp(desiredQuaternion, mix(5));
-    const fov = mode === "gyro" ? 92 + distanceSetting * 20 : droneFov;
+    desiredQuaternion.multiply(gyroRelative);
+    camera.quaternion.slerp(desiredQuaternion, mix(5));
+    const fov = 92 + distanceSetting * 20;
     camera.fov += (fov - camera.fov) * mix(1.4);
     camera.far = Math.max(
       400,
