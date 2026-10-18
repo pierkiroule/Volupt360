@@ -207,6 +207,8 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uv1: [0, 0],
       aTrailCenter: [0, 0, 0],
       aBirth: [-10000],
+      aPigmentSeed: [-1],
+      aStrokeExtent: [-1],
     },
     vertexShader,
     fragmentShader,

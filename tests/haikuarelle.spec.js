@@ -37,7 +37,7 @@ test("haiku encounter keeps three lines in the five-second central reveal", asyn
     });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Prendre cinq minutes" }).click();
+  await page.getByRole("button", { name: "Prendre son envol" }).click();
   const poem = page.locator(".poetic-fragment");
   await expect(poem).toBeVisible();
   expect((await poem.locator("p").innerText()).split("\n")).toHaveLength(3);

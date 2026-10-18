@@ -13,6 +13,7 @@ export default function ChillExperience() {
   const stage = useRef(null),
     engine = useRef(null),
     timer = useRef(null),
+    finalTimer = useRef(null),
     busyText = useRef(false),
     photoUrl = useRef(null),
     generation = useRef(0);
@@ -20,12 +21,15 @@ export default function ChillExperience() {
   const [started, setStarted] = useState(false),
     [busy, setBusy] = useState(false),
     [ended, setEnded] = useState(false),
+    [finalReady, setFinalReady] = useState(false),
     [paused, setPaused] = useState(false),
     [view, setView] = useState("drone"),
+    [viewHint, setViewHint] = useState(""),
     [brush, setBrush] = useState(CHILL_BRUSHES[0].id),
-    [seconds, setSeconds] = useState(0),
+    [departing, setDeparting] = useState(false),
+    [phase, setPhase] = useState("night"),
+    [light, setLight] = useState(0),
     [text, setText] = useState(null),
-    [score, setScore] = useState(0),
     [error, setError] = useState(""),
     [photo, setPhoto] = useState(null),
     [photoBusy, setPhotoBusy] = useState(false);
@@ -35,12 +39,17 @@ export default function ChillExperience() {
       `url("${createWatercolorAlpha("wash", 731, 256).toDataURL()}")`,
     );
     document.title =
-      "L’Oizo de l’Haïkuarelle Virtuelle — cinq minutes d’aquarelle et d’encre";
+      "L’Oizo de l’Haïkuarelle Virtuelle — Six minutes pour peindre le ciel";
     try {
       engine.current = createSoundNest(stage.current, {
         onError: setError,
-        onBubbleScore: setScore,
-        onSessionProgress: setSeconds,
+        onHint: setViewHint,
+        onSessionProgress: (_, state) => {
+          setDeparting(state.departing);
+          setPhase(state.phase);
+          setLight(state.dawn);
+        },
+        onSessionInterrupted: () => setPaused(true),
         onPoeticFragment: (fragment) => {
           if (busyText.current || document.hidden) return false;
           busyText.current = true;
@@ -57,6 +66,7 @@ export default function ChillExperience() {
           twigs.bank.current?.pauseAmbience();
           twigs.bank.current?.stopAll();
           setEnded(true);
+          finalTimer.current = setTimeout(() => setFinalReady(true), 3500);
           engine.current?.setCameraMode("global");
         },
       });
@@ -66,6 +76,7 @@ export default function ChillExperience() {
     return () => {
       generation.current++;
       clearTimeout(timer.current);
+      clearTimeout(finalTimer.current);
       engine.current?.dispose();
       engine.current = null;
       if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
@@ -84,9 +95,12 @@ export default function ChillExperience() {
       engine.current.setPoeticFragments(CHILL_FRAGMENTS);
       engine.current.setPadSource(bank);
       engine.current.setCameraMode("drone");
-      if (musicCatalog[0]) {
+      const journeyMusic =
+        musicCatalog.find((track) => /(?:^|\/)gravity\.mp3$/i.test(track)) ??
+        musicCatalog[0];
+      if (journeyMusic) {
         const loaded = await bank.loadMoodAmbience(
-          `${import.meta.env.BASE_URL}${musicCatalog[0]}`,
+          `${import.meta.env.BASE_URL}${journeyMusic}`,
         );
         if (ticket !== generation.current) return;
         if (loaded) await bank.toggleAmbience();
@@ -101,18 +115,48 @@ export default function ChillExperience() {
     }
   }
   async function pause() {
-    const next = !paused;
-    setPaused(next);
-    engine.current.pauseChillSession(next);
-    if (next) twigs.bank.current.pauseAmbience();
-    else {
-      await twigs.bank.current.preparePlayback();
-      if (
-        twigs.bank.current.getSnapshot().ambience.loaded &&
-        !twigs.bank.current.getSnapshot().ambience.playing
-      )
-        await twigs.bank.current.toggleAmbience();
+    if (!paused) {
+      engine.current.pauseChillSession(true);
+      twigs.bank.current.pauseAmbience();
+      setPaused(true);
+      return;
     }
+    try {
+      await twigs.bank.current.preparePlayback();
+      const state = twigs.bank.current.getSnapshot().ambience;
+      if (state.loaded && !state.playing)
+        await twigs.bank.current.toggleAmbience();
+      engine.current.pauseChillSession(false);
+      setPaused(false);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  function exit() {
+    generation.current++;
+    clearTimeout(finalTimer.current);
+    clearTimeout(timer.current);
+    busyText.current = false;
+    setText(null);
+    twigs.bank.current?.cancelAmbienceLoad();
+    twigs.bank.current?.pauseAmbience();
+    twigs.bank.current?.stopAll();
+    engine.current?.pauseChillSession(true);
+    engine.current?.setPadSource(null);
+    engine.current?.reset();
+    setStarted(false);
+    setEnded(false);
+    setFinalReady(false);
+    setPaused(false);
+    setDeparting(false);
+    setPhase("night");
+    setLight(0);
+    setBusy(false);
+    if (photoUrl.current) {
+      URL.revokeObjectURL(photoUrl.current);
+      photoUrl.current = null;
+    }
+    setPhoto(null);
   }
   async function souvenir() {
     if (photoBusy) return;
@@ -131,32 +175,33 @@ export default function ChillExperience() {
     }
   }
   return (
-    <main className="immersive chill-experience">
+    <main
+      className={`immersive chill-experience ${started ? "is-running" : ""} phase-${phase}`}
+      style={{
+        "--journey-ink": `rgb(${Math.round(228 - light * 175)}, ${Math.round(236 - light * 160)}, ${Math.round(230 - light * 148)})`,
+      }}
+    >
       <div id="stage" ref={stage} />
       <header className="brand">
-        <h1>L’Oizo de l’Haïkuarelle Virtuelle</h1>
-        <p>Cinq minutes d’aquarelle et d’encre</p>
+        <h1>OIZO •°</h1>
+        <p>L’Oizo de l’Haïkuarelle Virtuelle</p>
       </header>
       {!started && (
         <section className="chill-welcome">
           <span className="chill-eyebrow">
             Un carnet ouvert sur l’invisible
           </span>
-          <h2>
-            Laisser les couleurs
-            <br />
-            respirer
-          </h2>
+          <h2>L’Oizo de l’Haïkuarelle Virtuelle</h2>
           <p>
-            Guidez l’oizo du bout du doigt. Ses traces deviennent un paysage.
-            Sans toucher, il rejoint les bulles de haïkus.
+            Touchez pour peindre, glissez pour guider l’oizo. Sans toucher, il
+            rejoint doucement une bulle de haïku.
           </p>
           <p>
-            Un voyage d’aquarelle et d’encre de cinq minutes, à votre rythme.
-            Vous pouvez faire une pause à tout moment.
+            Six minutes pour peindre le ciel. Vous pouvez faire une pause à tout
+            moment.
           </p>
           <button disabled={busy} onClick={start}>
-            {busy ? "Le papier s’éveille…" : "Prendre cinq minutes"}
+            {busy ? "Le papier s’éveille…" : "Prendre son envol"}
           </button>
           <small>
             Une expérience artistique pour faire une pause et explorer son
@@ -166,10 +211,6 @@ export default function ChillExperience() {
       )}
       {started && !ended && (
         <>
-          <output className="chill-time" aria-label="Temps restant">
-            {Math.floor(Math.max(0, 300 - seconds) / 60)}:
-            {String(Math.max(0, 300 - seconds) % 60).padStart(2, "0")}
-          </output>
           <nav className="camera-views is-compact" aria-label="Vues caméra">
             {[
               ["drone", "FPV", "FPV"],
@@ -179,7 +220,7 @@ export default function ChillExperience() {
                 key={id}
                 aria-label={label}
                 aria-pressed={view === id}
-                disabled={seconds >= 300}
+                disabled={departing}
                 onClick={() => {
                   engine.current.setCameraMode(id);
                   setView(id);
@@ -192,6 +233,37 @@ export default function ChillExperience() {
           <button className="chill-pause" onClick={pause}>
             {paused ? "Reprendre" : "Faire une pause"}
           </button>
+          <button className="chill-exit" onClick={exit}>
+            Sortir
+          </button>
+          <label className="journey-audio">
+            Son
+            <input
+              aria-label="Volume musical"
+              type="range"
+              min="0"
+              max="1"
+              step=".01"
+              value={twigs.snapshot.ambience?.volume ?? 0.45}
+              onChange={(e) =>
+                twigs.bank.current?.setAmbienceVolume(e.target.value)
+              }
+            />
+          </label>
+          {view === "gyro" && (
+            <p className="gyro-guidance" role="status">
+              {viewHint}
+            </p>
+          )}
+          {view === "gyro" && (
+            <button
+              className="gyro-recenter"
+              aria-label="Recentrer la vue 360°"
+              onClick={() => engine.current.setCameraMode("gyro")}
+            >
+              ↺
+            </button>
+          )}
           <section className="landscape-palette" aria-label="Six brosses chill">
             <div role="group" aria-label="Choisir une brosse">
               {CHILL_BRUSHES.map((b) => (
@@ -200,7 +272,7 @@ export default function ChillExperience() {
                   aria-label={b.name}
                   title={b.name}
                   aria-pressed={brush === b.id}
-                  disabled={seconds >= 300 || paused}
+                  disabled={departing || paused}
                   style={{ "--brush-color": b.color }}
                   onClick={() => {
                     setBrush(b.id);
@@ -212,13 +284,12 @@ export default function ChillExperience() {
               ))}
             </div>
           </section>
-          <output className="bubble-score">Haïkus révélés · {score}/24</output>
           {text && (
             <div key={text.id} className="poetic-fragment" role="status">
               <p>{text.text}</p>
             </div>
           )}
-          {seconds >= 300 && (
+          {departing && (
             <p className="chill-departure" role="status">
               Le geste s’apaise. L’oizo poursuit son chemin.
             </p>
@@ -229,8 +300,12 @@ export default function ChillExperience() {
         <section className="chill-ending">
           <h2>Votre paysage se dépose</h2>
           <p>Votre passage a laissé ce paysage.</p>
-          <button onClick={souvenir} disabled={photoBusy}>
-            {photoBusy ? "Préparation…" : "Préparer ma photo souvenir"}
+          <button onClick={souvenir} disabled={photoBusy || !finalReady}>
+            {!finalReady
+              ? "Le paysage s’ouvre…"
+              : photoBusy
+                ? "Préparation…"
+                : "Préparer ma photo souvenir"}
           </button>
           {photo && (
             <a href={photo} download="Haikuarelle-Virtuelle-souvenir.png">

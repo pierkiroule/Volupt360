@@ -6,12 +6,14 @@ export function createVocalBubbles({
   collide,
   onScore = () => {},
   watercolor = false,
+  staged = false,
 }) {
   const group = new THREE.Group();
   const geometry = new THREE.SphereGeometry(2.1, 24, 16);
   const previous = new THREE.Vector3(),
     relative = new THREE.Vector3(),
     delta = new THREE.Vector3();
+  let elapsed = 0;
   let time = 0,
     initialized = false,
     collisions = 0,
@@ -30,10 +32,11 @@ export function createVocalBubbles({
           },
           resonance: { value: 0 },
           burst: { value: 0 },
+          presence: { value: staged ? 0 : 1 },
           watercolor: { value: watercolor ? 1 : 0 },
         },
         vertexShader: `varying vec3 n,v;void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}`,
-        fragmentShader: `varying vec3 n,v;uniform vec3 color;uniform float resonance,burst,watercolor;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.2);float sheen=pow(max(0.,dot(normalize(n),normalize(vec3(-.4,.65,1.)))),18.);vec3 tint=mix(color,vec3(1.),sheen*.6*(1.-watercolor));float tear=sin(n.x*19.+n.y*13.)*sin(n.z*17.-n.y*11.);if(burst>0. && tear<burst*2.-1.)discard;float wash=.55+.45*sin(n.x*21.+sin(n.y*17.)+n.z*13.);float alpha=mix(.055+rim*.28+sheen*.14+resonance*.13,.025+rim*(.12+wash*.1)+wash*.045,watercolor);gl_FragColor=vec4(tint,alpha*(1.-burst));
+        fragmentShader: `varying vec3 n,v;uniform vec3 color;uniform float resonance,burst,watercolor,presence;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.2);float sheen=pow(max(0.,dot(normalize(n),normalize(vec3(-.4,.65,1.)))),18.);vec3 tint=mix(color,vec3(1.),sheen*.6*(1.-watercolor));float tear=sin(n.x*19.+n.y*13.)*sin(n.z*17.-n.y*11.);if(burst>0. && tear<burst*2.-1.)discard;float wash=.55+.45*sin(n.x*21.+sin(n.y*17.)+n.z*13.);float alpha=mix(.055+rim*.28+sheen*.14+resonance*.13,.025+rim*(.12+wash*.1)+wash*.045,watercolor);gl_FragColor=vec4(tint,alpha*(1.-burst)*presence);
         #include <colorspace_fragment>
         }`,
         transparent: true,
@@ -55,10 +58,20 @@ export function createVocalBubbles({
       resonance: 0,
       burstAge: -1,
       removed: false,
+      appearAt: staged
+        ? i < 4
+          ? i * 12
+          : i < 12
+            ? 60 + (i - 4) * 14
+            : 180 + (i - 12) * 14
+        : 0,
     };
   });
   return {
     group,
+    setElapsed(value) {
+      elapsed = value;
+    },
     get count() {
       return rings.length;
     },
@@ -70,7 +83,13 @@ export function createVocalBubbles({
       let nearest = null,
         distance = Infinity;
       for (const ring of rings) {
-        if (ring.removed || ring.burstAge >= 0 || ring.cooldown > 0) continue;
+        if (
+          ring.removed ||
+          ring.burstAge >= 0 ||
+          ring.cooldown > 0 ||
+          elapsed < ring.appearAt
+        )
+          continue;
         const d = ring.mesh.position.distanceToSquared(position);
         if (d < distance) {
           distance = d;
@@ -94,7 +113,16 @@ export function createVocalBubbles({
       for (let i = 0; i < rings.length; i++) {
         const ring = rings[i],
           mesh = ring.mesh;
-        if (ring.removed) continue;
+        mesh.visible = elapsed >= ring.appearAt;
+        if (!ring.removed)
+          mesh.material.uniforms.presence.value = staged
+            ? THREE.MathUtils.smoothstep(
+                elapsed,
+                ring.appearAt,
+                ring.appearAt + 4,
+              )
+            : 1;
+        if (ring.removed || !mesh.visible) continue;
         if (ring.burstAge >= 0) {
           ring.burstAge += dt;
           const progress = Math.min(1, ring.burstAge / 0.7);

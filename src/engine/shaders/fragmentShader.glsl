@@ -1,3 +1,4 @@
+varying float vPigmentSeed,vStrokeExtent;
 uniform float uAudioEnergy,uAudioLow,uAudioPulse,uMaterialMode,uMoisture;
 varying float vMaterialAge;
 uniform sampler2D uBrushMask;
@@ -11,7 +12,7 @@ float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h
 float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+vec2(13.1,7.7);a*=.49;}return v;}
 void main(){
 vec2 uv=vUv;
-uv+=vec2(sin(uTime*.075+uSeed+uv.y*3.),cos(uTime*.053+uSeed+uv.x*4.))*(.009+.012*uAudioEnergy);
+uv+=vec2(sin(uTime*.075+vPigmentSeed+uv.y*3.),cos(uTime*.053+vPigmentSeed+uv.x*4.))*(.009+.012*uAudioEnergy);
 float across=abs(uv.x*2.-1.);
 float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085)));
 float materialAge=uMaterialMode>.5?vMaterialAge:uAge;
@@ -19,11 +20,11 @@ float wet=exp(-materialAge*dryingRate);
 if(uMaterialMode>.5)wet=clamp(wet*.55+uMoisture*.65,0.,1.);
 float settled=1.-wet;
 if(uMaterialMode>.5){
- float migration=noise2(uv*vec2(9.,23.)+vec2(uSeed,uTime*.09));
- uv+=vec2(sin(uv.y*21.+uSeed+uTime*.27),cos(uv.x*15.+uSeed-uTime*.19))*(migration-.5)*wet*(.015+uAudioLow*.085+uAudioPulse*.035);
+ float migration=noise2(uv*vec2(9.,23.)+vec2(vPigmentSeed,uTime*.09));
+ uv+=vec2(sin(uv.y*21.+vPigmentSeed+uTime*.27),cos(uv.x*15.+vPigmentSeed-uTime*.19))*(migration-.5)*wet*(.015+uAudioLow*.085+uAudioPulse*.035);
 }
-uv+=vec2(sin(uv.y*13.+uSeed+uAge*.22),cos(uv.x*11.+uSeed+uAge*.17))*.018*wet;
-vec2 q=uv*vec2(3.7,2.9)+vec2(uSeed*1.71,uSeed*.37);
+uv+=vec2(sin(uv.y*13.+vPigmentSeed+uAge*.22),cos(uv.x*11.+vPigmentSeed+uAge*.17))*.018*wet;
+vec2 q=uv*vec2(3.7,2.9)+vec2(vPigmentSeed*1.71,vPigmentSeed*.37);
 float macro=fbm(q),middle=noise2(q*3.4+9.7),micro=noise2(q*18.3+2.3);
 float fibres=noise2(vec2(q.x*62.,q.y*4.))*.55+noise2(q*vec2(16.,130.))*.45;
 float vein=pow(1.-abs(sin(uv.x*(22.+uStyle*8.)+middle*5.+uv.y*(3.+uStyle))),14.);
@@ -88,10 +89,10 @@ if(uStyle>13.5 && uStyle<15.5){
 }
 if(abs(uStyle-16.)<.1){
   float rim=pow(1.-abs(dot(normalize(vNormal),normalize(vView))),2.);
-  vec3 spectrum=.5+.5*cos(6.283*(uv.y+uv.x*.3+uSeed*.11)+vec3(0.,2.1,4.2));
+  vec3 spectrum=.5+.5*cos(6.283*(uv.y+uv.x*.3+vPigmentSeed*.11)+vec3(0.,2.1,4.2));
   col=mix(base,spectrum,.85);alpha=(.045+rim*.95)*uOpacity;
 }else if(abs(uStyle-17.)<.1){
-  vec3 spectrum=.5+.5*cos(uv.x*4.+uv.y*7.+uSeed+vec3(0.,2.,4.));
+  vec3 spectrum=.5+.5*cos(uv.x*4.+uv.y*7.+vPigmentSeed+vec3(0.,2.,4.));
   col=mix(base,spectrum,.55);alpha*=.6+.4*sin(uv.x*35.+middle*3.)*sin(uv.x*35.+middle*3.);
 }else if(abs(uStyle-18.)<.1){
   col=mix(base*.24,base,.35+sediment*.3);alpha*=1.15;
@@ -102,7 +103,7 @@ if(abs(uStyle-16.)<.1){
   float bloomRing=exp(-pow((across-.55-middle*.12)/.1,2.));
   col=mix(base*.65,base,.35+.4*macro);alpha*=diffusion*(.65+bloomRing*.55);
 }else if(abs(uStyle-21.)<.1){
-  col=mix(base*.5,base,.4+.35*middle);alpha*=.72+.28*pow(abs(sin(uv.y*24.+uSeed)),2.);
+  col=mix(base*.5,base,.4+.35*middle);alpha*=.72+.28*pow(abs(sin(uv.y*24.+vPigmentSeed)),2.);
 }
 // Strengthen translucent pigment before fading; preserve bubble centers.
 if(abs(uStyle-16.)>.1)alpha=1.-pow(1.-pow(clamp(alpha,0.,1.),.8),1.65);
@@ -113,7 +114,7 @@ if(uSurprise>.5 && uSurprise<1.5){
   float halo=exp(-pow((length((vUv-.5)*vec2(1.2,2.))-.22)/.025,2.))*window;
   col=mix(col,vec3(.65,.38,.12),halo*.65);alpha=max(alpha,halo*.22*uFade*uOpacity);
 }else if(uSurprise>1.5 && uSurprise<2.5){
-  float stars=step(.985,hash21(floor(vUv*vec2(29.,53.))+uSeed))*window;
+  float stars=step(.985,hash21(floor(vUv*vec2(29.,53.))+vPigmentSeed))*window;
   col=mix(col,vec3(.8,.54,.2),stars*.85);alpha=max(alpha,stars*.45*uFade*uOpacity);
 }else if(uSurprise>2.5){
   float lace=pow(1.-abs(sin(vUv.x*32.+vUv.y*17.+middle*3.)),18.)*window;
@@ -129,7 +130,7 @@ if(uHasMask>.5){
   col*=.88+.12*imageAlpha;
 }
 if(uMaterialMode>.5){
- float localPhase=noise2(q*vec2(3.,9.)+vec2(uTime*.13+uSeed,-uTime*.08));
+ float localPhase=noise2(q*vec2(3.,9.)+vec2(uTime*.13+vPigmentSeed,-uTime*.08));
  float tideFlow=exp(-pow((edge-(.64+uAudioLow*.17+localPhase*.09))/.10,2.));
  float settling=clamp(sediment*(1.-wet)+granules*.5+tideFlow*(.3+uAudioPulse*.8),0.,1.);
  col=mix(col,base*.45,settling*.4);
@@ -141,9 +142,9 @@ if(uMaterialMode>.5){
  col=mix(col,base,.12*uAudioPulse);
  alpha*=.8+uAudioEnergy*.42+uAudioPulse*.22;
 }
-if(uStrokeExtent>0.){
-  float cap=min(.035,uStrokeExtent*.35);
-  float endDistance=min(vUv.y,uStrokeExtent-vUv.y)/max(.0001,cap);
+if(vStrokeExtent>0.){
+  float cap=min(.035,vStrokeExtent*.35);
+  float endDistance=min(vUv.y,vStrokeExtent-vUv.y)/max(.0001,cap);
   float roundness=1.-clamp(endDistance,0.,1.);
   alpha*=smoothstep(0.,.75,endDistance)*(1.-smoothstep(.75,1.08,across+roundness*.55));
 }

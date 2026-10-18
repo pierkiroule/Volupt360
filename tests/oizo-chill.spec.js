@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("five-minute active session finishes the washes, then completes its eight-second departure exactly once", async ({
+test("six-minute active session finishes the washes, then completes its eight-second departure exactly once", async ({
   page,
 }) => {
   await page.goto("/");
@@ -13,7 +13,7 @@ test("five-minute active session finishes the washes, then completes its eight-s
       onProgress: (x) => progress.push(x),
       onComplete: () => completions++,
     });
-    s.update(299);
+    s.update(359);
     const before = s.progress;
     s.update(1);
     const departing = s.departing,
@@ -34,9 +34,9 @@ test("five-minute active session finishes the washes, then completes its eight-s
   expect(r.departing).toBe(true);
   expect(r.night).toBe(1);
   expect(r.complete).toBe(true);
-  expect(r.elapsed).toBe(308);
+  expect(r.elapsed).toBe(368);
   expect(r.completions).toBe(1);
-  expect(r.last).toBe(300);
+  expect(r.last).toBe(368);
 });
 
 test("mobile chill starts one universe with six brushes, two views, immediate paint and a real pause", async ({
@@ -55,7 +55,7 @@ test("mobile chill starts one universe with six brushes, two views, immediate pa
       exact: true,
     }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Prendre cinq minutes" }).click();
+  await page.getByRole("button", { name: "Prendre son envol" }).click();
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-oizo-visible", "true");
   await expect
@@ -103,19 +103,22 @@ test("mobile chill starts one universe with six brushes, two views, immediate pa
 test("completed journey opens global artwork and offers a downloadable PNG souvenir", async ({
   page,
 }) => {
-  // Accelerate only the session clock module; production retains 300 + 8 seconds.
-  await page.route("**/src/chill/createChillSession.js", async (route) => {
+  // Accelerate only the session clock module; production retains 360 + 8 seconds.
+  await page.route("**/src/chill/experienceTimeline.js", async (route) => {
     const response = await route.fetch();
     const source = await response.text();
     await route.fulfill({
       response,
-      body: source.replaceAll("308", "4").replaceAll("300", "3"),
+      body: source
+        .replace("EXPERIENCE_SECONDS = 360", "EXPERIENCE_SECONDS = 3")
+        .replace("FINALE_SECONDS = 8", "FINALE_SECONDS = 1"),
     });
   });
+  await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Prendre cinq minutes" }).click();
+  await page.getByRole("button", { name: "Prendre son envol" }).click();
   await page.mouse.move(400, 350);
   await page.mouse.down();
   await page.waitForTimeout(300);
@@ -134,6 +137,21 @@ test("completed journey opens global artwork and offers a downloadable PNG souve
   await expect(
     page.getByRole("link", { name: "Télécharger la photo PNG HD" }),
   ).toHaveAttribute("href", /^blob:/);
+  const image = await page
+    .getByRole("link", { name: "Télécharger la photo PNG HD" })
+    .evaluate(async (link) => {
+      const blob = await (await fetch(link.href)).blob();
+      const bitmap = await createImageBitmap(blob);
+      const result = {
+        width: bitmap.width,
+        height: bitmap.height,
+        type: blob.type,
+      };
+      bitmap.close();
+      return result;
+    });
+  expect(image.type).toBe("image/png");
+  expect(Math.max(image.width, image.height)).toBe(1920);
   expect(errors).toEqual([]);
 });
 

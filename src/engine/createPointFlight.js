@@ -27,7 +27,9 @@ export function createPointFlight({ seed = 37 } = {}) {
     time = 0,
     holding = false,
     idleTime = 0,
-    orbitRadius = 18;
+    orbitRadius = 18,
+    speed = 2.6,
+    inputStrength = 0;
   const pose = {
     position,
     direction,
@@ -52,12 +54,14 @@ export function createPointFlight({ seed = 37 } = {}) {
     },
     beginPilot() {
       holding = true;
+      inputStrength = 0;
       idleTime = 0;
       target.copy(direction);
       captured = false;
     },
     setPilot(x, y, frame) {
       holding = true;
+      inputStrength = Math.min(1, Math.hypot(x, y));
       if (!captured) {
         right.copy(frame.right).normalize();
         up.copy(frame.up).normalize();
@@ -119,9 +123,26 @@ export function createPointFlight({ seed = 37 } = {}) {
       pose.autonomous = autonomous;
       a.setFromUnitVectors(z, direction);
       b.setFromUnitVectors(z, target);
-      a.slerp(b, 1 - Math.exp(-dt * (holding ? 9 : 1.8)));
+      a.rotateTowards(
+        b,
+        Math.min(
+          dt * (holding ? 1 : 0.55),
+          a.angleTo(b) * (1 - Math.exp(-dt * (holding ? 8 : 2.2))),
+        ),
+      );
       direction.set(0, 0, 1).applyQuaternion(a).normalize();
-      velocity.copy(direction).multiplyScalar(2.6);
+      speed +=
+        ((holding
+          ? 2.1 + inputStrength * 1.5
+          : hasBubbleTarget
+            ? Math.max(
+                0.6,
+                Math.min(2.45, 0.5 + position.distanceTo(bubbleTarget) * 0.13),
+              )
+            : 2.45) -
+          speed) *
+        (1 - Math.exp(-dt * 2));
+      velocity.copy(direction).multiplyScalar(speed);
       position.addScaledVector(velocity, dt);
       side.crossVectors(direction, worldUp).normalize();
       flightUp.crossVectors(side, direction).normalize();
@@ -144,6 +165,8 @@ export function createPointFlight({ seed = 37 } = {}) {
       orbitCenter.set(0, 0, 0);
       orbitGoal.set(0, 0, 0);
       orbitRadius = 18;
+      speed = 2.6;
+      inputStrength = 0;
     },
   };
 }

@@ -48,7 +48,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   function reanchor(reset = false) {
     if (reset) {
       landscape.updateMatrixWorld(true);
-      panoramaPosition.set(0, 0, 0).applyMatrix4(landscape.matrixWorld);
+      panoramaPosition
+        .copy(getFlight().bounds.center)
+        .applyMatrix4(landscape.matrixWorld);
     }
     revision++;
     canvas.dataset.flightRevision = String(revision);
@@ -101,6 +103,17 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (!dragging || event.pointerId !== dragging.id) return;
     const dx = event.clientX - dragging.x;
     const dy = event.clientY - dragging.y;
+    if (mode === "gyro") {
+      panoramaYaw -= dx * 0.0035;
+      panoramaPitch = THREE.MathUtils.clamp(
+        panoramaPitch + dy * 0.0035,
+        -1.2,
+        1.2,
+      );
+      dragging.x = event.clientX;
+      dragging.y = event.clientY;
+      return;
+    }
     if (dx !== 0 || ((mode === "photo" || mode === "global") && dy !== 0)) {
       landscape.rotation.y += dx * 0.006;
       if (mode === "photo" || mode === "global")
@@ -195,7 +208,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     }
     const state = getFlight();
     landscape.updateMatrixWorld(true);
-    panoramaPosition.set(0, 0, 0).applyMatrix4(landscape.matrixWorld);
+    panoramaPosition
+      .copy(state.bounds.center)
+      .applyMatrix4(landscape.matrixWorld);
     focus
       .copy(
         Number(canvas.dataset.markCount) > 0
@@ -257,9 +272,18 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           behind.set(0, 0.25, 1).normalize(),
           ((radius * 1.2) / Math.sin(halfFov)) * photoZoom,
         );
-      camera.position.copy(desired);
-      camera.lookAt(center);
-      camera.fov = 74;
+      if (state.chill && mode === "global")
+        camera.position.lerp(desired, mix(0.8));
+      else camera.position.copy(desired);
+      if (state.chill && mode === "global") {
+        matrix.lookAt(camera.position, center, up);
+        desiredQuaternion.setFromRotationMatrix(matrix);
+        camera.quaternion.slerp(desiredQuaternion, mix(0.8));
+        camera.fov += (74 - camera.fov) * mix(0.8);
+      } else {
+        camera.lookAt(center);
+        camera.fov = 74;
+      }
       camera.far = Math.max(400, camera.position.distanceTo(center) * 3);
       camera.updateProjectionMatrix();
       return;
@@ -293,11 +317,17 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         mix(0.8);
       const distance = state.chill ? chillDistance : 5.5;
       camera.position.copy(painter).addScaledVector(direction, -distance);
+      camera.position.addScaledVector(
+        up,
+        state.chill
+          ? (state.opening || 0) * 0.7 + (state.departure || 0) * 3
+          : 0,
+      );
       target.copy(painter).add(direction);
       matrix.lookAt(camera.position, target, up);
       desiredQuaternion.setFromRotationMatrix(matrix);
       camera.quaternion.copy(desiredQuaternion);
-      camera.fov = 88;
+      camera.fov = 88 + (state.opening || 0) * 3;
       camera.far = Math.max(400, state.bounds.radius * 3);
       camera.updateProjectionMatrix();
       canvas.dataset.fpvFollowDistance = state.chill

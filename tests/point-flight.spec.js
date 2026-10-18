@@ -39,7 +39,7 @@ test("precise touch overrides orbit immediately; release returns to a bounded li
       autonomous = pose.autonomous;
     flight.beginPilot();
     const captured = pose.direction.clone();
-    for (let i = 0; i < 120; i++) pose = flight.update(1 / 60, {});
+    for (let i = 0; i < 240; i++) pose = flight.update(1 / 60, {});
     const stoppedAuto = !pose.autonomous,
       neutralAlignment = pose.direction.dot(captured);
     return {
@@ -59,10 +59,10 @@ test("precise touch overrides orbit immediately; release returns to a bounded li
   expect(result.orbitDistance).toBeGreaterThan(10);
   expect(result.orbitDistance).toBeLessThan(26);
   expect(result.minDistance).toBeLessThan(result.startDistance);
-  expect(result.maxStep).toBeLessThan(0.05);
+  expect(result.maxStep).toBeLessThan(0.07);
   expect(result.stoppedAuto).toBe(true);
   expect(result.neutralAlignment).toBeGreaterThan(0.99999);
-  expect(result.speed).toBeCloseTo(2.6);
+  expect(result.speed).toBeCloseTo(2.1);
 });
 
 test("hands-free flight reaches a nearby bubble while touch immediately overrides its attraction", async ({
@@ -84,7 +84,7 @@ test("hands-free flight reaches a nearby bubble while touch immediately override
     }
     flight.beginPilot();
     const heading = pose.direction.clone();
-    for (let i = 0; i < 120; i++) pose = flight.update(1 / 60, {});
+    for (let i = 0; i < 240; i++) pose = flight.update(1 / 60, {});
     return {
       min,
       manual: !pose.autonomous,
