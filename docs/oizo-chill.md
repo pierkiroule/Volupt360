@@ -53,3 +53,15 @@ Validation de cette direction visuelle : 8 tests ciblés réussis (parcours chil
 ## Haïkuarelle Virtuelle
 
 Le titre devient « L’Oizo de l’Haïkuarelle Virtuelle ». Le compteur affiche « Haïkus révélés » et le PNG souvenir reprend ce nom. Validation : 6 tests ciblés réussis, dont unicité des 24 haïkus, trois vers par texte, conservation des sauts de ligne et affichage central de cinq secondes ; parcours, particules et PNG restent couverts. Build et format réussis.
+
+## Matière résonante, contraste et continuité
+
+Les six profils utilisent maintenant des pigments plus chromatiques et des encres plus denses. Le réglage fixe de rendu passe à contraste 1,16 et saturation 1,20 ; les textures sont générées hors boucle de rendu en 256 px sur mobile et 512 px sur ordinateur. Les réserves du papier restent claires.
+
+`materialMode` active la nouvelle matière uniquement pour les profils chill. Les rubans sont interpolés à un pas plus fin (0,2 unité, au maximum quatre sous-échantillons par dépôt), et le sillage se déploie en 1,7 seconde au lieu de 3,8. Le fil continu des tampons et éclaboussures reçoit le même mode.
+
+Chaque dépôt conserve une humidité bornée dans son enveloppe spectrale. Les basses et transitoires favorisent la diffusion ; le temps et les hautes fréquences favorisent la sédimentation. Le shader combine cet état, l’âge interpolé des points déposés, les UV et une phase propre au dépôt pour déplacer les lisières, enrichir les auréoles et faire varier le grain. Ce sont des correspondances artistiques, pas une simulation physique de fluide.
+
+Le mode chill n’applique plus les rotations, étirements et déplacements de bloc de `createPictorialFlow`. La concentration générale en pigment reste fixe ; la musique agit dans des zones différentes de la texture et dans de petites vibrations locales des bords. Les chemins historiques conservent le comportement antérieur.
+
+Validation dédiée : différences de pixels WebGL entre matière calme/résonante et humide/sèche pour les six brosses, sans transformation rigide du groupe ; enveloppes spectrales distinctes et humidité bornée qui diminue dans le silence. Les performances sur téléphone réel et l’écoute artistique restent à vérifier.

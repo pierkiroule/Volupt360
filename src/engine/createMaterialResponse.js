@@ -11,7 +11,15 @@ const roles = {
 export function createMaterialResponse(brush, seed) {
   const primary = roles[brush] ?? 2;
   const secondary = (primary + 2 + (seed % 2)) % 6;
-  const output = { energy: 0, low: 0, high: 0, pulse: 0, rms: 0, flux: 0 };
+  const output = {
+    energy: 0,
+    low: 0,
+    high: 0,
+    pulse: 0,
+    rms: 0,
+    flux: 0,
+    moisture: 0.6,
+  };
   let previous = 0;
   const speed = 3.5 + (seed % 7) * 0.55;
   return (audio, dt) => {
@@ -44,6 +52,17 @@ export function createMaterialResponse(brush, seed) {
     output.pulse +=
       (accent - output.pulse) *
       (1 - Math.exp(-dt * (accent > output.pulse ? speed * 2 : speed)));
+    output.moisture = Math.max(
+      0,
+      Math.min(
+        1,
+        output.moisture +
+          dt *
+            (output.low * 0.16 +
+              output.pulse * 0.08 -
+              (0.022 + output.high * 0.045) * output.moisture),
+      ),
+    );
     output.rms = audio.rms || 0;
     output.flux = audio.flux || 0;
     return output;

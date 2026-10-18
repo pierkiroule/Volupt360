@@ -1,4 +1,5 @@
-uniform float uAudioEnergy,uAudioLow,uAudioPulse;
+uniform float uAudioEnergy,uAudioLow,uAudioPulse,uMaterialMode,uMoisture;
+varying float vMaterialAge;
 uniform sampler2D uBrushMask;
 uniform float uPhotograph;
 uniform float uHasMask,uMaskAspect,uMaskRepeat;
@@ -13,8 +14,14 @@ vec2 uv=vUv;
 uv+=vec2(sin(uTime*.075+uSeed+uv.y*3.),cos(uTime*.053+uSeed+uv.x*4.))*(.009+.012*uAudioEnergy);
 float across=abs(uv.x*2.-1.);
 float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085)));
-float wet=exp(-uAge*dryingRate);
+float materialAge=uMaterialMode>.5?vMaterialAge:uAge;
+float wet=exp(-materialAge*dryingRate);
+if(uMaterialMode>.5)wet=clamp(wet*.55+uMoisture*.65,0.,1.);
 float settled=1.-wet;
+if(uMaterialMode>.5){
+ float migration=noise2(uv*vec2(9.,23.)+vec2(uSeed,uTime*.09));
+ uv+=vec2(sin(uv.y*21.+uSeed+uTime*.27),cos(uv.x*15.+uSeed-uTime*.19))*(migration-.5)*wet*(.015+uAudioLow*.085+uAudioPulse*.035);
+}
 uv+=vec2(sin(uv.y*13.+uSeed+uAge*.22),cos(uv.x*11.+uSeed+uAge*.17))*.018*wet;
 vec2 q=uv*vec2(3.7,2.9)+vec2(uSeed*1.71,uSeed*.37);
 float macro=fbm(q),middle=noise2(q*3.4+9.7),micro=noise2(q*18.3+2.3);
@@ -121,9 +128,19 @@ if(uHasMask>.5){
   alpha*=1.-pow(1.-imageAlpha,1.9);
   col*=.88+.12*imageAlpha;
 }
-col*=1.-uAudioLow*.16;
-col=mix(col,base,.12*uAudioPulse);
-alpha*=.8+uAudioEnergy*.42+uAudioPulse*.22;
+if(uMaterialMode>.5){
+ float localPhase=noise2(q*vec2(3.,9.)+vec2(uTime*.13+uSeed,-uTime*.08));
+ float tideFlow=exp(-pow((edge-(.64+uAudioLow*.17+localPhase*.09))/.10,2.));
+ float settling=clamp(sediment*(1.-wet)+granules*.5+tideFlow*(.3+uAudioPulse*.8),0.,1.);
+ col=mix(col,base*.45,settling*.4);
+ col=mix(col,base,wet*pool*(.15+uAudioLow*.35));
+ alpha*=.9+localPhase*uAudioEnergy*.45+tideFlow*uAudioPulse*.6;
+ alpha*=1.-dry*settled*.25;
+}else{
+ col*=1.-uAudioLow*.16;
+ col=mix(col,base,.12*uAudioPulse);
+ alpha*=.8+uAudioEnergy*.42+uAudioPulse*.22;
+}
 if(uStrokeExtent>0.){
   float cap=min(.035,uStrokeExtent*.35);
   float endDistance=min(vUv.y,uStrokeExtent-vUv.y)/max(.0001,cap);

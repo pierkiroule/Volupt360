@@ -932,13 +932,15 @@ export function createSoundNest(
         const local = mark.respond(visual, dt);
         drift = Math.max(
           drift,
-          pictorialFlow.update(
-            mark,
-            dt * mark.motionScale,
-            local,
-            lifeTime * mark.motionScale,
-            isActive(mark),
-          ),
+          chillMode
+            ? 0
+            : pictorialFlow.update(
+                mark,
+                dt * mark.motionScale,
+                local,
+                lifeTime * mark.motionScale,
+                isActive(mark),
+              ),
         );
         const resonance = padSource?.getTraceResonance?.(mark.traceId) || 0;
         const response =
@@ -959,11 +961,14 @@ export function createSoundNest(
         for (const uniforms of uniformsFor(mark)) {
           if (uniforms.uTime) uniforms.uTime.value = lifeTime * speed;
           if (uniforms.uWakeClock) uniforms.uWakeClock.value = lifeTime;
+          if (uniforms.uMoisture)
+            uniforms.uMoisture.value = response.moisture ?? 0.6;
           if (uniforms.uPigment)
-            uniforms.uPigment.value =
-              1.12 +
-              (response.energy || 0) * 0.65 +
-              (response.pulse || 0) * 0.25;
+            uniforms.uPigment.value = chillMode
+              ? 1.45
+              : 1.12 +
+                (response.energy || 0) * 0.65 +
+                (response.pulse || 0) * 0.25;
           if (uniforms.uAudioEnergy)
             uniforms.uAudioEnergy.value = Math.min(
               1,
@@ -1143,7 +1148,7 @@ export function createSoundNest(
       const binding = createWatercolorTexture(
         { color: profile.color, kind: profile.textureKind },
         profile.seed,
-        mobile ? 128 : 256,
+        profile.materialMode ? (mobile ? 256 : 512) : mobile ? 128 : 256,
         profile.acoustic,
         profile.visual,
       );
@@ -1255,7 +1260,7 @@ export function createSoundNest(
       chillTrails?.dispose();
       chillTrails = null;
       if (chillMode) {
-        effects.set({ contrast: 1, saturation: 1.05, threshold: 0 });
+        effects.set({ contrast: 1.16, saturation: 1.2, threshold: 0.015 });
         chillTrails = createChillTrails(mobile);
         landscape.add(chillTrails.object);
       }

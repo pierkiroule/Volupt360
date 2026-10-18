@@ -188,6 +188,8 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uWakeClock: { value: 0 },
       uWakeOffset: { value: new THREE.Vector3() },
       uAge: { value: 0 },
+      uMaterialMode: { value: brush.materialMode || 0 },
+      uMoisture: { value: 0.6 },
       uStrokeExtent: { value: 0 },
       uPigment: { value: 1.12 },
       uAudioEnergy: { value: 0 },
@@ -229,6 +231,7 @@ export function createBrushStroke(
         ...template,
         opacity: dynamics.opacity ?? template.opacity,
         generatedWidth: dynamics.width,
+        materialMode: dynamics.materialMode || 0,
         style: dynamics.style ?? template.style,
       }
     : template;
@@ -258,7 +261,12 @@ export function createBrushStroke(
       ? createBrushStroke("filaments", {
           seed,
           color,
-          dynamics: { width: 0.18, opacity: 0.75, wakeThread: true },
+          dynamics: {
+            width: 0.18,
+            opacity: 0.75,
+            wakeThread: true,
+            materialMode: dynamics?.materialMode || 0,
+          },
         })
       : null;
   if (wakeThread) group.add(wakeThread.group);
@@ -288,7 +296,10 @@ export function createBrushStroke(
       const steps = Math.min(
         4,
         capacity - count,
-        Math.max(1, Math.ceil(distance / 0.45)),
+        Math.max(
+          1,
+          Math.ceil(distance / (dynamics?.materialMode ? 0.2 : 0.45)),
+        ),
       );
       Object.assign(smoothSample, sample);
       smoothSample.position = curvePoint;

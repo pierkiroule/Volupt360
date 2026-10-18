@@ -2,6 +2,7 @@ import { LANDSCAPE_BRUSHES } from "../materials/landscapePalette.js";
 export const CHILL_BRUSHES = LANDSCAPE_BRUSHES.map((b, i) => ({
   ...b,
   chillStyle: i,
+  materialMode: 1,
   name: [
     "Lavis aérien",
     "Pigment sec",
@@ -10,12 +11,12 @@ export const CHILL_BRUSHES = LANDSCAPE_BRUSHES.map((b, i) => ({
     "Encre diluée",
     "Empreintes",
   ][i],
-  color: ["#7eaaa9", "#bd8d8f", "#33434c", "#45434e", "#608c94", "#a694b7"][i],
+  color: ["#3f91a0", "#c16c83", "#26384c", "#61465b", "#388e91", "#8862ab"][i],
   width: [0.9, 0.45, 0.32, 0.55, 0.8, 0.6][i],
-  opacity: [0.46, 0.52, 0.7, 0.6, 0.42, 0.46][i],
+  opacity: [0.68, 0.72, 0.85, 0.72, 0.62, 0.66][i],
   speed: 0.65,
   dispersion: 0.7,
-  responseGain: 1.15,
+  responseGain: 1.55,
   particleCount: 2,
   sampleStride: 6,
 }));
