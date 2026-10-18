@@ -9,7 +9,7 @@ for (const [name, width, height] of [
       await page.setViewportSize({ width, height });
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
-      await page.goto("/");
+      await page.goto("/?conte=1");
       await expect(
         page.getByRole("heading", { level: 1, name: "Oizobul•°" }),
       ).toBeVisible();
@@ -57,7 +57,7 @@ test("reduced motion stops the decorative flights and keyboard opens the explana
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await page.goto("/?conte=1");
   const name = await page
     .locator(".story-orbit-one")
     .evaluate((node) => getComputedStyle(node).animationName);

@@ -1,14 +1,12 @@
-# Oizobul•°
+# OIZO •° — Atelier aquarelle
 
-_Un conte transnumériste échohypnotique_
+Un atelier de peinture et de sculpture aquarelle en trois dimensions, sur un ciel blanc.
 
-Oizobul explore une constellation de 24 bulles lumineuses. Chacune contient un court fragment autonome d’un conte échohypnotique : plume, fenêtre bleue, branche et nuage se répondent, sans ordre de lecture imposé.
+Glisser guide l’oizo. Maintenir le toucher pendant 320 ms déclenche les traces depuis ses ailes ; relâcher arrête la peinture et laisse l’oiseau revenir progressivement en orbite autour du centre de l’œuvre. La palette permet de choisir les matières existantes, sans bulles ni récit dans le parcours principal.
 
-Glisser guide le vol. Au relâchement, Oizobul rejoint doucement la bulle lumineuse la plus proche. Aucune peinture avant une rencontre : à la sortie d’une bulle, il emporte une matière et peint automatiquement depuis ses ailes. Les bulles visitées s’éteignent mais restent présentes. Des acrobaties occasionnelles accompagnent le vol libre ; toucher reprend immédiatement le pilotage.
+Un bouton bascule entre suivi FPV et contemplation gyro 360°, avec autorisation du capteur et alternative tactile. Gravity accompagne la sculpture et conserve l’analyse musicale des pigments, le volume et la pause. L’atelier n’impose pas de fin chronométrée.
 
-Le parcours conserve six minutes de vol actif, la métamorphose Nuit → Aurores → Aube, Gravity, le POV 360° tactile/gyroscope et le PNG HD. La lecture suspend le temps de vol et reste affichée jusqu’à « Reprendre le vol ». Le ciel garde les empreintes picturales des rencontres.
-
-Voir [le conte en constellation](docs/oizobul-constellation.md). Le parcours précédent reste accessible avec ?original=1 ; ses brosses et figures manuelles sont conservées. Cette expérience artistique ne revendique pas d’efficacité thérapeutique et n’analyse pas les émotions.
+Les moteurs de brosses, l’archive picturale et l’export du moteur sont conservés. Le précédent conte reste accessible avec `?conte=1`, son prédécesseur avec `?original=1`.
 
 ## Développement
 

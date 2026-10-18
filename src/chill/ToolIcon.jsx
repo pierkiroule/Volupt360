@@ -1,4 +1,5 @@
 const strokes = {
+  view: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Zm14 0a4 4 0 1 0-8 0 4 4 0 0 0 8 0",
   "figure-loop": "m12 2 10 20H2ZM10 17c-4-5 5-7 5-3 0 3-4 4-5 1",
   "figure-spiral": "m12 2 10 20H2ZM8 16c7 4 10-5 5-5-4 0-4 6 0 5",
   "figure-infinity": "m12 2 10 20H2ZM12 16c-8-7-8 6 0 0s8 7 0 0",

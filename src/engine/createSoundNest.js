@@ -147,6 +147,7 @@ export function createSoundNest(
   const contemplation = createContemplationState();
   const contemplationWorld = new THREE.Vector3();
   let resonanceMode = false,
+    workshopMode = false,
     constellationMode = false,
     automaticBrush = null;
   let idleFlightClock = 0,
@@ -659,8 +660,9 @@ export function createSoundNest(
       anchorX: event.clientX,
       anchorY: event.clientY,
       started: false,
+      heldFor: 0,
     };
-    beginNozzlePaint();
+    if (!workshopMode) beginNozzlePaint();
     renderer.domElement.setPointerCapture(event.pointerId);
   }
   const pilotInverse = new THREE.Quaternion(),
@@ -885,8 +887,14 @@ export function createSoundNest(
             if (visitMark) visitMark.visitStarted = lifeTime;
           }
           dance.setVisitTarget(
-            visitMark ? visitMark.bounds.getCenter(visitPoint) : null,
+            !workshopMode && visitMark
+              ? visitMark.bounds.getCenter(visitPoint)
+              : null,
           );
+        }
+        if (workshopMode && steeringGesture && !nozzlePaint) {
+          steeringGesture.heldFor += dt;
+          if (steeringGesture.heldFor >= 0.32) beginNozzlePaint();
         }
         refreshPilot();
         dance.setBubbleTarget(
@@ -1559,11 +1567,15 @@ export function createSoundNest(
       scene.background.set(universe.background);
       effects.setPaper(universe.background);
       renderer.setClearColor(universe.background);
-      phasePalette = universe.chill ? createPhasePalette(profiles) : null;
+      phasePalette =
+        universe.chill && !universe.workshop
+          ? createPhasePalette(profiles)
+          : null;
       phasePalette?.update(sampleExperience(0));
       for (const profile of phasePalette?.profiles || profiles)
         this.setGeneratedBrush(profile.id, profile);
       chillMode = Boolean(universe.chill);
+      workshopMode = Boolean(universe.workshop);
       resonanceMode = Boolean(universe.resonanceBubbles);
       constellationMode = Boolean(universe.constellation);
       renderer.domElement.dataset.constellation = String(constellationMode);
@@ -1575,10 +1587,13 @@ export function createSoundNest(
         chillTrails = createChillTrails(mobile);
         landscape.add(chillTrails.object);
       }
-      moodAtmosphere = chillMode
-        ? createChillSky()
-        : createMoodAtmosphere(universe, mobile);
-      (chillMode ? scene : landscape).add(moodAtmosphere.object);
+      moodAtmosphere = workshopMode
+        ? null
+        : chillMode
+          ? createChillSky()
+          : createMoodAtmosphere(universe, mobile);
+      if (moodAtmosphere)
+        (chillMode ? scene : landscape).add(moodAtmosphere.object);
       renderer.domElement.dataset.echoMood = String(universe.seed);
       renderer.domElement.dataset.moodBackground = universe.background;
     },

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("24 autonomous story fragments echo through recurring motifs without a fixed order", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?conte=1");
   const r = await page.evaluate(async () => {
     const { OIZOBUL_STORY } = await import("/src/chill/oizobulStory.js");
     return {
@@ -31,7 +31,7 @@ test("24 autonomous story fragments echo through recurring motifs without a fixe
 test("all spheres are initially available; visited spheres dim, remain, and stop attracting the autopilot", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?conte=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createVocalBubbles } =
@@ -91,7 +91,7 @@ test("all spheres are initially available; visited spheres dim, remain, and stop
 });
 
 async function start(page) {
-  await page.goto("/");
+  await page.goto("/?conte=1");
   await page.getByRole("checkbox").uncheck();
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   await expect(page.locator("canvas")).toHaveAttribute(
@@ -100,16 +100,19 @@ async function start(page) {
   );
 }
 async function exposeCollision(page) {
-  await page.route("**/src/sonoizo/createVocalBubbles.js", async (route) => {
-    const response = await route.fetch();
-    await route.fulfill({
-      response,
-      body: (await response.text()).replace(
-        "  const group = new THREE.Group();",
-        "  window.__storyCollision = id=>collide(id);\n  const group = new THREE.Group();",
-      ),
-    });
-  });
+  await page.route(
+    /\/src\/sonoizo\/createVocalBubbles\.js(?:\?.*)?$/,
+    async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        body: (await response.text()).replace(
+          "  const group = new THREE.Group();",
+          "  window.__storyCollision = id=>collide(id);\n  const group = new THREE.Group();",
+        ),
+      });
+    },
+  );
 }
 
 test("no manual menus or paint before a visit, even when touching; all 24 nodes are ready", async ({
@@ -186,18 +189,21 @@ test("a fragment remains readable and its brush paints from the wings without to
 test("an idle surprise paints and touch immediately restores manual flight without stopping the automatic brush", async ({
   page,
 }) => {
-  await page.route("**/src/engine/createSoundNest.js", async (route) => {
-    const response = await route.fetch();
-    const source = (await response.text())
-      .replaceAll("nextSurprise = 24", "nextSurprise = 0.5")
-      .replaceAll("lifeTime + 24", "lifeTime + 0.5")
-      .replace("idleFlightClock > 4", "idleFlightClock > 0.1")
-      .replace(
-        "nearestBubble.distanceTo(navigation.position) > 7",
-        "nearestBubble.distanceTo(navigation.position) > 0",
-      );
-    await route.fulfill({ response, body: source });
-  });
+  await page.route(
+    /\/src\/engine\/createSoundNest\.js(?:\?.*)?$/,
+    async (route) => {
+      const response = await route.fetch();
+      const source = (await response.text())
+        .replaceAll("nextSurprise = 24", "nextSurprise = 0.5")
+        .replaceAll("lifeTime + 24", "lifeTime + 0.5")
+        .replace("idleFlightClock > 4", "idleFlightClock > 0.1")
+        .replace(
+          "nearestBubble.distanceTo(navigation.position) > 7",
+          "nearestBubble.distanceTo(navigation.position) > 0",
+        );
+      await route.fulfill({ response, body: source });
+    },
+  );
   await exposeCollision(page);
   await start(page);
   await page.waitForFunction(
@@ -225,7 +231,7 @@ test("an idle surprise paints and touch immediately restores manual flight witho
 test("constellation sphere geometry is shared and released after disposal", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?conte=1");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error" && /WebGL|Shader|THREE/.test(m.text()))
