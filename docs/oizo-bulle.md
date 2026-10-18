@@ -82,3 +82,15 @@ Le dépôt part désormais des deux pointes d’ailes articulées, et non de la 
 `createSoundNest` conserve deux historiques de tracé par brosse, gauche et droite. Les positions ne sont jamais alternées dans un même ruban, ce qui évite les ponts entre les ailes. Relâcher, changer de brosse ou entrer dans une bulle termine les deux flux. Le contact reste immédiat ; l’échantillonnage courant est réparti à 15 Hz par aile pour environ 30 dépôts par seconde au total. Les brosses, alphas, déploiement humide, archivage sec et export sont réutilisés. L’ancien accesseur de queue reste disponible pour compatibilité, mais n’est plus appelé par le moteur de dépôt.
 
 `wing-emission.spec.js` vérifie les pointes réelles du rig dans un paysage transformé, leur mouvement pendant les battements, les deux dépôts immédiats indépendants et leur fermeture au changement de brosse.
+
+## Acrobaties peintes
+
+Trois commandes triangulaires au-dessus des matières déclenchent une boucle céleste (8 s), une spirale avec roulis (8 s) ou un ruban infini (9 s). La figure utilise la brosse sélectionnée et les deux émetteurs d’ailes existants ; changer de matière pendant une figure reste possible. Les commandes ne se cumulent pas.
+
+`createFlightAcrobatics` fournit des directions et un repère continu au contrôleur de vol, sans jamais assigner de position : le déplacement est intégré par le moteur existant, sans téléportation. Le rig suit l’inversion de la boucle et amortit le roulis. Pendant une figure, la caméra prend légèrement du recul et observe l’oiseau depuis un point stable, puis rejoint progressivement le suivi habituel. Elle ne roule pas avec l’oiseau.
+
+Le dépôt est automatique pendant la figure puis se termine sur les deux ailes. Un toucher du ciel interrompt immédiatement l’acrobatie et reprend le dessin manuel. Pause et reprise suspendent aussi la figure et les dépôts. Les bulles ne déclenchent pas de contemplation au milieu d’une acrobatie ; le final interrompt proprement la figure avant son départ.
+
+Les contrôles `painted-acrobatics.spec.js` vérifient les trois trajectoires distinctes, la continuité des positions, la pause, l’interruption manuelle et la peinture depuis les ailes avec la brosse courante. Les figures nécessitent encore une évaluation du confort sur téléphone physique.
+
+Validation des acrobaties : 19 tests ciblés validés, dont deux contrôles relancés après correction de leur synchronisation avec les états prêts de l’interface. Build Vite, format et vérification du diff réussis. Les essais couvrent Chromium mobile émulé, pas un téléphone physique.

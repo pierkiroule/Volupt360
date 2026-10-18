@@ -57,6 +57,7 @@ test("mobile OIZO-BULLE starts with eight symbols and a neutral brush, immediate
     }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Prendre son envol" }).click();
+  await expect(page.locator(".chill-welcome")).toHaveCount(0);
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toHaveAttribute("data-oizo-visible", "true");
   await expect
@@ -118,6 +119,7 @@ test("completed journey opens global artwork and offers a downloadable PNG souve
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
+  await expect(page.locator(".chill-welcome")).toHaveCount(0);
   await page.mouse.move(160, 350);
   await page.mouse.down();
   await page.waitForTimeout(300);

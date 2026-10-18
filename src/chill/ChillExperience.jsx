@@ -1,3 +1,4 @@
+import { FLIGHT_FIGURES } from "../engine/createFlightAcrobatics.js";
 import { ToolIcon } from "./ToolIcon.jsx";
 import { createWatercolorAlpha } from "./createWatercolorAlpha.js";
 import { useEffect, useRef, useState } from "react";
@@ -26,6 +27,7 @@ export default function ChillExperience() {
     [finalReady, setFinalReady] = useState(false),
     [paused, setPaused] = useState(false),
     [contemplating, setContemplating] = useState(false),
+    [acrobatic, setAcrobatic] = useState(null),
     [toolsOpen, setToolsOpen] = useState(true),
     [audioOpen, setAudioOpen] = useState(false),
     [useGyro, setUseGyro] = useState(true),
@@ -46,6 +48,7 @@ export default function ChillExperience() {
     try {
       engine.current = createSoundNest(stage.current, {
         onError: setError,
+        onAcrobaticChange: setAcrobatic,
         onContemplationChange: (active, fragment) => {
           clearTimeout(timer.current);
           setContemplating(active);
@@ -242,6 +245,24 @@ export default function ChillExperience() {
           >
             {toolsOpen && (
               <div id="pictorial-tool-panel">
+                <div
+                  className="flight-figures"
+                  role="group"
+                  aria-label="Acrobaties peintes"
+                >
+                  {FLIGHT_FIGURES.map((figure) => (
+                    <button
+                      key={figure.id}
+                      aria-label={figure.name}
+                      title={figure.name}
+                      aria-pressed={acrobatic === figure.id}
+                      disabled={paused || departing || Boolean(acrobatic)}
+                      onClick={() => engine.current.performAcrobatic(figure.id)}
+                    >
+                      <ToolIcon name={`figure-${figure.id}`} />
+                    </button>
+                  ))}
+                </div>
                 <section
                   className="landscape-palette"
                   aria-label="Matières picturales"

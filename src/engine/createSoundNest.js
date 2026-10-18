@@ -45,6 +45,7 @@ export function createSoundNest(
     onSessionComplete,
     onSessionInterrupted,
     onContemplationChange,
+    onAcrobaticChange,
   } = {},
 ) {
   const mobile =
@@ -406,10 +407,13 @@ export function createSoundNest(
   function reset() {
     if (contemplation.active) rig.leaveContemplation();
     contemplation.reset();
+    stopAcrobaticPaint();
     cancelSteering();
     bridge.close();
     padStates.clear();
     dance.reset();
+    navigation.acrobatics = null;
+    renderer.domElement.dataset.acrobatic = "none";
     visitMark = null;
     visitClock = 0;
     closeStroke();
@@ -467,9 +471,15 @@ export function createSoundNest(
 
   let nozzlePaint = null,
     lastFlightPose = null,
-    nozzleClock = 0;
+    nozzleClock = 0,
+    acrobaticPaint = false;
   function beginNozzlePaint() {
-    if (!steeringGesture || photo || cameraMode !== "drone") return;
+    if (
+      (!steeringGesture && !acrobaticPaint) ||
+      photo ||
+      cameraMode !== "drone"
+    )
+      return;
     bridge.close();
     nozzlePaint = { id: brush, samples: 0 };
     nozzleClock = 0;
@@ -574,6 +584,17 @@ export function createSoundNest(
       renderer.domElement.releasePointerCapture(id);
     renderer.domElement.dataset.directDrawing = "false";
   }
+  function stopAcrobaticPaint() {
+    if (!acrobaticPaint) return;
+    acrobaticPaint = false;
+    onAcrobaticChange?.(null);
+    if (nozzlePaint) {
+      finishPad(nozzlePaint.id);
+      nozzlePaint = null;
+      padSource?.endSculpture?.();
+    }
+    renderer.domElement.dataset.nozzlePaint = "false";
+  }
   function onSteeringDown(event) {
     if (
       cameraMode === "sculpt" &&
@@ -606,6 +627,7 @@ export function createSoundNest(
       !event.isPrimary
     )
       return;
+    stopAcrobaticPaint();
     void padSource.preparePlayback();
     dance.beginPilot();
     steeringGesture = {
@@ -723,6 +745,8 @@ export function createSoundNest(
     )
       return false;
     cancelSteering();
+    stopAcrobaticPaint();
+    dance.cancelAcrobatic();
     bridge.close();
     chillSession?.setPaused(true);
     landscape.updateMatrixWorld(true);
@@ -779,6 +803,7 @@ export function createSoundNest(
     }
     if (chillSession?.departing && !chillDeparted) {
       chillDeparted = true;
+      stopAcrobaticPaint();
       cancelSteering();
       dance.beginPilot();
       const right = new THREE.Vector3()
@@ -847,6 +872,9 @@ export function createSoundNest(
         );
         const pose = dance.update(dt, voices, visual);
         lastFlightPose = pose;
+        navigation.acrobatics = pose.acrobatics;
+        renderer.domElement.dataset.acrobatic = pose.acrobatics || "none";
+        if (acrobaticPaint && !pose.acrobatics) stopAcrobaticPaint();
         renderer.domElement.dataset.flightVisiting = (
           pose.visiting || 0
         ).toFixed(3);
@@ -869,7 +897,7 @@ export function createSoundNest(
         navigation.progress = pose.progress;
         sampleClock += dt;
         const tick = sampleClock >= 0.12;
-        if (nozzlePaint) {
+        if (nozzlePaint && dt > 0) {
           nozzleClock += dt;
           if (nozzleClock >= 1 / 15 || nozzlePaint.samples < 2) {
             nozzleClock %= 1 / 15;
@@ -886,7 +914,7 @@ export function createSoundNest(
             });
             nozzlePaint.samples++;
           }
-        } else bridge.update(pose, voices, tick);
+        } else if (!nozzlePaint) bridge.update(pose, voices, tick);
         if (tick) sampleClock %= 0.12;
         const hit =
           ENABLE_TRACE_MEMORY && (ENABLE_POETIC_VOICES || TRACE_DEBUG)
@@ -929,7 +957,8 @@ export function createSoundNest(
           vocalFireflies.update(
             dt,
             pose,
-            !contemplation.active &&
+            !acrobaticPaint &&
+              !contemplation.active &&
               !chillPaused &&
               !directSculpture &&
               (cameraMode === "drone" ||
@@ -1377,6 +1406,24 @@ export function createSoundNest(
         else previous.texture.dispose();
       }
     },
+    performAcrobatic(id) {
+      if (
+        !chillSession ||
+        chillPaused ||
+        chillSession.departing ||
+        contemplation.active ||
+        acrobaticPaint ||
+        cameraMode !== "drone" ||
+        !lastFlightPose
+      )
+        return false;
+      cancelSteering();
+      if (!dance.beginAcrobatic(id)) return false;
+      acrobaticPaint = true;
+      onAcrobaticChange?.(id);
+      beginNozzlePaint();
+      return true;
+    },
     requestContemplationGyroscope(enabled = true) {
       return rig.requestGyroscope(enabled);
     },
@@ -1419,6 +1466,7 @@ export function createSoundNest(
     },
     pauseChillSession(paused) {
       chillPaused = paused;
+      renderer.domElement.dataset.paintedSamples = String(paintedSamples);
       chillSession?.setPaused(paused || contemplation.active);
       if (paused) cancelSteering();
     },
