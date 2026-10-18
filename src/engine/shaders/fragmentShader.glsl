@@ -1,4 +1,5 @@
 varying float vPigmentSeed,vStrokeExtent;
+uniform float uMoodGrain,uMoodDiffusion;
 uniform float uAudioEnergy,uAudioLow,uAudioPulse,uMaterialMode,uMoisture;
 varying float vMaterialAge;
 uniform sampler2D uBrushMask;
@@ -21,7 +22,7 @@ if(uMaterialMode>.5)wet=clamp(wet*.55+uMoisture*.65,0.,1.);
 float settled=1.-wet;
 if(uMaterialMode>.5){
  float migration=noise2(uv*vec2(9.,23.)+vec2(vPigmentSeed,uTime*.09));
- uv+=vec2(sin(uv.y*21.+vPigmentSeed+uTime*.27),cos(uv.x*15.+vPigmentSeed-uTime*.19))*(migration-.5)*wet*(.015+uAudioLow*.085+uAudioPulse*.035);
+ uv+=vec2(sin(uv.y*21.+vPigmentSeed+uTime*.27),cos(uv.x*15.+vPigmentSeed-uTime*.19))*(migration-.5)*wet*uMoodDiffusion*(.015+uAudioLow*.085+uAudioPulse*.035);
 }
 uv+=vec2(sin(uv.y*13.+vPigmentSeed+uAge*.22),cos(uv.x*11.+vPigmentSeed+uAge*.17))*.018*wet;
 vec2 q=uv*vec2(3.7,2.9)+vec2(vPigmentSeed*1.71,vPigmentSeed*.37);
@@ -54,7 +55,7 @@ float etching=pow(1.-abs(sin(uv.x*88.+uv.y*7.+middle*1.8)),30.);
 organic*=smoothstep(.28,.7,macro);
 float pigment=(.38+.52*pool+.40*sediment+.48*tide+.20*vein+.16*stripes+.20*mottling+.22*organic)*(1.-.32*reserve);
 float dry=1.-smoothstep(.10,.32,micro*.55+middle*.45);
-float granules=step(.84,hash21(floor(q*vec2(125.,150.))))*micro;
+float granules=step(.84,hash21(floor(q*vec2(125.,150.))))*micro*uMoodGrain;
 vec3 base=vColor;
 vec3 dark=base*mix(vec3(.30,.39,.49),vec3(.53,.33,.38),clamp(uStyle/5.,0.,1.));
 vec3 col=mix(base,dark,clamp(.38*pool+.52*tide+.25*sediment+.18*granules+.19*vein+.09*threads+.21*organic,0.,.92));

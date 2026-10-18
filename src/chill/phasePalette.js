@@ -18,8 +18,8 @@ const aurora = [
 export function createPhasePalette(source) {
   const entries = source.map((profile, i) => ({
     profile: { ...profile, color: new Color() },
-    night: new Color(night[i]),
-    aurora: new Color(aurora[i]),
+    night: new Color(night[i % night.length]),
+    aurora: new Color(aurora[i % aurora.length]),
     dawn: new Color(profile.color),
   }));
   const birdColor = new Color(),

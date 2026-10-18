@@ -895,7 +895,8 @@ export function createTwigBank({
       if (!ambience?.tone || !ctx) return;
       if (!ambience.experienceMix) {
         ambience.experienceMix = true;
-        ambience.element.loop = ambience.element.duration < 360;
+        // Contemplations may extend listening beyond six active flight minutes.
+        ambience.element.loop = true;
         ambience.tone.type = "lowpass";
         ambience.tone.Q.value = 0.35;
       }

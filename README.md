@@ -1,12 +1,12 @@
-# L’Oizo de l’Haïkuarelle Virtuelle
+# OIZO-BULLE •°
 
-Une seule traversée de six minutes : un oiseau et six brosses d’aquarelle et d’encre fine, dans un ciel peint qui évolue continuellement de la nuit aux aurores puis à l’aube.
+On sculpte son ciel émotionnel pour apprendre à le contempler autrement.
 
-Touchez pour tracer et glissez pour guider l’oizo. Sans contact, il rejoint les bulles de haïkus. Deux vues : FPV et gyro. Une pause suspend le voyage. Après six minutes, les lavis ont conservé la mémoire des gestes ; une courte sortie de huit secondes laisse l’oizo s’éloigner avant la vue d’ensemble et la proposition d’une photo PNG HD.
+Un oiseau peint un ciel aquarelle et encre fine. Huit Mood Brushes symboliques et un lavis neutre accompagnent le geste : toucher peint depuis la queue, glisser guide le vol. Une bulle à la fois émerge de la peinture et ouvre une contemplation 360° du même paysage. « Reprendre le vol » restitue immédiatement le contrôle.
 
-La musique utilise le MP3 local de `public/ambiances`. Pas de synthèse musicale ni de voix. Les 24 bulles apparaissent progressivement (4 / 8 / 12) et révèlent des haïkus originaux en trois vers, sans score ni chronomètre. La piste disponible dure 3 min 42 et boucle jusqu’au final ; aucune composition de six minutes n’est inventée. L’expérience est artistique : son effet auprès de patients n’a pas été évalué cliniquement.
+La traversée Nuit → Aurores → Aube dure six minutes de vol actif ; contempler ne consomme pas ce temps. Les 24 phrases originales restent facultatives, sans score ni questionnaire. La musique continue dans les bulles, les pigments persistent et le final conserve la photo PNG HD.
 
-Voir [architecture, validation et limites](docs/six-minute-journey.md). L’entrée ÉchoMood historique reste réversible à `/?legacy=1` ; le paysage précédent à `/?classic=1`. Les outils de capture et l’éditeur ne sont pas proposés pendant le voyage chill.
+Voir [architecture, paramètres, vérifications et limites](docs/oizo-bulle.md). L’expérience est une médiation artistique, sans efficacité thérapeutique revendiquée ni analyse des émotions. Le gyro est facultatif et réservé aux bulles ; le regard tactile reste disponible.
 
 ## Développement
 
@@ -30,7 +30,7 @@ Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend n
 
 ```sh
 npx playwright install chromium
-npm test -- tests/oizo-chill.spec.js tests/six-minute-experience.spec.js tests/point-flight.spec.js tests/haikuarelle.spec.js tests/living-pigments.spec.js tests/watercolor-alpha.spec.js
+npm test -- tests/oizo-bulle.spec.js tests/oizo-chill.spec.js tests/six-minute-experience.spec.js tests/point-flight.spec.js tests/haikuarelle.spec.js tests/living-pigments.spec.js tests/watercolor-alpha.spec.js
 ```
 
 L’ancien atelier MP3 reste disponible à `/?atelier=mp3`. Ses fonctions et les modules musicaux historiques ne définissent pas le parcours principal.

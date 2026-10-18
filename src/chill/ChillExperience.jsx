@@ -3,18 +3,19 @@ import { useEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
 import musicCatalog from "virtual:echo-music";
+import { CHILL_UNIVERSE } from "./chillConfig.js";
 import {
-  CHILL_BRUSHES,
-  CHILL_FRAGMENTS,
-  CHILL_UNIVERSE,
-} from "./chillConfig.js";
+  MOOD_BRUSHES,
+  NEUTRAL_BRUSH,
+  OIZO_BULLE_BRUSHES,
+} from "./moodBrushes.js";
+import { CONTEMPLATIVE_PHRASES } from "./contemplativePhrases.js";
 
 export default function ChillExperience() {
   const stage = useRef(null),
     engine = useRef(null),
     timer = useRef(null),
     finalTimer = useRef(null),
-    busyText = useRef(false),
     photoUrl = useRef(null),
     generation = useRef(0);
   const twigs = useTwigBank();
@@ -23,9 +24,9 @@ export default function ChillExperience() {
     [ended, setEnded] = useState(false),
     [finalReady, setFinalReady] = useState(false),
     [paused, setPaused] = useState(false),
-    [view, setView] = useState("drone"),
-    [viewHint, setViewHint] = useState(""),
-    [brush, setBrush] = useState(CHILL_BRUSHES[0].id),
+    [contemplating, setContemplating] = useState(false),
+    [useGyro, setUseGyro] = useState(false),
+    [brush, setBrush] = useState(NEUTRAL_BRUSH.id),
     [departing, setDeparting] = useState(false),
     [phase, setPhase] = useState("night"),
     [light, setLight] = useState(0),
@@ -38,28 +39,22 @@ export default function ChillExperience() {
       "--paper-alpha",
       `url("${createWatercolorAlpha("wash", 731, 256).toDataURL()}")`,
     );
-    document.title =
-      "L’Oizo de l’Haïkuarelle Virtuelle — Six minutes pour peindre le ciel";
+    document.title = "OIZO-BULLE •° — Sculpter son ciel";
     try {
       engine.current = createSoundNest(stage.current, {
         onError: setError,
-        onHint: setViewHint,
+        onContemplationChange: (active, fragment) => {
+          clearTimeout(timer.current);
+          setContemplating(active);
+          setText(active ? fragment : null);
+          if (active) timer.current = setTimeout(() => setText(null), 5000);
+        },
         onSessionProgress: (_, state) => {
           setDeparting(state.departing);
           setPhase(state.phase);
           setLight(state.dawn);
         },
         onSessionInterrupted: () => setPaused(true),
-        onPoeticFragment: (fragment) => {
-          if (busyText.current || document.hidden) return false;
-          busyText.current = true;
-          setText(fragment);
-          timer.current = setTimeout(() => {
-            setText(null);
-            busyText.current = false;
-          }, 5000);
-          return true;
-        },
         onSessionComplete: () => {
           clearTimeout(timer.current);
           setText(null);
@@ -89,10 +84,19 @@ export default function ChillExperience() {
     const ticket = ++generation.current;
     try {
       const bank = twigs.bank.current;
-      await bank.preparePlayback();
+      // Start both native unlocks in the trusted click, before any await.
+      await Promise.all([
+        bank.preparePlayback(),
+        engine.current.requestContemplationGyroscope(useGyro),
+      ]);
       if (ticket !== generation.current) return;
-      engine.current.setMood(CHILL_UNIVERSE, CHILL_BRUSHES);
-      engine.current.setPoeticFragments(CHILL_FRAGMENTS);
+      engine.current.setMood(
+        { ...CHILL_UNIVERSE, resonanceBubbles: true },
+        OIZO_BULLE_BRUSHES,
+      );
+      engine.current.setBrush(NEUTRAL_BRUSH.id);
+      setBrush(NEUTRAL_BRUSH.id);
+      engine.current.setPoeticFragments(CONTEMPLATIVE_PHRASES);
       engine.current.setPadSource(bank);
       engine.current.setCameraMode("drone");
       const journeyMusic =
@@ -136,7 +140,6 @@ export default function ChillExperience() {
     generation.current++;
     clearTimeout(finalTimer.current);
     clearTimeout(timer.current);
-    busyText.current = false;
     setText(null);
     twigs.bank.current?.cancelAmbienceLoad();
     twigs.bank.current?.pauseAmbience();
@@ -145,6 +148,7 @@ export default function ChillExperience() {
     engine.current?.setPadSource(null);
     engine.current?.reset();
     setStarted(false);
+    setContemplating(false);
     setEnded(false);
     setFinalReady(false);
     setPaused(false);
@@ -176,30 +180,46 @@ export default function ChillExperience() {
   }
   return (
     <main
-      className={`immersive chill-experience ${started ? "is-running" : ""} phase-${phase}`}
+      className={`immersive chill-experience ${started ? "is-running" : ""} ${contemplating ? "is-contemplating" : ""} phase-${phase}`}
       style={{
         "--journey-ink": `rgb(${Math.round(228 - light * 175)}, ${Math.round(236 - light * 160)}, ${Math.round(230 - light * 148)})`,
       }}
     >
       <div id="stage" ref={stage} />
       <header className="brand">
-        <h1>OIZO •°</h1>
-        <p>L’Oizo de l’Haïkuarelle Virtuelle</p>
+        <h1>OIZO-BULLE •°</h1>
+        <p>
+          On sculpte son ciel émotionnel pour apprendre à le contempler
+          autrement.
+        </p>
       </header>
       {!started && (
         <section className="chill-welcome">
           <span className="chill-eyebrow">
             Un carnet ouvert sur l’invisible
           </span>
-          <h2>L’Oizo de l’Haïkuarelle Virtuelle</h2>
+          <h2>OIZO-BULLE •°</h2>
+          <p className="oizo-bulle-intention">
+            On sculpte son ciel émotionnel pour apprendre à le contempler
+            autrement.
+          </p>
           <p>
             Touchez pour peindre, glissez pour guider l’oizo. Sans toucher, il
-            rejoint doucement une bulle de haïku.
+            poursuit son vol. Une bulle peut ouvrir un autre regard sur votre
+            ciel.
           </p>
           <p>
             Six minutes pour peindre le ciel. Vous pouvez faire une pause à tout
             moment.
           </p>
+          <label className="gyro-opt-in">
+            <input
+              type="checkbox"
+              checked={useGyro}
+              onChange={(event) => setUseGyro(event.target.checked)}
+            />
+            Utiliser le gyroscope dans les bulles (facultatif)
+          </label>
           <button disabled={busy} onClick={start}>
             {busy ? "Le papier s’éveille…" : "Prendre son envol"}
           </button>
@@ -209,27 +229,8 @@ export default function ChillExperience() {
           </small>
         </section>
       )}
-      {started && !ended && (
+      {started && !ended && !contemplating && (
         <>
-          <nav className="camera-views is-compact" aria-label="Vues caméra">
-            {[
-              ["drone", "FPV", "FPV"],
-              ["gyro", "Gyro 360°", "◎"],
-            ].map(([id, label, glyph]) => (
-              <button
-                key={id}
-                aria-label={label}
-                aria-pressed={view === id}
-                disabled={departing}
-                onClick={() => {
-                  engine.current.setCameraMode(id);
-                  setView(id);
-                }}
-              >
-                {glyph}
-              </button>
-            ))}
-          </nav>
           <button className="chill-pause" onClick={pause}>
             {paused ? "Reprendre" : "Faire une pause"}
           </button>
@@ -250,23 +251,9 @@ export default function ChillExperience() {
               }
             />
           </label>
-          {view === "gyro" && (
-            <p className="gyro-guidance" role="status">
-              {viewHint}
-            </p>
-          )}
-          {view === "gyro" && (
-            <button
-              className="gyro-recenter"
-              aria-label="Recentrer la vue 360°"
-              onClick={() => engine.current.setCameraMode("gyro")}
-            >
-              ↺
-            </button>
-          )}
-          <section className="landscape-palette" aria-label="Six brosses chill">
+          <section className="landscape-palette" aria-label="Mood Brushes">
             <div role="group" aria-label="Choisir une brosse">
-              {CHILL_BRUSHES.map((b) => (
+              {[...MOOD_BRUSHES, NEUTRAL_BRUSH].map((b) => (
                 <button
                   key={b.id}
                   aria-label={b.name}
@@ -284,17 +271,34 @@ export default function ChillExperience() {
               ))}
             </div>
           </section>
-          {text && (
-            <div key={text.id} className="poetic-fragment" role="status">
-              <p>{text.text}</p>
-            </div>
-          )}
           {departing && (
             <p className="chill-departure" role="status">
               Le geste s’apaise. L’oizo poursuit son chemin.
             </p>
           )}
         </>
+      )}
+      {contemplating && !ended && (
+        <section
+          className="resonance-contemplation"
+          aria-label="Contemplation 360°"
+        >
+          {text && (
+            <div
+              key={text.id}
+              className="poetic-fragment resonance-phrase"
+              role="status"
+            >
+              <p>{text.text}</p>
+            </div>
+          )}
+          <button
+            className="resume-flight"
+            onClick={() => engine.current.resumeFlight()}
+          >
+            Reprendre le vol
+          </button>
+        </section>
       )}
       {ended && (
         <section className="chill-ending">
@@ -308,14 +312,14 @@ export default function ChillExperience() {
                 : "Préparer ma photo souvenir"}
           </button>
           {photo && (
-            <a href={photo} download="Haikuarelle-Virtuelle-souvenir.png">
+            <a href={photo} download="Oizo-Bulle-souvenir.png">
               Télécharger la photo PNG HD
             </a>
           )}
           <p>Vous pouvez laisser reposer votre regard.</p>
         </section>
       )}
-      {(error || twigs.error) && (
+      {!contemplating && (error || twigs.error) && (
         <p className="ambience-error" role="status">
           {error || twigs.error}
         </p>
