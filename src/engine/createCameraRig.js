@@ -12,7 +12,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   let panoramaPitch = 0;
   let panoramaYaw = 0,
     distanceSetting = 0;
-  let photoZoom = 1;
+  let photoZoom = 1,
+    chillDistance = 7.7;
   const photoPointers = new Map();
   let pinchDistance = 0;
   const panoramaPosition = new THREE.Vector3();
@@ -34,7 +35,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     -Math.PI / 2,
   );
   const desired = new THREE.Vector3(),
-    target = new THREE.Vector3();
+    target = new THREE.Vector3(),
+    focus = new THREE.Vector3();
   const matrix = new THREE.Matrix4(),
     desiredQuaternion = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
@@ -278,7 +280,19 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     } else {
       canvas.dataset.droneIntent = "point-guided-follow";
       // A stable, centered view follows the bird while the aim-point keeps control.
-      camera.position.copy(painter).addScaledVector(direction, -5.5);
+      const breathingDistance = state.chill
+        ? 6.3 +
+          Math.sin((state.time || 0) * 0.17) * 0.5 +
+          (state.departure || 0) * 22 +
+          (1 + Math.sin((state.time || 0) * 0.037)) * 1.4
+        : 5.5;
+      chillDistance +=
+        (breathingDistance +
+          Math.min(1, state.motion || 0) * 0.6 -
+          chillDistance) *
+        mix(0.8);
+      const distance = state.chill ? chillDistance : 5.5;
+      camera.position.copy(painter).addScaledVector(direction, -distance);
       target.copy(painter).add(direction);
       matrix.lookAt(camera.position, target, up);
       desiredQuaternion.setFromRotationMatrix(matrix);
@@ -286,7 +300,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       camera.fov = 88;
       camera.far = Math.max(400, state.bounds.radius * 3);
       camera.updateProjectionMatrix();
-      canvas.dataset.fpvFollowDistance = "5.5";
+      canvas.dataset.fpvFollowDistance = state.chill
+        ? distance.toFixed(3)
+        : "5.5";
       return;
     }
     camera.position.lerp(desired, mix(2.8));
