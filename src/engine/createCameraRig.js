@@ -9,6 +9,16 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     dragging = null,
     revision = 0,
     disposed = false;
+  let povLocked = false,
+    povArrival = 0,
+    returnBlend = 1;
+  const povPoint = new THREE.Vector3(),
+    povStart = new THREE.Vector3(),
+    returnStart = new THREE.Vector3();
+  const returnRotation = new THREE.Quaternion();
+  let returnFov = 88,
+    returnDuration = 0.85;
+  let gyroPermission = false;
   let panoramaPitch = 0;
   let panoramaYaw = 0,
     distanceSetting = 0;
@@ -208,9 +218,11 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     }
     const state = getFlight();
     landscape.updateMatrixWorld(true);
-    panoramaPosition
-      .copy(state.bounds.center)
-      .applyMatrix4(landscape.matrixWorld);
+    if (povLocked) panoramaPosition.copy(povPoint);
+    else
+      panoramaPosition
+        .copy(state.bounds.center)
+        .applyMatrix4(landscape.matrixWorld);
     focus
       .copy(
         Number(canvas.dataset.markCount) > 0
@@ -221,8 +233,17 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       .sub(panoramaPosition);
     if (focus.lengthSq() < 1)
       focus.copy(state.direction).transformDirection(landscape.matrixWorld);
+    if (povLocked) camera.getWorldDirection(focus);
     panoramaYaw = Math.atan2(focus.x, focus.z);
     panoramaPitch = Math.atan2(focus.y, Math.hypot(focus.x, focus.z));
+    if (povLocked) {
+      gyroEnabled = gyroPermission;
+      aim.copy(panoramaPosition).addScaledVector(focus, 18);
+      onHint(
+        gyroEnabled ? "Regard 360°" : "Glissez pour regarder autour de vous",
+      );
+      return;
+    }
     onHint("Bougez votre appareil · glissez pour tourner le paysage");
     if (!window.DeviceOrientationEvent) {
       gyroEnabled = false;
@@ -328,6 +349,17 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       desiredQuaternion.setFromRotationMatrix(matrix);
       camera.quaternion.copy(desiredQuaternion);
       camera.fov = 88 + (state.opening || 0) * 3;
+      if (returnBlend < 1) {
+        returnBlend = Math.min(1, returnBlend + dt / returnDuration);
+        const blend = returnBlend * returnBlend * (3 - 2 * returnBlend);
+        camera.position.lerpVectors(returnStart, camera.position, blend);
+        camera.quaternion.slerpQuaternions(
+          returnRotation,
+          desiredQuaternion,
+          blend,
+        );
+        camera.fov = THREE.MathUtils.lerp(returnFov, camera.fov, blend);
+      }
       camera.far = Math.max(400, state.bounds.radius * 3);
       camera.updateProjectionMatrix();
       canvas.dataset.fpvFollowDistance = state.chill
@@ -335,9 +367,16 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         : "5.5";
       return;
     }
-    camera.position.lerp(desired, mix(2.8));
-    aim.lerp(target, mix(3.5));
-    matrix.lookAt(camera.position, aim, up);
+    if (povLocked) {
+      povArrival = Math.min(1, povArrival + dt / 1.2);
+      const blend = povArrival * povArrival * (3 - 2 * povArrival);
+      camera.position.lerpVectors(povStart, povPoint, blend);
+      aim.copy(target);
+    } else {
+      camera.position.lerp(desired, mix(2.8));
+      aim.lerp(target, mix(3.5));
+    }
+    matrix.lookAt(povLocked ? povPoint : camera.position, aim, up);
     desiredQuaternion.setFromRotationMatrix(matrix);
     desiredQuaternion.multiply(gyroRelative);
     camera.quaternion.slerp(desiredQuaternion, mix(5));
@@ -353,6 +392,46 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   canvas.dataset.droneDistance = String(distanceSetting);
   return {
     setMode,
+    async requestGyroscope(enabled = true) {
+      if (!enabled) return (gyroPermission = false);
+      try {
+        const Sensor = window.DeviceOrientationEvent;
+        gyroPermission =
+          Boolean(Sensor) &&
+          (typeof Sensor.requestPermission !== "function" ||
+            (await Sensor.requestPermission()) === "granted");
+      } catch {
+        gyroPermission = false;
+      }
+      return gyroPermission;
+    },
+    enterContemplation(point) {
+      povLocked = true;
+      povArrival = 0;
+      povPoint.copy(point);
+      povStart.copy(camera.position);
+      return setMode("gyro");
+    },
+    leaveContemplation() {
+      povLocked = false;
+      returnBlend = 0;
+      returnStart.copy(camera.position);
+      returnRotation.copy(camera.quaternion);
+      landscape.updateMatrixWorld(true);
+      const state = getFlight();
+      painter.copy(state.position).applyMatrix4(landscape.matrixWorld);
+      direction.copy(state.direction).transformDirection(landscape.matrixWorld);
+      desired.copy(painter).addScaledVector(direction, -chillDistance);
+      target.copy(painter).add(direction);
+      matrix.lookAt(desired, target, up);
+      desiredQuaternion.setFromRotationMatrix(matrix);
+      returnDuration = Math.max(
+        0.85,
+        returnRotation.angleTo(desiredQuaternion) / 1.6,
+      );
+      returnFov = camera.fov;
+      return setMode("drone");
+    },
     setPhotoZoom,
     setDistance(value) {
       distanceSetting = THREE.MathUtils.clamp(Number(value), 0, 1);

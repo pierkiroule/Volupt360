@@ -190,6 +190,8 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
       uAge: { value: 0 },
       uMaterialMode: { value: brush.materialMode || 0 },
       uMoisture: { value: 0.6 },
+      uMoodGrain: { value: brush.moodGranulation ?? 1 },
+      uMoodDiffusion: { value: brush.moodDiffusion ?? 1 },
       uStrokeExtent: { value: 0 },
       uPigment: { value: 1.12 },
       uAudioEnergy: { value: 0 },
@@ -234,6 +236,8 @@ export function createBrushStroke(
         opacity: dynamics.opacity ?? template.opacity,
         generatedWidth: dynamics.width,
         materialMode: dynamics.materialMode || 0,
+        moodGranulation: dynamics.moodGranulation,
+        moodDiffusion: dynamics.moodDiffusion,
         style: dynamics.style ?? template.style,
       }
     : template;
@@ -543,6 +547,17 @@ export function createBrushStroke(
                     : 0.1 + 0.2 * Math.cos(count + layer) ** 2),
             isMist ? 1 : scale * 0.85,
           );
+          if (dynamics?.moodMotion === "rain") {
+            mesh.scale.x *= 0.32;
+            mesh.scale.y *= 1.85;
+            mesh.position.addScaledVector(sample.up, -0.35);
+          } else if (dynamics?.moodMotion === "spark") {
+            mesh.scale.multiplyScalar(0.48);
+            mesh.position.addScaledVector(
+              sample.side,
+              Math.sin(seed + count) * 0.6,
+            );
+          }
           if (sample.wake) {
             material.uniforms.uWakeOffset.value
               .copy(mesh.position)
@@ -657,6 +672,21 @@ export function createBrushStroke(
           if (dynamics?.wakeThread) {
             lateral = Math.cos(u * Math.PI * 2) * 0.012;
             vertical = Math.sin(u * Math.PI * 2) * 0.012;
+          }
+          // Optional pictorial signatures; flight positions remain untouched.
+          const mood = dynamics?.moodMotion;
+          const phase = pose.time * 1.8 + seed + layer;
+          if (mood === "swirl") {
+            lateral += Math.sin(phase) * 0.55;
+            vertical += Math.cos(phase) * 0.55;
+          } else if (mood === "angular") {
+            lateral += Math.asin(Math.sin(phase * 2.2)) * 0.3;
+            vertical += Math.asin(Math.sin(phase * 1.6 + 0.8)) * 0.2;
+          } else if (mood === "wave") {
+            vertical += Math.sin(phase * 0.65) * width * 0.55;
+          } else if (mood === "breeze") {
+            lateral *= 0.55;
+            vertical += Math.sin(phase * 0.4) * 0.18;
           }
           vertical += layer * 0.09;
           const point = pointScratch

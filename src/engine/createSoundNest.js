@@ -1,3 +1,4 @@
+import { createContemplationState } from "../chill/createContemplationState.js";
 import { createPhasePalette } from "../chill/phasePalette.js";
 import { sampleExperience } from "../chill/experienceTimeline.js";
 import { createPigmentArchive } from "../chill/createPigmentArchive.js";
@@ -43,6 +44,7 @@ export function createSoundNest(
     onSessionProgress,
     onSessionComplete,
     onSessionInterrupted,
+    onContemplationChange,
   } = {},
 ) {
   const mobile =
@@ -141,6 +143,9 @@ export function createSoundNest(
   const generatedBrushes = new Map();
   renderer.domElement.dataset.celestialBrushes = "0";
   renderer.domElement.dataset.activeBrush = brush;
+  const contemplation = createContemplationState();
+  const contemplationWorld = new THREE.Vector3();
+  let resonanceMode = false;
   let phasePalette = null;
   let chillSession = null,
     chillMode = false,
@@ -299,6 +304,11 @@ export function createSoundNest(
       density: fromPad ? Math.max(0.25, region.density) : region.density,
     };
     paintedSamples++;
+    vocalFireflies?.notifyPaint?.(
+      pose.position,
+      paintedSamples,
+      generatedBrushes.get(brush)?.color,
+    );
     if (!activeStroke || activeStroke.stroke.full) beginStroke(brush, pose);
     activeStroke.stroke.append(pose);
     padSource?.depositSound?.(
@@ -383,6 +393,8 @@ export function createSoundNest(
     boundsDirty = false;
   }
   function reset() {
+    if (contemplation.active) rig.leaveContemplation();
+    contemplation.reset();
     cancelSteering();
     bridge.close();
     padStates.clear();
@@ -576,6 +588,7 @@ export function createSoundNest(
       !navigation.windEnabled ||
       chillSession?.departing ||
       chillPaused ||
+      contemplation.active ||
       photo ||
       cameraMode !== "drone" ||
       event.button > 0 ||
@@ -680,6 +693,36 @@ export function createSoundNest(
     endDirect();
     if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
   }
+  function enterContemplation(fragment) {
+    if (
+      !resonanceMode ||
+      chillPaused ||
+      chillSession?.departing ||
+      document.hidden ||
+      !lastFlightPose
+    )
+      return false;
+    if (
+      !contemplation.enter(
+        fragment,
+        brush,
+        navigation.position,
+        oizo.group.quaternion,
+      )
+    )
+      return false;
+    cancelSteering();
+    bridge.close();
+    chillSession?.setPaused(true);
+    landscape.updateMatrixWorld(true);
+    contemplationWorld
+      .copy(contemplation.position)
+      .applyMatrix4(landscape.matrixWorld);
+    cameraMode = "gyro";
+    void rig.enterContemplation(contemplationWorld);
+    onContemplationChange?.(true, fragment);
+    return true;
+  }
   window.addEventListener("blur", cancelSteering);
   const steeringListeners = [
     ["pointerdown", onSteeringDown],
@@ -698,7 +741,7 @@ export function createSoundNest(
     let dt = Math.max(0, Math.min(0.1, milliseconds / 1000));
     lastTime = now;
     if (document.hidden) return;
-    if (chillPaused || chillSession?.complete) dt = 0;
+    if (chillPaused || contemplation.active || chillSession?.complete) dt = 0;
     const audioClock = chillSession
       ? padSource?.getExperienceAudioClock?.()
       : null;
@@ -708,6 +751,7 @@ export function createSoundNest(
       !audioClock.playing &&
       !audioClock.ended &&
       !chillPaused &&
+      !contemplation.active &&
       !chillSession.departing
     ) {
       chillPaused = true;
@@ -800,7 +844,8 @@ export function createSoundNest(
           3,
         );
         oizo?.update(pose);
-        if (oizo) oizo.group.visible = !directSculpture;
+        if (oizo)
+          oizo.group.visible = !directSculpture && !contemplation.active;
         renderer.domElement.dataset.autonomousFlight = String(
           Boolean(pose.autonomous),
         );
@@ -855,11 +900,14 @@ export function createSoundNest(
           vocalFireflies = createVocalBubbles({
             watercolor: chillMode,
             staged: chillMode,
+            emergence: resonanceMode ? {} : null,
             fragments,
-            collide: (id) =>
-              onPoeticFragment?.(
-                poeticFragments.find((fragment) => fragment.id === id),
-              ) || false,
+            collide: (id) => {
+              const fragment = poeticFragments.find((item) => item.id === id);
+              return resonanceMode
+                ? enterContemplation(fragment)
+                : onPoeticFragment?.(fragment) || false;
+            },
             onScore: onBubbleScore,
           });
           landscape.add(vocalFireflies.group);
@@ -870,7 +918,9 @@ export function createSoundNest(
           vocalFireflies.update(
             dt,
             pose,
-            !directSculpture &&
+            !contemplation.active &&
+              !chillPaused &&
+              !directSculpture &&
               (cameraMode === "drone" ||
                 (chillMode && cameraMode === "gyro")) &&
               !chillSession?.departing,
@@ -897,7 +947,8 @@ export function createSoundNest(
         sampleClock += dt;
         const pose = flight.update(dt, f);
         oizo?.update(pose);
-        if (oizo) oizo.group.visible = !directSculpture;
+        if (oizo)
+          oizo.group.visible = !directSculpture && !contemplation.active;
         renderer.domElement.dataset.autonomousFlight = String(
           Boolean(pose.autonomous),
         );
@@ -1037,7 +1088,17 @@ export function createSoundNest(
       if (densityClock <= dt) boundsDirty = true;
       if (boundsDirty) updateBounds();
     }
-    renderer.domElement.dataset.sculpturePaused = String(photo);
+    renderer.domElement.dataset.sculpturePaused = String(
+      photo || contemplation.active,
+    );
+    renderer.domElement.dataset.experienceState = contemplation.mode;
+    renderer.domElement.dataset.activeResonanceBubbles = String(
+      vocalFireflies?.activeCount || 0,
+    );
+    renderer.domElement.dataset.cameraPosition = camera.position
+      .toArray()
+      .map((n) => n.toFixed(4))
+      .join(",");
     if (chillSession) {
       renderer.domElement.dataset.experiencePhase = chillSession.state.phase;
       renderer.domElement.dataset.experienceTime =
@@ -1052,8 +1113,14 @@ export function createSoundNest(
       marks[0]?.uniforms[0]?.uTime?.value ?? 0
     ).toFixed(3);
     rig.update(
-      chillSession?.complete ? Math.min(0.1, milliseconds / 1000) : dt,
+      chillSession?.complete || contemplation.active
+        ? Math.min(0.1, milliseconds / 1000)
+        : dt,
     );
+    renderer.domElement.dataset.cameraOrientation = camera.quaternion
+      .toArray()
+      .map((n) => n.toFixed(5))
+      .join(",");
     if (chillMode && moodAtmosphere)
       moodAtmosphere.object.position.copy(camera.position);
 
@@ -1299,6 +1366,20 @@ export function createSoundNest(
         else previous.texture.dispose();
       }
     },
+    requestContemplationGyroscope(enabled = true) {
+      return rig.requestGyroscope(enabled);
+    },
+    resumeFlight() {
+      if (!contemplation.leave()) return false;
+      brush = contemplation.brush;
+      renderer.domElement.dataset.activeBrush = brush;
+      vocalFireflies?.resume?.();
+      cameraMode = "drone";
+      void rig.leaveContemplation();
+      chillSession?.setPaused(chillPaused);
+      onContemplationChange?.(false, null);
+      return true;
+    },
     startChillSession() {
       chillPaused = false;
       chillDeparted = false;
@@ -1309,7 +1390,7 @@ export function createSoundNest(
     },
     pauseChillSession(paused) {
       chillPaused = paused;
-      chillSession?.setPaused(paused);
+      chillSession?.setPaused(paused || contemplation.active);
       if (paused) cancelSteering();
     },
     setPoeticFragments(fragments) {
@@ -1329,6 +1410,7 @@ export function createSoundNest(
       for (const profile of phasePalette?.profiles || profiles)
         this.setGeneratedBrush(profile.id, profile);
       chillMode = Boolean(universe.chill);
+      resonanceMode = Boolean(universe.resonanceBubbles);
       chillSession = null;
       chillTrails?.dispose();
       chillTrails = null;
@@ -1345,6 +1427,7 @@ export function createSoundNest(
       renderer.domElement.dataset.moodBackground = universe.background;
     },
     setCameraMode(next) {
+      if (resonanceMode && (next === "gyro" || contemplation.active)) return;
       endDirect();
       if (next === "sculpt") directSculpture = true;
       else if (next === "drone") directSculpture = false;

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createBubbleEmergence } from "../chill/createBubbleEmergence.js";
 
 /** Shared lightweight spheres; swept relative motion detects actual volume entry. */
 export function createVocalBubbles({
@@ -7,12 +8,21 @@ export function createVocalBubbles({
   onScore = () => {},
   watercolor = false,
   staged = false,
+  emergence = null,
 }) {
   const group = new THREE.Group();
   const geometry = new THREE.SphereGeometry(2.1, 24, 16);
   const previous = new THREE.Vector3(),
     relative = new THREE.Vector3(),
     delta = new THREE.Vector3();
+  const emerging = emergence
+    ? createBubbleEmergence(fragments.length, emergence)
+    : null;
+  let samples = 0,
+    held = false;
+  const pigmentPoint = new THREE.Vector3();
+  const pigmentColor = new THREE.Color("#a0b9c4"),
+    newColor = new THREE.Color("#dde7e2");
   let elapsed = 0;
   let time = 0,
     initialized = false,
@@ -48,6 +58,7 @@ export function createVocalBubbles({
       Math.sin(i * 1.7) * 10,
       Math.sin(angle) * radius,
     );
+    mesh.visible = !staged && !emerging;
     group.add(mesh);
     return {
       id: fragment.id,
@@ -58,6 +69,8 @@ export function createVocalBubbles({
       resonance: 0,
       burstAge: -1,
       removed: false,
+      released: !emerging,
+      entered: false,
       appearAt: staged
         ? i < 4
           ? i * 12
@@ -72,6 +85,24 @@ export function createVocalBubbles({
     setElapsed(value) {
       elapsed = value;
     },
+    notifyPaint(point, count, color) {
+      if (color) pigmentColor.set(color);
+      pigmentPoint.copy(point);
+      samples = count;
+    },
+    resume() {
+      held = false;
+      const index = emerging?.active ?? -1;
+      if (index >= 0) {
+        rings[index].burstAge = 0;
+        emerging.release(elapsed, samples);
+      }
+    },
+    get activeCount() {
+      return rings.filter(
+        (ring) => !ring.removed && ring.released && ring.burstAge < 0,
+      ).length;
+    },
     get count() {
       return rings.length;
     },
@@ -79,11 +110,13 @@ export function createVocalBubbles({
       return rings.filter((ring) => ring.burstAge < 0).length;
     },
     getNearest(position, result) {
-      if (disposed || pending || silence > 0) return false;
+      if (disposed || pending || held || silence > 0) return false;
       let nearest = null,
         distance = Infinity;
       for (const ring of rings) {
         if (
+          !ring.released ||
+          ring.entered ||
           ring.removed ||
           ring.burstAge >= 0 ||
           ring.cooldown > 0 ||
@@ -105,6 +138,26 @@ export function createVocalBubbles({
     },
     update(dt, pose, enabled = true) {
       time += dt;
+      const proposal =
+        enabled && !held ? emerging?.propose(elapsed, samples) : -1;
+      if (proposal >= 0) {
+        const ring = rings[proposal];
+        ring.released = true;
+        ring.mesh.material.uniforms.color.value
+          .copy(pigmentColor)
+          .lerp(newColor, 0.32);
+        ring.appearAt = elapsed;
+        // Emerge alongside recent pigment, ahead of the flight rather than on it.
+        const anchor = ring.anchor;
+        anchor.copy(pigmentPoint);
+        if (anchor.distanceTo(pose.position) > 12) anchor.copy(pose.position);
+        anchor.lerp(pose.position, 0.6).addScaledVector(pose.direction, 9);
+        anchor.y += 2;
+        if (anchor.distanceTo(pose.position) < 6)
+          anchor.copy(pose.position).addScaledVector(pose.direction, 9);
+        ring.mesh.position.copy(anchor);
+        ring.previous.copy(anchor);
+      }
       silence = Math.max(0, silence - dt);
       if (!initialized || !enabled) {
         previous.copy(pose.position);
@@ -113,15 +166,17 @@ export function createVocalBubbles({
       for (let i = 0; i < rings.length; i++) {
         const ring = rings[i],
           mesh = ring.mesh;
-        mesh.visible = elapsed >= ring.appearAt;
+        mesh.visible =
+          ring.released && !ring.removed && elapsed >= ring.appearAt;
         if (!ring.removed)
-          mesh.material.uniforms.presence.value = staged
-            ? THREE.MathUtils.smoothstep(
-                elapsed,
-                ring.appearAt,
-                ring.appearAt + 4,
-              )
-            : 1;
+          mesh.material.uniforms.presence.value =
+            staged || emerging
+              ? THREE.MathUtils.smoothstep(
+                  elapsed,
+                  ring.appearAt,
+                  ring.appearAt + (emerging?.settings.fadeSeconds ?? 4),
+                )
+              : 1;
         if (ring.removed || !mesh.visible) continue;
         if (ring.burstAge >= 0) {
           ring.burstAge += dt;
@@ -145,6 +200,7 @@ export function createVocalBubbles({
               Math.cos(time * 0.09 + i) * 0.65,
             ),
           );
+        if (emerging) mesh.position.lerp(ring.anchor, 0.8);
         ring.cooldown = Math.max(0, ring.cooldown - dt);
         ring.resonance *= Math.exp(-dt * 0.65);
         mesh.scale.setScalar(
@@ -156,6 +212,10 @@ export function createVocalBubbles({
         const radius = 2.1 * mesh.scale.x;
         if (
           !enabled ||
+          held ||
+          ring.entered ||
+          (emerging &&
+            elapsed < ring.appearAt + emerging.settings.fadeSeconds) ||
           pending ||
           silence ||
           ring.cooldown ||
@@ -178,7 +238,10 @@ export function createVocalBubbles({
               collisions++;
               onScore(collisions, fragments.length);
               ring.resonance = 1;
-              ring.burstAge = 0;
+              if (emerging) {
+                held = true;
+                ring.entered = true;
+              } else ring.burstAge = 0;
               silence = 10;
             }
           })

@@ -5,7 +5,8 @@ test("24 original haikus each have three distinct nonempty verses", async ({
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "L’Oizo de l’Haïkuarelle Virtuelle",
+      name: "OIZO-BULLE •°",
+      level: 2,
       exact: true,
     }),
   ).toBeVisible();
@@ -22,7 +23,7 @@ test("24 original haikus each have three distinct nonempty verses", async ({
     expect(poem.source).toBeUndefined();
   }
 });
-test("haiku encounter keeps three lines in the five-second central reveal", async ({
+test("contemplative encounter reveals a short phrase for five seconds", async ({
   page,
 }) => {
   await page.route("**/src/sonoizo/createVocalBubbles.js", async (route) => {
@@ -40,7 +41,9 @@ test("haiku encounter keeps three lines in the five-second central reveal", asyn
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const poem = page.locator(".poetic-fragment");
   await expect(poem).toBeVisible();
-  expect((await poem.locator("p").innerText()).split("\n")).toHaveLength(3);
+  expect(await poem.locator("p").innerText()).toBe(
+    "Un même nuage, plusieurs façons de le regarder.",
+  );
   expect(
     await poem.locator("p").evaluate((e) => getComputedStyle(e).whiteSpace),
   ).toBe("pre-line");

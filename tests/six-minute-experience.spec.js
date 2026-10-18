@@ -217,35 +217,6 @@ test("mobile audio interruption pauses the timeline and a gesture resumes it wit
   await expect(page.locator(".bubble-score")).toHaveCount(0);
 });
 
-test("denied gyroscope keeps a stable tactile alternative and recenter control", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    window.DeviceOrientationEvent = class extends Event {
-      static requestPermission() {
-        window.__gyroRequested = true;
-        return Promise.resolve("denied");
-      }
-    };
-  });
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
-  await page.getByRole("button", { name: "Prendre son envol" }).click();
-  await page.getByRole("button", { name: "Gyro 360°" }).click();
-  expect(await page.evaluate(() => window.__gyroRequested)).toBe(true);
-  await expect(page.locator(".gyro-guidance")).toContainText("non autorisé");
-  const canvas = page.locator("#stage canvas");
-  const before = await canvas.getAttribute("data-painter-position");
-  await page.mouse.move(450, 350);
-  await page.mouse.down();
-  await page.mouse.move(600, 410, { steps: 10 });
-  await page.mouse.up();
-  await expect(canvas).toHaveAttribute("data-camera-mode", "gyro");
-  await page.getByRole("button", { name: "Recentrer la vue 360°" }).click();
-  expect(errors).toEqual([]);
-});
-
 test("one watercolor sky interpolates night, auroras and dawn and remembers a flight passage", async ({
   page,
 }) => {
@@ -355,7 +326,7 @@ test("paint archive survives phase changes inside one continuous live scene", as
   for (let i = 0; i < 12; i++) {
     await page
       .getByRole("button", {
-        name: i % 2 ? "Encre fine" : "Lavis aérien",
+        name: i % 2 ? "Impulsions graphiques" : "Ondulations de pigments",
         exact: true,
       })
       .click();
@@ -379,8 +350,16 @@ test("paint archive survives phase changes inside one continuous live scene", as
   await page.screenshot({ path: "/tmp/journey-aurora.png" });
   await expect
     .poll(
-      async () => Number(await canvas.getAttribute("data-experience-time")),
-      { timeout: 18000 },
+      async () => {
+        // Contemplations now pause active time: explicitly resume this journey.
+        const resume = page.getByRole("button", {
+          name: "Reprendre le vol",
+          exact: true,
+        });
+        if (await resume.isVisible()) await resume.click();
+        return Number(await canvas.getAttribute("data-experience-time"));
+      },
+      { timeout: 22000 },
     )
     .toBeGreaterThan(235);
   await expect(canvas).toHaveAttribute("data-experience-phase", "dawn");

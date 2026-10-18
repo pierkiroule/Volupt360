@@ -76,8 +76,6 @@ export function createExperienceTimeline({
             : Math.max(0, audio.time - lastAudio);
         lastAudio = audio.time;
         if (!audio.playing) delta = 0;
-        if (audio.ended && audio.duration >= EXPERIENCE_SECONDS)
-          delta = Math.max(delta, EXPERIENCE_SECONDS - state.elapsed);
       }
       if (paused) delta = 0;
       sampleExperience(state.elapsed + delta, state);

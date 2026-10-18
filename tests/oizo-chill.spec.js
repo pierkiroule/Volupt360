@@ -39,7 +39,7 @@ test("six-minute active session finishes the washes, then completes its eight-se
   expect(r.last).toBe(368);
 });
 
-test("mobile chill starts one universe with six brushes, two views, immediate paint and a real pause", async ({
+test("mobile OIZO-BULLE starts with eight symbols and a neutral brush, immediate paint and pause", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -51,7 +51,8 @@ test("mobile chill starts one universe with six brushes, two views, immediate pa
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "L’Oizo de l’Haïkuarelle Virtuelle",
+      name: "OIZO-BULLE •°",
+      level: 2,
       exact: true,
     }),
   ).toBeVisible();
@@ -61,22 +62,23 @@ test("mobile chill starts one universe with six brushes, two views, immediate pa
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-music-energy")))
     .toBeGreaterThan(0.01);
-  await expect(
-    page.getByRole("navigation", { name: "Vues caméra" }).getByRole("button"),
-  ).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Gyro 360°" })).toHaveCount(0);
   await expect(
     page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
-  ).toHaveCount(6);
+  ).toHaveCount(9);
   await expect(
     page.getByRole("button", { name: /photo|capture|globale/i }),
   ).toHaveCount(0);
   for (const brush of [
-    "Lavis aérien",
-    "Pigment sec",
-    "Encre fine",
-    "Éclats d’encre",
-    "Encre diluée",
-    "Empreintes",
+    "Tourbillons d’encre",
+    "Impulsions graphiques",
+    "Gouttes et coulures",
+    "Brume diffuse",
+    "Ondulations de pigments",
+    "Grain minéral",
+    "Filaments légers",
+    "Éclats de pigments",
+    "Lavis neutre",
   ]) {
     await page.getByRole("button", { name: brush, exact: true }).click();
     await page.mouse.move(150, 340);
@@ -93,9 +95,6 @@ test("mobile chill starts one universe with six brushes, two views, immediate pa
   await page.waitForTimeout(300);
   expect(await canvas.getAttribute("data-life-time")).toBe(time);
   await page.getByRole("button", { name: "Reprendre", exact: true }).click();
-  await page.getByRole("button", { name: "Gyro 360°" }).click();
-  await expect(canvas).toHaveAttribute("data-camera-mode", "gyro");
-  await page.getByRole("button", { name: "FPV", exact: true }).click();
   await page.screenshot({ path: "/tmp/oizo-chill.png" });
   expect(errors).toEqual([]);
 });

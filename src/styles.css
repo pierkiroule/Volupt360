@@ -2226,3 +2226,77 @@ label:focus-visible {
   border-radius: 0.7rem;
   padding: 0.2rem 0.5rem;
 }
+
+/* OIZO-BULLE: one sky, two reversible interaction states. */
+.gyro-opt-in {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  font: 500 0.78rem/1.5 sans-serif;
+  margin: 1rem auto;
+}
+.chill-experience .landscape-palette {
+  max-width: calc(100vw - 16px);
+  bottom: max(16px, env(safe-area-inset-bottom));
+}
+.chill-experience .landscape-palette > div {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+  padding: 4px;
+}
+.chill-experience .landscape-palette button {
+  flex: 0 0 34px;
+  width: 34px;
+  min-width: 34px;
+  height: 42px;
+  font-size: 21px;
+}
+.chill-experience .landscape-palette button:last-child {
+  font-size: 26px;
+}
+.chill-experience.is-contemplating .brand {
+  display: none;
+}
+.resonance-contemplation {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.resonance-phrase p {
+  max-width: 28ch;
+  padding: 0.65em 1em;
+  border-radius: 1.5rem;
+  background: rgb(18 32 45 / 65%);
+  color: #f8f3e9;
+  text-shadow: none;
+}
+.resume-flight {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  min-height: 44px;
+  padding: 0.7rem 1.25rem;
+  border-radius: 2rem;
+  color: #f8f3e9;
+  background: rgb(18 32 45 / 76%);
+  border: 1px solid rgb(248 243 233 / 40%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .resonance-phrase {
+    animation: none;
+  }
+}
+.chill-experience.is-running .brand p {
+  display: none;
+}
+.chill-experience .landscape-palette button {
+  box-sizing: border-box;
+  padding: 0;
+}
