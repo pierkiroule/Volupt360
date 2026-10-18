@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("three flight figures are distinct, continuous, pauseable and manually interruptible", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const results = await page.evaluate(async () => {
     const { createPointFlight } =
       await import("/src/engine/createPointFlight.js");
@@ -86,7 +86,7 @@ test("triangular tools above the brushes paint from both wings during all three 
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const canvas = page.locator("#stage canvas");
   const group = page.getByRole("group", { name: "Acrobaties peintes" });

@@ -484,6 +484,22 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       returnFov = camera.fov;
       return setMode("drone");
     },
+    // Shared 360° rig can also travel through the learning world; bubble POVs
+    // simply keep this anchor fixed. Sensor and pointer handling stay identical.
+    setExplorationPosition(point) {
+      povLocked = true;
+      povArrival = 1;
+      povPoint.copy(point);
+      povStart.copy(point);
+      panoramaPosition.copy(point);
+    },
+    lookAtExploration(point) {
+      focus.copy(point).sub(povPoint).normalize();
+      panoramaYaw = Math.atan2(focus.x, focus.z);
+      panoramaPitch = Math.atan2(focus.y, Math.hypot(focus.x, focus.z));
+      gyroReference = null;
+      gyroRelative.identity();
+    },
     setPhotoZoom,
     setDistance(value) {
       distanceSetting = THREE.MathUtils.clamp(Number(value), 0, 1);

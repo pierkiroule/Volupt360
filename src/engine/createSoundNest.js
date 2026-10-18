@@ -1,3 +1,4 @@
+import { createPoeticLearning } from "../learning/createPoeticLearning.js";
 import { createNarrativeEventManager } from "../narrative/createNarrativeEventManager.js";
 import { createContemplationState } from "../chill/createContemplationState.js";
 import { createPhasePalette } from "../chill/phasePalette.js";
@@ -147,7 +148,8 @@ export function createSoundNest(
   renderer.domElement.dataset.activeBrush = brush;
   const contemplation = createContemplationState();
   const contemplationWorld = new THREE.Vector3();
-  let narrative = null;
+  let narrative = null,
+    poeticLearning = null;
   const narrativeContext = {
     position: navigation.position,
     direction: navigation.direction,
@@ -417,6 +419,8 @@ export function createSoundNest(
     boundsDirty = false;
   }
   function reset() {
+    poeticLearning?.dispose();
+    poeticLearning = null;
     if (contemplation.active) rig.leaveContemplation();
     contemplation.reset();
     narrative?.clear();
@@ -791,6 +795,17 @@ export function createSoundNest(
     let dt = Math.max(0, Math.min(0.1, milliseconds / 1000));
     lastTime = now;
     if (document.hidden) return;
+    if (poeticLearning) {
+      if (budget.update(milliseconds, dt)) {
+        renderer.setPixelRatio(budget.ratio);
+        renderer.setSize(innerWidth, innerHeight);
+        effects.resize();
+        renderer.domElement.dataset.renderScale = budget.ratio.toFixed(3);
+      }
+      poeticLearning.update(dt);
+      effects.render(scene, camera);
+      return;
+    }
     if (chillPaused || contemplation.active || chillSession?.complete) dt = 0;
     const audioClock = chillSession
       ? padSource?.getExperienceAudioClock?.()
@@ -1332,6 +1347,22 @@ export function createSoundNest(
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   frameId = requestAnimationFrame(frame);
   return {
+    startPoeticLearning(options) {
+      poeticLearning?.dispose();
+      cameraMode = "gyro";
+      navigation.windEnabled = false;
+      tip.visible = false;
+      poeticLearning = createPoeticLearning({
+        scene,
+        camera,
+        rig,
+        canvas: renderer.domElement,
+        sky: moodAtmosphere,
+        mobile,
+        ...options,
+      });
+      return poeticLearning;
+    },
     setPadSource(source) {
       padSource?.setCaptureTap(null);
       bridge.close();
@@ -1648,6 +1679,7 @@ export function createSoundNest(
       window.removeEventListener("blur", cancelSteering);
       for (const [name, handler] of steeringListeners)
         renderer.domElement.removeEventListener(name, handler);
+      poeticLearning?.dispose();
       rig.dispose();
       narrative?.dispose();
       pigmentArchive.dispose();

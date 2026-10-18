@@ -1,12 +1,12 @@
-# OIZO-BULLE •°
+# OIZO•° — Poetic Learning
 
-On sculpte son ciel émotionnel pour apprendre à le contempler autrement.
+**Pourquoi cherchons-nous à nous sentir plus légers ?**
 
-Un oiseau peint un ciel aquarelle et encre fine. Huit Mood Brushes à pictogrammes et un lavis neutre accompagnent le geste : toucher peint depuis les deux ailes, glisser guide le vol. Une bulle à la fois émerge de la peinture et ouvre une contemplation 360° du même paysage. « Reprendre le vol » restitue immédiatement le contrôle.
+Une exploration aquarellée d’environ quinze minutes : douze bulles scientifiques, trois découvertes par bulle et un voyage qui dessine spontanément le ciel. Regardez une bulle pendant 1,5 seconde pour entrer, puis explorez Mystère, Découverte scientifique et Résonance poétique. Gyroscope facultatif, alternative tactile complète, progression locale et musique Gravity.
 
-La traversée Nuit → Aurores → Aube dure six minutes de vol actif ; contempler ne consomme pas ce temps. Les 24 phrases originales restent facultatives, sans score ni questionnaire. La musique continue dans les bulles, les pigments persistent et le final conserve la photo PNG HD.
+Le nouveau parcours réutilise le moteur Three.js, les brosses et l’audio. L’ancien OIZO-BULLE reste disponible avec ?original=1, sans changement de ses interactions. Les ateliers historiques restent accessibles avec ?legacy=1 ou ?classic=1.
 
-Voir [architecture, paramètres, vérifications et limites](docs/oizo-bulle.md). L’expérience est une médiation artistique, sans efficacité thérapeutique revendiquée ni analyse des émotions. Le gyro est facultatif et réservé aux bulles ; le regard tactile reste disponible.
+Voir [architecture, contenus, sauvegarde, tests et limites](docs/poetic-learning.md). Ce parcours pédagogique ne mesure pas l’état psychologique du visiteur et ne revendique pas d’efficacité thérapeutique.
 
 ## Développement
 
@@ -30,9 +30,9 @@ Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend n
 
 ```sh
 npx playwright install chromium
-npm test -- tests/oizo-bulle.spec.js tests/oizo-chill.spec.js tests/six-minute-experience.spec.js tests/point-flight.spec.js tests/haikuarelle.spec.js tests/living-pigments.spec.js tests/watercolor-alpha.spec.js
+npm test -- tests/poetic-learning.spec.js tests/oizo-bulle.spec.js tests/oizo-chill.spec.js tests/six-minute-experience.spec.js tests/point-flight.spec.js tests/haikuarelle.spec.js tests/living-pigments.spec.js tests/watercolor-alpha.spec.js
 ```
 
-L’ancien atelier MP3 reste disponible à `/?atelier=mp3`. Ses fonctions et les modules musicaux historiques ne définissent pas le parcours principal.
+L’ancien atelier MP3 reste disponible à `/?legacy=1`. Ses fonctions et les modules musicaux historiques ne définissent pas le parcours principal.
 
-Les 24 bulles déclenchent désormais des événements picturaux après la reprise du vol : [architecture et vérification](docs/living-narrative-events.md).
+Dans l’ancien parcours OIZO-BULLE, les 24 bulles déclenchent des événements picturaux après la reprise du vol : [architecture et vérification](docs/living-narrative-events.md).

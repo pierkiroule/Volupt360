@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("bubble 15 prepares silently, resumes into a tit's shared flight, then frees its resources", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createNarrativeEventManager } =
@@ -66,7 +66,7 @@ test("actual contemplation prepares event 15 and only resuming reveals the compa
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const canvas = page.locator("#stage canvas");
   await expect(
@@ -105,7 +105,7 @@ test("all 24 events render, finish naturally and release GPU allocations on mobi
 }) => {
   test.setTimeout(90000);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?original=1");
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
@@ -186,7 +186,7 @@ test("all 24 events render, finish naturally and release GPU allocations on mobi
 test("overlapping events stay bounded and finish retains only lightweight landmarks", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createNarrativeEventManager } =
@@ -230,7 +230,7 @@ test("overlapping events stay bounded and finish retains only lightweight landma
 test("the optional refuge only perches on true proximity and releases immediately", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createNarrativeEventManager } =
@@ -279,7 +279,7 @@ test("help resources remain accessible from welcome and inside a contemplation",
       ),
     });
   });
-  await page.goto("/");
+  await page.goto("/?original=1");
   const help = page.getByRole("button", {
     name: "Ressources d’aide",
     exact: true,
@@ -311,7 +311,7 @@ test("help resources remain accessible from welcome and inside a contemplation",
 test("spirals and memory contrast affect actual pigment shaders without changing stored geometry", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());

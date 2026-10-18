@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("precise touch overrides orbit immediately; release returns to a bounded living orbit", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createPointFlight } =
@@ -68,7 +68,7 @@ test("precise touch overrides orbit immediately; release returns to a bounded li
 test("hands-free flight reaches a nearby bubble while touch immediately overrides its attraction", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createPointFlight } =

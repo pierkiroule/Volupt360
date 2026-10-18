@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("phase interpolation is continuous at 60 and 180 seconds, with an audio-led paused clock", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const { sampleExperience, createExperienceTimeline } =
       await import("/src/chill/experienceTimeline.js");
@@ -52,7 +52,7 @@ test("phase interpolation is continuous at 60 and 180 seconds, with an audio-led
 test("24 bubbles appear as 4 night, 8 aurora, 12 dawn passages without regeneration", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createVocalBubbles } =
@@ -80,7 +80,7 @@ test("six-minute drawing workload preserves all dry geometries with bounded batc
   page,
 }) => {
   test.setTimeout(90000);
-  await page.goto("/");
+  await page.goto("/?original=1");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -191,7 +191,7 @@ test("mobile audio interruption pauses the timeline and a gesture resumes it wit
       return original.apply(this, args);
     };
   });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const canvas = page.locator("#stage canvas");
   await expect
@@ -220,7 +220,7 @@ test("mobile audio interruption pauses the timeline and a gesture resumes it wit
 test("one watercolor sky interpolates night, auroras and dawn and remembers a flight passage", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -279,7 +279,7 @@ test("missing soundtrack permits the full silent timeline and exit returns to th
   );
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const canvas = page.locator("#stage canvas");
   await expect
@@ -316,7 +316,7 @@ test("paint archive survives phase changes inside one continuous live scene", as
     if (m.type() === "error") errors.push(m.text());
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const canvas = page.locator("#stage canvas");
   await page.evaluate(() => {

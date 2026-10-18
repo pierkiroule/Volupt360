@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("emitters follow the actual skinned wing tips in landscape coordinates", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createOizo } = await import("/src/sonoizo/createOizo.js");
@@ -78,7 +78,7 @@ test("touch starts two separate wing strokes and changing brushes closes both st
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   await expect(page.locator(".chill-welcome")).toHaveCount(0);
   const canvas = page.locator("#stage canvas");
