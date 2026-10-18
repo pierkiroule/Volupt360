@@ -173,6 +173,13 @@ export function createOizo() {
       previousDirection.copy(pose.direction);
       previousTime = pose.time;
     },
+    getWingPosition(index, target) {
+      // Sample the actual skinned trailing tip after banking and wing articulation.
+      group.updateMatrixWorld(true);
+      const mesh = wings[index === 0 ? 0 : 1].mesh;
+      mesh.getVertexPosition(33, target).applyMatrix4(mesh.matrixWorld);
+      return group.parent ? group.parent.worldToLocal(target) : target;
+    },
     getTailPosition(target) {
       return target
         .set(0, -0.008, -0.23)

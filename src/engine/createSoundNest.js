@@ -177,7 +177,7 @@ export function createSoundNest(
     seed: Math.floor(Math.random() * 4294967296),
   });
   const padStates = new Map();
-  const tailPosition = new THREE.Vector3();
+  const wingPositions = [new THREE.Vector3(), new THREE.Vector3()];
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
   const pigmentArchive = createPigmentArchive();
   landscape.add(pigmentArchive.group);
@@ -343,18 +343,27 @@ export function createSoundNest(
     return false;
   }
   function feedPad(id, pose) {
-    if (!pose.direct)
-      pose = {
-        ...pose,
-        position: oizo
-          ? oizo.getTailPosition(tailPosition)
-          : tailPosition.copy(pose.position),
-        wake: true,
-        depositionTime: lifeTime,
-      };
+    if (pose.direct || !oizo) {
+      feedEmitter(id, pose, id);
+      return;
+    }
+    for (let wing = 0; wing < 2; wing++) {
+      const position = oizo.getWingPosition(wing, wingPositions[wing]);
+      feedEmitter(
+        id,
+        { ...pose, position, wake: true, depositionTime: lifeTime },
+        `${id}:${wing === 0 ? "left" : "right"}`,
+      );
+    }
+    renderer.domElement.dataset.paintEmitter = "wings";
+    renderer.domElement.dataset.wingEmitters = JSON.stringify(
+      wingPositions.map((point) => point.toArray()),
+    );
+  }
+  function feedEmitter(id, pose, emitter) {
     if (!BRUSHES.some((item) => item.id === id)) return;
     const previous = { mark: activeStroke, last: lastSample, brush };
-    const state = padStates.get(id);
+    const state = padStates.get(emitter);
     activeStroke = state?.mark || null;
     lastSample = state?.last || null;
     brush = id;
@@ -365,14 +374,16 @@ export function createSoundNest(
       trailColor.set(profile?.color || "#c7d8df");
       chillTrails.emit(pose.position, trailColor, profile?.chillStyle || 0);
     }
-    padStates.set(id, { mark: activeStroke, last: lastSample });
+    padStates.set(emitter, { mark: activeStroke, last: lastSample });
     activeStroke = previous.mark;
     lastSample = previous.last;
     brush = previous.brush;
   }
   function finishPad(id) {
-    padStates.get(id)?.mark?.stroke.finish();
-    padStates.delete(id);
+    for (const emitter of [id, `${id}:left`, `${id}:right`]) {
+      padStates.get(emitter)?.mark?.stroke.finish();
+      padStates.delete(emitter);
+    }
   }
   function updateBounds() {
     totalBounds.makeEmpty();
@@ -860,8 +871,8 @@ export function createSoundNest(
         const tick = sampleClock >= 0.12;
         if (nozzlePaint) {
           nozzleClock += dt;
-          if (nozzleClock >= 1 / 30 || nozzlePaint.samples < 2) {
-            nozzleClock %= 1 / 30;
+          if (nozzleClock >= 1 / 15 || nozzlePaint.samples < 2) {
+            nozzleClock %= 1 / 15;
             const features = {
               ...pose.acoustic,
               rms: 0.08,

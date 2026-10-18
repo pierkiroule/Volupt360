@@ -2,7 +2,7 @@
 
 On sculpte son ciel émotionnel pour apprendre à le contempler autrement.
 
-Un oiseau peint un ciel aquarelle et encre fine. Huit Mood Brushes symboliques et un lavis neutre accompagnent le geste : toucher peint depuis la queue, glisser guide le vol. Une bulle à la fois émerge de la peinture et ouvre une contemplation 360° du même paysage. « Reprendre le vol » restitue immédiatement le contrôle.
+Un oiseau peint un ciel aquarelle et encre fine. Huit Mood Brushes à pictogrammes et un lavis neutre accompagnent le geste : toucher peint depuis les deux ailes, glisser guide le vol. Une bulle à la fois émerge de la peinture et ouvre une contemplation 360° du même paysage. « Reprendre le vol » restitue immédiatement le contrôle.
 
 La traversée Nuit → Aurores → Aube dure six minutes de vol actif ; contempler ne consomme pas ce temps. Les 24 phrases originales restent facultatives, sans score ni questionnaire. La musique continue dans les bulles, les pigments persistent et le final conserve la photo PNG HD.
 
