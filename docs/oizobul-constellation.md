@@ -52,3 +52,9 @@ L’invitation et le bouton d’envol précèdent les explications. Deux section
 Les animations décoratives s’arrêtent avec prefers-reduced-motion. L’accueil défile verticalement sur petit écran, sans défilement horizontal. Le texte, les contrôles clavier et le lancement sont vérifiés en Chromium, avec vues mobile et ordinateur.
 
 Validation de l’accueil : 9 tests ciblés réussis (accueil et parcours du conte), build Vite et formatage validés. Captures mobile et ordinateur inspectées. Les contrôles mobiles sont des émulations, sans revendication de test sur appareil physique.
+
+### Lisibilité des fragments
+
+Les fragments utilisent une police système sans empattement, en bas de la vue 360°, au-dessus du bouton de reprise. Texte noir à 70 %, contour blanc et fond blanc à 70 % : l’opacité n’affecte pas globalement les contours. La zone est défilable si nécessaire ; sa hauteur est réduite en paysage pour dégager le centre du regard.
+
+Vérifications : rendu et positions contrôlés en portrait 390 × 844 et paysage 844 × 390, contrôle du centre dégagé en paysage, scénario de lecture/reprise réussi et build Vite validé. Pas de test sur téléphone physique.

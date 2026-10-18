@@ -2481,34 +2481,45 @@ label:focus-visible {
 }
 
 .story-fragment-title {
-  font-family: "Caveat", cursive;
-  font-size: 1.6rem;
-  font-weight: 400;
-  margin: 0 0 0.8rem;
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(1rem, 2.5vw, 1.15rem);
+  font-weight: 600;
+  margin: 0 0 0.5rem;
 }
 .chill-experience .resonance-phrase:has(.story-fragment-title) {
-  max-height: 65dvh;
+  top: auto;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  margin: 0;
+  max-height: min(34dvh, 18rem);
   overflow-y: auto;
-  width: min(90vw, 40rem);
-  padding: 1.2rem;
-  border-radius: 1.3rem;
-  background: #172936e0;
-  color: #f1eee5;
-}
-.chill-experience .resonance-phrase:has(.story-fragment-title) p {
-  font-size: clamp(0.95rem, 3.8vw, 1.25rem);
-  line-height: 1.65;
-  white-space: normal;
-}
-.chill-experience .resonance-phrase:has(.story-fragment-title) {
+  overscroll-behavior: contain;
+  width: min(92vw, 44rem);
+  padding: 0.9rem 1.1rem;
+  border-radius: 1.2rem;
+  background: rgb(255 255 255 / 70%);
+  border: 1px solid rgb(255 255 255 / 85%);
+  color: rgb(0 0 0 / 70%);
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  text-align: left;
+  text-shadow: 0 0 2px #fff;
+  -webkit-text-stroke: 0.35px #fff;
+  paint-order: stroke fill;
   animation: story-arrive 0.65s ease both;
   pointer-events: auto;
+  scrollbar-width: thin;
 }
 .chill-experience .resonance-phrase:has(.story-fragment-title) p {
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(1rem, 2.8vw, 1.15rem);
+  line-height: 1.55;
+  white-space: normal;
   max-width: none;
+  margin: 0;
   padding: 0;
   background: none;
-  text-shadow: none;
+  color: inherit;
+  text-shadow: inherit;
 }
 @keyframes story-arrive {
   from {
@@ -2521,5 +2532,14 @@ label:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .chill-experience .resonance-phrase:has(.story-fragment-title) {
     animation: none;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .chill-experience .resonance-phrase:has(.story-fragment-title) {
+    max-height: 26dvh;
+    padding: 0.7rem 1rem;
+  }
+  .chill-experience .resonance-phrase:has(.story-fragment-title) p {
+    line-height: 1.45;
   }
 }
