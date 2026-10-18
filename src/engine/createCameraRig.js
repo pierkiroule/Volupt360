@@ -18,7 +18,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   const returnRotation = new THREE.Quaternion();
   let returnFov = 88,
     returnDuration = 0.85;
-  let gyroPermission = false;
+  let gyroPermission = false,
+    orientationSource = null;
+  canvas.dataset.gyroscopeStatus = "disabled";
   let panoramaPitch = 0;
   let panoramaYaw = 0,
     distanceSetting = 0;
@@ -166,20 +168,22 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) =>
     listen(canvas, name, release),
   );
-  listen(window, "deviceorientation", (event) => {
+  const onOrientation = (event) => {
     if (
       mode !== "gyro" ||
       !gyroEnabled ||
-      event.alpha == null ||
-      event.beta == null ||
-      event.gamma == null
+      !Number.isFinite(event.beta) ||
+      !Number.isFinite(event.gamma) ||
+      (orientationSource && orientationSource !== event.type)
     )
       return;
+    orientationSource = event.type;
+    canvas.dataset.gyroscopeStatus = "active";
     const rad = THREE.MathUtils.degToRad;
     orientation.setFromEuler(
       new THREE.Euler(
         rad(event.beta),
-        rad(event.alpha),
+        rad(Number.isFinite(event.alpha) ? event.alpha : 0),
         -rad(event.gamma),
         "YXZ",
       ),
@@ -193,7 +197,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       onHint("Gyroscope actif · regardez autour de vous");
     }
     gyroRelative.copy(gyroReference).multiply(orientation);
-  });
+  };
+  listen(window, "deviceorientation", onOrientation);
+  listen(window, "deviceorientationabsolute", onOrientation);
   async function setMode(next) {
     const request = ++sensorRequest;
     mode = next;
@@ -202,6 +208,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     dragging = null;
     reanchor();
     gyroReference = null;
+    orientationSource = null;
     gyroRelative.identity();
     canvas.dataset.cameraMode = mode;
     if (next !== "gyro") {
@@ -238,6 +245,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     panoramaPitch = Math.atan2(focus.y, Math.hypot(focus.x, focus.z));
     if (povLocked) {
       gyroEnabled = gyroPermission;
+      if (gyroEnabled) canvas.dataset.gyroscopeStatus = "waiting";
       aim.copy(panoramaPosition).addScaledVector(focus, 18);
       onHint(
         gyroEnabled ? "Regard 360°" : "Glissez pour regarder autour de vous",
@@ -393,15 +401,34 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   return {
     setMode,
     async requestGyroscope(enabled = true) {
-      if (!enabled) return (gyroPermission = false);
+      gyroEnabled = false;
+      gyroPermission = false;
+      if (!enabled) {
+        canvas.dataset.gyroscopeStatus = "disabled";
+        return false;
+      }
+      if (!window.isSecureContext) {
+        canvas.dataset.gyroscopeStatus = "insecure";
+        return false;
+      }
       try {
         const Sensor = window.DeviceOrientationEvent;
-        gyroPermission =
-          Boolean(Sensor) &&
-          (typeof Sensor.requestPermission !== "function" ||
-            (await Sensor.requestPermission()) === "granted");
+        const supported =
+          Boolean(Sensor) ||
+          "ondeviceorientation" in window ||
+          "ondeviceorientationabsolute" in window;
+        if (!supported) {
+          canvas.dataset.gyroscopeStatus = "unavailable";
+          return false;
+        }
+        const granted =
+          typeof Sensor?.requestPermission !== "function" ||
+          (await Sensor.requestPermission()) === "granted";
+        if (disposed) return false;
+        gyroPermission = granted;
+        canvas.dataset.gyroscopeStatus = granted ? "ready" : "denied";
       } catch {
-        gyroPermission = false;
+        if (!disposed) canvas.dataset.gyroscopeStatus = "denied";
       }
       return gyroPermission;
     },

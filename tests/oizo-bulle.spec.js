@@ -160,7 +160,9 @@ test("mobile contemplation freezes bird and active timeline, rotates only the vi
     if (m.type() === "error") errors.push(m.text());
   });
   await page.goto("/");
-  await page.getByRole("checkbox", { name: /Utiliser le gyroscope/ }).check();
+  await expect(
+    page.getByRole("checkbox", { name: /Utiliser le gyroscope/ }),
+  ).toBeChecked();
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   expect(await page.evaluate(() => window.__gyroRequested)).toBe(true);
   const canvas = page.locator("#stage canvas");
@@ -223,73 +225,78 @@ test("mobile contemplation freezes bird and active timeline, rotates only the vi
   expect(errors).toEqual([]);
 });
 
-test("granted gyro changes only orientation at a fixed POV and its listener is removed on disposal", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const THREE = await import("/node_modules/.vite/deps/three.js");
-    const { createCameraRig } = await import("/src/engine/createCameraRig.js");
-    window.DeviceOrientationEvent = class extends Event {
-      static requestPermission() {
-        return Promise.resolve("granted");
-      }
-    };
-    const camera = new THREE.PerspectiveCamera(80, 1, 0.08, 1000);
-    camera.position.set(2, 3, -3);
-    camera.lookAt(2, 3, 4);
-    const canvas = document.createElement("canvas"),
-      landscape = new THREE.Group();
-    const state = {
-      position: new THREE.Vector3(2, 3, 4),
-      direction: new THREE.Vector3(0, 0, 1),
-      bounds: { center: new THREE.Vector3(), radius: 10 },
-      chill: true,
-      windEnabled: true,
-    };
-    const rig = createCameraRig(
-      camera,
-      canvas,
-      landscape,
-      () => state,
-      () => {},
-    );
-    const permission = await rig.requestGyroscope();
-    await rig.enterContemplation(state.position);
-    const advance = () => {
-      for (let i = 0; i < 240; i++) rig.update(1 / 60);
-    };
-    advance();
-    const at = camera.position.toArray();
-    const sensor = (alpha) => {
-      const event = new Event("deviceorientation");
-      Object.assign(event, { alpha, beta: 60, gamma: 0 });
-      window.dispatchEvent(event);
-    };
-    sensor(0);
-    advance();
-    const before = camera.quaternion.clone();
-    sensor(70);
-    advance();
-    const after = camera.quaternion.clone();
-    const moved = camera.position.distanceTo(state.position);
-    rig.dispose();
-    sensor(170);
-    advance();
-    return {
-      permission,
-      at,
-      moved,
-      angle: before.angleTo(after),
-      afterDispose: after.angleTo(camera.quaternion),
-    };
+for (const sensorType of ["deviceorientation", "deviceorientationabsolute"]) {
+  test(`granted ${sensorType} changes only orientation at a fixed POV and cleans up`, async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const result = await page.evaluate(async (sensorType) => {
+      const THREE = await import("/node_modules/.vite/deps/three.js");
+      const { createCameraRig } =
+        await import("/src/engine/createCameraRig.js");
+      window.DeviceOrientationEvent = class extends Event {
+        static requestPermission() {
+          return Promise.resolve("granted");
+        }
+      };
+      const camera = new THREE.PerspectiveCamera(80, 1, 0.08, 1000);
+      camera.position.set(2, 3, -3);
+      camera.lookAt(2, 3, 4);
+      const canvas = document.createElement("canvas"),
+        landscape = new THREE.Group();
+      const state = {
+        position: new THREE.Vector3(2, 3, 4),
+        direction: new THREE.Vector3(0, 0, 1),
+        bounds: { center: new THREE.Vector3(), radius: 10 },
+        chill: true,
+        windEnabled: true,
+      };
+      const rig = createCameraRig(
+        camera,
+        canvas,
+        landscape,
+        () => state,
+        () => {},
+      );
+      const permission = await rig.requestGyroscope();
+      await rig.enterContemplation(state.position);
+      const advance = () => {
+        for (let i = 0; i < 240; i++) rig.update(1 / 60);
+      };
+      advance();
+      const at = camera.position.toArray();
+      const sensor = (alpha) => {
+        const event = new Event(sensorType);
+        Object.assign(event, { alpha, beta: 60, gamma: 0 });
+        window.dispatchEvent(event);
+      };
+      sensor(0);
+      advance();
+      const before = camera.quaternion.clone();
+      sensor(70);
+      advance();
+      const after = camera.quaternion.clone();
+      const moved = camera.position.distanceTo(state.position);
+      rig.dispose();
+      sensor(170);
+      advance();
+      return {
+        permission,
+        at,
+        moved,
+        angle: before.angleTo(after),
+        afterDispose: after.angleTo(camera.quaternion),
+        status: canvas.dataset.gyroscopeStatus,
+      };
+    }, sensorType);
+    expect(result.status).toBe("active");
+    expect(result.permission).toBe(true);
+    expect(result.at).toEqual([2, 3, 4]);
+    expect(result.moved).toBeLessThan(1e-8);
+    expect(result.angle).toBeGreaterThan(0.1);
+    expect(result.afterDispose).toBeLessThan(0.0001);
   });
-  expect(result.permission).toBe(true);
-  expect(result.at).toEqual([2, 3, 4]);
-  expect(result.moved).toBeLessThan(1e-8);
-  expect(result.angle).toBeGreaterThan(0.1);
-  expect(result.afterDispose).toBeLessThan(0.0001);
-});
+}
 
 test("all eight symbolic brush signatures deposit different original watercolor geometries", async ({
   page,
@@ -355,4 +362,29 @@ test("all eight symbolic brush signatures deposit different original watercolor 
   });
   expect(new Set(data).size).toBe(8);
   expect(errors).toEqual([]);
+});
+
+test("disabling gyro explicitly preserves tactile mode without requesting sensor permission", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.DeviceOrientationEvent = class extends Event {
+      static requestPermission() {
+        window.__gyroRequested = true;
+        return Promise.resolve("granted");
+      }
+    };
+  });
+  await page.goto("/");
+  const option = page.getByRole("checkbox", { name: /Utiliser le gyroscope/ });
+  await expect(option).toBeChecked();
+  await option.uncheck();
+  await page.getByRole("button", { name: "Prendre son envol" }).click();
+  await expect(page.locator("#stage canvas")).toHaveAttribute(
+    "data-gyroscope-status",
+    "disabled",
+  );
+  expect(await page.evaluate(() => Boolean(window.__gyroRequested))).toBe(
+    false,
+  );
 });
