@@ -7,8 +7,8 @@ export default function ArtisticIntroduction() {
       <span className="artistic-eyebrow">L’histoire de l’oizo</span>
       <h2 id="artistic-intention">Sculpter les matières du monde</h2>
       <p className="artistic-lead">
-        Votre regard traverse un ciel de papier inspiré par votre ÉchoMood. Vos
-        gestes y déposent des pigments, des lavis secs et des encres fines dans
+        Un petit oizo traverse un ciel de papier inspiré par votre ÉchoMood. Son
+        sillage y dépose des pigments, des lavis secs et des encres fines dans
         un espace en trois dimensions.
       </p>
       <h3>Cinq gestes, un univers</h3>
@@ -19,10 +19,10 @@ export default function ArtisticIntroduction() {
       </p>
       <h3>Piloter le regard</h3>
       <p>
-        Glissez sur le canevas pour orienter le vol en première personne.
-        Maintenez le doigt immobile pour déposer la matière devant vous. La
-        musique anime les dépôts, qui poursuivent leur danse après le geste. Le
-        mode de sculpture directe reste accessible.
+        Glissez sur le canevas pour déplacer le point de visée et guider l’oizo.
+        Dès le contact, la matière se dépose depuis sa queue et accompagne votre
+        pilotage. La musique anime les dépôts, qui poursuivent leur danse après
+        le geste. Le mode de sculpture directe reste accessible.
       </p>
       <h3>Traverser les mots</h3>
       <p>

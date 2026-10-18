@@ -1,3 +1,4 @@
+import { createOizo } from "../sonoizo/createOizo.js";
 import { createMoodAtmosphere } from "../echoMood/createMoodAtmosphere.js";
 import { createRenderBudget } from "./createRenderBudget.js";
 import { loadAlphaTexture } from "./loadAlphaTexture.js";
@@ -137,6 +138,7 @@ export function createSoundNest(
   let photo = false,
     videodio = null;
   let padSource = null,
+    oizo = null,
     padInitialized = false;
   let vocalFireflies = null;
   let poeticFragments = [];
@@ -149,7 +151,10 @@ export function createSoundNest(
     visitClock = 0,
     visitMark = null;
   const visitPoint = new THREE.Vector3();
-  const dance = createSonoizoDance({ firstPerson: true });
+  const dance = createSonoizoDance({
+    firstPerson: true,
+    seed: Math.floor(Math.random() * 4294967296),
+  });
   const padStates = new Map();
   const tailPosition = new THREE.Vector3();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
@@ -311,9 +316,9 @@ export function createSoundNest(
     if (!pose.direct)
       pose = {
         ...pose,
-        position: tailPosition
-          .copy(pose.position)
-          .addScaledVector(pose.direction, 2.4),
+        position: oizo
+          ? oizo.getTailPosition(tailPosition)
+          : tailPosition.copy(pose.position),
         wake: true,
         depositionTime: lifeTime,
       };
@@ -409,17 +414,25 @@ export function createSoundNest(
   flight.reset();
   lastSample = null;
 
-  let nozzlePaint = null;
+  let nozzlePaint = null,
+    lastFlightPose = null,
+    nozzleClock = 0;
   function beginNozzlePaint() {
-    if (
-      !steeringGesture ||
-      steeringGesture.started ||
-      photo ||
-      cameraMode !== "drone"
-    )
-      return;
+    if (!steeringGesture || photo || cameraMode !== "drone") return;
     bridge.close();
     nozzlePaint = { id: brush, samples: 0 };
+    nozzleClock = 0;
+    if (lastFlightPose) {
+      const features = {
+        ...lastFlightPose.acoustic,
+        rms: 0.08,
+        energy: 0.4,
+        ...padSource.getVisualFeatures(),
+      };
+      feedPad(brush, { ...lastFlightPose, ...features, acoustic: features });
+      nozzlePaint.samples++;
+      renderer.domElement.dataset.paintedSamples = String(paintedSamples);
+    }
     void padSource?.beginSculpture?.(brush);
     renderer.domElement.dataset.nozzlePaint = "true";
     renderer.domElement.dataset.nozzleBrush = brush;
@@ -548,8 +561,8 @@ export function createSoundNest(
       anchorX: event.clientX,
       anchorY: event.clientY,
       started: false,
-      timer: setTimeout(beginNozzlePaint, 450),
     };
+    beginNozzlePaint();
     renderer.domElement.setPointerCapture(event.pointerId);
   }
   const pilotInverse = new THREE.Quaternion(),
@@ -597,7 +610,6 @@ export function createSoundNest(
       ) < 4
     )
       return;
-    clearTimeout(steeringGesture.timer);
     steeringGesture.started = true;
     const reach = Math.max(60, Math.min(120, scale * 0.24));
     const axis = (value) => {
@@ -623,7 +635,6 @@ export function createSoundNest(
       return;
     }
     if (event.pointerId !== steeringGesture?.id) return;
-    clearTimeout(steeringGesture.timer);
     if (nozzlePaint) {
       padSource?.endSculpture?.();
       finishPad(nozzlePaint.id);
@@ -678,6 +689,10 @@ export function createSoundNest(
         visitClock -= dt;
         if (visitClock <= 0) {
           visitClock = 0.5;
+          dance.setOrbitTarget(
+            navigation.bounds.center,
+            navigation.bounds.radius,
+          );
           if (
             !visitMark ||
             !marks.includes(visitMark) ||
@@ -701,6 +716,7 @@ export function createSoundNest(
         }
         refreshPilot();
         const pose = dance.update(dt, voices, visual);
+        lastFlightPose = pose;
         renderer.domElement.dataset.flightVisiting = (
           pose.visiting || 0
         ).toFixed(3);
@@ -708,7 +724,12 @@ export function createSoundNest(
         renderer.domElement.dataset.musicEnergy = (visual.energy || 0).toFixed(
           3,
         );
+        oizo?.update(pose);
+        if (oizo) oizo.group.visible = !directSculpture;
         if (pose.aimPoint) aimLocal.copy(pose.aimPoint);
+        renderer.domElement.dataset.autonomousFlight = String(
+          Boolean(pose.autonomous),
+        );
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -719,7 +740,9 @@ export function createSoundNest(
         sampleClock += dt;
         const tick = sampleClock >= 0.12;
         if (nozzlePaint) {
-          if (tick || nozzlePaint.samples < 2) {
+          nozzleClock += dt;
+          if (nozzleClock >= 1 / 30 || nozzlePaint.samples < 2) {
+            nozzleClock %= 1 / 30;
             const features = {
               ...pose.acoustic,
               rms: 0.08,
@@ -793,7 +816,12 @@ export function createSoundNest(
         quiet = 0;
         sampleClock += dt;
         const pose = flight.update(dt, f);
+        oizo?.update(pose);
+        if (oizo) oizo.group.visible = !directSculpture;
         if (pose.aimPoint) aimLocal.copy(pose.aimPoint);
+        renderer.domElement.dataset.autonomousFlight = String(
+          Boolean(pose.autonomous),
+        );
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -974,8 +1002,10 @@ export function createSoundNest(
       renderer.domElement.dataset.videoFrames = String(
         videodio?.getHistory().frames || 0,
       );
-      renderer.domElement.dataset.oizo = "false";
-      renderer.domElement.dataset.oizoVisible = "false";
+      renderer.domElement.dataset.oizo = String(Boolean(oizo));
+      renderer.domElement.dataset.oizoVisible = String(
+        Boolean(oizo?.group.visible),
+      );
       renderer.domElement.dataset.activePads = voices
         .map((voice) => voice.id)
         .join(",");
@@ -1056,6 +1086,11 @@ export function createSoundNest(
       onBubbleScore?.(0, 24);
       padSource = source;
       navigation.windEnabled = Boolean(source);
+      if (source && !oizo) {
+        oizo = createOizo();
+        landscape.add(oizo.group);
+      }
+      if (oizo) oizo.group.visible = Boolean(source) && !directSculpture;
       if (source) {
         if (!padInitialized) {
           reset();
@@ -1252,6 +1287,7 @@ export function createSoundNest(
       for (const [name, handler] of steeringListeners)
         renderer.domElement.removeEventListener(name, handler);
       rig.dispose();
+      oizo?.dispose();
       padSource?.setCaptureTap(null);
       videodio?.dispose();
       bridge.close();

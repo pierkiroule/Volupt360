@@ -1,14 +1,18 @@
 import * as THREE from "three";
 
 /** A stable point ahead, captured relative to the view at gesture start. */
-export function createPointFlight() {
+export function createPointFlight({ seed = 37 } = {}) {
   const position = new THREE.Vector3(28, 0, 0),
     direction = new THREE.Vector3(0, 0, 1),
     velocity = new THREE.Vector3();
   const target = direction.clone(),
     right = new THREE.Vector3(-1, 0, 0),
     up = new THREE.Vector3(0, 1, 0),
-    forward = direction.clone();
+    forward = direction.clone(),
+    orbitCenter = new THREE.Vector3(),
+    orbitGoal = new THREE.Vector3(),
+    radial = new THREE.Vector3(),
+    tangent = new THREE.Vector3();
   const worldUp = new THREE.Vector3(0, 1, 0),
     side = new THREE.Vector3(),
     flightUp = new THREE.Vector3(),
@@ -16,8 +20,12 @@ export function createPointFlight() {
   const a = new THREE.Quaternion(),
     b = new THREE.Quaternion(),
     z = new THREE.Vector3(0, 0, 1);
+  const phase = ((Math.imul(seed, 1664525) >>> 0) / 4294967296) * Math.PI * 2;
   let captured = false,
-    time = 0;
+    time = 0,
+    holding = false,
+    idleTime = 0,
+    orbitRadius = 18;
   const pose = {
     position,
     direction,
@@ -32,10 +40,18 @@ export function createPointFlight() {
     progress: 0,
   };
   return {
+    setOrbitTarget(center, radius) {
+      orbitGoal.copy(center);
+      orbitRadius = THREE.MathUtils.clamp(radius * 0.85 + 5, 8, 28);
+    },
     beginPilot() {
+      holding = true;
+      idleTime = 0;
+      target.copy(direction);
       captured = false;
     },
     setPilot(x, y, frame) {
+      holding = true;
       if (!captured) {
         right.copy(frame.right).normalize();
         up.copy(frame.up).normalize();
@@ -51,15 +67,49 @@ export function createPointFlight() {
       target.normalize();
     },
     releasePilot() {
+      holding = false;
+      idleTime = 0;
       target.copy(direction);
       captured = false;
     },
     update(dt, audio) {
       dt = THREE.MathUtils.clamp(dt, 0, 0.1);
       time += dt;
+      idleTime = holding ? 0 : idleTime + dt;
+      orbitCenter.lerp(orbitGoal, 1 - Math.exp(-dt * 0.45));
+      const autonomous = !holding && idleTime > 0.3;
+      if (autonomous) {
+        radial.copy(position).sub(orbitCenter);
+        const distance = Math.max(0.001, Math.hypot(radial.x, radial.z));
+        radial.set(radial.x / distance, 0, radial.z / distance);
+        tangent.set(-radial.z, 0, radial.x);
+        const radius =
+          orbitRadius *
+          (1 +
+            Math.sin(time * 0.073 + phase) * 0.12 +
+            Math.sin(time * 0.031 + 2 + phase * 1.7) * 0.07);
+        target
+          .copy(tangent)
+          .multiplyScalar(2.6)
+          .addScaledVector(
+            radial,
+            THREE.MathUtils.clamp((radius - distance) * 0.65, -5, 5),
+          );
+        target.y = THREE.MathUtils.clamp(
+          (orbitCenter.y +
+            Math.sin(time * 0.13 + phase) * 3 +
+            Math.sin(time * 0.047 + phase * 2.3) * 2 -
+            position.y) *
+            0.5,
+          -2,
+          2,
+        );
+        target.normalize();
+      }
+      pose.autonomous = autonomous;
       a.setFromUnitVectors(z, direction);
       b.setFromUnitVectors(z, target);
-      a.slerp(b, 1 - Math.exp(-dt * 3));
+      a.slerp(b, 1 - Math.exp(-dt * (holding ? 9 : 1.8)));
       direction.set(0, 0, 1).applyQuaternion(a).normalize();
       velocity.copy(direction).multiplyScalar(2.6);
       position.addScaledVector(velocity, dt);
@@ -78,6 +128,11 @@ export function createPointFlight() {
       velocity.set(0, 0, 0);
       captured = false;
       time = 0;
+      holding = false;
+      idleTime = 0;
+      orbitCenter.set(0, 0, 0);
+      orbitGoal.set(0, 0, 0);
+      orbitRadius = 18;
     },
   };
 }

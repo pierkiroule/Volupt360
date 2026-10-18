@@ -13,3 +13,15 @@ Les sources historiques du rig de l’oiseau restent disponibles pour réversibi
 Le mode actif utilise désormais `createPointFlight` plutôt que le champ orbital : un point projeté devant la caméra représente le cap visé. Le repère est capturé au début du glissement, afin qu’un doigt immobile ne produise pas de rotation infinie. Le déplacement tactile change la cible dans ce repère fixe ; la direction converge progressivement vers elle. Relâcher conserve immédiatement le cap atteint, sans retour autonome vers les traces. Lever puis reposer le doigt permet de poursuivre un virage. La vitesse est constante et douce (2,6 unités/seconde), sans modulation musicale du pilotage. Les brosses conservent leur audioreactivité.
 
 Validation : 3 tests ciblés réussis et build Vite réussi. Le test du point vérifie la convergence malgré un repère caméra changeant, la conservation du cap après relâchement et la vitesse. Essais sur téléphone physique encore nécessaires.
+
+## Retour de l’oizo
+
+L’oizo et son rig d’ailes sont de nouveau actifs. La caméra suit son cap à une distance fixe de 5,5 unités, sans décalage latéral. Le pilotage par point de visée et la conservation du cap au relâchement sont conservés ; le retour automatique orbital reste désactivé. Les brosses déposent de nouveau depuis sa queue. La sculpture directe masque l’oizo comme auparavant.
+
+## Alternance manuelle / autonome
+
+Le contact donne immédiatement priorité au point de visée, avec une convergence plus précise (amortissement 9/s). Au relâchement, après 300 ms, le vol rejoint une orbite autour du centre de l’œuvre. Son rayon dépend de l’étendue de la sculpture (borné entre 8 et 28 unités), et varie lentement avec la hauteur suivant des phases pseudoaléatoires semées à l’ouverture. Le centre est interpolé pour éviter les ruptures quand l’œuvre grandit. La vitesse demeure 2,6 unités/seconde ; aucune téléportation. Un contact sans glissement interrompt aussi le retour autonome et conserve le cap courant, notamment pendant le tracé par appui long.
+
+## Dépôt au contact
+
+Le délai d’appui long est retiré. Pointerdown ouvre immédiatement le dépôt et émet un premier échantillon depuis la queue, avec la dernière pose disponible. Le tracé continue pendant le glissement de pilotage, à une fréquence maximale de 30 échantillons/seconde ; pointerup, annulation et perte de focus terminent le dépôt. Le doigt pilote toujours le vol, il ne dessine pas directement la matière en mode FPV.

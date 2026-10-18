@@ -4,7 +4,9 @@ import { createOrbitalFlight } from "../engine/createOrbitalFlight.js";
 
 /** Continuous flight, including silence. Triggers shape a bounded musical impulse. */
 export function createSonoizoDance({ seed = 37, firstPerson = false } = {}) {
-  const flight = firstPerson ? createPointFlight() : createOrbitalFlight(),
+  const flight = firstPerson
+      ? createPointFlight({ seed })
+      : createOrbitalFlight(),
     triggers = new Map();
   const wind = new THREE.Vector3(),
     desired = new THREE.Vector3(),
@@ -49,6 +51,9 @@ export function createSonoizoDance({ seed = 37, firstPerson = false } = {}) {
       if (firstPerson) flight.releasePilot();
       holding = false;
       releaseTime = 0;
+    },
+    setOrbitTarget(center, radius) {
+      if (firstPerson) flight.setOrbitTarget(center, radius);
     },
     setVisitTarget(position) {
       hasVisitTarget = Boolean(position);

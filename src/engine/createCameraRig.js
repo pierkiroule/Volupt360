@@ -276,9 +276,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
             .multiplyScalar(18),
         );
     } else {
-      canvas.dataset.droneIntent = "first-person";
-      // The flight position is the eye, never a pursuit target behind an avatar.
-      camera.position.copy(painter);
+      canvas.dataset.droneIntent = "point-guided-follow";
+      // A stable, centered view follows the bird while the aim-point keeps control.
+      camera.position.copy(painter).addScaledVector(direction, -5.5);
       target.copy(painter).add(direction);
       matrix.lookAt(camera.position, target, up);
       desiredQuaternion.setFromRotationMatrix(matrix);
@@ -286,7 +286,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       camera.fov = 88;
       camera.far = Math.max(400, state.bounds.radius * 3);
       camera.updateProjectionMatrix();
-      canvas.dataset.fpvFollowDistance = "0";
+      canvas.dataset.fpvFollowDistance = "5.5";
       return;
     }
     camera.position.lerp(desired, mix(2.8));
