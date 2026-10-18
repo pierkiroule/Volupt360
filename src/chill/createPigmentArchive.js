@@ -167,6 +167,16 @@ export function createPigmentArchive() {
       bounds.union(mark.bounds);
       traces++;
     },
+    settle() {
+      for (const bucket of buckets.values()) {
+        const uniforms = bucket.mesh.material.uniforms;
+        uniforms.uMoisture.value = 0;
+        uniforms.uTime.value = 0;
+        uniforms.uAge.value = 10000;
+        for (const name of ["uAudioEnergy", "uAudioLow", "uAudioPulse"])
+          uniforms[name].value = 0;
+      }
+    },
     clear() {
       for (const b of buckets.values()) {
         b.geometry.dispose();

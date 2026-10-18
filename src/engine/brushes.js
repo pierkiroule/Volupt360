@@ -677,8 +677,10 @@ export function createBrushStroke(
           const mood = dynamics?.moodMotion;
           const phase = pose.time * 1.8 + seed + layer;
           if (mood === "swirl") {
-            lateral += Math.sin(phase) * 0.55;
-            vertical += Math.cos(phase) * 0.55;
+            const coil =
+              0.3 + pose.energy * 0.65 + 0.12 * Math.sin(phase * 0.37);
+            lateral += Math.sin(phase) * coil;
+            vertical += Math.cos(phase) * coil;
           } else if (mood === "angular") {
             lateral += Math.asin(Math.sin(phase * 2.2)) * 0.3;
             vertical += Math.asin(Math.sin(phase * 1.6 + 0.8)) * 0.2;

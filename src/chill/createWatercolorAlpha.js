@@ -55,8 +55,30 @@ export function createWatercolorAlpha(
               Math.cos(dy * 23),
           ) * 17,
         );
+        const capillary = Math.pow(
+          1 -
+            Math.abs(
+              Math.sin(
+                dx * 83 + Math.sin(dy * 51 + stain.phase) * 2.4 + angle * 1.7,
+              ),
+            ),
+          14,
+        );
+        const tide = Math.exp(
+          -Math.pow(
+            (r - edge + 0.04 + Math.sin(angle * 17 + stain.phase) * 0.006) /
+              0.006,
+            2,
+          ),
+        );
         const pigment =
-          inside * (0.23 + grain * 0.17 + rim * 0.55 + bloom * 0.22);
+          inside *
+          (0.21 +
+            grain * 0.19 +
+            rim * 0.58 +
+            bloom * 0.24 +
+            capillary * 0.16 +
+            tide * 0.2);
         alpha = 1 - (1 - alpha) * (1 - pigment);
       }
       const fibres = 0.5 + 0.5 * Math.sin(u * 410 + Math.sin(v * 28) * 1.6);
@@ -72,7 +94,14 @@ export function createWatercolorAlpha(
           (0.26 + 0.08 * Math.sin(v * 6.2831853 + seed));
         alpha = 1 - (1 - alpha) * (1 - backbone);
       }
-      alpha *= 0.7 + tooth * 0.3;
+      const cellX = Math.floor(u * 21),
+        cellY = Math.floor(v * 21);
+      const saltX = u * 21 - cellX - hash(cellX + 311, cellY),
+        saltY = v * 21 - cellY - hash(cellX, cellY + 217);
+      const salt =
+        Math.exp(-(saltX * saltX + saltY * saltY) * 170) *
+        smooth(0.65, 0.9, hash(cellX, cellY));
+      alpha *= (0.65 + tooth * 0.35) * (1 - salt * 0.72);
       const k = (y * size + x) * 4;
       image.data[k] = image.data[k + 1] = image.data[k + 2] = 255;
       image.data[k + 3] = Math.round(Math.max(0, Math.min(1, alpha)) * 255);

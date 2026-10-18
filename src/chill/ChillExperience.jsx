@@ -1,3 +1,4 @@
+import { ToolIcon } from "./ToolIcon.jsx";
 import { createWatercolorAlpha } from "./createWatercolorAlpha.js";
 import { useEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
@@ -25,6 +26,8 @@ export default function ChillExperience() {
     [finalReady, setFinalReady] = useState(false),
     [paused, setPaused] = useState(false),
     [contemplating, setContemplating] = useState(false),
+    [toolsOpen, setToolsOpen] = useState(true),
+    [audioOpen, setAudioOpen] = useState(false),
     [useGyro, setUseGyro] = useState(true),
     [brush, setBrush] = useState(NEUTRAL_BRUSH.id),
     [departing, setDeparting] = useState(false),
@@ -111,6 +114,8 @@ export default function ChillExperience() {
       }
       if (ticket !== generation.current) return;
       engine.current.startChillSession();
+      setToolsOpen(true);
+      setAudioOpen(false);
       setStarted(true);
     } catch (e) {
       setError(e.message);
@@ -231,46 +236,86 @@ export default function ChillExperience() {
       )}
       {started && !ended && !contemplating && (
         <>
-          <button className="chill-pause" onClick={pause}>
-            {paused ? "Reprendre" : "Faire une pause"}
-          </button>
-          <button className="chill-exit" onClick={exit}>
-            Sortir
-          </button>
-          <label className="journey-audio">
-            Son
-            <input
-              aria-label="Volume musical"
-              type="range"
-              min="0"
-              max="1"
-              step=".01"
-              value={twigs.snapshot.ambience?.volume ?? 0.45}
-              onChange={(e) =>
-                twigs.bank.current?.setAmbienceVolume(e.target.value)
-              }
-            />
-          </label>
-          <section className="landscape-palette" aria-label="Mood Brushes">
-            <div role="group" aria-label="Choisir une brosse">
-              {[...MOOD_BRUSHES, NEUTRAL_BRUSH].map((b) => (
-                <button
-                  key={b.id}
-                  aria-label={b.name}
-                  title={b.name}
-                  aria-pressed={brush === b.id}
-                  disabled={departing || paused}
-                  style={{ "--brush-color": b.color }}
-                  onClick={() => {
-                    setBrush(b.id);
-                    engine.current.setBrush(b.id);
-                  }}
+          <nav
+            className={`pictorial-tools ${toolsOpen ? "is-open" : "is-folded"}`}
+            aria-label="Outils de peinture"
+          >
+            {toolsOpen && (
+              <div id="pictorial-tool-panel">
+                <section
+                  className="landscape-palette"
+                  aria-label="Matières picturales"
                 >
-                  {b.glyph}
-                </button>
-              ))}
-            </div>
-          </section>
+                  <div role="group" aria-label="Choisir une brosse">
+                    {[...MOOD_BRUSHES, NEUTRAL_BRUSH].map((b) => (
+                      <button
+                        key={b.id}
+                        aria-label={b.name}
+                        title={b.name}
+                        aria-pressed={brush === b.id}
+                        disabled={departing || paused}
+                        style={{ "--brush-color": b.color }}
+                        onClick={() => {
+                          setBrush(b.id);
+                          engine.current.setBrush(b.id);
+                        }}
+                      >
+                        <ToolIcon name={b.glyph} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+                <div className="pictorial-commands">
+                  <button
+                    aria-label={paused ? "Reprendre" : "Faire une pause"}
+                    title={paused ? "Reprendre" : "Faire une pause"}
+                    onClick={pause}
+                  >
+                    <ToolIcon name={paused ? "play" : "pause"} />
+                  </button>
+                  <button
+                    aria-label="Réglage du son"
+                    title="Réglage du son"
+                    aria-expanded={audioOpen}
+                    aria-controls="pictorial-volume"
+                    onClick={() => setAudioOpen(!audioOpen)}
+                  >
+                    <ToolIcon name="sound" />
+                  </button>
+                  <button aria-label="Sortir" title="Sortir" onClick={exit}>
+                    <ToolIcon name="exit" />
+                  </button>
+                </div>
+                {audioOpen && (
+                  <div id="pictorial-volume">
+                    <input
+                      aria-label="Volume musical"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step=".01"
+                      value={twigs.snapshot.ambience?.volume ?? 0.45}
+                      onChange={(e) =>
+                        twigs.bank.current?.setAmbienceVolume(e.target.value)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              className="tools-toggle"
+              aria-label={
+                toolsOpen ? "Replier les outils" : "Déplier les outils"
+              }
+              title={toolsOpen ? "Replier les outils" : "Déplier les outils"}
+              aria-expanded={toolsOpen}
+              aria-controls="pictorial-tool-panel"
+              onClick={() => setToolsOpen(!toolsOpen)}
+            >
+              <ToolIcon name={toolsOpen ? "fold" : "expand"} />
+            </button>
+          </nav>
           {departing && (
             <p className="chill-departure" role="status">
               Le geste s’apaise. L’oizo poursuit son chemin.
@@ -294,9 +339,11 @@ export default function ChillExperience() {
           )}
           <button
             className="resume-flight"
+            aria-label="Reprendre le vol"
+            title="Reprendre le vol"
             onClick={() => engine.current.resumeFlight()}
           >
-            Reprendre le vol
+            <ToolIcon name="play" />
           </button>
         </section>
       )}
@@ -304,16 +351,24 @@ export default function ChillExperience() {
         <section className="chill-ending">
           <h2>Votre paysage se dépose</h2>
           <p>Votre passage a laissé ce paysage.</p>
-          <button onClick={souvenir} disabled={photoBusy || !finalReady}>
-            {!finalReady
-              ? "Le paysage s’ouvre…"
-              : photoBusy
-                ? "Préparation…"
-                : "Préparer ma photo souvenir"}
+          <button
+            onClick={souvenir}
+            disabled={photoBusy || !finalReady}
+            aria-label="Préparer ma photo souvenir"
+            title={
+              finalReady ? "Préparer ma photo souvenir" : "Le paysage s’ouvre…"
+            }
+          >
+            <ToolIcon name="camera" />
           </button>
           {photo && (
-            <a href={photo} download="Oizo-Bulle-souvenir.png">
-              Télécharger la photo PNG HD
+            <a
+              href={photo}
+              download="Oizo-Bulle-souvenir.png"
+              aria-label="Télécharger la photo PNG HD"
+              title="Télécharger la photo PNG HD"
+            >
+              <ToolIcon name="download" />
             </a>
           )}
           <p>Vous pouvez laisser reposer votre regard.</p>

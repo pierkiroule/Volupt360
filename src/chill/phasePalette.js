@@ -8,11 +8,11 @@ const night = [
   "#8694ad",
 ];
 const aurora = [
-  "#8cbaa6",
-  "#b49eb8",
-  "#537b87",
-  "#657387",
-  "#73adb0",
+  "#8168ae",
+  "#b194c8",
+  "#457ca3",
+  "#6c5c98",
+  "#61a0b2",
   "#a4a6c3",
 ];
 export function createPhasePalette(source) {

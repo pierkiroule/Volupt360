@@ -3,7 +3,7 @@ import { CHILL_BRUSHES } from "./chillConfig.js";
 const definitions = [
   [
     "calligraphie",
-    "🌪️",
+    "swirl",
     "Tourbillons d’encre",
     "filaments",
     "fiber",
@@ -14,7 +14,7 @@ const definitions = [
   ],
   [
     "filaments",
-    "⚡",
+    "angular",
     "Impulsions graphiques",
     "filaments",
     "fiber",
@@ -25,7 +25,7 @@ const definitions = [
   ],
   [
     "lagons",
-    "🌧️",
+    "rain",
     "Gouttes et coulures",
     "lagons",
     "splatter",
@@ -36,7 +36,7 @@ const definitions = [
   ],
   [
     "dilution",
-    "🌫️",
+    "mist",
     "Brume diffuse",
     "brumes",
     "wash",
@@ -47,7 +47,7 @@ const definitions = [
   ],
   [
     "voiles",
-    "🌊",
+    "wave",
     "Ondulations de pigments",
     "voiles",
     "wash",
@@ -58,7 +58,7 @@ const definitions = [
   ],
   [
     "falaises",
-    "🪨",
+    "mineral",
     "Grain minéral",
     "falaises",
     "dry",
@@ -69,7 +69,7 @@ const definitions = [
   ],
   [
     "aurore",
-    "🍃",
+    "breeze",
     "Filaments légers",
     "filaments",
     "fiber",
@@ -80,7 +80,7 @@ const definitions = [
   ],
   [
     "echo",
-    "✨",
+    "spark",
     "Éclats de pigments",
     "lagons",
     "stamp",
@@ -105,9 +105,19 @@ export const MOOD_BRUSHES = definitions.map(
     opacity,
     dispersion,
     moodMotion: motion,
+    color: [
+      "#66509b",
+      "#293e6c",
+      "#3f859f",
+      "#926ea5",
+      "#267b94",
+      "#8d5d47",
+      "#4b827d",
+      "#c76c62",
+    ][i],
     seed: 8123 + i * 953,
-    particleCount: motion === "spark" ? 3 : 2,
-    sampleStride: motion === "rain" ? 4 : 6,
+    particleCount: motion === "spark" ? 4 : 2,
+    sampleStride: motion === "rain" ? 4 : motion === "spark" ? 5 : 6,
     moodDiffusion: motion === "mist" ? 1.4 : motion === "mineral" ? 0.45 : 0.85,
     moodGranulation:
       motion === "mineral" ? 1.6 : motion === "breeze" ? 0.65 : 1,
@@ -118,7 +128,7 @@ export const NEUTRAL_BRUSH = {
   ...CHILL_BRUSHES[0],
   id: "brumes",
   baseId: "voiles",
-  glyph: "◯",
+  glyph: "neutral",
   name: "Lavis neutre",
   seed: 9741,
   width: 0.65,
