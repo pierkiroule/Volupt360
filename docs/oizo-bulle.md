@@ -39,7 +39,7 @@ Pendant la contemplation, seuls la phrase temporaire et « Reprendre le vol » s
 
 Le temps d’écoute dans une bulle ne consomme aucune des 360 secondes de vol. Le contrôleur ignore l’avancée audio pendant cet arrêt et réinitialise sa référence à la reprise. La musique ne s’interrompt pas ; elle boucle pour pouvoir couvrir une durée de contemplation libre, puis s’atténue au départ final. Une fin de piste ne peut plus forcer artificiellement l’horloge à six minutes.
 
-`gravity.mp3` reste prioritaire si présent dans `public/ambiances` au build. Lors de cette modification, seul `ambiance01.mp3` (environ 222 secondes) était disponible. Aucune piste musicale n’a été créée. Un MP3 indisponible laisse fonctionner l’expérience silencieusement.
+`public/ambiances/gravity.mp3` est désormais fourni et sélectionné en priorité : « Sans gravité », respectablejazzpunk919, environ 208 secondes. Le fichier a été récupéré depuis main. Il boucle pendant le vol et les contemplations, avec le fondu final et l’analyse audio existants. Aucune piste musicale n’a été créée. Un MP3 indisponible laisse fonctionner l’expérience silencieusement.
 
 ## Mémoire, final et retour en arrière
 
