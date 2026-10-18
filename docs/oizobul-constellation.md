@@ -42,3 +42,13 @@ Le test des surprises accélère uniquement les délais de déclenchement dans u
 Limites : mobile vérifié en émulation Chromium, pas sur Android/iOS physique. Aucune nouvelle mesure du tas JavaScript ou de fluidité soutenue sur appareil physique. Les 24 textes sont des créations originales à relire éditorialement avec le public visé. L’ordre de visite et le rythme de lecture restent libres.
 
 Résultats exécutés : 38 tests réussis (3,1 minutes), puis les six scénarios du conte rejoués avec succès après les derniers ajustements. Le build Vite, Prettier sur les fichiers modifiés et git diff --check passent.
+
+## Accueil poétique
+
+StoryWelcome remplace uniquement l’accueil du parcours constellation. Le logo manuscrit utilise la fonte Caveat déjà présente dans le dépôt. Une illustration SVG et des mouvements CSS lents évoquent les bulles, les ailes et le sillage ; le lavis réutilise la texture alpha existante. Aucune bibliothèque ni ressource réseau supplémentaire.
+
+L’invitation et le bouton d’envol précèdent les explications. Deux sections natives dépliables présentent le transnumérisme et l’échohypnose comme une démarche artistique. Le choix du gyroscope reste explicite et le lancement audio/permissions conserve le même gestionnaire de clic. Le parcours historique garde son accueil avec ?original=1.
+
+Les animations décoratives s’arrêtent avec prefers-reduced-motion. L’accueil défile verticalement sur petit écran, sans défilement horizontal. Le texte, les contrôles clavier et le lancement sont vérifiés en Chromium, avec vues mobile et ordinateur.
+
+Validation de l’accueil : 9 tests ciblés réussis (accueil et parcours du conte), build Vite et formatage validés. Captures mobile et ordinateur inspectées. Les contrôles mobiles sont des émulations, sans revendication de test sur appareil physique.

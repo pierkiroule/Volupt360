@@ -1,6 +1,6 @@
-# OIZO-BULLE •°
+# Oizobul•°
 
-On sculpte son ciel émotionnel pour apprendre à le contempler autrement.
+_Un conte transnumériste échohypnotique_
 
 Oizobul explore une constellation de 24 bulles lumineuses. Chacune contient un court fragment autonome d’un conte échohypnotique : plume, fenêtre bleue, branche et nuage se répondent, sans ordre de lecture imposé.
 

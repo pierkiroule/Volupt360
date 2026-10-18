@@ -1,3 +1,4 @@
+import StoryWelcome from "./StoryWelcome.jsx";
 import { OIZOBUL_STORY } from "./oizobulStory.js";
 import { FLIGHT_FIGURES } from "../engine/createFlightAcrobatics.js";
 import { ToolIcon } from "./ToolIcon.jsx";
@@ -47,7 +48,9 @@ export default function ChillExperience() {
       "--paper-alpha",
       `url("${createWatercolorAlpha("wash", 731, 256).toDataURL()}")`,
     );
-    document.title = "OIZO-BULLE •° — Sculpter son ciel";
+    document.title = CONSTELLATION
+      ? "Oizobul•° — Un conte transnumériste échohypnotique"
+      : "OIZO-BULLE •° — Sculpter son ciel";
     try {
       engine.current = createSoundNest(stage.current, {
         onError: setError,
@@ -198,21 +201,29 @@ export default function ChillExperience() {
   }
   return (
     <main
-      className={`immersive chill-experience ${started ? "is-running" : ""} ${contemplating ? "is-contemplating" : ""} phase-${phase}`}
+      className={`immersive chill-experience ${started ? "is-running" : ""} ${contemplating ? "is-contemplating" : ""} phase-${phase} ${CONSTELLATION && !started ? "constellation-home" : ""}`}
       style={{
         "--journey-ink": `rgb(${Math.round(228 - light * 175)}, ${Math.round(236 - light * 160)}, ${Math.round(230 - light * 148)})`,
       }}
     >
       <div id="stage" ref={stage} />
       <header className="brand">
-        <h1>OIZO-BULLE •°</h1>
+        <h1>{CONSTELLATION ? "Oizobul•°" : "OIZO-BULLE •°"}</h1>
         <p>
           {CONSTELLATION
             ? "Un conte à traverser, un ciel à inventer."
             : "On sculpte son ciel émotionnel pour apprendre à le contempler autrement."}
         </p>
       </header>
-      {!started && (
+      {!started && CONSTELLATION && (
+        <StoryWelcome
+          busy={busy}
+          onStart={start}
+          useGyro={useGyro}
+          onGyroChange={setUseGyro}
+        />
+      )}
+      {!started && !CONSTELLATION && (
         <section className="chill-welcome">
           <span className="chill-eyebrow">
             Un carnet ouvert sur l’invisible
