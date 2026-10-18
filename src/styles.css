@@ -1856,3 +1856,125 @@ label:focus-visible {
     animation-timing-function: linear;
   }
 }
+
+.chill-experience {
+  color: #e8e4df;
+}
+.chill-experience .brand {
+  color: #e8e4df;
+  text-shadow: 0 1px 14px #14233266;
+}
+.chill-welcome,
+.chill-ending {
+  position: fixed;
+  z-index: 35;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: max(2rem, env(safe-area-inset-top)) 1.7rem;
+  text-align: center;
+  background: linear-gradient(#182a3cc9, #344454c9);
+  overflow: auto;
+}
+.chill-welcome h2,
+.chill-ending h2 {
+  font:
+    normal clamp(1.8rem, 6vw, 3rem)/1.25 Georgia,
+    serif;
+  margin: 0;
+}
+.chill-welcome p,
+.chill-ending p {
+  max-width: 29rem;
+  line-height: 1.7;
+  margin: 0;
+}
+.chill-welcome small {
+  max-width: 27rem;
+  opacity: 0.7;
+  font-size: 0.68rem;
+  line-height: 1.6;
+}
+.chill-welcome button,
+.chill-ending button,
+.chill-ending a {
+  border: 1px solid #efe6db77;
+  background: #f1e7db22;
+  color: #fff3e7;
+  padding: 0.9rem 1.2rem;
+  border-radius: 2rem;
+  text-decoration: none;
+}
+.chill-ending {
+  inset: auto 1rem max(1rem, env(safe-area-inset-bottom));
+  border-radius: 1.5rem;
+  padding: 1.4rem;
+  background: #142333bb;
+}
+.chill-ending h2 {
+  font-size: 1.6rem;
+}
+.chill-time {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: 1rem;
+  font-size: 0.75rem;
+  z-index: 15;
+  color: #f1ebe3;
+}
+.chill-pause {
+  position: fixed;
+  z-index: 15;
+  top: max(3.2rem, calc(env(safe-area-inset-top) + 2rem));
+  right: 0.8rem;
+  border: 0;
+  border-radius: 1rem;
+  background: #132b3e44;
+  color: #ece4da;
+  font-size: 0.65rem;
+  padding: 0.6rem;
+}
+.chill-experience .bubble-score {
+  background: #18324a44;
+  color: #eee6dc;
+  font-size: 0.65rem;
+}
+.chill-experience .poetic-fragment {
+  color: #fff4e7;
+  text-shadow: 0 2px 16px #102334;
+}
+.chill-experience .poetic-fragment p {
+  margin: 0;
+}
+.chill-experience .poetic-fragment small {
+  display: block;
+  margin-top: 1rem;
+  font: 0.65rem/1.4 sans-serif;
+  opacity: 0.75;
+}
+.chill-departure {
+  position: fixed;
+  top: 35%;
+  left: 10%;
+  width: 80%;
+  text-align: center;
+  color: #f4e5d6;
+  z-index: 20;
+  font-family: Georgia, serif;
+}
+.chill-experience .landscape-palette {
+  opacity: 0.82;
+}
+.chill-experience .camera-views button {
+  color: #e7ded4;
+  background: #152d4433;
+}
+@media (max-height: 560px) {
+  .chill-welcome {
+    justify-content: flex-start;
+    padding-top: 5rem;
+  }
+}

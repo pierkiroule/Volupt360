@@ -1,14 +1,12 @@
-# OIZO •° — ÉchoMood
+# L’Oizo chill
 
-**1 à 3 emojis → un univers pictural et musical → cinq brosses → votre OIZO.**
+Une seule expérience de cinq minutes : un oiseau, six brosses picturales et des sillages de particules audioreactifs, au-dessus d’un océan au coucher du soleil.
 
-Choisissez parmi 28 inspirations, puis « Faire éclore mon OIZO ». Souffle, Plume, Battement, Éclosion et Envol composent un kit dont les couleurs, textures, mouvements et réponses musicales varient avec la combinaison. Les emojis inspirent la création ; ils ne sont ni un diagnostic ni des éléments décoratifs de la scène.
+Touchez pour tracer et glissez pour guider l’oizo. Sans contact, il rejoint les bulles de sagesse. Deux vues : FPV et gyro. Une pause suspend le voyage. Après cinq minutes, le soleil a disparu ; une courte sortie de huit secondes laisse l’oizo s’éloigner avant la vue d’ensemble et la proposition d’une photo PNG HD.
 
-Sculptez directement au doigt ou à la souris dans un espace en trois dimensions, puis contemplez la matière vivante en vue globale ou gyro. Le vol de l’oizo et son sillage restent accessibles en FPV. L’éditeur de brosse par appui long, le PNG HD et la vidéodio FPV sont conservés.
+La musique utilise le MP3 local de `public/ambiances`. Pas de synthèse musicale ni de voix. Les 24 bulles révèlent des proverbes et des citations du domaine public, avec leur source. L’expérience est artistique : son effet auprès de patients n’a pas été évalué cliniquement.
 
-La musique utilise les MP3 présents dans `public/ambiances`, découverts au démarrage de Vite et au build. Le dépôt contient actuellement **une seule composition** : toutes les combinaisons la partagent jusqu’à l’ajout d’autres ambiances. Les fragments vocaux sont exclus de ce catalogue. Lecture, volume et import personnel restent disponibles ; l’expérience fonctionne silencieusement si la musique est indisponible. Aucun son synthétique ni service externe n’est ajouté.
-
-Voir [l’architecture, le fonctionnement et les limites](docs/echo-mood.md). L’atelier précédent reste accessible à `/?classic=1`, et l’atelier MP3 historique à `/?atelier=mp3`.
+Voir [architecture, validation et limites](docs/oizo-chill.md). L’entrée ÉchoMood historique reste réversible à `/?legacy=1` ; le paysage précédent à `/?classic=1`. Les outils de capture et l’éditeur ne sont pas proposés pendant le voyage chill.
 
 ## Développement
 
