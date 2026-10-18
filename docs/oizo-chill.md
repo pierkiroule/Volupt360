@@ -1,4 +1,4 @@
-# L’Oizo chill
+# L’Oizo de l’Haïkuarelle Virtuelle
 
 ## Parcours
 
@@ -13,7 +13,7 @@ Une entrée unique, sans choix d’univers ou d’emojis. Le moteur Three.js, le
 
 Le contact dépose immédiatement depuis la queue ; le glissement pilote le point de visée invisible. Sans contact, le vol vise la bulle disponible la plus proche. Un recul lent de la caméra, indépendant de l’intensité sonore, ouvre parfois le paysage ; les courbes du vol influencent légèrement cette distance, amortie. Seuls FPV et gyro sont proposés durant la séance. Pas d’outil capture, de générateur ou d’éditeur à ce stade.
 
-Les 24 textes sont dans `chillConfig.js`. Les citations nommées proviennent des fables de La Fontaine ; les autres sont identifiées comme proverbes ou expressions, sans attribution inventée. L’affichage conserve les cinq secondes et les silences du moteur de bulles. Aucune voix n’est chargée.
+Les 24 bulles révèlent des haïkus originaux, chacun en trois vers, dans `chillConfig.js`. Les images de saison, le blanc, l’eau, l’encre et le passage de l’oiseau remplacent les proverbes et les conseils. Il s’agit d’une écriture libre inspirée du haïku, sans revendication de métrique 5–7–5. Aucune attribution à un auteur existant. Les sauts de ligne sont préservés ; apparition et disparition restent incluses dans les cinq secondes. Aucune voix n’est chargée.
 
 ## Cinq minutes et sortie
 
@@ -49,3 +49,7 @@ L’application propose une pause artistique et un support d’attention. Aucun 
 Les particules sont plus petites, mates et granuleuses, sans anneaux brillants. Leurs couleurs reprennent les pigments des six brosses ; deux brosses utilisent des encres sombres pour garder la finesse du contraste. Les bulles chill utilisent une membrane de lavis irrégulier plutôt qu’un reflet de verre. Les éléments d’interface reprennent des encres gris-bleu sur fond papier. Le vol, la musique, les textes et la durée restent inchangés.
 
 Validation de cette direction visuelle : 8 tests ciblés réussis (parcours chill, particules WebGL et bulles), build Vite et format réussis. Vue mobile inspectée dans Chromium ; fluidité et perception des textures sur téléphone physique non vérifiées.
+
+## Haïkuarelle Virtuelle
+
+Le titre devient « L’Oizo de l’Haïkuarelle Virtuelle ». Le compteur affiche « Haïkus révélés » et le PNG souvenir reprend ce nom. Validation : 6 tests ciblés réussis, dont unicité des 24 haïkus, trois vers par texte, conservation des sauts de ligne et affichage central de cinq secondes ; parcours, particules et PNG restent couverts. Build et format réussis.

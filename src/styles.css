@@ -2019,3 +2019,12 @@ label:focus-visible {
   color: #35464d;
   text-shadow: 0 1px 16px #f3eee3;
 }
+.chill-experience .brand h1 {
+  max-width: min(62vw, 32rem);
+  font-size: clamp(0.8rem, 2.6vw, 1.1rem);
+  line-height: 1.4;
+}
+.chill-experience .poetic-fragment p {
+  white-space: pre-line;
+  line-height: 1.8;
+}

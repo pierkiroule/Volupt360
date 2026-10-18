@@ -50,7 +50,10 @@ test("mobile chill starts one universe with six brushes, two views, immediate pa
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "L’Oizo chill", exact: true }),
+    page.getByRole("heading", {
+      name: "L’Oizo de l’Haïkuarelle Virtuelle",
+      exact: true,
+    }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Prendre cinq minutes" }).click();
   const canvas = page.locator("#stage canvas");

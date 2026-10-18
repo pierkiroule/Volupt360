@@ -29,7 +29,8 @@ export default function ChillExperience() {
     [photo, setPhoto] = useState(null),
     [photoBusy, setPhotoBusy] = useState(false);
   useEffect(() => {
-    document.title = "L’Oizo chill — cinq minutes d’aquarelle et d’encre";
+    document.title =
+      "L’Oizo de l’Haïkuarelle Virtuelle — cinq minutes d’aquarelle et d’encre";
     try {
       engine.current = createSoundNest(stage.current, {
         onError: setError,
@@ -128,7 +129,7 @@ export default function ChillExperience() {
     <main className="immersive chill-experience">
       <div id="stage" ref={stage} />
       <header className="brand">
-        <h1>L’Oizo chill</h1>
+        <h1>L’Oizo de l’Haïkuarelle Virtuelle</h1>
         <p>Cinq minutes d’aquarelle et d’encre</p>
       </header>
       {!started && (
@@ -137,7 +138,7 @@ export default function ChillExperience() {
           <h2>Laisser les couleurs respirer</h2>
           <p>
             Guidez l’oizo du bout du doigt. Ses traces deviennent un paysage.
-            Sans toucher, il rejoint les bulles de sagesse.
+            Sans toucher, il rejoint les bulles de haïkus.
           </p>
           <p>
             Un voyage d’aquarelle et d’encre de cinq minutes, à votre rythme.
@@ -200,13 +201,10 @@ export default function ChillExperience() {
               ))}
             </div>
           </section>
-          <output className="bubble-score">
-            Instants de sagesse · {score}/24
-          </output>
+          <output className="bubble-score">Haïkus révélés · {score}/24</output>
           {text && (
             <div key={text.id} className="poetic-fragment" role="status">
               <p>{text.text}</p>
-              <small>{text.source}</small>
             </div>
           )}
           {seconds >= 300 && (
@@ -224,7 +222,7 @@ export default function ChillExperience() {
             {photoBusy ? "Préparation…" : "Préparer ma photo souvenir"}
           </button>
           {photo && (
-            <a href={photo} download="L-Oizo-chill-souvenir.png">
+            <a href={photo} download="Haikuarelle-Virtuelle-souvenir.png">
               Télécharger la photo PNG HD
             </a>
           )}
