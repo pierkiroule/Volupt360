@@ -151,7 +151,10 @@ export function createSoundNest(
     visitClock = 0,
     visitMark = null;
   const visitPoint = new THREE.Vector3();
-  const dance = createSonoizoDance({ firstPerson: true });
+  const dance = createSonoizoDance({
+    firstPerson: true,
+    seed: Math.floor(Math.random() * 4294967296),
+  });
   const padStates = new Map();
   const tailPosition = new THREE.Vector3();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
@@ -680,6 +683,10 @@ export function createSoundNest(
         visitClock -= dt;
         if (visitClock <= 0) {
           visitClock = 0.5;
+          dance.setOrbitTarget(
+            navigation.bounds.center,
+            navigation.bounds.radius,
+          );
           if (
             !visitMark ||
             !marks.includes(visitMark) ||
@@ -713,6 +720,9 @@ export function createSoundNest(
         oizo?.update(pose);
         if (oizo) oizo.group.visible = !directSculpture;
         if (pose.aimPoint) aimLocal.copy(pose.aimPoint);
+        renderer.domElement.dataset.autonomousFlight = String(
+          Boolean(pose.autonomous),
+        );
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
@@ -800,6 +810,9 @@ export function createSoundNest(
         oizo?.update(pose);
         if (oizo) oizo.group.visible = !directSculpture;
         if (pose.aimPoint) aimLocal.copy(pose.aimPoint);
+        renderer.domElement.dataset.autonomousFlight = String(
+          Boolean(pose.autonomous),
+        );
         navigation.position.copy(pose.position);
         navigation.direction.copy(pose.direction);
         navigation.velocity.copy(pose.velocity);
