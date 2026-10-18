@@ -2,7 +2,7 @@
 
 Un atelier de peinture et de sculpture aquarelle en trois dimensions, sur un ciel blanc.
 
-Glisser guide l’oizo. Maintenir le toucher pendant 320 ms déclenche les traces depuis ses ailes ; relâcher arrête la peinture et laisse l’oiseau revenir progressivement en orbite autour du centre de l’œuvre. La palette permet de choisir les matières existantes, sans bulles ni récit dans le parcours principal.
+Glisser guide l’oizo. Maintenir le toucher pendant 320 ms déclenche un seul tracé depuis la pointe du pinceau ailé ; relâcher arrête la peinture et laisse l’oiseau revenir progressivement en orbite autour du centre de l’œuvre. La palette permet de choisir les matières existantes, sans bulles ni récit dans le parcours principal.
 
 Un bouton bascule entre suivi FPV et contemplation gyro 360°, avec autorisation du capteur et alternative tactile. Gravity accompagne la sculpture et conserve l’analyse musicale des pigments, le volume et la pause. L’atelier n’impose pas de fin chronométrée.
 

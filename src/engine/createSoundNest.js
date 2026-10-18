@@ -186,6 +186,7 @@ export function createSoundNest(
   });
   const padStates = new Map();
   const wingPositions = [new THREE.Vector3(), new THREE.Vector3()];
+  const brushTipPosition = new THREE.Vector3();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
   const pigmentArchive = createPigmentArchive();
   landscape.add(pigmentArchive.group);
@@ -355,6 +356,25 @@ export function createSoundNest(
       feedEmitter(id, pose, id);
       return;
     }
+    if (workshopMode) {
+      oizo.getBrushTipPosition(brushTipPosition);
+      feedEmitter(
+        id,
+        {
+          ...pose,
+          position: brushTipPosition,
+          wake: true,
+          depositionTime: lifeTime,
+        },
+        id,
+      );
+      renderer.domElement.dataset.paintEmitter = "brush-tip";
+      renderer.domElement.dataset.paintEmitterCount = "1";
+      renderer.domElement.dataset.brushTip = brushTipPosition
+        .toArray()
+        .join(",");
+      return;
+    }
     for (let wing = 0; wing < 2; wing++) {
       const position = oizo.getWingPosition(wing, wingPositions[wing]);
       feedEmitter(
@@ -377,7 +397,7 @@ export function createSoundNest(
     brush = id;
     addSample(pose, true);
     moodAtmosphere?.onTrace?.(pose.position, pose.energy || 0.2);
-    if (chillTrails) {
+    if (chillTrails && !workshopMode) {
       const profile = generatedBrushes.get(id);
       trailColor.set(profile?.color || "#c7d8df");
       chillTrails.emit(pose.position, trailColor, profile?.chillStyle || 0);
@@ -1372,6 +1392,7 @@ export function createSoundNest(
         oizo = createOizo();
         landscape.add(oizo.group);
       }
+      oizo?.setPaintbrush(workshopMode);
       if (oizo) oizo.group.visible = Boolean(source) && !directSculpture;
       if (source) {
         if (!padInitialized) {

@@ -23,6 +23,40 @@ export function createOizo() {
   );
   const silhouette = new THREE.Mesh(keel, material);
   body.add(silhouette);
+  // Share the existing bank, pitch and wing rig with a slender painter's brush.
+  const paintbrush = new THREE.Group();
+  paintbrush.name = "winged-paintbrush";
+  paintbrush.visible = false;
+  body.add(paintbrush);
+  const brushParts = [
+    [
+      "handle",
+      new THREE.CylinderGeometry(0.025, 0.045, 0.7, 10),
+      "#a26843",
+      0.18,
+    ],
+    [
+      "ferrule",
+      new THREE.CylinderGeometry(0.05, 0.05, 0.16, 12),
+      "#c5ad83",
+      -0.2,
+    ],
+    ["bristles", new THREE.ConeGeometry(0.05, 0.28, 12), "#243e48", -0.42],
+  ].map(([name, geometry, color, z]) => {
+    const mesh = new THREE.Mesh(
+      geometry,
+      new THREE.MeshBasicMaterial({ color }),
+    );
+    mesh.name = `brush-${name}`;
+    mesh.rotation.x = name === "bristles" ? -Math.PI / 2 : Math.PI / 2;
+    mesh.position.z = z;
+    paintbrush.add(mesh);
+    return mesh;
+  });
+  const brushTip = new THREE.Object3D();
+  brushTip.name = "brush-tip";
+  brushTip.position.z = -0.56;
+  paintbrush.add(brushTip);
   const wings = [-1, 1].map((side) => {
     const positions = [],
       indices = [],
@@ -104,6 +138,15 @@ export function createOizo() {
     figureRoll = 0;
   return {
     group,
+    setPaintbrush(enabled) {
+      paintbrush.visible = enabled;
+      silhouette.visible = !enabled;
+    },
+    getBrushTipPosition(target) {
+      group.updateWorldMatrix(true, true);
+      brushTip.getWorldPosition(target);
+      return group.parent ? group.parent.worldToLocal(target) : target;
+    },
     setColor(color) {
       material.color.set(color);
     },
@@ -199,6 +242,10 @@ export function createOizo() {
         skeleton.dispose();
       }
       keel.dispose();
+      for (const part of brushParts) {
+        part.geometry.dispose();
+        part.material.dispose();
+      }
       material.dispose();
       group.removeFromParent();
     },

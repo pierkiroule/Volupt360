@@ -126,8 +126,8 @@ export default function WatercolorWorkshop() {
           <h2>Atelier aquarelle</h2>
           <p>
             Glissez pour guider l’oizo. Maintenez le toucher pour peindre depuis
-            ses ailes. Relâchez : il retrouve doucement le centre de votre
-            sculpture.
+            la pointe du pinceau ailé. Relâchez : il retrouve doucement le
+            centre de votre sculpture.
           </p>
           <p>Choisissez vos matières, puis contemplez votre paysage à 360°.</p>
           <button onClick={start} disabled={busy}>
