@@ -3,12 +3,9 @@ import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
 import musicCatalog from "virtual:echo-music";
 import { CHILL_UNIVERSE } from "./chillConfig.js";
-import {
-  MOOD_BRUSHES,
-  NEUTRAL_BRUSH,
-  OIZO_BULLE_BRUSHES,
-} from "./moodBrushes.js";
+import { NEUTRAL_BRUSH } from "./moodBrushes.js";
 import { ToolIcon } from "./ToolIcon.jsx";
+import { WORKSHOP_BRUSHES } from "./workshopBrushes.js";
 
 export default function WatercolorWorkshop() {
   const stage = useRef(null),
@@ -49,7 +46,7 @@ export default function WatercolorWorkshop() {
           resonanceBubbles: false,
           constellation: false,
         },
-        OIZO_BULLE_BRUSHES,
+        WORKSHOP_BRUSHES,
       );
       engine.current.setPoeticFragments([]);
       engine.current.setBrush(NEUTRAL_BRUSH.id);
@@ -147,7 +144,7 @@ export default function WatercolorWorkshop() {
                 aria-label="Matières picturales"
               >
                 <div role="group" aria-label="Choisir une brosse">
-                  {[...MOOD_BRUSHES, NEUTRAL_BRUSH].map((b) => (
+                  {WORKSHOP_BRUSHES.map((b) => (
                     <button
                       key={b.id}
                       aria-label={b.name}

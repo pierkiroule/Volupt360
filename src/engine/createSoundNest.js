@@ -73,6 +73,7 @@ export function createSoundNest(
   );
   container.append(renderer.domElement);
   const nearestBubble = new THREE.Vector3();
+  const sculptureCenter = new THREE.Vector3();
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#f4f0e8");
   renderer.domElement.dataset.skydome = "off-white-paper";
@@ -886,8 +887,8 @@ export function createSoundNest(
         if (visitClock <= 0) {
           visitClock = 0.5;
           dance.setOrbitTarget(
-            navigation.bounds.center,
-            navigation.bounds.radius,
+            workshopMode ? sculptureCenter : navigation.bounds.center,
+            workshopMode ? 16 : navigation.bounds.radius,
           );
           if (
             !visitMark ||
@@ -1597,6 +1598,7 @@ export function createSoundNest(
         this.setGeneratedBrush(profile.id, profile);
       chillMode = Boolean(universe.chill);
       workshopMode = Boolean(universe.workshop);
+      dance.setSculptureAssist(workshopMode);
       resonanceMode = Boolean(universe.resonanceBubbles);
       constellationMode = Boolean(universe.constellation);
       renderer.domElement.dataset.constellation = String(constellationMode);

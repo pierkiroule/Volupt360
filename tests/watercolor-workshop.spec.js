@@ -129,3 +129,106 @@ test("brush tip follows the rig through turns and parent transforms", async ({
   expect(result.offset).toBeGreaterThan(0.8);
   expect(result.visible && result.wings && result.removed).toBe(true);
 });
+
+test("assisted steering turns continuously and six minutes of neutral painting stay around the center", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { createPointFlight } =
+      await import("/src/engine/createPointFlight.js");
+    function run(input, fps, seconds) {
+      const flight = createPointFlight();
+      flight.setSculptureAssist(true);
+      flight.setOrbitTarget(new THREE.Vector3(), 16);
+      flight.beginPilot();
+      const frame = {
+        right: new THREE.Vector3(-1, 0, 0),
+        up: new THREE.Vector3(0, 1, 0),
+      };
+      let pose,
+        maxRadius = 0,
+        maxStep = 0;
+      const previous = new THREE.Vector3(18, 0, 0);
+      for (let i = 0; i < fps * seconds; i++) {
+        if (pose)
+          frame.right.crossVectors(pose.direction, frame.up).normalize();
+        flight.setPilot(input, 0, frame);
+        pose = flight.update(1 / fps, {});
+        maxRadius = Math.max(maxRadius, pose.position.length());
+        maxStep = Math.max(maxStep, previous.distanceTo(pose.position));
+        previous.copy(pose.position);
+      }
+      const manual = {
+        x: pose.direction.x,
+        radius: pose.position.length(),
+        maxRadius,
+        maxStep,
+      };
+      flight.releasePilot();
+      for (let i = 0; i < fps * 60; i++) pose = flight.update(1 / fps, {});
+      return {
+        ...manual,
+        releasedRadius: pose.position.length(),
+        autonomous: pose.autonomous,
+      };
+    }
+    return {
+      right: run(0.5, 60, 1),
+      left: run(-0.5, 60, 1),
+      slow: run(0, 30, 360),
+      fast: run(0, 60, 360),
+      turning: run(0.5, 60, 60),
+    };
+  });
+  expect(result.right.x).toBeLessThan(-0.15);
+  expect(result.left.x).toBeGreaterThan(0.15);
+  for (const p of [result.slow, result.fast, result.turning]) {
+    expect(p.maxRadius).toBeLessThan(26);
+    expect(p.maxStep).toBeLessThan(0.09);
+    expect(p.releasedRadius).toBeLessThan(26);
+    expect(p.autonomous).toBe(true);
+  }
+  expect(Math.abs(result.slow.radius - result.fast.radius)).toBeLessThan(0.1);
+});
+
+test("workshop palette uses single pigment sheets, not volumetric mist", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
+    const { createBrushStroke } = await import("/src/engine/brushes.js");
+    return WORKSHOP_BRUSHES.map((profile) => {
+      const stroke = createBrushStroke(profile.baseId, {
+        seed: profile.seed,
+        color: new THREE.Color(profile.color),
+        dynamics: profile,
+      });
+      const meshes = [];
+      stroke.group.traverse((mesh) => {
+        if (mesh.isMesh) meshes.push(mesh);
+      });
+      const result = {
+        base: profile.baseId,
+        meshes: meshes.length,
+        mode: meshes[0].material.uniforms.uMaterialMode.value,
+        grain: meshes[0].material.uniforms.uMoodGrain.value,
+      };
+      stroke.group.traverse((mesh) => {
+        mesh.geometry?.dispose();
+        mesh.material?.dispose();
+      });
+      return result;
+    });
+  });
+  expect(result).toHaveLength(9);
+  for (const brush of result) {
+    expect(["brumes", "lagons", "bulles"]).not.toContain(brush.base);
+    expect(brush.meshes).toBe(1);
+    expect(brush.mode).toBe(2);
+    expect(brush.grain).toBeGreaterThan(1);
+  }
+});

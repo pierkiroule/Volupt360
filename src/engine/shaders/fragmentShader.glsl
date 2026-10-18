@@ -19,6 +19,7 @@ float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? 
 float materialAge=uMaterialMode>.5?vMaterialAge:uAge;
 float wet=exp(-materialAge*dryingRate);
 if(uMaterialMode>.5)wet=clamp(wet*.55+uMoisture*.65,0.,1.);
+if(uMaterialMode>1.5)wet=exp(-materialAge*.045)*(.65+uMoisture*.35);
 float settled=1.-wet;
 if(uMaterialMode>.5){
  float migration=noise2(uv*vec2(9.,23.)+vec2(vPigmentSeed,uTime*.09));
@@ -145,6 +146,16 @@ if(uMaterialMode>.5){
  col*=1.-uAudioLow*.16;
  col=mix(col,base,.12*uAudioPulse);
  alpha*=.8+uAudioEnergy*.42+uAudioPulse*.22;
+}
+if(uMaterialMode>1.5){
+ // Pigment gathers at an irregular waterline, while fixed paper tooth stays visible.
+ float waterline=exp(-pow((edge-(.81+middle*.055))/.055,2.));
+ float tooth=noise2(vUv*vec2(190.,280.)+vPigmentSeed);
+ float paperReserve=smoothstep(.23,.45,tooth*.65+middle*.35);
+ col=mix(col,base*.33,waterline*(.35+settled*.2));
+ col*=.9+.14*tooth;
+ alpha*=paperReserve*(.88+waterline*.45);
+ alpha=1.-pow(1.-clamp(alpha,0.,1.),2.4);
 }
 if(vStrokeExtent>0.){
   float cap=min(.035,vStrokeExtent*.35);

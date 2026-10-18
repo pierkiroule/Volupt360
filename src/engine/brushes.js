@@ -249,15 +249,16 @@ export function createBrushStroke(
   let count = 0,
     finished = false;
   const ribbon = !["brumes", "lagons", "bulles", "network"].includes(id);
-  const layers = dynamics?.wakeThread
-    ? 1
-    : id === "filaments"
-      ? 4
-      : ["corolles", "aurore", "echo"].includes(id)
-        ? 3
-        : id === "calligraphie"
-          ? 1
-          : 2;
+  const layers =
+    dynamics?.wakeThread || dynamics?.planarWash
+      ? 1
+      : id === "filaments"
+        ? 4
+        : ["corolles", "aurore", "echo"].includes(id)
+          ? 3
+          : id === "calligraphie"
+            ? 1
+            : 2;
   const columns = id === "filaments" ? 8 : 12;
   const meshes = [];
   const warm = new THREE.Color("#e6d3b2");
@@ -689,6 +690,11 @@ export function createBrushStroke(
           } else if (mood === "breeze") {
             lateral *= 0.55;
             vertical += Math.sin(phase * 0.4) * 0.18;
+          }
+          if (dynamics?.planarWash) {
+            // Paper-like sheets with a slight uneven surface, not billowing volumes.
+            lateral *= id === "dilution" ? 0.55 : 1;
+            vertical *= 0.14;
           }
           vertical += layer * 0.09;
           const point = pointScratch
