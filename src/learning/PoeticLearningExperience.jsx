@@ -210,9 +210,10 @@ export default function PoeticLearningExperience() {
             devient une aquarelle.
           </p>
           <p className="learning-instructions">
-            Orientez votre téléphone ou glissez sur l’écran. Posez le regard sur
-            une bulle pendant 1,5 seconde pour entrer. À l’intérieur, trois
-            découvertes vous attendent.
+            Glissez pour guider l’oizo. Sans geste, il rejoint doucement une
+            bulle lumineuse. Au contact, trois découvertes vous attendent à
+            360°. Après la première visite, son vol peint le ciel
+            automatiquement.
           </p>
           <label className="learning-gyro">
             <input
@@ -220,7 +221,7 @@ export default function PoeticLearningExperience() {
               checked={gyro}
               onChange={(e) => setGyro(e.target.checked)}
             />{" "}
-            Activer le gyroscope (facultatif)
+            Activer le gyroscope dans les bulles (facultatif)
           </label>
           <button
             className="learning-primary"
@@ -264,7 +265,7 @@ export default function PoeticLearningExperience() {
               {state?.progress.visited.length || 0}/12
             </span>
           </header>
-          {!state?.paused && state?.message === null && (
+          {topic && !state?.paused && state?.message === null && (
             <div
               className="learning-reticle"
               aria-hidden="true"
@@ -302,7 +303,7 @@ export default function PoeticLearningExperience() {
                     {targetTopic?.title ||
                       (state?.activeBrush
                         ? "Votre voyage dessine le ciel."
-                        : "Glissez pour explorer. Regardez une bulle pour entrer.")}
+                        : "Glissez pour guider l’oizo. Les bulles lumineuses vous attendent.")}
                   </p>
                   {!state?.target && (
                     <button onClick={() => journey.current.guide()}>
@@ -476,9 +477,11 @@ export default function PoeticLearningExperience() {
           </nav>
           {!state?.paused && !message && (
             <small className="learning-sensor-status">
-              {gyroStatus === "active"
-                ? "Regard gyroscope · glissement disponible"
-                : "Glissez pour regarder à 360°"}
+              {!topic
+                ? "Glissez pour guider · relâchez pour explorer"
+                : gyroStatus === "active"
+                  ? "Regard gyroscope · glissement disponible"
+                  : "Glissez pour regarder à 360°"}
             </small>
           )}
           {state?.storageAvailable === false && (

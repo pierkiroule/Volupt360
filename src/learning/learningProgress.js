@@ -13,15 +13,19 @@ export function cleanProgress(value) {
       return true;
     });
   }
+  const encountered = LEARNING_TOPICS.filter(
+    (t) =>
+      opened[t.id].length === 3 ||
+      (Array.isArray(value?.encountered) && value.encountered.includes(t.id)),
+  ).map((t) => t.id);
   return {
     version: 1,
     elapsed: Number.isFinite(value?.elapsed)
       ? Math.max(0, Math.min(86400, value.elapsed))
       : 0,
     opened,
-    visited: LEARNING_TOPICS.filter((t) => opened[t.id].length === 3).map(
-      (t) => t.id,
-    ),
+    encountered,
+    visited: [...encountered],
   };
 }
 export function loadProgress(storage) {

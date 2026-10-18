@@ -2,11 +2,11 @@
 
 ## Parcours
 
-Le parcours principal est désormais « Pourquoi cherchons-nous à nous sentir plus légers ? ». Douze destinations sont réparties dans le même ciel 3D. Une fixation continue de 1,5 seconde ouvre une destination, puis chacune des trois petites bulles pédagogiques, dans l’ordre Mystère → Découverte scientifique → Résonance.
+Le parcours principal est désormais « Pourquoi cherchons-nous à nous sentir plus légers ? ». Douze destinations sont disponibles dès l’initialisation, lumineuses et reliées par de fins liens. L’oizo entre par contact spatial réel avec une bulle. À l’intérieur, une fixation continue de 1,5 seconde ouvre les trois petites bulles pédagogiques, dans l’ordre Mystère → Découverte scientifique → Résonance.
 
-Le déplacement est lent (0,7 unité/seconde), orienté par le regard. Une limite douce réduit la dérive vers l’extérieur. Dans une destination, la caméra reste à une position fixe : seuls le regard tactile et le gyroscope tournent la vue. L’entrée conserve le point de vue et fait apparaître progressivement les matières locales, sans téléportation. « Revenir au ciel » reste disponible, même avant d’avoir lu les trois messages.
+Le pilotage tactile réutilise createPointFlight : glisser guide l’oizo dans le repère de la caméra, relâcher le dirige doucement vers la bulle lumineuse la plus proche. Le moteur conserve ses courbes et son inertie ; les vitesses sont adaptées par un facteur 0,65. Dans une destination, la caméra reste à une position fixe : seuls le regard tactile et le gyroscope tournent la vue. L’entrée conserve le point de vue et fait apparaître progressivement les matières locales, sans téléportation. « Revenir au ciel » reste disponible, même avant d’avoir lu les trois messages.
 
-Les quinze minutes sont indicatives : une escale est ensuite proposée, sans couper le voyage ni obliger à finir. Une interruption met en pause ; la reprise exige un geste explicite. Aucun compte à rebours ni score. L’indication 0/12 compte les destinations dont les trois messages ont été ouverts.
+Les quinze minutes sont indicatives : une escale est ensuite proposée, sans couper le voyage ni obliger à finir. Une interruption met en pause ; la reprise exige un geste explicite. Aucun compte à rebours ni score. L’indication 0/12 compte les bulles quittées, même après une lecture partielle. Elles s’éteignent mais restent présentes ; l’autopilote ne les cible plus.
 
 ## Architecture réutilisée
 
@@ -14,7 +14,7 @@ Les quinze minutes sont indicatives : une escale est ensuite proposée, sans cou
 - createCameraRig conserve les écouteurs tactiles et gyroscope, la permission native et le fallback. Deux méthodes ajoutent un point de vue mobile et son recentrage.
 - createChillSky conserve l’atmosphère aquarellée, étirée sur quinze minutes.
 - Les douze brosses utilisent les moteurs createBrushStroke existants, leurs textures et shaders. Aucun remplacement par des lignes génériques.
-- Le petit OIZO utilise le rig existant. Il accompagne le regard, sans pilotage tactile de dessin.
+- Le petit OIZO utilise le rig, le pilotage createPointFlight et les figures createFlightAcrobatics existants. La caméra de suivi est réutilisée ; le toucher pilote sans jamais déclencher ou interrompre la peinture.
 - useTwigBank et Web Audio réutilisent Gravity et son analyse. Lecture stéréo sans filtre tonal : seul le volume et les fondus affectent le MP3. Aucun son synthétique, sample ajouté ou API externe.
 
 createPoeticLearning coordonne EXPLORE/BUBBLE, regard, progression et ressources. createGazeInteraction isole la fixation. createLearningIllustration utilise un champ de points/lignes et des lavis partagés, avec douze lois de mouvement sensibles au regard. Ces animations illustrent un principe ; elles ne reproduisent pas un protocole expérimental et ne mesurent pas le visiteur.
@@ -23,7 +23,7 @@ PoeticLearningExperience gère interface, messages, références, pause, son et 
 
 ## Matières automatiques
 
-Une destination entièrement découverte active sa brosse au retour dans le ciel. Mouvement et orientation tracent spontanément ; aucun geste de dessin. Une reprise active une matière déjà découverte.
+Aucune brosse n’est active au démarrage, même lors d’une reprise. Chaque sortie d’une bulle active sa matière, quelle que soit la quantité de texte consultée. Mouvement et orientation tracent ensuite spontanément ; aucun geste de dessin. Les commandes de brosses et d’acrobaties n’apparaissent pas dans le parcours.
 
 Douze identités : lavis, grain minéral, dilution, filaments libres, calligraphie, échos, voiles, bulles, corolles, hachures, réseau et éclats. La musique module les pigments via les uniforms existants.
 
@@ -41,9 +41,9 @@ Les références sont proposées pour révision éditoriale professionnelle. La 
 
 ## Sauvegarde et données
 
-Clé locale oizo.poetic-learning.v1 : version, identifiants des messages ouverts, destinations découvertes et durée active. Validation des identifiants, de l’ordre et des bornes. Le parcours fonctionne si localStorage est refusé ou saturé, avec indication de non-sauvegarde.
+Clé locale oizo.poetic-learning.v1 : version, identifiants des messages ouverts, bulles rencontrées et durée active. Validation des identifiants, de l’ordre et des bornes. Le parcours fonctionne si localStorage est refusé ou saturé, avec indication de non-sauvegarde.
 
-Aucun compte, backend, inférence émotionnelle, mesure psychologique ou envoi de progression. Les traces et la position exacte ne sont pas sauvegardées : la reprise reconstitue un ciel neuf avec les découvertes et une brosse disponible. « Recommencer un ciel » réinitialise explicitement la progression.
+Aucun compte, backend, inférence émotionnelle, mesure psychologique ou envoi de progression. Les traces et la position exacte ne sont pas sauvegardées : la reprise reconstitue un ciel neuf avec les bulles déjà visitées éteintes ; une nouvelle sortie de bulle active la matière. « Recommencer un ciel » réinitialise explicitement la progression.
 
 ## Vérifications et limites
 
@@ -62,3 +62,13 @@ L’émulation Chromium et les capteurs simulés ne remplacent pas un essai Andr
 - Build Vite, formatage des fichiers modifiés et contrôle des différences réussis.
 
 Le correctif de fidélité MP3 supprime le filtre passe-bas de la chaîne commune : source média → analyseur transparent → gain → sortie. Onze tests ciblés ont été exécutés avec succès, dont deux vérifications du graphe audio et les neuf tests du parcours ; build Vite réussi.
+
+## Réseau et vol vivant
+
+Les 12 sphères partagent une géométrie, les halos une texture radiale 64 pixels. Un unique buffer relie les voisines (deux voisines par bulle, liens dédoublonnés). Les bulles visitées conservent leur coque ; leur halo est éteint. La détection compare le déplacement 3D effectif de l’oizo à chaque sphère, indépendamment de la caméra.
+
+Le module createLearningFlight adapte les contrôles existants. Au repos, il vise la plus proche bulle non visitée ; une fixation peut aussi suggérer une destination. Les acrobaties automatiques réutilisent les trois figures, après au moins quatre secondes sans guidage, à distance d’une bulle. Elles sont espacées de plusieurs dizaines de secondes et désactivées avec la préférence de mouvement réduit. Un contact tactile les interrompt immédiatement. La caméra conserve la mise en scène confortable des figures ; les matières continuent à se déposer.
+
+Les nouvelles vérifications couvrent les douze bulles initiales, l’absence de peinture avant visite, l’extinction sans suppression, la sortie après lecture partielle, la peinture sans toucher, le choix de la plus proche bulle lumineuse, les trois figures spontanées, le contrôle à droite et l’interruption tactile.
+
+Validation de ce lot : 35 tests Playwright réussis (2 min 48 s), incluant le nouveau vol, le parcours pédagogique, les acrobaties historiques, le pilotage, les ailes, les bulles, la timeline et la fidélité MP3. Build Vite, Prettier des fichiers modifiés et contrôle des différences réussis. Mobile vérifié par émulation Chromium ; aucun essai physique Android/iOS revendiqué.

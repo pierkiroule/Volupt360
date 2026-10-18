@@ -1,3 +1,4 @@
+import { createLearningFlight } from "./createLearningFlight.js";
 import * as THREE from "three";
 import { LEARNING_TOPICS, LEARNING_SECONDS } from "./learningContent.js";
 import { cleanProgress, saveProgress } from "./learningProgress.js";
@@ -11,6 +12,7 @@ export function createPoeticLearning({
   scene,
   camera,
   rig,
+  navigation,
   canvas,
   sky,
   mobile,
@@ -22,20 +24,15 @@ export function createPoeticLearning({
   scene.add(world);
   const position = new THREE.Vector3(),
     direction = new THREE.Vector3(0, 0, -1),
-    side = new THREE.Vector3(1, 0, 0),
     up = new THREE.Vector3(0, 1, 0),
     delta = new THREE.Vector3(),
     forward = new THREE.Vector3(),
     anchor = new THREE.Vector3();
-  const pose = {
-    position: new THREE.Vector3(),
-    direction,
-    side,
-    up,
-    velocity: new THREE.Vector3(),
-    time: 0,
-    acoustic: {},
-  };
+  const flight = createLearningFlight(canvas, camera);
+  let pose = flight.pose;
+  const previousBird = new THREE.Vector3(),
+    encounterPoint = new THREE.Vector3();
+  const path = new THREE.Line3();
   const painter = createAutomaticPainter(world, mobile),
     illustration = createLearningIllustration(world),
     bird = createOizo();
@@ -55,6 +52,7 @@ export function createPoeticLearning({
       uniforms: {
         tint: { value: new THREE.Color(color) },
         presence: { value: 0.75 },
+        light: { value: 1 },
         time: { value: 0 },
       },
       transparent: true,
@@ -62,7 +60,7 @@ export function createPoeticLearning({
       vertexShader:
         "varying vec3 n,v; void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}",
       fragmentShader:
-        "uniform vec3 tint;uniform float presence,time;varying vec3 n,v;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.);float alpha=(.055+rim*.38)*presence;gl_FragColor=vec4(tint+rim*.10,alpha);\n#include <colorspace_fragment>\n}",
+        "uniform vec3 tint;uniform float presence,time,light;varying vec3 n,v;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.);float alpha=(.10+rim*.64)*presence;gl_FragColor=vec4(mix(tint*.45,tint+vec3(.24),light),alpha);\n#include <colorspace_fragment>\n}",
     });
   const bubbles = LEARNING_TOPICS.map((topic, i) => {
     const mesh = new THREE.Mesh(geometry, sphereMaterial(topic.color));
@@ -86,6 +84,64 @@ export function createPoeticLearning({
       color: new THREE.Color(topic.color),
     };
   });
+  const haloCanvas = document.createElement("canvas");
+  haloCanvas.width = haloCanvas.height = 64;
+  const context = haloCanvas.getContext("2d"),
+    gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gradient.addColorStop(0, "rgba(255,255,255,.6)");
+  gradient.addColorStop(0.3, "rgba(255,255,255,.18)");
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 64, 64);
+  const haloMap = new THREE.CanvasTexture(haloCanvas);
+  for (const bubble of bubbles) {
+    bubble.halo = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: haloMap,
+        color: bubble.topic.color,
+        transparent: true,
+        opacity: 0.4,
+        depthWrite: false,
+      }),
+    );
+    bubble.halo.scale.setScalar(5);
+    outer.add(bubble.halo);
+  }
+  const connections = [],
+    keys = new Set();
+  for (const a of bubbles) {
+    const neighbours = bubbles
+      .filter((b) => a !== b)
+      .sort(
+        (b, c) =>
+          a.base.distanceToSquared(b.base) - a.base.distanceToSquared(c.base),
+      )
+      .slice(0, 2);
+    for (const b of neighbours) {
+      const key = [a.id, b.id].sort().join(":");
+      if (!keys.has(key)) {
+        keys.add(key);
+        connections.push(a, b);
+      }
+    }
+  }
+  const linkPositions = new Float32Array(connections.length * 3);
+  const linkGeometry = new THREE.BufferGeometry();
+  linkGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(linkPositions, 3).setUsage(
+      THREE.DynamicDrawUsage,
+    ),
+  );
+  const linkMaterial = new THREE.LineBasicMaterial({
+    color: "#8da9c3",
+    transparent: true,
+    opacity: 0.11,
+    depthWrite: false,
+  });
+  const links = new THREE.LineSegments(linkGeometry, linkMaterial);
+  links.frustumCulled = false;
+  outer.add(links);
   const satellites = [0, 1, 2].map((i) => {
     const mesh = new THREE.Mesh(
       geometry,
@@ -109,7 +165,7 @@ export function createPoeticLearning({
     travelling = true,
     elapsed = progress.elapsed,
     time = 0,
-    transition = 0,
+    transition = 1,
     cooldown = 1.2,
     reportClock = 0,
     saveClock = 0,
@@ -117,12 +173,9 @@ export function createPoeticLearning({
     dwell = 0,
     disposed = false,
     storageAvailable = true;
-  let lastBrush = progress.visited.at(-1);
-  if (lastBrush) painter.activate(lastBrush);
+  let lastBrush = null;
   const phase = {};
-  const ray = new THREE.Raycaster(),
-    ndc = new THREE.Vector2(0, 0),
-    choices = [];
+  const choices = [];
   function persist() {
     progress.elapsed = elapsed;
     storageAvailable = saveProgress(progress);
@@ -140,6 +193,7 @@ export function createPoeticLearning({
       storageAvailable,
       invitation: elapsed >= LEARNING_SECONDS,
       activeBrush: lastBrush || null,
+      flight: flight.state,
     };
   }
   function notify() {
@@ -155,7 +209,9 @@ export function createPoeticLearning({
     transition = 0;
     gaze.reset();
     painter.close();
-    anchor.copy(position);
+    flight.setEnabled(false);
+    anchor.copy(camera.position);
+    void rig.enterContemplation(anchor);
     illustration.show(topic, anchor, camera.quaternion);
     inner.position.copy(anchor);
     inner.quaternion.copy(camera.quaternion);
@@ -188,17 +244,19 @@ export function createPoeticLearning({
   }
   const gaze = createGazeInteraction({
     onSelect(id) {
-      if (mode === "EXPLORE") enter(id);
-      else reveal(Number(id.split("-")[1]));
+      if (mode === "EXPLORE") {
+        if (!flight.state.manual && !progress.visited.includes(id))
+          flight.guide(id);
+      } else reveal(Number(id.split("-")[1]));
     },
   });
   function leave() {
     if (mode !== "BUBBLE") return;
-    const completed = progress.opened[topic.id].length === 3;
-    if (completed) {
-      lastBrush = topic.id;
-      painter.activate(lastBrush);
-    }
+    lastBrush = topic.id;
+    painter.activate(lastBrush);
+    progress.encountered.push(topic.id);
+    progress = cleanProgress(progress);
+    void rig.leaveContemplation();
     mode = "EXPLORE";
     topic = null;
     message = null;
@@ -217,8 +275,13 @@ export function createPoeticLearning({
     for (const bubble of bubbles) {
       const visited = progress.visited.includes(bubble.id);
       bubble.mesh.material.uniforms.presence.value =
-        (mode === "EXPLORE" ? blend : 1 - blend) * (visited ? 0.3 : 0.95);
+        (mode === "EXPLORE" ? blend : 1 - blend) * (visited ? 0.24 : 1);
       bubble.mesh.material.uniforms.time.value = time;
+      bubble.mesh.material.uniforms.light.value = visited ? 0 : 1;
+      bubble.halo.visible = bubble.mesh.visible && !visited;
+      bubble.halo.material.opacity =
+        (mode === "EXPLORE" ? blend : 1 - blend) * 0.4;
+      bubble.halo.position.copy(bubble.mesh.position);
       bubble.mesh.material.uniforms.tint.value
         .copy(bubble.color)
         .multiplyScalar(1 - phase.progress * 0.65);
@@ -227,6 +290,10 @@ export function createPoeticLearning({
         .copy(bubble.base)
         .addScaledVector(up, Math.sin(time * 0.13 + bubble.topic.index) * 0.22);
     }
+    for (let i = 0; i < connections.length; i++)
+      connections[i].mesh.position.toArray(linkPositions, i * 3);
+    linkGeometry.attributes.position.needsUpdate = true;
+    linkMaterial.opacity = (mode === "EXPLORE" ? blend : 1 - blend) * 0.11;
     if (topic) {
       const opened = progress.opened[topic.id],
         next = Math.min(2, opened.length);
@@ -241,9 +308,12 @@ export function createPoeticLearning({
       });
     }
   }
-  void rig.enterContemplation(position);
-  rig.setExplorationPosition(position);
-  rig.lookAtExploration(new THREE.Vector3(0, 0, -18));
+  navigation.windEnabled = true;
+  navigation.chill = true;
+  navigation.position.copy(pose.position);
+  navigation.direction.copy(pose.direction);
+  void rig.setMode("drone");
+  sky.update(0, {}, 0, sampleExperience(0));
   notify();
   return {
     get state() {
@@ -272,9 +342,7 @@ export function createPoeticLearning({
     persist,
     guide() {
       if (mode !== "EXPLORE") return;
-      const candidate =
-        bubbles.find((b) => !progress.visited.includes(b.id)) || bubbles[0];
-      rig.lookAtExploration(candidate.mesh.position);
+      flight.guide();
       cooldown = 1;
       gaze.reset();
     },
@@ -294,18 +362,22 @@ export function createPoeticLearning({
       elapsed += dt;
       progress.elapsed = elapsed;
       cooldown = Math.max(0, cooldown - dt);
-      camera.getWorldDirection(direction);
-      side.crossVectors(direction, up).normalize();
-      if (side.lengthSq() < 0.1) side.set(1, 0, 0);
-      if (mode === "EXPLORE" && travelling) {
-        // Keep the visit navigable; reduce outward drift at the soft boundary.
-        const outward = position.length() > 34 && direction.dot(position) > 0;
-        const speed = outward
-          ? Math.max(0, (40 - position.length()) / 6) * 0.7
-          : 0.7;
-        position.addScaledVector(direction, dt * speed);
-      }
-      rig.setExplorationPosition(position);
+      previousBird.copy(pose.position);
+      flight.setEnabled(mode === "EXPLORE" && travelling && !paused);
+      pose = flight.update(
+        mode === "EXPLORE" && travelling ? dt : 0,
+        getAudio(),
+        bubbles,
+        progress.visited,
+        Boolean(lastBrush),
+      );
+      position.copy(pose.position);
+      navigation.position.copy(pose.position);
+      navigation.direction.copy(pose.direction);
+      navigation.velocity.copy(pose.velocity);
+      navigation.acrobatics = pose.acrobatics;
+      navigation.time = pose.time;
+      if (mode === "BUBBLE") rig.setExplorationPosition(anchor);
       rig.update(dt);
       camera.getWorldDirection(direction);
       sky.object.position.copy(position);
@@ -317,13 +389,7 @@ export function createPoeticLearning({
       updateVisibility(dt);
       illustration.update(time, dt, direction, phase.progress);
       bird.group.visible = mode === "EXPLORE";
-      pose.position
-        .copy(position)
-        .addScaledVector(direction, 3.8)
-        .addScaledVector(up, -0.45);
-      pose.time = time;
       pose.acoustic = getAudio();
-      pose.velocity.copy(direction).multiplyScalar(travelling ? 0.7 : 0);
       bird.update(pose);
       painter.update(
         dt,
@@ -331,16 +397,33 @@ export function createPoeticLearning({
         pose.acoustic,
         mode === "EXPLORE" && travelling && transition >= 1,
       );
+      if (mode === "EXPLORE" && dt > 0 && cooldown === 0) {
+        path.set(previousBird, pose.position);
+        for (const bubble of bubbles) {
+          if (progress.visited.includes(bubble.id)) continue;
+          path.closestPointToPoint(bubble.mesh.position, true, encounterPoint);
+          if (
+            encounterPoint.distanceToSquared(bubble.mesh.position) <
+            1.45 * 1.45
+          ) {
+            enter(bubble.id);
+            break;
+          }
+        }
+      }
       choices.length = 0;
       if (!paused && message === null && cooldown === 0 && transition >= 1) {
-        if (mode === "EXPLORE") choices.push(...bubbles);
-        else {
+        if (mode === "EXPLORE") {
+          if (!flight.state.manual)
+            choices.push(
+              ...bubbles.filter((b) => !progress.visited.includes(b.id)),
+            );
+        } else {
           const next = Math.min(2, progress.opened[topic.id].length);
           choices.push(satellites[next]);
         }
       }
       world.updateMatrixWorld(true);
-      ray.setFromCamera(ndc, camera);
       let closest = null,
         best = Infinity;
       for (const item of choices) {
@@ -362,6 +445,19 @@ export function createPoeticLearning({
       const result = gaze.update(closest, dt);
       target = result.target;
       dwell = result.progress;
+      canvas.dataset.learningFlight = JSON.stringify(flight.state);
+      canvas.dataset.learningBirdPosition = pose.position
+        .toArray()
+        .map((n) => n.toFixed(4))
+        .join(",");
+      canvas.dataset.learningBubbles = JSON.stringify(
+        bubbles.map((b) => ({
+          id: b.id,
+          visited: progress.visited.includes(b.id),
+          visible: b.mesh.visible,
+          luminous: !progress.visited.includes(b.id),
+        })),
+      );
       canvas.dataset.learningMode = mode;
       canvas.dataset.learningProgress = String(progress.visited.length);
       canvas.dataset.learningOpened = topic
@@ -392,10 +488,17 @@ export function createPoeticLearning({
     dispose() {
       disposed = true;
       persist();
+      flight.dispose();
       painter.dispose();
       illustration.dispose();
       bird.dispose();
-      bubbles.forEach((b) => b.mesh.material.dispose());
+      bubbles.forEach((b) => {
+        b.mesh.material.dispose();
+        b.halo.material.dispose();
+      });
+      haloMap.dispose();
+      linkGeometry.dispose();
+      linkMaterial.dispose();
       satellites.forEach((b) => b.mesh.material.dispose());
       geometry.dispose();
       world.removeFromParent();

@@ -1356,6 +1356,7 @@ export function createSoundNest(
         scene,
         camera,
         rig,
+        navigation,
         canvas: renderer.domElement,
         sky: moodAtmosphere,
         mobile,

@@ -116,6 +116,7 @@ async function start(page) {
 test("mobile tactile fallback: gaze entry, three messages, automatic painting and reload", async ({
   page,
 }) => {
+  test.setTimeout(60000);
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -129,11 +130,11 @@ test("mobile tactile fallback: gaze entry, three messages, automatic painting an
     page.getByRole("navigation", { name: "Navigation et audio" }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: /brosse/i })).toHaveCount(0);
-  // First destination is initially in front: genuine camera-centre dwell.
+  // The bird physically reaches the first bubble; gaze only suggests a direction.
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-learning-mode",
     "BUBBLE",
-    { timeout: 15000 },
+    { timeout: 35000 },
   );
   await expect(
     page.getByRole("heading", { name: /Peut-on se sentir plus léger/ }),
@@ -267,7 +268,9 @@ test("gyroscope explicit permission and denied sensor keep tactile exploration u
   );
   expect(await page.evaluate(() => window.__permissionCalls)).toBe(1);
   await expect(
-    page.getByText("Glissez pour regarder à 360°", { exact: true }),
+    page.getByText("Glissez pour guider · relâchez pour explorer", {
+      exact: true,
+    }),
   ).toBeVisible();
 });
 
@@ -288,7 +291,12 @@ test("granted gyroscope rotates the same stable viewpoint without pointer gestur
     .getByRole("button", { name: "Explorer le ciel", exact: true })
     .click();
   await page.waitForFunction(() => Boolean(window.__learningTest));
-  await page.evaluate(() => window.__learningTest.setTravelling(false));
+  await page.evaluate(() => {
+    const journey = window.__learningTest;
+    journey.setTravelling(false);
+    for (let i = 0; i < 20; i++) journey.update(0.1);
+    journey.enter("weight");
+  });
   async function orient(alpha, beta) {
     await page.evaluate(
       ({ alpha, beta }) => {

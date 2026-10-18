@@ -2,9 +2,18 @@ import { createFlightAcrobatics } from "./createFlightAcrobatics.js";
 import * as THREE from "three";
 
 /** A stable point ahead, captured relative to the view at gesture start. */
-export function createPointFlight({ seed = 37 } = {}) {
-  const position = new THREE.Vector3(28, 0, 0),
-    direction = new THREE.Vector3(0, 0, 1),
+export function createPointFlight({
+  seed = 37,
+  origin = null,
+  initialDirection = null,
+  speedScale = 1,
+} = {}) {
+  const home = origin?.clone() || new THREE.Vector3(28, 0, 0);
+  const heading =
+    initialDirection?.clone().normalize() || new THREE.Vector3(0, 0, 1);
+  const movementScale = THREE.MathUtils.clamp(speedScale, 0.1, 2);
+  const position = home.clone(),
+    direction = heading.clone(),
     velocity = new THREE.Vector3();
   const target = direction.clone(),
     right = new THREE.Vector3(-1, 0, 0),
@@ -109,7 +118,7 @@ export function createPointFlight({ seed = 37 } = {}) {
       if (figure.active) {
         speed += (3.1 - speed) * (1 - Math.exp(-dt * 1.3));
         direction.copy(figure.direction);
-        velocity.copy(direction).multiplyScalar(speed);
+        velocity.copy(direction).multiplyScalar(speed * movementScale);
         position.addScaledVector(velocity, dt);
         side.crossVectors(direction, figure.up).normalize();
         flightUp.crossVectors(side, direction).normalize();
@@ -177,7 +186,7 @@ export function createPointFlight({ seed = 37 } = {}) {
             : 2.45) -
           speed) *
         (1 - Math.exp(-dt * 2));
-      velocity.copy(direction).multiplyScalar(speed);
+      velocity.copy(direction).multiplyScalar(speed * movementScale);
       position.addScaledVector(velocity, dt);
       candidateSide.crossVectors(direction, worldUp);
       if (candidateSide.lengthSq() > 0.0001)
@@ -191,8 +200,8 @@ export function createPointFlight({ seed = 37 } = {}) {
     },
     reset() {
       acrobatics.cancel();
-      position.set(28, 0, 0);
-      direction.set(0, 0, 1);
+      position.copy(home);
+      direction.copy(heading);
       target.copy(direction);
       velocity.set(0, 0, 0);
       captured = false;

@@ -2,7 +2,7 @@
 
 **Pourquoi cherchons-nous à nous sentir plus légers ?**
 
-Une exploration aquarellée d’environ quinze minutes : douze bulles scientifiques, trois découvertes par bulle et un voyage qui dessine spontanément le ciel. Regardez une bulle pendant 1,5 seconde pour entrer, puis explorez Mystère, Découverte scientifique et Résonance poétique. Gyroscope facultatif, alternative tactile complète, progression locale et musique Gravity.
+Une exploration aquarellée d’environ quinze minutes : douze bulles scientifiques, trois découvertes par bulle et un voyage qui dessine spontanément le ciel. Guidez l’oizo vers les bulles lumineuses, puis explorez Mystère, Découverte scientifique et Résonance poétique à 360°. Après une visite, son vol peint automatiquement. Au relâchement, il rejoint la bulle lumineuse la plus proche et peut improviser une acrobatie. Gyroscope facultatif dans les bulles, navigation tactile, progression locale et musique Gravity.
 
 Le nouveau parcours réutilise le moteur Three.js, les brosses et l’audio. L’ancien OIZO-BULLE reste disponible avec ?original=1, sans changement de ses interactions. Les ateliers historiques restent accessibles avec ?legacy=1 ou ?classic=1.
 
