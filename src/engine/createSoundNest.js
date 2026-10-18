@@ -146,7 +146,13 @@ export function createSoundNest(
   renderer.domElement.dataset.activeBrush = brush;
   const contemplation = createContemplationState();
   const contemplationWorld = new THREE.Vector3();
-  let resonanceMode = false;
+  let resonanceMode = false,
+    constellationMode = false,
+    automaticBrush = null;
+  let idleFlightClock = 0,
+    nextSurprise = 24,
+    surpriseIndex = 0;
+  const gentleMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let phasePalette = null;
   let chillSession = null,
     chillMode = false,
@@ -407,6 +413,11 @@ export function createSoundNest(
   function reset() {
     if (contemplation.active) rig.leaveContemplation();
     contemplation.reset();
+    stopNozzlePaint();
+    automaticBrush = null;
+    idleFlightClock = 0;
+    nextSurprise = lifeTime + 24;
+    surpriseIndex = 0;
     stopAcrobaticPaint();
     cancelSteering();
     bridge.close();
@@ -474,8 +485,11 @@ export function createSoundNest(
     nozzleClock = 0,
     acrobaticPaint = false;
   function beginNozzlePaint() {
+    if (constellationMode && (!automaticBrush || nozzlePaint)) return;
     if (
-      (!steeringGesture && !acrobaticPaint) ||
+      (!steeringGesture &&
+        !acrobaticPaint &&
+        !(constellationMode && automaticBrush)) ||
       photo ||
       cameraMode !== "drone"
     )
@@ -583,6 +597,14 @@ export function createSoundNest(
     if (renderer.domElement.hasPointerCapture(id))
       renderer.domElement.releasePointerCapture(id);
     renderer.domElement.dataset.directDrawing = "false";
+  }
+  function stopNozzlePaint() {
+    if (nozzlePaint) {
+      finishPad(nozzlePaint.id);
+      nozzlePaint = null;
+      padSource?.endSculpture?.();
+    }
+    renderer.domElement.dataset.nozzlePaint = "false";
   }
   function stopAcrobaticPaint() {
     if (!acrobaticPaint) return;
@@ -711,7 +733,7 @@ export function createSoundNest(
       return;
     }
     if (event.pointerId !== steeringGesture?.id) return;
-    if (nozzlePaint) {
+    if (nozzlePaint && !constellationMode) {
       padSource?.endSculpture?.();
       finishPad(nozzlePaint.id);
       nozzlePaint = null;
@@ -746,6 +768,7 @@ export function createSoundNest(
       return false;
     cancelSteering();
     stopAcrobaticPaint();
+    stopNozzlePaint();
     dance.cancelAcrobatic();
     bridge.close();
     chillSession?.setPaused(true);
@@ -803,6 +826,7 @@ export function createSoundNest(
     }
     if (chillSession?.departing && !chillDeparted) {
       chillDeparted = true;
+      if (constellationMode) stopNozzlePaint();
       stopAcrobaticPaint();
       cancelSteering();
       dance.beginPilot();
@@ -870,6 +894,29 @@ export function createSoundNest(
             ? nearestBubble
             : null,
         );
+        idleFlightClock = steeringGesture ? 0 : idleFlightClock + dt;
+        if (
+          constellationMode &&
+          automaticBrush &&
+          !gentleMotion &&
+          dt > 0 &&
+          idleFlightClock > 4 &&
+          lifeTime >= nextSurprise &&
+          !lastFlightPose?.acrobatics &&
+          !contemplation.active &&
+          !chillSession?.departing &&
+          (!vocalFireflies?.getNearest(navigation.position, nearestBubble) ||
+            nearestBubble.distanceTo(navigation.position) > 7)
+        ) {
+          if (
+            dance.beginAcrobatic(
+              ["loop", "spiral", "infinity"][surpriseIndex++ % 3],
+            )
+          ) {
+            acrobaticPaint = true;
+            nextSurprise = lifeTime + 30 + ((surpriseIndex * 7) % 17);
+          }
+        }
         const pose = dance.update(dt, voices, visual);
         lastFlightPose = pose;
         navigation.acrobatics = pose.acrobatics;
@@ -897,6 +944,16 @@ export function createSoundNest(
         navigation.progress = pose.progress;
         sampleClock += dt;
         const tick = sampleClock >= 0.12;
+        if (
+          constellationMode &&
+          automaticBrush &&
+          !nozzlePaint &&
+          dt > 0 &&
+          !contemplation.active &&
+          !chillSession?.departing &&
+          cameraMode === "drone"
+        )
+          beginNozzlePaint();
         if (nozzlePaint && dt > 0) {
           nozzleClock += dt;
           if (nozzleClock >= 1 / 15 || nozzlePaint.samples < 2) {
@@ -938,8 +995,9 @@ export function createSoundNest(
         if (!vocalFireflies && fragments?.length) {
           vocalFireflies = createVocalBubbles({
             watercolor: chillMode,
-            staged: chillMode,
-            emergence: resonanceMode ? {} : null,
+            staged: chillMode && !constellationMode,
+            emergence: resonanceMode && !constellationMode ? {} : null,
+            constellation: constellationMode,
             fragments,
             collide: (id) => {
               const fragment = poeticFragments.find((item) => item.id === id);
@@ -952,6 +1010,7 @@ export function createSoundNest(
           landscape.add(vocalFireflies.group);
         }
         if (vocalFireflies) {
+          pose.guided = Boolean(steeringGesture);
           vocalFireflies.setElapsed?.(chillSession?.elapsed || 0);
           vocalFireflies.group.visible = !chillSession?.complete;
           vocalFireflies.update(
@@ -971,6 +1030,14 @@ export function createSoundNest(
           renderer.domElement.dataset.vocalCollisions = String(
             vocalFireflies.collisionCount,
           );
+          if (constellationMode) {
+            renderer.domElement.dataset.constellationBubbles = JSON.stringify(
+              vocalFireflies.states,
+            );
+            renderer.domElement.dataset.visitedBubbles = String(
+              vocalFireflies.visitedCount,
+            );
+          }
         }
         if (!marks.length) {
           if (directSculpture) navigation.bounds.center.set(0, 0, 0);
@@ -1429,7 +1496,16 @@ export function createSoundNest(
     },
     resumeFlight() {
       if (!contemplation.leave()) return false;
-      brush = contemplation.brush;
+      if (constellationMode) {
+        const paletteIds = [...generatedBrushes.keys()].filter(
+          (id) => id !== "brumes",
+        );
+        const preferred = contemplation.fragment?.brushId;
+        let next = paletteIds.includes(preferred) ? preferred : paletteIds[0];
+        if (next === automaticBrush && paletteIds.length > 1)
+          next = paletteIds[(paletteIds.indexOf(next) + 1) % paletteIds.length];
+        brush = automaticBrush = next;
+      } else brush = contemplation.brush;
       renderer.domElement.dataset.activeBrush = brush;
       vocalFireflies?.resume?.();
       cameraMode = "drone";
@@ -1442,6 +1518,7 @@ export function createSoundNest(
       chillPaused = false;
       chillDeparted = false;
       renderer.domElement.dataset.artworkDry = "false";
+      if (constellationMode) renderer.domElement.dataset.activeBrush = "";
       chillSession = createChillSession({
         onProgress: onSessionProgress,
         onComplete: () => {
@@ -1488,6 +1565,8 @@ export function createSoundNest(
         this.setGeneratedBrush(profile.id, profile);
       chillMode = Boolean(universe.chill);
       resonanceMode = Boolean(universe.resonanceBubbles);
+      constellationMode = Boolean(universe.constellation);
+      renderer.domElement.dataset.constellation = String(constellationMode);
       chillSession = null;
       chillTrails?.dispose();
       chillTrails = null;

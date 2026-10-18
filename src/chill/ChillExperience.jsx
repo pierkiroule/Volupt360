@@ -1,3 +1,4 @@
+import { OIZOBUL_STORY } from "./oizobulStory.js";
 import { FLIGHT_FIGURES } from "../engine/createFlightAcrobatics.js";
 import { ToolIcon } from "./ToolIcon.jsx";
 import { createWatercolorAlpha } from "./createWatercolorAlpha.js";
@@ -12,6 +13,8 @@ import {
   OIZO_BULLE_BRUSHES,
 } from "./moodBrushes.js";
 import { CONTEMPLATIVE_PHRASES } from "./contemplativePhrases.js";
+
+const CONSTELLATION = !new URLSearchParams(location.search).has("original");
 
 export default function ChillExperience() {
   const stage = useRef(null),
@@ -53,7 +56,8 @@ export default function ChillExperience() {
           clearTimeout(timer.current);
           setContemplating(active);
           setText(active ? fragment : null);
-          if (active) timer.current = setTimeout(() => setText(null), 5000);
+          if (active && !CONSTELLATION)
+            timer.current = setTimeout(() => setText(null), 5000);
         },
         onSessionProgress: (_, state) => {
           setDeparting(state.departing);
@@ -97,12 +101,18 @@ export default function ChillExperience() {
       ]);
       if (ticket !== generation.current) return;
       engine.current.setMood(
-        { ...CHILL_UNIVERSE, resonanceBubbles: true },
+        {
+          ...CHILL_UNIVERSE,
+          resonanceBubbles: true,
+          constellation: CONSTELLATION,
+        },
         OIZO_BULLE_BRUSHES,
       );
       engine.current.setBrush(NEUTRAL_BRUSH.id);
       setBrush(NEUTRAL_BRUSH.id);
-      engine.current.setPoeticFragments(CONTEMPLATIVE_PHRASES);
+      engine.current.setPoeticFragments(
+        CONSTELLATION ? OIZOBUL_STORY : CONTEMPLATIVE_PHRASES,
+      );
       engine.current.setPadSource(bank);
       engine.current.setCameraMode("drone");
       const journeyMusic =
@@ -197,8 +207,9 @@ export default function ChillExperience() {
       <header className="brand">
         <h1>OIZO-BULLE •°</h1>
         <p>
-          On sculpte son ciel émotionnel pour apprendre à le contempler
-          autrement.
+          {CONSTELLATION
+            ? "Un conte à traverser, un ciel à inventer."
+            : "On sculpte son ciel émotionnel pour apprendre à le contempler autrement."}
         </p>
       </header>
       {!started && (
@@ -208,13 +219,14 @@ export default function ChillExperience() {
           </span>
           <h2>OIZO-BULLE •°</h2>
           <p className="oizo-bulle-intention">
-            On sculpte son ciel émotionnel pour apprendre à le contempler
-            autrement.
+            {CONSTELLATION
+              ? "Un conte à traverser, un ciel à inventer."
+              : "On sculpte son ciel émotionnel pour apprendre à le contempler autrement."}
           </p>
           <p>
-            Touchez pour peindre, glissez pour guider l’oizo. Sans toucher, il
-            poursuit son vol. Une bulle peut ouvrir un autre regard sur votre
-            ciel.
+            {CONSTELLATION
+              ? "Guidez Oizobul vers les bulles lumineuses. Chacune abrite un fragment de conte ; aucune n’est le début ou la fin. Sans geste, il rejoint la plus proche. Après une rencontre, son vol peint le ciel."
+              : "Touchez pour peindre, glissez pour guider l’oizo. Sans toucher, il poursuit son vol. Une bulle peut ouvrir un autre regard sur votre ciel."}
           </p>
           <p>
             Six minutes pour peindre le ciel. Vous pouvez faire une pause à tout
@@ -245,47 +257,53 @@ export default function ChillExperience() {
           >
             {toolsOpen && (
               <div id="pictorial-tool-panel">
-                <div
-                  className="flight-figures"
-                  role="group"
-                  aria-label="Acrobaties peintes"
-                >
-                  {FLIGHT_FIGURES.map((figure) => (
-                    <button
-                      key={figure.id}
-                      aria-label={figure.name}
-                      title={figure.name}
-                      aria-pressed={acrobatic === figure.id}
-                      disabled={paused || departing || Boolean(acrobatic)}
-                      onClick={() => engine.current.performAcrobatic(figure.id)}
+                {!CONSTELLATION && (
+                  <>
+                    <div
+                      className="flight-figures"
+                      role="group"
+                      aria-label="Acrobaties peintes"
                     >
-                      <ToolIcon name={`figure-${figure.id}`} />
-                    </button>
-                  ))}
-                </div>
-                <section
-                  className="landscape-palette"
-                  aria-label="Matières picturales"
-                >
-                  <div role="group" aria-label="Choisir une brosse">
-                    {[...MOOD_BRUSHES, NEUTRAL_BRUSH].map((b) => (
-                      <button
-                        key={b.id}
-                        aria-label={b.name}
-                        title={b.name}
-                        aria-pressed={brush === b.id}
-                        disabled={departing || paused}
-                        style={{ "--brush-color": b.color }}
-                        onClick={() => {
-                          setBrush(b.id);
-                          engine.current.setBrush(b.id);
-                        }}
-                      >
-                        <ToolIcon name={b.glyph} />
-                      </button>
-                    ))}
-                  </div>
-                </section>
+                      {FLIGHT_FIGURES.map((figure) => (
+                        <button
+                          key={figure.id}
+                          aria-label={figure.name}
+                          title={figure.name}
+                          aria-pressed={acrobatic === figure.id}
+                          disabled={paused || departing || Boolean(acrobatic)}
+                          onClick={() =>
+                            engine.current.performAcrobatic(figure.id)
+                          }
+                        >
+                          <ToolIcon name={`figure-${figure.id}`} />
+                        </button>
+                      ))}
+                    </div>
+                    <section
+                      className="landscape-palette"
+                      aria-label="Matières picturales"
+                    >
+                      <div role="group" aria-label="Choisir une brosse">
+                        {[...MOOD_BRUSHES, NEUTRAL_BRUSH].map((b) => (
+                          <button
+                            key={b.id}
+                            aria-label={b.name}
+                            title={b.name}
+                            aria-pressed={brush === b.id}
+                            disabled={departing || paused}
+                            style={{ "--brush-color": b.color }}
+                            onClick={() => {
+                              setBrush(b.id);
+                              engine.current.setBrush(b.id);
+                            }}
+                          >
+                            <ToolIcon name={b.glyph} />
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                )}
                 <div className="pictorial-commands">
                   <button
                     aria-label={paused ? "Reprendre" : "Faire une pause"}
@@ -355,6 +373,9 @@ export default function ChillExperience() {
               className="poetic-fragment resonance-phrase"
               role="status"
             >
+              {CONSTELLATION && (
+                <h2 className="story-fragment-title">{text.title}</h2>
+              )}
               <p>{text.text}</p>
             </div>
           )}

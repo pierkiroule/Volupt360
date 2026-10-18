@@ -2479,3 +2479,47 @@ label:focus-visible {
 .chill-experience .pictorial-tools.is-open .tools-toggle {
   grid-row: 4;
 }
+
+.story-fragment-title {
+  font-family: "Caveat", cursive;
+  font-size: 1.6rem;
+  font-weight: 400;
+  margin: 0 0 0.8rem;
+}
+.chill-experience .resonance-phrase:has(.story-fragment-title) {
+  max-height: 65dvh;
+  overflow-y: auto;
+  width: min(90vw, 40rem);
+  padding: 1.2rem;
+  border-radius: 1.3rem;
+  background: #172936e0;
+  color: #f1eee5;
+}
+.chill-experience .resonance-phrase:has(.story-fragment-title) p {
+  font-size: clamp(0.95rem, 3.8vw, 1.25rem);
+  line-height: 1.65;
+  white-space: normal;
+}
+.chill-experience .resonance-phrase:has(.story-fragment-title) {
+  animation: story-arrive 0.65s ease both;
+  pointer-events: auto;
+}
+.chill-experience .resonance-phrase:has(.story-fragment-title) p {
+  max-width: none;
+  padding: 0;
+  background: none;
+  text-shadow: none;
+}
+@keyframes story-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chill-experience .resonance-phrase:has(.story-fragment-title) {
+    animation: none;
+  }
+}

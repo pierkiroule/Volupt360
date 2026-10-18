@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("24 original haikus each have three distinct nonempty verses", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   await expect(
     page.getByRole("heading", {
       name: "OIZO-BULLE •°",
@@ -37,7 +37,7 @@ test("contemplative encounter reveals a short phrase for five seconds", async ({
       ),
     });
   });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const poem = page.locator(".poetic-fragment");
   await expect(poem).toBeVisible();

@@ -2,11 +2,13 @@
 
 On sculpte son ciel émotionnel pour apprendre à le contempler autrement.
 
-Un oiseau peint un ciel aquarelle et encre fine. Huit Mood Brushes à pictogrammes et un lavis neutre accompagnent le geste : toucher peint depuis les deux ailes, glisser guide le vol. Une bulle à la fois émerge de la peinture et ouvre une contemplation 360° du même paysage. « Reprendre le vol » restitue immédiatement le contrôle.
+Oizobul explore une constellation de 24 bulles lumineuses. Chacune contient un court fragment autonome d’un conte échohypnotique : plume, fenêtre bleue, branche et nuage se répondent, sans ordre de lecture imposé.
 
-La traversée Nuit → Aurores → Aube dure six minutes de vol actif ; contempler ne consomme pas ce temps. Les 24 phrases originales restent facultatives, sans score ni questionnaire. La musique continue dans les bulles, les pigments persistent et le final conserve la photo PNG HD.
+Glisser guide le vol. Au relâchement, Oizobul rejoint doucement la bulle lumineuse la plus proche. Aucune peinture avant une rencontre : à la sortie d’une bulle, il emporte une matière et peint automatiquement depuis ses ailes. Les bulles visitées s’éteignent mais restent présentes. Des acrobaties occasionnelles accompagnent le vol libre ; toucher reprend immédiatement le pilotage.
 
-Voir [architecture, paramètres, vérifications et limites](docs/oizo-bulle.md). L’expérience est une médiation artistique, sans efficacité thérapeutique revendiquée ni analyse des émotions. Le gyro est facultatif et réservé aux bulles ; le regard tactile reste disponible.
+Le parcours conserve six minutes de vol actif, la métamorphose Nuit → Aurores → Aube, Gravity, le POV 360° tactile/gyroscope et le PNG HD. La lecture suspend le temps de vol et reste affichée jusqu’à « Reprendre le vol ». Le ciel garde les empreintes picturales des rencontres.
+
+Voir [le conte en constellation](docs/oizobul-constellation.md). Le parcours précédent reste accessible avec ?original=1 ; ses brosses et figures manuelles sont conservées. Cette expérience artistique ne revendique pas d’efficacité thérapeutique et n’analyse pas les émotions.
 
 ## Développement
 
