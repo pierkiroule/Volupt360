@@ -64,3 +64,34 @@ test("precise touch overrides orbit immediately; release returns to a bounded li
   expect(result.neutralAlignment).toBeGreaterThan(0.99999);
   expect(result.speed).toBeCloseTo(2.6);
 });
+
+test("hands-free flight reaches a nearby bubble while touch immediately overrides its attraction", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { createPointFlight } =
+      await import("/src/engine/createPointFlight.js");
+    const flight = createPointFlight(),
+      bubble = new THREE.Vector3(16, 3, 7);
+    flight.setBubbleTarget(bubble);
+    let pose,
+      min = Infinity;
+    for (let i = 0; i < 1800; i++) {
+      pose = flight.update(1 / 60, {});
+      min = Math.min(min, pose.position.distanceTo(bubble));
+    }
+    flight.beginPilot();
+    const heading = pose.direction.clone();
+    for (let i = 0; i < 120; i++) pose = flight.update(1 / 60, {});
+    return {
+      min,
+      manual: !pose.autonomous,
+      alignment: heading.dot(pose.direction),
+    };
+  });
+  expect(r.min).toBeLessThan(2.1);
+  expect(r.manual).toBe(true);
+  expect(r.alignment).toBeGreaterThan(0.9999);
+});

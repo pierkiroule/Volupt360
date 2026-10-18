@@ -121,3 +121,43 @@ test("all 24 real MP3 decode and the existing player excludes simultaneous voice
   expect(result.blocked).toBe(false);
   expect(result.speaking).toBe(true);
 });
+
+test("nearest bubble selection excludes consumed bubbles and respects the reading pause", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { createVocalBubbles } =
+      await import("/src/sonoizo/createVocalBubbles.js");
+    const bubbles = createVocalBubbles({
+      fragments: [{ id: "one" }, { id: "two" }],
+      collide: async () => true,
+    });
+    const first = bubbles.group.children[0],
+      second = bubbles.group.children[1],
+      result = new THREE.Vector3();
+    const nearest =
+      bubbles.getNearest(first.position, result) &&
+      result.distanceTo(first.position) < 0.001;
+    const pose = {
+      position: first.position.clone().add(new THREE.Vector3(0, 0, 4)),
+    };
+    bubbles.update(0.016, pose);
+    pose.position.copy(first.position).add(new THREE.Vector3(0, 0, -4));
+    bubbles.update(0.016, pose);
+    await new Promise((r) => setTimeout(r, 0));
+    const blocked = !bubbles.getNearest(pose.position, result);
+    bubbles.update(11, pose, false);
+    const selected = bubbles.getNearest(first.position, result),
+      other = result.distanceTo(second.position) < 0.001;
+    bubbles.dispose();
+    return { nearest, blocked, selected, other };
+  });
+  expect(r).toEqual({
+    nearest: true,
+    blocked: true,
+    selected: true,
+    other: true,
+  });
+});

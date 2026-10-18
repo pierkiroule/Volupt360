@@ -9,6 +9,7 @@ export function createPointFlight({ seed = 37 } = {}) {
     right = new THREE.Vector3(-1, 0, 0),
     up = new THREE.Vector3(0, 1, 0),
     forward = direction.clone(),
+    bubbleTarget = new THREE.Vector3(),
     orbitCenter = new THREE.Vector3(),
     orbitGoal = new THREE.Vector3(),
     radial = new THREE.Vector3(),
@@ -21,6 +22,7 @@ export function createPointFlight({ seed = 37 } = {}) {
     b = new THREE.Quaternion(),
     z = new THREE.Vector3(0, 0, 1);
   const phase = ((Math.imul(seed, 1664525) >>> 0) / 4294967296) * Math.PI * 2;
+  let hasBubbleTarget = false;
   let captured = false,
     time = 0,
     holding = false,
@@ -40,6 +42,10 @@ export function createPointFlight({ seed = 37 } = {}) {
     progress: 0,
   };
   return {
+    setBubbleTarget(position) {
+      hasBubbleTarget = Boolean(position);
+      if (position) bubbleTarget.copy(position);
+    },
     setOrbitTarget(center, radius) {
       orbitGoal.copy(center);
       orbitRadius = THREE.MathUtils.clamp(radius * 0.85 + 5, 8, 28);
@@ -78,7 +84,11 @@ export function createPointFlight({ seed = 37 } = {}) {
       idleTime = holding ? 0 : idleTime + dt;
       orbitCenter.lerp(orbitGoal, 1 - Math.exp(-dt * 0.45));
       const autonomous = !holding && idleTime > 0.3;
-      if (autonomous) {
+      if (autonomous && hasBubbleTarget) {
+        target.copy(bubbleTarget).sub(position);
+        if (target.lengthSq() < 0.0001) target.copy(direction);
+        else target.normalize();
+      } else if (autonomous) {
         radial.copy(position).sub(orbitCenter);
         const distance = Math.max(0.001, Math.hypot(radial.x, radial.z));
         radial.set(radial.x / distance, 0, radial.z / distance);
@@ -127,6 +137,7 @@ export function createPointFlight({ seed = 37 } = {}) {
       target.copy(direction);
       velocity.set(0, 0, 0);
       captured = false;
+      hasBubbleTarget = false;
       time = 0;
       holding = false;
       idleTime = 0;

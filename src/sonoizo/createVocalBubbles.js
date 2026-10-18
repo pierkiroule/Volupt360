@@ -59,6 +59,22 @@ export function createVocalBubbles({ fragments, collide, onScore = () => {} }) {
     get remaining() {
       return rings.filter((ring) => ring.burstAge < 0).length;
     },
+    getNearest(position, result) {
+      if (disposed || pending || silence > 0) return false;
+      let nearest = null,
+        distance = Infinity;
+      for (const ring of rings) {
+        if (ring.removed || ring.burstAge >= 0 || ring.cooldown > 0) continue;
+        const d = ring.mesh.position.distanceToSquared(position);
+        if (d < distance) {
+          distance = d;
+          nearest = ring;
+        }
+      }
+      if (!nearest) return false;
+      result.copy(nearest.mesh.position);
+      return true;
+    },
     get collisionCount() {
       return collisions;
     },
