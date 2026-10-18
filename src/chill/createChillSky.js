@@ -1,34 +1,27 @@
 import * as THREE from "three";
+
+/** Continuous spherical paper and pigment washes: no horizon or figurative scenery. */
 export function createChillSky() {
-  const geometry = new THREE.SphereGeometry(220, 40, 20);
+  const geometry = new THREE.SphereGeometry(220, 32, 16);
   const material = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
     uniforms: { progress: { value: 0 }, time: { value: 0 } },
     vertexShader: `varying vec3 d;void main(){d=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader: `varying vec3 d;uniform float progress,time;
- float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
- void main(){vec3 v=normalize(d);float night=smoothstep(.1,1.,progress);
- vec3 zenith=mix(vec3(.09,.19,.32),vec3(.004,.009,.025),night);
- vec3 horizon=mix(vec3(.62,.26,.12),vec3(.025,.035,.07),night);
- float wash=sin(v.x*8.+sin(v.z*9.)+v.y*12.)*.012;
- vec3 color=mix(horizon,zenith,smoothstep(-.02,.75,v.y))+wash;
- vec3 sunDir=normalize(vec3(-.15,mix(.18,-.18,progress),.99));
- float sunDist=length(v-sunDir);
- color+=vec3(1.,.48,.18)*exp(-sunDist*sunDist*19.)*.22*(1.-night);
- float sun=(1.-smoothstep(.029,.036,sunDist))*(1.-smoothstep(.65,.95,progress));
- color=mix(color,vec3(1.,.87,.58),sun);
- {float depth=1.-smoothstep(-.7,-.025,v.y);
- vec3 water=mix(mix(vec3(.045,.105,.16),vec3(.025,.07,.12),depth),vec3(.003,.009,.02),night*.85);
- float waves=sin(v.y*240.+sin(v.x*70.+time*.15)*1.5+time*.25)*.5+.5;
- float reflection=exp(-pow((v.x-sunDir.x)*5.,2.))*exp(-abs(v.y)*8.);
- water+=vec3(.65,.35,.15)*reflection*waves*.16*(1.-night);
- color=mix(color,water,1.-smoothstep(-.04,-.018,v.y));
- }
- vec2 uv=vec2(atan(v.z,v.x)/6.2831853+.5,asin(v.y)/3.14159+.5);
- vec2 cell=floor(uv*vec2(150.,80.)),f=fract(uv*vec2(150.,80.))-.5;
- float star=(1.-smoothstep(.025,.16,length(f)))*step(.987,hash(cell))*smoothstep(.08,.3,v.y)*smoothstep(.35,.95,progress);
- color+=vec3(.7,.8,1.)*star;
+ float hash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+ float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+ return mix(mix(mix(hash(i),hash(i+vec3(1.,0.,0.)),f.x),mix(hash(i+vec3(0.,1.,0.)),hash(i+vec3(1.,1.,0.)),f.x),f.y),mix(mix(hash(i+vec3(0.,0.,1.)),hash(i+vec3(1.,0.,1.)),f.x),mix(hash(i+vec3(0.,1.,1.)),hash(i+vec3(1.,1.,1.)),f.x),f.y),f.z);}
+ void main(){vec3 v=normalize(d);float drift=time*.003;
+ vec3 p=v*3.2+vec3(drift,-drift*.6,0.);
+ float broad=noise(p+noise(p*1.8)*.8), detail=noise(p*5.5), grain=hash(floor(v*1800.));
+ vec3 paper=mix(vec3(.89,.855,.79),vec3(.83,.835,.87),progress*.55);
+ vec3 blue=vec3(.32,.52,.57), rose=vec3(.68,.43,.43), lavender=vec3(.48,.43,.59);
+ vec3 pigment=mix(blue,mix(rose,lavender,progress),smoothstep(.32,.72,noise(p+7.)));
+ float wash=smoothstep(.42,.82,broad)*.19;
+ float edge=exp(-abs(broad-.57)*70.)*.022;
+ vec3 color=mix(paper,pigment,wash+edge+detail*.018);
+ color-=(grain-.5)*.014+detail*.006;
  gl_FragColor=vec4(color,1.);
  #include <colorspace_fragment>
  }`,

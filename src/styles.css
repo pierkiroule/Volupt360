@@ -1978,3 +1978,44 @@ label:focus-visible {
     padding-top: 5rem;
   }
 }
+
+/* Paper, diluted pigment and fine ink carry the whole chill experience. */
+.chill-experience {
+  color: #3e4b50;
+}
+.chill-experience .brand {
+  color: #42575c;
+  text-shadow: none;
+}
+.chill-experience .chill-welcome {
+  background:
+    radial-gradient(ellipse at 20% 25%, #abc9c248, transparent 60%),
+    radial-gradient(ellipse at 80% 65%, #ccacbd38, transparent 65%), #f3eee3ee;
+}
+.chill-experience .chill-ending {
+  background: #f3eee3df;
+}
+.chill-welcome button,
+.chill-ending button,
+.chill-ending a {
+  color: #42575c;
+  background: #f8f4eb99;
+  border-color: #81999566;
+}
+.chill-experience .chill-time,
+.chill-experience .chill-departure {
+  color: #42575c;
+}
+.chill-experience .chill-pause,
+.chill-experience .camera-views button {
+  background: #f8f4eb77;
+  color: #42575c;
+}
+.chill-experience .bubble-score {
+  background: #f8f4eb77;
+  color: #52686b;
+}
+.chill-experience .poetic-fragment {
+  color: #35464d;
+  text-shadow: 0 1px 16px #f3eee3;
+}

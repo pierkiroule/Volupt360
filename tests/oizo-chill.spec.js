@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("five-minute active session reaches night, then completes its eight-second departure exactly once", async ({
+test("five-minute active session finishes the washes, then completes its eight-second departure exactly once", async ({
   page,
 }) => {
   await page.goto("/");
@@ -68,12 +68,12 @@ test("mobile chill starts one universe with six brushes, two views, immediate pa
     page.getByRole("button", { name: /photo|capture|globale/i }),
   ).toHaveCount(0);
   for (const brush of [
-    "Brume",
-    "Soie",
-    "Fil de lumière",
-    "Poussière d’or",
-    "Marée",
-    "Constellation",
+    "Lavis aérien",
+    "Pigment sec",
+    "Encre fine",
+    "Éclats d’encre",
+    "Encre diluée",
+    "Empreintes",
   ]) {
     await page.getByRole("button", { name: brush, exact: true }).click();
     await page.mouse.move(150, 340);
@@ -118,7 +118,7 @@ test("completed journey opens global artwork and offers a downloadable PNG souve
   await page.waitForTimeout(300);
   await page.mouse.up();
   await expect(
-    page.getByRole("heading", { name: "Le jour se repose" }),
+    page.getByRole("heading", { name: "Votre paysage se dépose" }),
   ).toBeVisible({ timeout: 15000 });
   await expect(page.locator("#stage canvas")).toHaveAttribute(
     "data-camera-mode",

@@ -818,6 +818,7 @@ export function createSoundNest(
         const fragments = !vocalFireflies ? poeticFragments : null;
         if (!vocalFireflies && fragments?.length) {
           vocalFireflies = createVocalBubbles({
+            watercolor: chillMode,
             fragments,
             collide: (id) =>
               onPoeticFragment?.(
