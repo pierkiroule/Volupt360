@@ -20,9 +20,9 @@ export default function ArtisticIntroduction() {
       <h3>Piloter le regard</h3>
       <p>
         Glissez sur le canevas pour déplacer le point de visée et guider l’oizo.
-        Maintenez le doigt immobile pour déposer la matière depuis sa queue. La
-        musique anime les dépôts, qui poursuivent leur danse après le geste. Le
-        mode de sculpture directe reste accessible.
+        Dès le contact, la matière se dépose depuis sa queue et accompagne votre
+        pilotage. La musique anime les dépôts, qui poursuivent leur danse après
+        le geste. Le mode de sculpture directe reste accessible.
       </p>
       <h3>Traverser les mots</h3>
       <p>

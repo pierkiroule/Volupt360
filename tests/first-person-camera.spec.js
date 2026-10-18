@@ -40,7 +40,7 @@ test("FPV follows the bird at a stable distance and keeps its heading", async ({
   expect(r.alignment).toBeGreaterThan(0.9999);
 });
 
-test("mobile starts in bird-follow FPV, touch steers and long hold paints", async ({
+test("mobile starts in bird-follow FPV, touch immediately paints while steering", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -56,9 +56,22 @@ test("mobile starts in bird-follow FPV, touch steers and long hold paints", asyn
   );
   await expect(canvas).toHaveAttribute("data-oizo-visible", "true");
   await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "5.5");
+  await page.evaluate(() => {
+    window.addEventListener("pointerdown", (event) => {
+      if (event.target.tagName === "CANVAS")
+        window.__contactPaint = {
+          active: event.target.dataset.nozzlePaint,
+          samples: Number(event.target.dataset.paintedSamples),
+        };
+    });
+  });
   await page.mouse.move(150, 350);
   await page.mouse.down();
+  const contact = await page.evaluate(() => window.__contactPaint);
+  expect(contact.active).toBe("true");
+  expect(contact.samples).toBeGreaterThan(0);
   await page.mouse.move(225, 310, { steps: 8 });
+  await expect(canvas).toHaveAttribute("data-nozzle-paint", "true");
   await expect(canvas).toHaveAttribute(
     "data-steering-input",
     /^0\.[0-9]+,0\.[0-9]+$/,

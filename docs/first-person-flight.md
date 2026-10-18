@@ -21,3 +21,7 @@ L’oizo et son rig d’ailes sont de nouveau actifs. La caméra suit son cap à
 ## Alternance manuelle / autonome
 
 Le contact donne immédiatement priorité au point de visée, avec une convergence plus précise (amortissement 9/s). Au relâchement, après 300 ms, le vol rejoint une orbite autour du centre de l’œuvre. Son rayon dépend de l’étendue de la sculpture (borné entre 8 et 28 unités), et varie lentement avec la hauteur suivant des phases pseudoaléatoires semées à l’ouverture. Le centre est interpolé pour éviter les ruptures quand l’œuvre grandit. La vitesse demeure 2,6 unités/seconde ; aucune téléportation. Un contact sans glissement interrompt aussi le retour autonome et conserve le cap courant, notamment pendant le tracé par appui long.
+
+## Dépôt au contact
+
+Le délai d’appui long est retiré. Pointerdown ouvre immédiatement le dépôt et émet un premier échantillon depuis la queue, avec la dernière pose disponible. Le tracé continue pendant le glissement de pilotage, à une fréquence maximale de 30 échantillons/seconde ; pointerup, annulation et perte de focus terminent le dépôt. Le doigt pilote toujours le vol, il ne dessine pas directement la matière en mode FPV.
