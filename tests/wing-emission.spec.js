@@ -80,6 +80,7 @@ test("touch starts two separate wing strokes and changing brushes closes both st
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
+  await expect(page.locator(".chill-welcome")).toHaveCount(0);
   const canvas = page.locator("#stage canvas");
   await page.mouse.move(170, 330);
   await page.mouse.down();

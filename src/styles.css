@@ -2448,3 +2448,34 @@ label:focus-visible {
   min-height: 44px;
   height: 44px;
 }
+.pictorial-tools.is-open .flight-figures {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+.chill-experience .pictorial-tools .flight-figures button {
+  width: 44px;
+  min-width: 44px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.flight-figures .tool-icon {
+  width: 30px;
+  height: 30px;
+}
+.flight-figures button[aria-pressed="true"] {
+  color: #9a5864;
+}
+.pictorial-tools.is-open .landscape-palette {
+  grid-row: 2;
+}
+.pictorial-tools.is-open #pictorial-volume {
+  grid-row: 3;
+}
+.pictorial-tools.is-open .pictorial-commands,
+.chill-experience .pictorial-tools.is-open .tools-toggle {
+  grid-row: 4;
+}

@@ -1,3 +1,4 @@
+import { createFlightAcrobatics } from "./createFlightAcrobatics.js";
 import * as THREE from "three";
 
 /** A stable point ahead, captured relative to the view at gesture start. */
@@ -22,6 +23,8 @@ export function createPointFlight({ seed = 37 } = {}) {
     b = new THREE.Quaternion(),
     z = new THREE.Vector3(0, 0, 1);
   const phase = ((Math.imul(seed, 1664525) >>> 0) / 4294967296) * Math.PI * 2;
+  const acrobatics = createFlightAcrobatics();
+  const candidateSide = new THREE.Vector3();
   let hasBubbleTarget = false;
   let captured = false,
     time = 0,
@@ -44,6 +47,17 @@ export function createPointFlight({ seed = 37 } = {}) {
     progress: 0,
   };
   return {
+    beginAcrobatic(id) {
+      holding = false;
+      return acrobatics.begin(
+        id,
+        direction,
+        flightUp.lengthSq() > 0.1 ? flightUp : worldUp,
+      );
+    },
+    cancelAcrobatic() {
+      acrobatics.cancel();
+    },
     setBubbleTarget(position) {
       hasBubbleTarget = Boolean(position);
       if (position) bubbleTarget.copy(position);
@@ -53,6 +67,7 @@ export function createPointFlight({ seed = 37 } = {}) {
       orbitRadius = THREE.MathUtils.clamp(radius * 0.85 + 5, 8, 28);
     },
     beginPilot() {
+      acrobatics.cancel();
       holding = true;
       inputStrength = 0;
       idleTime = 0;
@@ -87,6 +102,26 @@ export function createPointFlight({ seed = 37 } = {}) {
       time += dt;
       idleTime = holding ? 0 : idleTime + dt;
       orbitCenter.lerp(orbitGoal, 1 - Math.exp(-dt * 0.45));
+      const figure = acrobatics.update(dt);
+      pose.acrobatics = figure.id;
+      pose.acrobaticsProgress = figure.progress;
+      pose.acroRoll = figure.roll;
+      if (figure.active) {
+        speed += (3.1 - speed) * (1 - Math.exp(-dt * 1.3));
+        direction.copy(figure.direction);
+        velocity.copy(direction).multiplyScalar(speed);
+        position.addScaledVector(velocity, dt);
+        side.crossVectors(direction, figure.up).normalize();
+        flightUp.crossVectors(side, direction).normalize();
+        target.copy(direction);
+        aimPoint.copy(position).addScaledVector(direction, 12);
+        pose.time = time;
+        pose.energy = audio.energy || 0;
+        pose.motion = 0.5;
+        pose.autonomous = false;
+        idleTime = 0;
+        return pose;
+      }
       const autonomous = !holding && idleTime > 0.3;
       if (autonomous && hasBubbleTarget) {
         target.copy(bubbleTarget).sub(position);
@@ -144,7 +179,9 @@ export function createPointFlight({ seed = 37 } = {}) {
         (1 - Math.exp(-dt * 2));
       velocity.copy(direction).multiplyScalar(speed);
       position.addScaledVector(velocity, dt);
-      side.crossVectors(direction, worldUp).normalize();
+      candidateSide.crossVectors(direction, worldUp);
+      if (candidateSide.lengthSq() > 0.0001)
+        side.copy(candidateSide).normalize();
       flightUp.crossVectors(side, direction).normalize();
       aimPoint.copy(position).addScaledVector(target, 12);
       pose.time = time;
@@ -153,6 +190,7 @@ export function createPointFlight({ seed = 37 } = {}) {
       return pose;
     },
     reset() {
+      acrobatics.cancel();
       position.set(28, 0, 0);
       direction.set(0, 0, 1);
       target.copy(direction);

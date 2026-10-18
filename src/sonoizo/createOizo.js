@@ -100,7 +100,8 @@ export function createOizo() {
     cooldown = 0,
     phase = 0,
     climb = 0,
-    dive = 0;
+    dive = 0,
+    figureRoll = 0;
   return {
     group,
     setColor(color) {
@@ -135,7 +136,7 @@ export function createOizo() {
         burst = Math.max(0, burst - dt);
         phase += dt * Math.PI * 2 * (1.25 + Math.min(0.2, turn * 0.12));
       }
-      right.crossVectors(worldUp, pose.direction);
+      right.crossVectors(pose.acrobatics ? pose.up : worldUp, pose.direction);
       if (right.lengthSq() < 0.001) right.copy(pose.side).negate();
       right.normalize();
       flightUp.crossVectors(pose.direction, right).normalize();
@@ -152,7 +153,11 @@ export function createOizo() {
       body.rotation.x =
         Math.sin(pose.time * 0.7) * 0.012 + climb * 0.045 - dive * 0.025;
       silhouette.rotation.y = bank * -0.12;
-      body.rotation.z = bank;
+      const rollDifference = (pose.acroRoll || 0) - figureRoll;
+      figureRoll +=
+        Math.atan2(Math.sin(rollDifference), Math.cos(rollDifference)) *
+        (1 - Math.exp(-dt * 8));
+      body.rotation.z = bank + figureRoll;
       for (const { bones, side } of wings) {
         bones[0].rotation.z =
           side * (0.18 + lift - dive * 0.07 + Math.sin(phase) * amplitude) +

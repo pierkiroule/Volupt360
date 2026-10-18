@@ -18,6 +18,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   const returnRotation = new THREE.Quaternion();
   let returnFov = 88,
     returnDuration = 0.85;
+  let acrobaticView = false;
+  const acrobaticEye = new THREE.Vector3();
   let gyroPermission = false,
     orientationSource = null;
   canvas.dataset.gyroscopeStatus = "disabled";
@@ -331,6 +333,29 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
             .multiplyScalar(18),
         );
     } else {
+      if (state.acrobatics) {
+        if (!acrobaticView)
+          acrobaticEye
+            .copy(camera.position)
+            .addScaledVector(direction, -5)
+            .addScaledVector(up, 2);
+        acrobaticView = true;
+        camera.position.lerp(acrobaticEye, mix(1.3));
+        matrix.lookAt(camera.position, painter, up);
+        desiredQuaternion.setFromRotationMatrix(matrix);
+        camera.quaternion.slerp(desiredQuaternion, mix(4));
+        camera.fov += (88 - camera.fov) * mix(1.2);
+        camera.updateProjectionMatrix();
+        return;
+      }
+      if (acrobaticView) {
+        acrobaticView = false;
+        returnStart.copy(camera.position);
+        returnRotation.copy(camera.quaternion);
+        returnFov = camera.fov;
+        returnDuration = 1.2;
+        returnBlend = 0;
+      }
       canvas.dataset.droneIntent = "point-guided-follow";
       // A stable, centered view follows the bird while the aim-point keeps control.
       const breathingDistance = state.chill

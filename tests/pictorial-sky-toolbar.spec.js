@@ -11,7 +11,7 @@ test("mobile tool tray is centered, entirely at the bottom, SVG-only and collaps
   expect(Math.abs(bounds.x + bounds.width / 2 - 195)).toBeLessThan(1);
   expect(bounds.y).toBeGreaterThan(844 - 175);
   const buttons = tray.getByRole("button");
-  expect(await buttons.count()).toBe(13);
+  expect(await buttons.count()).toBe(16);
   expect(
     await buttons.evaluateAll((items) =>
       items.every((b) => b.querySelector("svg") && !b.textContent.trim()),

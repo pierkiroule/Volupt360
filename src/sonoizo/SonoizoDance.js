@@ -27,6 +27,12 @@ export function createSonoizoDance({ seed = 37, firstPerson = false } = {}) {
       seed,
     );
   return {
+    beginAcrobatic(id) {
+      return firstPerson && flight.beginAcrobatic(id);
+    },
+    cancelAcrobatic() {
+      flight.cancelAcrobatic?.();
+    },
     beginPilot() {
       if (firstPerson) flight.beginPilot();
       holding = true;
