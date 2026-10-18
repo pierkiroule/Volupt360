@@ -1415,6 +1415,7 @@ export function createSoundNest(
           color: profile.color,
           kind: profile.textureKind,
           watercolor: Boolean(profile.materialMode),
+          detailed: Boolean(profile.detailedWatercolor),
           continuous: !["brumes", "lagons"].includes(profile.baseId),
         },
         profile.seed,

@@ -35,6 +35,7 @@ export function createPoeticParticleStroke(
       uOpacity: { value: brush.opacity ?? 0.92 },
       uBrushMask: { value: texture?.texture || null },
       uHasMask: { value: texture?.photograph ? 1 : 0 },
+      uDetailedPlate: { value: texture?.detailed ? 1 : 0 },
       uKind: { value: brush.particle },
       uPaintDots: { value: brush.materialMode === 3 ? 1 : 0 },
       uAudioEnergy: { value: 0 },
@@ -62,7 +63,7 @@ export function createPoeticParticleStroke(
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
-      uniform sampler2D uBrushMask; uniform float uHasMask;
+      uniform sampler2D uBrushMask; uniform float uHasMask; uniform float uDetailedPlate;
       uniform float uKind; uniform float uPaintDots; uniform float uFade; uniform float uOpacity; uniform float uAudioEnergy; uniform float uAudioPulse;
       varying vec2 vUv; varying vec3 vTint; varying float vPhase; varying float vDistance;
       void main() {
@@ -106,6 +107,11 @@ export function createPoeticParticleStroke(
         if(uPaintDots>.5) alpha*=smoothstep(1.2,3.,vDistance);
         if (alpha < 0.01) discard;
         vec3 color=mix(vTint, vec3(1.0, 0.8, 0.3), highlight);
+        if(uDetailedPlate>.5){
+          vec4 plate=texture2D(uBrushMask,vUv);
+          color*=mix(.95,.35,plate.r*.55+plate.b*.4)*(.8+plate.g*.3);
+          alpha*=smoothstep(.02,.3,plate.a)*(.65+plate.g*.35);
+        }
         if(uHasMask>.5){vec4 photo=texture2D(uBrushMask,clamp(vUv,vec2(.001),vec2(.999)));color=mix(color,photo.rgb,.92);alpha*=photo.a;}
         gl_FragColor = vec4(color, alpha);
         #include <colorspace_fragment>
@@ -203,6 +209,7 @@ export function createPoeticParticleStroke(
     setTexture(binding) {
       material.uniforms.uBrushMask.value = binding?.texture || null;
       material.uniforms.uHasMask.value = binding?.photograph ? 1 : 0;
+      material.uniforms.uDetailedPlate.value = binding?.detailed ? 1 : 0;
     },
     get full() {
       return count >= capacity;

@@ -332,3 +332,74 @@ test("gold particles archive into a shared frozen batch and release their resour
   expect(result.disposed).toBe(1);
   expect(errors).toEqual([]);
 });
+
+test("detailed watercolor plates keep seeded grain, tide data and seamless continuous coverage", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createPigmentPlate } =
+      await import("/src/chill/createPigmentPlate.js");
+    const { createWatercolorTexture } =
+      await import("/src/engine/createWatercolorTexture.js");
+    const read = (seed) =>
+      createPigmentPlate("wash", seed, 128, true)
+        .getContext("2d")
+        .getImageData(0, 0, 128, 128).data;
+    const a = read(123),
+      b = read(123),
+      c = read(124);
+    let equal = true,
+      changed = 0,
+      seam = 0,
+      empty = 0;
+    const loads = new Set(),
+      paper = new Set(),
+      tides = new Set();
+    for (let i = 0; i < a.length; i++) {
+      equal = equal && a[i] === b[i];
+      changed += a[i] !== c[i] ? 1 : 0;
+    }
+    for (let x = 0; x < 128; x++)
+      for (let k = 0; k < 4; k++)
+        seam = Math.max(
+          seam,
+          Math.abs(a[x * 4 + k] - a[(127 * 128 + x) * 4 + k]),
+        );
+    for (let i = 0; i < a.length; i += 4) {
+      loads.add(a[i]);
+      paper.add(a[i + 1]);
+      tides.add(a[i + 2]);
+      if (a[i + 3] === 0) empty++;
+    }
+    const texture = createWatercolorTexture(
+      { kind: "dry", detailed: true, continuous: true },
+      123,
+      128,
+    );
+    let disposed = false;
+    texture.texture.addEventListener("dispose", () => (disposed = true));
+    texture.texture.dispose();
+    return {
+      equal,
+      changed,
+      seam,
+      empty,
+      loads: loads.size,
+      paper: paper.size,
+      tides: tides.size,
+      detailed: texture.detailed,
+      colorSpace: texture.texture.colorSpace,
+      disposed,
+    };
+  });
+  expect(result.equal).toBe(true);
+  expect(result.changed).toBeGreaterThan(10000);
+  expect(result.seam).toBe(0);
+  expect(result.empty).toBeGreaterThan(100);
+  expect(result.loads).toBeGreaterThan(100);
+  expect(result.paper).toBeGreaterThan(100);
+  expect(result.tides).toBeGreaterThan(100);
+  expect(result.detailed && result.disposed).toBe(true);
+  expect(result.colorSpace).toBe("");
+});

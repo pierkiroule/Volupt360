@@ -1,5 +1,6 @@
 // Five distinct engines and saturated pigments, all driven by the existing audio analysis.
 const common = {
+  detailedWatercolor: true,
   materialMode: 3,
   opacity: 0.98,
   speed: 0.65,

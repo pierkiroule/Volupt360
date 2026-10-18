@@ -180,6 +180,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
     uniforms: {
       uBrushMask: { value: texture?.texture || null },
       uHasMask: { value: texture ? 1 : 0 },
+      uDetailedPlate: { value: texture?.detailed ? 1 : 0 },
       uPhotograph: { value: texture?.photograph ? 1 : 0 },
       uMaskAspect: { value: texture?.aspect || 1 },
       uMaskRepeat: { value: texture?.repeat ?? 4 },
@@ -781,6 +782,7 @@ export function createBrushStroke(
       if (!uniforms) return;
       uniforms.uBrushMask.value = next?.texture || null;
       uniforms.uHasMask.value = next ? 1 : 0;
+      uniforms.uDetailedPlate.value = next?.detailed ? 1 : 0;
       uniforms.uPhotograph.value = next?.photograph ? 1 : 0;
       uniforms.uMaskAspect.value = next?.aspect || 1;
       uniforms.uMaskRepeat.value =

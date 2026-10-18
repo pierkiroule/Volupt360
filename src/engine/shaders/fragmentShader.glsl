@@ -5,6 +5,7 @@ varying float vMaterialAge;
 uniform sampler2D uBrushMask;
 uniform float uPhotograph;
 uniform float uHasMask,uMaskAspect,uMaskRepeat;
+uniform float uDetailedPlate;
 uniform float uAge,uSurprise,uStrokeExtent;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
@@ -14,6 +15,7 @@ float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+
 void main(){
 vec2 uv=vUv;
 float maskCoverage=1.;
+vec3 pigmentPlate=vec3(.5);
 uv+=vec2(sin(uTime*.075+vPigmentSeed+uv.y*3.),cos(uTime*.053+vPigmentSeed+uv.x*4.))*(.009+.012*uAudioEnergy);
 float across=abs(uv.x*2.-1.);
 float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085)));
@@ -126,6 +128,11 @@ if(uSurprise>.5 && uSurprise<1.5){
 if(uHasMask>.5){
   vec2 maskUv=uPhotograph>.5 ? clamp(vUv,vec2(.001),vec2(.999)) : vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
   vec4 photograph=texture2D(uBrushMask,maskUv);
+  if(uDetailedPlate>.5){
+    vec2 plateUv=vec2(vUv.x,vUv.y*uMaskRepeat*uMaskAspect);
+    photograph=texture2D(uBrushMask,plateUv);
+    pigmentPlate=photograph.rgb;
+  }
   float imageAlpha=photograph.a;
   maskCoverage=imageAlpha;
   if(uPhotograph>.5)col=mix(col,photograph.rgb,.9);
@@ -172,6 +179,17 @@ if(uMaterialMode>2.5){
  if(abs(uStyle-15.)<.1){
    float r=length((vUv-.5)*2.);
    alpha*=1.-smoothstep(.52+macro*.2,.85+middle*.12,r);
+ }
+ if(uDetailedPlate>.5){
+   // Fixed paper grain underneath slow wet-to-dry pigment migration.
+   float load=pigmentPlate.r, paper= pigmentPlate.g, deposits=pigmentPlate.b;
+   float poolDensity=clamp(load*.7+deposits*(.25+settled*.2),0.,1.);
+   col=base*mix(1.08,.28,poolDensity);
+   col*=.87+.23*paper;
+   col=mix(col,base*.25,deposits*(.2+uAudioPulse*wet*.15));
+   float reserves=mix(.65,1.,smoothstep(.2,.65,paper));
+   alpha=body*smoothstep(.025,.32,maskCoverage)*uOpacity*uFade*reserves*(.82+load*.22+deposits*.18);
+   if(abs(uStyle-3.)<.1) alpha*=.55+.45*smoothstep(.2,.6,paper);
  }
 }
 if(vStrokeExtent>0.){

@@ -1,5 +1,6 @@
 import { createWatercolorAlpha } from "../chill/createWatercolorAlpha.js";
 import * as THREE from "three";
+import { createPigmentPlate } from "../chill/createPigmentPlate.js";
 
 // Fixed seeded pigment fields: generated once per brush, never during flight.
 export function createWatercolorTexture(
@@ -9,6 +10,15 @@ export function createWatercolorTexture(
   acoustic = null,
   visual = null,
 ) {
+  if (brush.detailed) {
+    const canvas = createPigmentPlate(brush.kind, seed, size, brush.continuous);
+    const texture = new THREE.CanvasTexture(canvas);
+    // These channels contain material data, not a color photograph.
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    return { texture, detailed: true, aspect: 1, repeat: 1, photograph: false };
+  }
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
