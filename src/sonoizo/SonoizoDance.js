@@ -52,6 +52,9 @@ export function createSonoizoDance({ seed = 37, firstPerson = false } = {}) {
       holding = false;
       releaseTime = 0;
     },
+    setBubbleTarget(position) {
+      if (firstPerson) flight.setBubbleTarget(position);
+    },
     setOrbitTarget(center, radius) {
       if (firstPerson) flight.setOrbitTarget(center, radius);
     },

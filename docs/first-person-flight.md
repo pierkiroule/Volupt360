@@ -25,3 +25,7 @@ Le contact donne immédiatement priorité au point de visée, avec une convergen
 ## Dépôt au contact
 
 Le délai d’appui long est retiré. Pointerdown ouvre immédiatement le dépôt et émet un premier échantillon depuis la queue, avec la dernière pose disponible. Le tracé continue pendant le glissement de pilotage, à une fréquence maximale de 30 échantillons/seconde ; pointerup, annulation et perte de focus terminent le dépôt. Le doigt pilote toujours le vol, il ne dessine pas directement la matière en mode FPV.
+
+## Guidage vers les bulles
+
+Le point de pilotage est invisible ; son DOM et ses mises à jour sont retirés. Après relâchement, l’oizo vise la bulle disponible la plus proche en distance 3D, sans téléportation. Le calcul réutilise un vecteur et parcourt au maximum 24 entrées. Bulles consommées, en éclatement ou en délai de réactivation exclues ; durant la pause de lecture ou si aucune cible n’est disponible, le vol orbital reste le repli. Au contact, l’attraction est immédiatement ignorée au profit du pilotage manuel.

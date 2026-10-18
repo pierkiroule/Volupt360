@@ -56,6 +56,7 @@ test("mobile starts in bird-follow FPV, touch immediately paints while steering"
   );
   await expect(canvas).toHaveAttribute("data-oizo-visible", "true");
   await expect(canvas).toHaveAttribute("data-fpv-follow-distance", "5.5");
+  await expect(page.locator(".fpv-aim-dot")).toHaveCount(0);
   await page.evaluate(() => {
     window.addEventListener("pointerdown", (event) => {
       if (event.target.tagName === "CANVAS")
