@@ -1,14 +1,22 @@
+import { createWatercolorAlpha } from "./createWatercolorAlpha.js";
 import * as THREE from "three";
 
 /** Continuous spherical paper and pigment washes: no horizon or figurative scenery. */
 export function createChillSky() {
+  const paperAlpha = new THREE.CanvasTexture(
+    createWatercolorAlpha("wash", 811, 256),
+  );
   const geometry = new THREE.SphereGeometry(220, 32, 16);
   const material = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
-    uniforms: { progress: { value: 0 }, time: { value: 0 } },
+    uniforms: {
+      progress: { value: 0 },
+      time: { value: 0 },
+      paperAlpha: { value: paperAlpha },
+    },
     vertexShader: `varying vec3 d;void main(){d=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader: `varying vec3 d;uniform float progress,time;
+    fragmentShader: `varying vec3 d;uniform float progress,time;uniform sampler2D paperAlpha;
  float hash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
  float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
  return mix(mix(mix(hash(i),hash(i+vec3(1.,0.,0.)),f.x),mix(hash(i+vec3(0.,1.,0.)),hash(i+vec3(1.,1.,0.)),f.x),f.y),mix(mix(hash(i+vec3(0.,0.,1.)),hash(i+vec3(1.,0.,1.)),f.x),mix(hash(i+vec3(0.,1.,1.)),hash(i+vec3(1.,1.,1.)),f.x),f.y),f.z);}
@@ -18,7 +26,8 @@ export function createChillSky() {
  vec3 paper=mix(vec3(.89,.855,.79),vec3(.83,.835,.87),progress*.55);
  vec3 blue=vec3(.32,.52,.57), rose=vec3(.68,.43,.43), lavender=vec3(.48,.43,.59);
  vec3 pigment=mix(blue,mix(rose,lavender,progress),smoothstep(.32,.72,noise(p+7.)));
- float wash=smoothstep(.42,.82,broad)*.19;
+ float plate=texture2D(paperAlpha,v.xy*.45+.5).a*.5+texture2D(paperAlpha,v.yz*.45+.5).a*.5;
+ float wash=smoothstep(.42,.82,broad)*.19+plate*.045;
  float edge=exp(-abs(broad-.57)*70.)*.022;
  vec3 color=mix(paper,pigment,wash+edge+detail*.018);
  color-=(grain-.5)*.014+detail*.006;
@@ -37,6 +46,7 @@ export function createChillSky() {
     },
     dispose() {
       object.removeFromParent();
+      paperAlpha.dispose();
       geometry.dispose();
       material.dispose();
     },

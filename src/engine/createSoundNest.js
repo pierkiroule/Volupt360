@@ -1146,7 +1146,12 @@ export function createSoundNest(
       if (!BRUSHES.some((item) => item.id === id) || generatedBrushes.has(id))
         return null;
       const binding = createWatercolorTexture(
-        { color: profile.color, kind: profile.textureKind },
+        {
+          color: profile.color,
+          kind: profile.textureKind,
+          watercolor: Boolean(profile.materialMode),
+          continuous: !["brumes", "lagons"].includes(profile.baseId),
+        },
         profile.seed,
         profile.materialMode ? (mobile ? 256 : 512) : mobile ? 128 : 256,
         profile.acoustic,
@@ -1174,7 +1179,12 @@ export function createSoundNest(
         binding = previous;
       else
         binding = createWatercolorTexture(
-          { color: profile.color, kind: profile.textureKind },
+          {
+            color: profile.color,
+            kind: profile.textureKind,
+            watercolor: Boolean(profile.materialMode),
+            continuous: !["brumes", "lagons"].includes(profile.baseId),
+          },
           profile.seed,
           mobile ? 128 : 256,
         );

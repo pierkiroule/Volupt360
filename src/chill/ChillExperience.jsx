@@ -1,3 +1,4 @@
+import { createWatercolorAlpha } from "./createWatercolorAlpha.js";
 import { useEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
@@ -29,6 +30,10 @@ export default function ChillExperience() {
     [photo, setPhoto] = useState(null),
     [photoBusy, setPhotoBusy] = useState(false);
   useEffect(() => {
+    stage.current.parentElement.style.setProperty(
+      "--paper-alpha",
+      `url("${createWatercolorAlpha("wash", 731, 256).toDataURL()}")`,
+    );
     document.title =
       "L’Oizo de l’Haïkuarelle Virtuelle — cinq minutes d’aquarelle et d’encre";
     try {
@@ -134,8 +139,14 @@ export default function ChillExperience() {
       </header>
       {!started && (
         <section className="chill-welcome">
-          <span>Un ciel. Un oiseau. Un peu d’espace.</span>
-          <h2>Laisser les couleurs respirer</h2>
+          <span className="chill-eyebrow">
+            Un carnet ouvert sur l’invisible
+          </span>
+          <h2>
+            Laisser les couleurs
+            <br />
+            respirer
+          </h2>
           <p>
             Guidez l’oizo du bout du doigt. Ses traces deviennent un paysage.
             Sans toucher, il rejoint les bulles de haïkus.

@@ -1,3 +1,4 @@
+import { createWatercolorAlpha } from "../chill/createWatercolorAlpha.js";
 import * as THREE from "three";
 
 // Fixed seeded pigment fields: generated once per brush, never during flight.
@@ -12,6 +13,11 @@ export function createWatercolorTexture(
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
   const image = ctx.createImageData(size, size);
+  const alphaPlate = brush.watercolor
+    ? createWatercolorAlpha(brush.kind, seed, size, brush.continuous)
+        .getContext("2d")
+        .getImageData(0, 0, size, size).data
+    : null;
   const color = new THREE.Color(brush.color).convertLinearToSRGB();
   const channels = [color.r, color.g, color.b];
   const hash = (x, y) => {
@@ -121,6 +127,7 @@ export function createWatercolorTexture(
         grain *
         songEnvelope *
         (0.85 + fiber * 0.15);
+      if (alphaPlate) image.data[k + 3] = alphaPlate[k + 3];
     }
   ctx.putImageData(image, 0, 0);
   const texture = new THREE.CanvasTexture(canvas);
