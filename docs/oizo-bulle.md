@@ -74,3 +74,11 @@ Au terme de la traversée, les dépôts humides restants rejoignent l’archive 
 La suite `pictorial-sky-toolbar.spec.js` vérifie le centrage, les SVG, le repli/dépli, le volume, la sélection et l’absence de débordement. Elle mesure aussi les couleurs des étapes célestes sur un rendu WebGL. Le test du final dépose réellement de la peinture avant de vérifier son archivage sec et de décoder le PNG.
 
 Validation de cette évolution graphique : **28 tests ciblés réussis**, comprenant la barre mobile, le cycle céleste, le final sec/PNG et les régressions vol, gyro, bulles, timeline et pigments. Les essais restent effectués sous Chromium avec capteurs simulés ; le téléphone physique n’a pas été testé.
+
+## Sillages des ailes
+
+Le dépôt part désormais des deux pointes d’ailes articulées, et non de la queue. `createOizo.getWingPosition` échantillonne le sommet réel du maillage déformé par les os, puis le ramène dans le repère du paysage : battements, virages, montée et plongée déplacent naturellement les émetteurs.
+
+`createSoundNest` conserve deux historiques de tracé par brosse, gauche et droite. Les positions ne sont jamais alternées dans un même ruban, ce qui évite les ponts entre les ailes. Relâcher, changer de brosse ou entrer dans une bulle termine les deux flux. Le contact reste immédiat ; l’échantillonnage courant est réparti à 15 Hz par aile pour environ 30 dépôts par seconde au total. Les brosses, alphas, déploiement humide, archivage sec et export sont réutilisés. L’ancien accesseur de queue reste disponible pour compatibilité, mais n’est plus appelé par le moteur de dépôt.
+
+`wing-emission.spec.js` vérifie les pointes réelles du rig dans un paysage transformé, leur mouvement pendant les battements, les deux dépôts immédiats indépendants et leur fermeture au changement de brosse.
