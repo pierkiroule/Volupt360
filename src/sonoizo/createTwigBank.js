@@ -26,6 +26,12 @@ export function createTwigBank({
   if (ids.length > 18 || new Set(ids).size !== ids.length)
     throw new Error("Invalid twig slots");
   const retiringAmbiences = new Set();
+  const experienceClockState = {
+    time: 0,
+    playing: false,
+    duration: 0,
+    ended: false,
+  };
   let ambienceVolume = 0.45;
   let fireflies = false,
     ambienceUserPaused = false;
@@ -158,6 +164,7 @@ export function createTwigBank({
       master = ctx.createGain();
       master.connect(ctx.destination);
       connectCapture();
+      ctx.onstatechange = emit;
     }
     return ctx;
   }
@@ -533,6 +540,7 @@ export function createTwigBank({
     item.element.pause();
     item.source?.disconnect();
     item.gain?.disconnect();
+    item.tone?.disconnect();
     item.graph?.analyser.disconnect();
     item.element.removeAttribute("src");
     item.element.load();
@@ -605,7 +613,10 @@ export function createTwigBank({
         wave: new Uint8Array(analyser.fftSize),
         prev: new Float32Array(analyser.frequencyBinCount),
       };
-      candidate.source.connect(analyser);
+      candidate.tone = audio.createBiquadFilter();
+      candidate.tone.type = "allpass";
+      candidate.source.connect(candidate.tone);
+      candidate.tone.connect(analyser);
       analyser.connect(candidate.gain);
       candidate.gain.connect(master);
       if (ambience) {
@@ -855,9 +866,48 @@ export function createTwigBank({
         );
       emit();
     },
-    fadeAmbience() {
+    fadeAmbience(timeConstant = 0.18) {
       if (ambience?.gain && ctx)
-        ambience.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.18);
+        ambience.gain.gain.setTargetAtTime(0, ctx.currentTime, timeConstant);
+    },
+    getExperienceAudioClock() {
+      if (!ambience) return null;
+      const item = ambience,
+        current = item.element.currentTime;
+      const playing =
+        !item.element.paused &&
+        ctx?.state === "running" &&
+        item.element.readyState >= 3 &&
+        !item.element.seeking;
+      let delta = current - (item.clockPosition ?? current);
+      if (delta < 0 && item.element.loop) delta += item.element.duration || 0;
+      if (playing && item.clockPlaying && delta >= 0 && delta < 2)
+        item.experienceClock = (item.experienceClock || 0) + delta;
+      item.clockPosition = current;
+      item.clockPlaying = playing;
+      experienceClockState.time = item.experienceClock || 0;
+      experienceClockState.playing = playing;
+      experienceClockState.duration = item.element.duration;
+      experienceClockState.ended = item.element.ended;
+      return experienceClockState;
+    },
+    setExperienceMix(state) {
+      if (!ambience?.tone || !ctx) return;
+      if (!ambience.experienceMix) {
+        ambience.experienceMix = true;
+        ambience.element.loop = ambience.element.duration < 360;
+        ambience.tone.type = "lowpass";
+        ambience.tone.Q.value = 0.35;
+      }
+      const hz = Math.exp(
+        Math.log(1300) * state.night +
+          Math.log(3200) * state.aurora +
+          Math.log(7500) * state.dawn,
+      );
+      if (Math.abs(hz - (ambience.lastMixHz || 0)) > 8) {
+        ambience.lastMixHz = hz;
+        ambience.tone.frequency.setTargetAtTime(hz, ctx.currentTime, 2);
+      }
     },
     getVisualFeatures,
     getVocalFeatures() {

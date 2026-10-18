@@ -103,6 +103,9 @@ export function createOizo() {
     dive = 0;
   return {
     group,
+    setColor(color) {
+      material.color.set(color);
+    },
     update(pose) {
       const first = previousTime === undefined;
       const dt = first

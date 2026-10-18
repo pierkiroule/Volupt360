@@ -79,10 +79,14 @@ const haikus = [
   ],
   ["Dernier trait d’encre", "la page accueille le soir", "rien ne se referme"],
 ];
-export const CHILL_FRAGMENTS = haikus.map((lines, i) => ({
+const journeyOrder = [
+  13, 8, 18, 23, 3, 6, 9, 10, 15, 21, 22, 16, 0, 1, 2, 4, 5, 7, 11, 12, 14, 17,
+  19, 20,
+];
+export const CHILL_FRAGMENTS = journeyOrder.map((index, i) => ({
   id: `haiku-${i + 1}`,
-  lines,
-  text: lines.join("\n"),
+  lines: haikus[index],
+  text: haikus[index].join("\n"),
 }));
 export const CHILL_UNIVERSE = {
   chill: true,

@@ -1,3 +1,6 @@
+import { createPhasePalette } from "../chill/phasePalette.js";
+import { sampleExperience } from "../chill/experienceTimeline.js";
+import { createPigmentArchive } from "../chill/createPigmentArchive.js";
 import { createChillSession } from "../chill/createChillSession.js";
 import { createChillSky } from "../chill/createChillSky.js";
 import { createChillTrails } from "../chill/createChillTrails.js";
@@ -39,6 +42,7 @@ export function createSoundNest(
     onPoeticFragment,
     onSessionProgress,
     onSessionComplete,
+    onSessionInterrupted,
   } = {},
 ) {
   const mobile =
@@ -137,6 +141,7 @@ export function createSoundNest(
   const generatedBrushes = new Map();
   renderer.domElement.dataset.celestialBrushes = "0";
   renderer.domElement.dataset.activeBrush = brush;
+  let phasePalette = null;
   let chillSession = null,
     chillMode = false,
     chillPaused = false,
@@ -169,6 +174,8 @@ export function createSoundNest(
   const padStates = new Map();
   const tailPosition = new THREE.Vector3();
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
+  const pigmentArchive = createPigmentArchive();
+  landscape.add(pigmentArchive.group);
   const marks = [],
     totalBounds = new THREE.Box3(),
     extent = new THREE.Vector3();
@@ -271,10 +278,12 @@ export function createSoundNest(
         );
       activeStroke.bounds.expandByPoint(lastSample.position);
     }
-    while (marks.length > budget.maxMarks) {
+    while (marks.length > (chillMode ? 8 : budget.maxMarks)) {
       const index = marks.findIndex((mark) => !isActive(mark));
       if (index < 0) break;
-      destroyStroke(marks.splice(index, 1)[0]);
+      const retired = marks.splice(index, 1)[0];
+      if (chillMode) pigmentArchive.add(retired);
+      destroyStroke(retired);
     }
     renderer.domElement.dataset.markCount = String(marks.length);
   }
@@ -340,6 +349,7 @@ export function createSoundNest(
     lastSample = state?.last || null;
     brush = id;
     addSample(pose, true);
+    moodAtmosphere?.onTrace?.(pose.position, pose.energy || 0.2);
     if (chillTrails) {
       const profile = generatedBrushes.get(id);
       trailColor.set(profile?.color || "#c7d8df");
@@ -357,6 +367,7 @@ export function createSoundNest(
   function updateBounds() {
     totalBounds.makeEmpty();
     for (const mark of marks) totalBounds.union(mark.bounds);
+    totalBounds.union(pigmentArchive.bounds);
     if (totalBounds.isEmpty())
       totalBounds.set(
         new THREE.Vector3(-4, -4, -4),
@@ -381,6 +392,7 @@ export function createSoundNest(
     closeStroke();
     marks.forEach(destroyStroke);
     marks.length = 0;
+    pigmentArchive.clear();
     retiredTextures.forEach((binding) => binding.texture.dispose());
     retiredTextures.clear();
     traceMemory.clear();
@@ -687,7 +699,29 @@ export function createSoundNest(
     lastTime = now;
     if (document.hidden) return;
     if (chillPaused || chillSession?.complete) dt = 0;
-    chillSession?.update(dt);
+    const audioClock = chillSession
+      ? padSource?.getExperienceAudioClock?.()
+      : null;
+    if (
+      chillSession &&
+      audioClock &&
+      !audioClock.playing &&
+      !audioClock.ended &&
+      !chillPaused &&
+      !chillSession.departing
+    ) {
+      chillPaused = true;
+      chillSession.setPaused(true);
+      cancelSteering();
+      onSessionInterrupted?.();
+      dt = 0;
+    }
+    chillSession?.update(dt, audioClock);
+    if (chillSession) {
+      padSource?.setExperienceMix?.(chillSession.state);
+      phasePalette?.update(chillSession.state);
+      if (phasePalette) oizo?.setColor?.(phasePalette.birdColor);
+    }
     if (chillSession?.departing && !chillDeparted) {
       chillDeparted = true;
       cancelSteering();
@@ -696,13 +730,14 @@ export function createSoundNest(
         .crossVectors(navigation.direction, new THREE.Vector3(0, 1, 0))
         .normalize();
       dance.setPilot(0, 0, { right, up: new THREE.Vector3(0, 1, 0) });
-      padSource?.fadeAmbience?.();
+      padSource?.fadeAmbience?.(2.2);
     }
     navigation.chill = chillMode;
     navigation.departure = chillSession?.departing
-      ? Math.max(0, Math.min(1, (chillSession.elapsed - 300) / 8))
+      ? chillSession.departureProgress
       : 0;
     navigation.time = lifeTime;
+    navigation.opening = chillSession?.state.opening || 0;
     if (!photo && budget.update(milliseconds, dt)) {
       renderer.setPixelRatio(budget.ratio);
       renderer.setSize(innerWidth, innerHeight);
@@ -819,6 +854,7 @@ export function createSoundNest(
         if (!vocalFireflies && fragments?.length) {
           vocalFireflies = createVocalBubbles({
             watercolor: chillMode,
+            staged: chillMode,
             fragments,
             collide: (id) =>
               onPoeticFragment?.(
@@ -829,12 +865,14 @@ export function createSoundNest(
           landscape.add(vocalFireflies.group);
         }
         if (vocalFireflies) {
+          vocalFireflies.setElapsed?.(chillSession?.elapsed || 0);
           vocalFireflies.group.visible = !chillSession?.complete;
           vocalFireflies.update(
             dt,
             pose,
             !directSculpture &&
-              cameraMode === "drone" &&
+              (cameraMode === "drone" ||
+                (chillMode && cameraMode === "gyro")) &&
               !chillSession?.departing,
           );
           renderer.domElement.dataset.vocalFireflies = String(
@@ -848,7 +886,7 @@ export function createSoundNest(
           if (directSculpture) navigation.bounds.center.set(0, 0, 0);
           else navigation.bounds.center.copy(pose.position);
           navigation.bounds.radius = 8;
-        } else if (!directSculpture) {
+        } else if (!directSculpture && !chillSession?.departing) {
           navigation.bounds.radius = Math.max(
             navigation.bounds.radius,
             pose.position.distanceTo(navigation.bounds.center) + 3,
@@ -901,15 +939,17 @@ export function createSoundNest(
           const item = marks[i],
             age = elapsed - item.born;
           // Dense nearby pigment accelerates dissolution of older marks smoothly.
-          item.fade = dissolvePigment({
-            age: chillMode ? age * 0.35 : age,
-            count: marks.length,
-            neighbors: item.neighbors || 0,
-            fade: item.fade,
-            dt,
-            significance: item.significance,
-            opening: item.opening,
-          });
+          item.fade = chillMode
+            ? 1
+            : dissolvePigment({
+                age: chillMode ? age * 0.35 : age,
+                count: marks.length,
+                neighbors: item.neighbors || 0,
+                fade: item.fade,
+                dt,
+                significance: item.significance,
+                opening: item.opening,
+              });
           const fade = item.fade;
           for (const uniforms of uniformsFor(item)) {
             if (uniforms.uAge) uniforms.uAge.value = age;
@@ -924,7 +964,12 @@ export function createSoundNest(
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
-      moodAtmosphere?.update(lifeTime, visual, chillSession?.progress || 0);
+      moodAtmosphere?.update(
+        lifeTime,
+        visual,
+        chillSession?.progress || 0,
+        chillSession?.state,
+      );
       chillTrails?.update(dt, lifeTime, visual);
       updateDirect(dt, visual);
       let drift = 0;
@@ -962,10 +1007,12 @@ export function createSoundNest(
           if (uniforms.uTime) uniforms.uTime.value = lifeTime * speed;
           if (uniforms.uWakeClock) uniforms.uWakeClock.value = lifeTime;
           if (uniforms.uMoisture)
-            uniforms.uMoisture.value = response.moisture ?? 0.6;
+            uniforms.uMoisture.value =
+              (response.moisture ?? 0.6) *
+              (chillSession?.state.brushDiffusion || 1);
           if (uniforms.uPigment)
             uniforms.uPigment.value = chillMode
-              ? 1.45
+              ? 1.45 * (chillSession?.state.brushDensity || 1)
               : 1.12 +
                 (response.energy || 0) * 0.65 +
                 (response.pulse || 0) * 0.25;
@@ -991,11 +1038,24 @@ export function createSoundNest(
       if (boundsDirty) updateBounds();
     }
     renderer.domElement.dataset.sculpturePaused = String(photo);
+    if (chillSession) {
+      renderer.domElement.dataset.experiencePhase = chillSession.state.phase;
+      renderer.domElement.dataset.experienceTime =
+        chillSession.elapsed.toFixed(3);
+    }
+    if (chillMode)
+      renderer.domElement.dataset.pigmentArchive = JSON.stringify(
+        pigmentArchive.stats,
+      );
     renderer.domElement.dataset.lifeTime = lifeTime.toFixed(3);
     renderer.domElement.dataset.materialTime = (
       marks[0]?.uniforms[0]?.uTime?.value ?? 0
     ).toFixed(3);
-    rig.update(dt);
+    rig.update(
+      chillSession?.complete ? Math.min(0.1, milliseconds / 1000) : dt,
+    );
+    if (chillMode && moodAtmosphere)
+      moodAtmosphere.object.position.copy(camera.position);
 
     camera.updateMatrixWorld();
     if (!photo && padSource?.updateListener) {
@@ -1249,6 +1309,7 @@ export function createSoundNest(
     },
     pauseChillSession(paused) {
       chillPaused = paused;
+      chillSession?.setPaused(paused);
       if (paused) cancelSteering();
     },
     setPoeticFragments(fragments) {
@@ -1263,7 +1324,9 @@ export function createSoundNest(
       scene.background.set(universe.background);
       effects.setPaper(universe.background);
       renderer.setClearColor(universe.background);
-      for (const profile of profiles)
+      phasePalette = universe.chill ? createPhasePalette(profiles) : null;
+      phasePalette?.update(sampleExperience(0));
+      for (const profile of phasePalette?.profiles || profiles)
         this.setGeneratedBrush(profile.id, profile);
       chillMode = Boolean(universe.chill);
       chillSession = null;
@@ -1307,7 +1370,10 @@ export function createSoundNest(
       const size = renderer.getSize(new THREE.Vector2()),
         ratio = renderer.getPixelRatio();
       const aspect = camera.aspect;
-      const longSide = Math.min(2560, renderer.capabilities.maxTextureSize);
+      const longSide = Math.min(
+        mobile ? 1920 : 3200,
+        renderer.capabilities.maxTextureSize,
+      );
       const scale = longSide / Math.max(size.x, size.y);
       const width = Math.round(size.x * scale),
         height = Math.round(size.y * scale);
@@ -1360,6 +1426,7 @@ export function createSoundNest(
       for (const [name, handler] of steeringListeners)
         renderer.domElement.removeEventListener(name, handler);
       rig.dispose();
+      pigmentArchive.dispose();
       chillTrails?.dispose();
       oizo?.dispose();
       padSource?.setCaptureTap(null);

@@ -1,3 +1,5 @@
+> Document historique du parcours de cinq minutes. Pour le parcours actuel, voir [la traversée de six minutes](six-minute-journey.md).
+
 # L’Oizo de l’Haïkuarelle Virtuelle
 
 ## Parcours
