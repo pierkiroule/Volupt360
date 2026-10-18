@@ -1,3 +1,5 @@
+import { HelpResources } from "./HelpResources.jsx";
+import { NARRATIVE_EVENTS } from "../narrative/narrativeEventConfig.js";
 import { FLIGHT_FIGURES } from "../engine/createFlightAcrobatics.js";
 import { ToolIcon } from "./ToolIcon.jsx";
 import { createWatercolorAlpha } from "./createWatercolorAlpha.js";
@@ -194,6 +196,7 @@ export default function ChillExperience() {
       }}
     >
       <div id="stage" ref={stage} />
+      <HelpResources />
       <header className="brand">
         <h1>OIZO-BULLE •°</h1>
         <p>
@@ -355,6 +358,12 @@ export default function ChillExperience() {
               className="poetic-fragment resonance-phrase"
               role="status"
             >
+              <small className="narrative-fragment-title">
+                {
+                  NARRATIVE_EVENTS.find((event) => event.bubbleId === text.id)
+                    ?.title
+                }
+              </small>
               <p>{text.text}</p>
             </div>
           )}

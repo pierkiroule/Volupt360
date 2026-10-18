@@ -167,10 +167,20 @@ export function createPigmentArchive() {
       bounds.union(mark.bounds);
       traces++;
     },
+    setNarrativeResponse(effects, center) {
+      for (const b of buckets.values()) {
+        const u = b.mesh.material.uniforms;
+        u.uNarrativeSpiral.value = effects?.spiral || 0;
+        u.uNarrativeContrast.value = effects?.contrast || 0;
+        u.uNarrativeTime.value = effects?.time || 0;
+        if (center) u.uNarrativeCenter.value.copy(center);
+      }
+    },
     settle() {
       for (const bucket of buckets.values()) {
         const uniforms = bucket.mesh.material.uniforms;
         uniforms.uMoisture.value = 0;
+        uniforms.uNarrativeSpiral.value = uniforms.uNarrativeContrast.value = 0;
         uniforms.uTime.value = 0;
         uniforms.uAge.value = 10000;
         for (const name of ["uAudioEnergy", "uAudioLow", "uAudioPulse"])

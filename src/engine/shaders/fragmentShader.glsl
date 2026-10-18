@@ -1,5 +1,6 @@
 varying float vPigmentSeed,vStrokeExtent;
 uniform float uMoodGrain,uMoodDiffusion;
+uniform float uNarrativeContrast;
 uniform float uAudioEnergy,uAudioLow,uAudioPulse,uMaterialMode,uMoisture;
 varying float vMaterialAge;
 uniform sampler2D uBrushMask;
@@ -153,6 +154,8 @@ if(vStrokeExtent>0.){
   alpha*=smoothstep(0.,.75,endDistance)*(1.-smoothstep(.75,1.08,across+roundness*.55));
 }
 if(alpha<.012)discard;
+col*=1.-uNarrativeContrast*.11;
+alpha*=1.+uNarrativeContrast*.12;
 gl_FragColor=vec4(col,alpha);
 #include <colorspace_fragment>
 }

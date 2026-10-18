@@ -1,3 +1,4 @@
+import { createNarrativeEventManager } from "../narrative/createNarrativeEventManager.js";
 import { createContemplationState } from "../chill/createContemplationState.js";
 import { createPhasePalette } from "../chill/phasePalette.js";
 import { sampleExperience } from "../chill/experienceTimeline.js";
@@ -146,6 +147,17 @@ export function createSoundNest(
   renderer.domElement.dataset.activeBrush = brush;
   const contemplation = createContemplationState();
   const contemplationWorld = new THREE.Vector3();
+  let narrative = null;
+  const narrativeContext = {
+    position: navigation.position,
+    direction: navigation.direction,
+    side: new THREE.Vector3(-1, 0, 0),
+    up: new THREE.Vector3(0, 1, 0),
+    paintAnchor: new THREE.Vector3(),
+    manual: false,
+    acrobatic: false,
+  };
+  const narrativeWorld = new THREE.Vector3();
   let resonanceMode = false;
   let phasePalette = null;
   let chillSession = null,
@@ -407,6 +419,7 @@ export function createSoundNest(
   function reset() {
     if (contemplation.active) rig.leaveContemplation();
     contemplation.reset();
+    narrative?.clear();
     stopAcrobaticPaint();
     cancelSteering();
     bridge.close();
@@ -627,6 +640,7 @@ export function createSoundNest(
       !event.isPrimary
     )
       return;
+    narrative?.releasePerch();
     stopAcrobaticPaint();
     void padSource.preparePlayback();
     dance.beginPilot();
@@ -744,6 +758,7 @@ export function createSoundNest(
       )
     )
       return false;
+    narrative?.prepare(fragment.id);
     cancelSteering();
     stopAcrobaticPaint();
     dance.cancelAcrobatic();
@@ -803,6 +818,7 @@ export function createSoundNest(
     }
     if (chillSession?.departing && !chillDeparted) {
       chillDeparted = true;
+      narrative?.releasePerch();
       stopAcrobaticPaint();
       cancelSteering();
       dance.beginPilot();
@@ -870,8 +886,17 @@ export function createSoundNest(
             ? nearestBubble
             : null,
         );
-        const pose = dance.update(dt, voices, visual);
+        const pose = dance.update(
+          narrative?.isPerched ? 0 : dt,
+          voices,
+          visual,
+        );
+        pose.perched = Boolean(narrative?.isPerched);
         lastFlightPose = pose;
+        narrativeContext.side.copy(pose.side);
+        narrativeContext.up.copy(pose.up);
+        narrativeContext.manual = Boolean(steeringGesture);
+        narrativeContext.acrobatic = Boolean(pose.acrobatics);
         navigation.acrobatics = pose.acrobatics;
         renderer.domElement.dataset.acrobatic = pose.acrobatics || "none";
         if (acrobaticPaint && !pose.acrobatics) stopAcrobaticPaint();
@@ -1128,6 +1153,35 @@ export function createSoundNest(
       if (densityClock <= dt) boundsDirty = true;
       if (boundsDirty) updateBounds();
     }
+    narrative?.update(
+      !chillPaused && !chillSession?.complete
+        ? Math.min(0.1, milliseconds / 1000)
+        : 0,
+      narrativeContext,
+    );
+    if (narrative) {
+      landscape.updateMatrixWorld(true);
+      narrativeWorld
+        .copy(navigation.position)
+        .applyMatrix4(landscape.matrixWorld);
+      pigmentArchive.setNarrativeResponse(narrative.effects, narrativeWorld);
+      for (const mark of marks)
+        for (const u of uniformsFor(mark)) {
+          if (u.uNarrativeSpiral) {
+            u.uNarrativeSpiral.value = narrative.effects.spiral;
+            u.uNarrativeContrast.value = narrative.effects.contrast;
+            u.uNarrativeTime.value = narrative.effects.time;
+            u.uNarrativeCenter.value.copy(narrativeWorld);
+          }
+        }
+      moodAtmosphere?.setNarrativeResponse?.(
+        narrative.effects,
+        navigation.direction,
+      );
+    }
+    renderer.domElement.dataset.narrative = JSON.stringify(
+      narrative?.stats || {},
+    );
     renderer.domElement.dataset.sculpturePaused = String(
       photo || contemplation.active,
     );
@@ -1418,6 +1472,7 @@ export function createSoundNest(
       )
         return false;
       cancelSteering();
+      narrative?.releasePerch();
       if (!dance.beginAcrobatic(id)) return false;
       acrobaticPaint = true;
       onAcrobaticChange?.(id);
@@ -1435,6 +1490,10 @@ export function createSoundNest(
       cameraMode = "drone";
       void rig.leaveContemplation();
       chillSession?.setPaused(chillPaused);
+      if (marks.length)
+        marks[marks.length - 1].bounds.getCenter(narrativeContext.paintAnchor);
+      else narrativeContext.paintAnchor.copy(navigation.position);
+      narrative?.resume(narrativeContext);
       onContemplationChange?.(false, null);
       return true;
     },
@@ -1455,6 +1514,7 @@ export function createSoundNest(
           }
           marks.length = 0;
           lastSample = null;
+          narrative?.finish();
           pigmentArchive.settle();
           if (chillTrails) chillTrails.object.visible = false;
           renderer.domElement.dataset.artworkDry = "true";
@@ -1488,6 +1548,9 @@ export function createSoundNest(
         this.setGeneratedBrush(profile.id, profile);
       chillMode = Boolean(universe.chill);
       resonanceMode = Boolean(universe.resonanceBubbles);
+      narrative?.dispose();
+      narrative = resonanceMode ? createNarrativeEventManager() : null;
+      if (narrative) landscape.add(narrative.group);
       chillSession = null;
       chillTrails?.dispose();
       chillTrails = null;
@@ -1586,6 +1649,7 @@ export function createSoundNest(
       for (const [name, handler] of steeringListeners)
         renderer.domElement.removeEventListener(name, handler);
       rig.dispose();
+      narrative?.dispose();
       pigmentArchive.dispose();
       chillTrails?.dispose();
       oizo?.dispose();

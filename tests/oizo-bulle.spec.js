@@ -184,7 +184,7 @@ test("mobile contemplation freezes bird and active timeline, rotates only the vi
     await page.waitForTimeout(1400);
     const before = await canvas.evaluate((e) => ({ ...e.dataset }));
     const audioTime = await page.evaluate(() => window.__music.currentTime);
-    await expect(page.getByRole("button")).toHaveCount(1);
+    await expect(page.getByRole("button")).toHaveCount(2);
     await page.mouse.move(80, 300);
     await page.mouse.down();
     await page.mouse.move(290, 430, { steps: 8 });

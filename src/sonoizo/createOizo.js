@@ -160,7 +160,10 @@ export function createOizo() {
       body.rotation.z = bank + figureRoll;
       for (const { bones, side } of wings) {
         bones[0].rotation.z =
-          side * (0.18 + lift - dive * 0.07 + Math.sin(phase) * amplitude) +
+          side *
+            (pose.perched
+              ? 0.07
+              : 0.18 + lift - dive * 0.07 + Math.sin(phase) * amplitude) +
           bank * 0.1;
         bones[0].rotation.y = side * (dive * 0.07 + Math.min(0.4, turn) * 0.06);
         bones[1].rotation.z =

@@ -34,3 +34,5 @@ npm test -- tests/oizo-bulle.spec.js tests/oizo-chill.spec.js tests/six-minute-e
 ```
 
 L’ancien atelier MP3 reste disponible à `/?atelier=mp3`. Ses fonctions et les modules musicaux historiques ne définissent pas le parcours principal.
+
+Les 24 bulles déclenchent désormais des événements picturaux après la reprise du vol : [architecture et vérification](docs/living-narrative-events.md).

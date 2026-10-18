@@ -2479,3 +2479,68 @@ label:focus-visible {
 .chill-experience .pictorial-tools.is-open .tools-toggle {
   grid-row: 4;
 }
+.help-resources {
+  position: fixed;
+  z-index: 60;
+  top: max(10px, env(safe-area-inset-top));
+  right: 10px;
+  color: #334756;
+}
+.help-trigger {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border-radius: 50%;
+  border: 1px solid #a3abb080;
+  background: #f4f0e8d9;
+  color: inherit;
+}
+.help-trigger svg {
+  width: 23px;
+  height: 23px;
+}
+#support-resources {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  width: min(320px, calc(100vw - 28px));
+  max-height: 70dvh;
+  overflow: auto;
+  padding: 24px 20px;
+  border-radius: 18px;
+  background: #faf6ee;
+  box-shadow: 0 8px 32px #13202e33;
+  box-sizing: border-box;
+  font: 14px/1.6 sans-serif;
+}
+#support-resources h2 {
+  margin: 0 24px 12px 0;
+  font-size: 19px;
+}
+#support-resources a {
+  color: #365c75;
+  text-decoration: underline;
+}
+#support-resources small {
+  font-size: 11px;
+}
+.help-close {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 24px;
+}
+.chill-experience .poetic-fragment .narrative-fragment-title {
+  display: block;
+  margin-bottom: 8px;
+  font: 500 12px/1.4 sans-serif;
+  letter-spacing: 0.04em;
+  color: inherit;
+}
