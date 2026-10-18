@@ -118,7 +118,7 @@ test("completed journey opens global artwork and offers a downloadable PNG souve
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
-  await page.mouse.move(400, 350);
+  await page.mouse.move(160, 350);
   await page.mouse.down();
   await page.waitForTimeout(300);
   await page.mouse.up();
@@ -129,6 +129,19 @@ test("completed journey opens global artwork and offers a downloadable PNG souve
     "data-camera-mode",
     "global",
   );
+  await expect(page.locator("#stage canvas")).toHaveAttribute(
+    "data-artwork-dry",
+    "true",
+  );
+  await expect(page.locator("#stage canvas")).toHaveAttribute(
+    "data-mark-count",
+    "0",
+  );
+  expect(
+    JSON.parse(
+      await page.locator("#stage canvas").getAttribute("data-pigment-archive"),
+    ).traces,
+  ).toBeGreaterThan(0);
   await page.screenshot({ path: "/tmp/oizo-chill-night.png" });
   await page
     .getByRole("button", { name: "Préparer ma photo souvenir" })

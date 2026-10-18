@@ -1383,9 +1383,27 @@ export function createSoundNest(
     startChillSession() {
       chillPaused = false;
       chillDeparted = false;
+      renderer.domElement.dataset.artworkDry = "false";
       chillSession = createChillSession({
         onProgress: onSessionProgress,
-        onComplete: onSessionComplete,
+        onComplete: () => {
+          cancelSteering();
+          bridge.close();
+          closeStroke();
+          padStates.clear();
+          for (const mark of marks) {
+            pigmentArchive.add(mark);
+            destroyStroke(mark);
+          }
+          marks.length = 0;
+          lastSample = null;
+          pigmentArchive.settle();
+          if (chillTrails) chillTrails.object.visible = false;
+          renderer.domElement.dataset.artworkDry = "true";
+          renderer.domElement.dataset.markCount = "0";
+          boundsDirty = true;
+          onSessionComplete?.();
+        },
       });
     },
     pauseChillSession(paused) {

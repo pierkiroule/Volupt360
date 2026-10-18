@@ -1,1 +1,1 @@
-`ambiance01.mp3` fournit l’ambiance imposée du premier univers, Le Souffle. Le fichier est diffusé en boucle via le mix audio existant, sans décodage intégral en mémoire.
+`gravity.mp3` (« Sans gravité », respectablejazzpunk919, environ 3 min 28) est l’ambiance prioritaire du parcours OIZO-BULLE. Elle est lue en boucle pour couvrir les six minutes de vol et les contemplations, avec l’analyse audio et le fondu final existants. Le fichier provient du dépôt main. `ambiance01.mp3` reste une ressource historique.

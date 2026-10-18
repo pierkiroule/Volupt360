@@ -133,6 +133,9 @@ if(uHasMask>.5){
 if(uMaterialMode>.5){
  float localPhase=noise2(q*vec2(3.,9.)+vec2(uTime*.13+vPigmentSeed,-uTime*.08));
  float tideFlow=exp(-pow((edge-(.64+uAudioLow*.17+localPhase*.09))/.10,2.));
+ float capillary=pow(1.-abs(sin(q.x*48.+q.y*7.+noise2(q*8.)*6.)),24.);
+ col=mix(col,base*.28,settled*capillary*.22);
+ col=mix(col,base*.42,settled*granules*.18);
  float settling=clamp(sediment*(1.-wet)+granules*.5+tideFlow*(.3+uAudioPulse*.8),0.,1.);
  col=mix(col,base*.45,settling*.4);
  col=mix(col,base,wet*pool*(.15+uAudioLow*.35));

@@ -39,7 +39,7 @@ Pendant la contemplation, seuls la phrase temporaire et « Reprendre le vol » s
 
 Le temps d’écoute dans une bulle ne consomme aucune des 360 secondes de vol. Le contrôleur ignore l’avancée audio pendant cet arrêt et réinitialise sa référence à la reprise. La musique ne s’interrompt pas ; elle boucle pour pouvoir couvrir une durée de contemplation libre, puis s’atténue au départ final. Une fin de piste ne peut plus forcer artificiellement l’horloge à six minutes.
 
-`gravity.mp3` reste prioritaire si présent dans `public/ambiances` au build. Lors de cette modification, seul `ambiance01.mp3` (environ 222 secondes) était disponible. Aucune piste musicale n’a été créée. Un MP3 indisponible laisse fonctionner l’expérience silencieusement.
+`public/ambiances/gravity.mp3` est désormais fourni et sélectionné en priorité : « Sans gravité », respectablejazzpunk919, environ 208 secondes. Le fichier a été récupéré depuis main. Il boucle pendant le vol et les contemplations, avec le fondu final et l’analyse audio existants. Aucune piste musicale n’a été créée. Un MP3 indisponible laisse fonctionner l’expérience silencieusement.
 
 ## Mémoire, final et retour en arrière
 
@@ -60,3 +60,17 @@ Résultat de cette livraison : **24 tests ciblés réussis**, build Vite réussi
 ```sh
 CI=1 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test -- tests/oizo-bulle.spec.js tests/six-minute-experience.spec.js tests/point-flight.spec.js tests/living-pigments.spec.js tests/watercolor-alpha.spec.js tests/oizo-chill.spec.js tests/haikuarelle.spec.js
 ```
+
+## Évolution picturale et outils compacts
+
+Les huit gestes et le lavis neutre utilisent désormais des pictogrammes SVG dessinés dans `ToolIcon.jsx`, sans emojis. La barre basse est centrée, repliable et regroupe brosses, pause/reprise, son et sortie. Les boutons ne montrent que leurs pictogrammes, avec des noms accessibles et des infobulles ; le volume se déplie à la demande. La contemplation conserve son unique commande de reprise, elle aussi représentée par un pictogramme.
+
+Le skydome unique passe progressivement du noir étoilé avec un croissant jaune ivoire au violet, au bleu avec aurores diffuses, au lever rouge-orangé, aux lavis rose-jaune puis au papier blanc cassé avec un soleil blanc discret. Lune et soleil sont des réserves pigmentaires aux bords doux dans le shader existant, sans bloom ni nouvelles textures GPU. Les motifs restent sphériques, sans couture UV ajoutée.
+
+Les plaques alpha procédurales ajoutent des ramifications capillaires, doubles lisières de séchage et petites réserves de sel. Le shader renforce le grain et les dépôts fins au séchage ; le geste tourbillonnant module aussi sa section avec l’énergie sonore. Ces détails sont calculés dans les alphas au chargement et dans les matériaux existants, sans nouveau moteur de peinture.
+
+Au terme de la traversée, les dépôts humides restants rejoignent l’archive de leurs géométries originales. Tous les matériaux de l’archive passent à une humidité nulle et une réponse audio nulle ; les particules transitoires sont masquées. L’œuvre conserve ses couleurs et ses alphas, tandis que la matière devient sèche et statique. Le PNG HD continue à capturer uniquement le rendu Three.js, sans la barre d’outils.
+
+La suite `pictorial-sky-toolbar.spec.js` vérifie le centrage, les SVG, le repli/dépli, le volume, la sélection et l’absence de débordement. Elle mesure aussi les couleurs des étapes célestes sur un rendu WebGL. Le test du final dépose réellement de la peinture avant de vérifier son archivage sec et de décoder le PNG.
+
+Validation de cette évolution graphique : **28 tests ciblés réussis**, comprenant la barre mobile, le cycle céleste, le final sec/PNG et les régressions vol, gyro, bulles, timeline et pigments. Les essais restent effectués sous Chromium avec capteurs simulés ; le téléphone physique n’a pas été testé.
