@@ -233,6 +233,7 @@ export function createBrushStroke(
   const brush = dynamics
     ? {
         ...template,
+        color: color?.isColor ? `#${color.getHexString()}` : template.color,
         opacity: dynamics.opacity ?? template.opacity,
         generatedWidth: dynamics.width,
         materialMode: dynamics.materialMode || 0,
@@ -430,6 +431,7 @@ export function createBrushStroke(
       // Volumes are spaced by movement samples, with changing scale and depth.
       // They follow the path rather than occupying repeated radial positions.
       const accented =
+        dynamics?.paintStamp ||
         id !== "lagons" ||
         (sample.accent ?? sample.motion) > 0.12 ||
         count === 0;
@@ -502,7 +504,9 @@ export function createBrushStroke(
             brush,
             color,
             seed + count * 0.17 + layer,
-            (0.6 + sample.energy * 0.7) * (sample.density ?? 1),
+            brush.materialMode === 3
+              ? 1
+              : (0.6 + sample.energy * 0.7) * (sample.density ?? 1),
             textureBinding,
           );
           material.uniforms.uSurprise.value = surprise;
@@ -723,8 +727,10 @@ export function createBrushStroke(
         }
         mesh.material.uniforms.uOpacity.value =
           brush.opacity *
-          (pose.density ?? 1) *
-          (0.65 + pose.energy * 0.6) *
+          (brush.materialMode === 3 ? 1 : (pose.density ?? 1)) *
+          (brush.materialMode === 3
+            ? 0.88 + pose.energy * 0.12
+            : 0.65 + pose.energy * 0.6) *
           (layer && id === "voiles"
             ? 0.35
             : id === "echo"

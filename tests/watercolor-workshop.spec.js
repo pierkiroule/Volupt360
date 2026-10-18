@@ -6,6 +6,10 @@ test("white watercolor workshop: hold paints, release stops, palette and both vi
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
+      errors.push(m.text());
+  });
   await page.goto("/");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const canvas = page.locator("canvas");
@@ -13,6 +17,9 @@ test("white watercolor workshop: hold paints, release stops, palette and both vi
     page.getByRole("group", { name: "Choisir une brosse" }),
   ).toBeVisible();
   await expect(canvas).toHaveAttribute("data-mood-background", "#ffffff");
+  await expect(
+    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
+  ).toHaveCount(5);
   await expect(canvas).toHaveAttribute("data-constellation", "false");
   await expect(canvas).toHaveAttribute("data-painted-samples", "0");
   await page.mouse.move(195, 300);
@@ -130,74 +137,76 @@ test("brush tip follows the rig through turns and parent transforms", async ({
   expect(result.visible && result.wings && result.removed).toBe(true);
 });
 
-test("assisted steering turns continuously and six minutes of neutral painting stay around the center", async ({
+test("manual steering holds a stable heading despite camera feedback; release restores the orbit", async ({
   page,
 }) => {
   await page.goto("/");
-  const result = await page.evaluate(async () => {
+  const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createPointFlight } =
       await import("/src/engine/createPointFlight.js");
-    function run(input, fps, seconds) {
-      const flight = createPointFlight();
-      flight.setSculptureAssist(true);
-      flight.setOrbitTarget(new THREE.Vector3(), 16);
-      flight.beginPilot();
+    function run(x, y, fps) {
+      const f = createPointFlight();
+      f.setSculptureAssist(true);
+      f.setOrbitTarget(new THREE.Vector3(), 16);
+      f.beginPilot();
       const frame = {
         right: new THREE.Vector3(-1, 0, 0),
         up: new THREE.Vector3(0, 1, 0),
       };
-      let pose,
-        maxRadius = 0,
-        maxStep = 0;
-      const previous = new THREE.Vector3(18, 0, 0);
-      for (let i = 0; i < fps * seconds; i++) {
-        if (pose)
-          frame.right.crossVectors(pose.direction, frame.up).normalize();
-        flight.setPilot(input, 0, frame);
-        pose = flight.update(1 / fps, {});
-        maxRadius = Math.max(maxRadius, pose.position.length());
-        maxStep = Math.max(maxStep, previous.distanceTo(pose.position));
-        previous.copy(pose.position);
+      let p, stable;
+      for (let i = 0; i < fps * 12; i++) {
+        if (p)
+          frame.right
+            .crossVectors(p.direction, new THREE.Vector3(0, 1, 0))
+            .normalize();
+        f.setPilot(x, y, frame);
+        p = f.update(1 / fps, {});
+        if (i === fps * 6) stable = p.direction.clone();
       }
-      const manual = {
-        x: pose.direction.x,
-        radius: pose.position.length(),
-        maxRadius,
-        maxStep,
-      };
-      flight.releasePilot();
-      for (let i = 0; i < fps * 60; i++) pose = flight.update(1 / fps, {});
+      const heading = p.direction.clone(),
+        alignment = stable.dot(p.direction);
+      f.releasePilot();
+      let maxStep = 0;
+      for (let i = 0; i < fps * 360; i++) {
+        const before = p.position.clone();
+        p = f.update(1 / fps, {});
+        maxStep = Math.max(maxStep, before.distanceTo(p.position));
+      }
       return {
-        ...manual,
-        releasedRadius: pose.position.length(),
-        autonomous: pose.autonomous,
+        heading: heading.toArray(),
+        alignment,
+        radius: p.position.length(),
+        maxStep,
+        autonomous: p.autonomous,
       };
     }
     return {
-      right: run(0.5, 60, 1),
-      left: run(-0.5, 60, 1),
-      slow: run(0, 30, 360),
-      fast: run(0, 60, 360),
-      turning: run(0.5, 60, 60),
+      right: run(0.65, 0, 60),
+      left: run(-0.65, 0, 60),
+      up: run(0, 0.65, 60),
+      neutral: run(0, 0, 60),
+      slow: run(0.65, 0, 30),
     };
   });
-  expect(result.right.x).toBeLessThan(-0.15);
-  expect(result.left.x).toBeGreaterThan(0.15);
-  for (const p of [result.slow, result.fast, result.turning]) {
-    expect(p.maxRadius).toBeLessThan(26);
+  expect(r.right.heading[0]).toBeLessThan(-0.3);
+  expect(r.left.heading[0]).toBeGreaterThan(0.3);
+  expect(r.up.heading[1]).toBeGreaterThan(0.25);
+  expect(Math.abs(r.neutral.heading[0])).toBeLessThan(0.001);
+  for (const p of Object.values(r)) {
+    expect(p.alignment).toBeGreaterThan(0.9999);
+    expect(p.radius).toBeLessThan(26);
     expect(p.maxStep).toBeLessThan(0.09);
-    expect(p.releasedRadius).toBeLessThan(26);
     expect(p.autonomous).toBe(true);
   }
-  expect(Math.abs(result.slow.radius - result.fast.radius)).toBeLessThan(0.1);
+  expect(Math.abs(r.right.heading[0] - r.slow.heading[0])).toBeLessThan(0.001);
 });
 
-test("workshop palette uses single pigment sheets, not volumetric mist", async ({
+test("five brush families have distinct engines, colors and responsive pigment or particle materials", async ({
   page,
 }) => {
   await page.goto("/");
-  const result = await page.evaluate(async () => {
+  const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
     const { createBrushStroke } = await import("/src/engine/brushes.js");
@@ -207,15 +216,33 @@ test("workshop palette uses single pigment sheets, not volumetric mist", async (
         color: new THREE.Color(profile.color),
         dynamics: profile,
       });
-      const meshes = [];
+      for (let i = 0; i < 12; i++)
+        stroke.append({
+          position: new THREE.Vector3(i * 0.1, 0, 0),
+          direction: new THREE.Vector3(1, 0, 0),
+          side: new THREE.Vector3(0, 1, 0),
+          up: new THREE.Vector3(0, 0, 1),
+          time: i * 0.1,
+          energy: 0.5,
+          low: 0.4,
+          motion: 0.2,
+          accent: 0.3,
+          wake: true,
+          depositionTime: i * 0.1,
+        });
+      const materials = [];
       stroke.group.traverse((mesh) => {
-        if (mesh.isMesh) meshes.push(mesh);
+        if (mesh.isMesh) materials.push(mesh.material);
       });
       const result = {
-        base: profile.baseId,
-        meshes: meshes.length,
-        mode: meshes[0].material.uniforms.uMaterialMode.value,
-        grain: meshes[0].material.uniforms.uMoodGrain.value,
+        id: profile.id,
+        color: profile.color,
+        engine: profile.baseId,
+        count: materials.length,
+        material:
+          materials[0]?.uniforms.uMaterialMode?.value ??
+          materials[0]?.uniforms.uPaintDots?.value,
+        gain: profile.responseGain,
       };
       stroke.group.traverse((mesh) => {
         mesh.geometry?.dispose();
@@ -224,11 +251,84 @@ test("workshop palette uses single pigment sheets, not volumetric mist", async (
       return result;
     });
   });
-  expect(result).toHaveLength(9);
-  for (const brush of result) {
-    expect(["brumes", "lagons", "bulles"]).not.toContain(brush.base);
-    expect(brush.meshes).toBe(1);
-    expect(brush.mode).toBe(2);
-    expect(brush.grain).toBeGreaterThan(1);
+  expect(r).toHaveLength(5);
+  expect(new Set(r.map((p) => p.engine)).size).toBe(5);
+  expect(new Set(r.map((p) => p.color)).size).toBe(5);
+  for (const brush of r) {
+    expect(brush.count).toBeGreaterThan(0);
+    expect(brush.gain).toBeGreaterThan(2);
+    expect(brush.material).toBeGreaterThan(0);
   }
+});
+
+test("gold particles archive into a shared frozen batch and release their resources", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("console", (m) => {
+    if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
+      errors.push(m.text());
+  });
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
+    const { createBrushStroke, disposeMark } =
+      await import("/src/engine/brushes.js");
+    const { createPigmentArchive } =
+      await import("/src/chill/createPigmentArchive.js");
+    const profile = WORKSHOP_BRUSHES.find((p) => p.id === "lucioles");
+    const archive = createPigmentArchive();
+    for (let j = 0; j < 3; j++) {
+      const stroke = createBrushStroke(profile.baseId, {
+        seed: j,
+        color: new THREE.Color(profile.color),
+        dynamics: profile,
+      });
+      for (let i = 0; i < 15; i++)
+        stroke.append({
+          position: new THREE.Vector3(i * 0.1, j, 0),
+          side: new THREE.Vector3(1, 0, 0),
+          up: new THREE.Vector3(0, 1, 0),
+          direction: new THREE.Vector3(0, 0, 1),
+          energy: 0.5,
+        });
+      stroke.update(1, { energy: 0.5, low: 0.2, pulse: 0.3 });
+      archive.add({
+        stroke,
+        object: stroke.group,
+        brush: profile.id,
+        bounds: new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(3, 3, 3)),
+      });
+      disposeMark(stroke.group);
+    }
+    archive.settle();
+    const data = archive.group.children[0].geometry.attributes;
+    const finite = ["position", "aOffset", "aTint", "aBirth"].every((name) =>
+      Array.from(data[name].array).every(Number.isFinite),
+    );
+    const stats = archive.stats;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#fff");
+    scene.add(archive.group);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(100, 100);
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+    let disposed = 0;
+    archive.group.children[0].geometry.addEventListener(
+      "dispose",
+      () => disposed++,
+    );
+    archive.dispose();
+    renderer.dispose();
+    return { finite, stats, disposed };
+  });
+  expect(result.finite).toBe(true);
+  expect(result.stats.traces).toBe(3);
+  expect(result.stats.batches).toBe(1);
+  expect(result.disposed).toBe(1);
+  expect(errors).toEqual([]);
 });

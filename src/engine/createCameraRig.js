@@ -369,8 +369,12 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           Math.min(1, state.motion || 0) * 0.6 -
           chillDistance) *
         mix(0.8);
-      const distance = state.chill ? chillDistance : 5.5;
+      const distance = state.workshop ? 7.8 : state.chill ? chillDistance : 5.5;
       camera.position.copy(painter).addScaledVector(direction, -distance);
+      if (state.workshop) {
+        behind.crossVectors(direction, up).normalize();
+        camera.position.addScaledVector(behind, 2.2).addScaledVector(up, 1.8);
+      }
       camera.position.addScaledVector(
         up,
         state.chill
@@ -381,7 +385,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       matrix.lookAt(camera.position, target, up);
       desiredQuaternion.setFromRotationMatrix(matrix);
       camera.quaternion.copy(desiredQuaternion);
-      camera.fov = 88 + (state.opening || 0) * 3;
+      camera.fov = state.workshop ? 68 : 88 + (state.opening || 0) * 3;
       if (returnBlend < 1) {
         returnBlend = Math.min(1, returnBlend + dt / returnDuration);
         const blend = returnBlend * returnBlend * (3 - 2 * returnBlend);

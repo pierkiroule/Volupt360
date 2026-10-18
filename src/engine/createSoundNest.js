@@ -860,6 +860,7 @@ export function createSoundNest(
       padSource?.fadeAmbience?.(2.2);
     }
     navigation.chill = chillMode;
+    navigation.workshop = workshopMode;
     navigation.departure = chillSession?.departing
       ? chillSession.departureProgress
       : 0;

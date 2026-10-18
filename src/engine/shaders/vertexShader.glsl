@@ -24,6 +24,9 @@ void main(){
   if(uMaterialMode>.5){
     float localPhase=uv.y*37.+uv.x*8.+pigmentSeed;
     deformation=normal*(sin(localPhase+uTime*.7)*uAudioLow*.055+sin(localPhase*1.7-uTime)*uAudioPulse*.035);
+    if(uMaterialMode>2.5){
+      deformation=normal*(sin(localPhase*.6+uTime*.8)*uAudioLow*.18+sin(localPhase*1.3-uTime)*uAudioPulse*.1);
+    }
   }
   vec3 p=mix(aTrailCenter,position,width)+unfold*(deformation+uWakeOffset);
   vec4 mv=modelViewMatrix*vec4(p,1.);

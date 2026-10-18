@@ -3,9 +3,8 @@ import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
 import musicCatalog from "virtual:echo-music";
 import { CHILL_UNIVERSE } from "./chillConfig.js";
-import { NEUTRAL_BRUSH } from "./moodBrushes.js";
 import { ToolIcon } from "./ToolIcon.jsx";
-import { WORKSHOP_BRUSHES } from "./workshopBrushes.js";
+import { WORKSHOP_BRUSHES, DEFAULT_WORKSHOP_BRUSH } from "./workshopBrushes.js";
 
 export default function WatercolorWorkshop() {
   const stage = useRef(null),
@@ -15,7 +14,7 @@ export default function WatercolorWorkshop() {
   const [started, setStarted] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [brush, setBrush] = useState(NEUTRAL_BRUSH.id),
+    [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
     [gyro, setGyro] = useState(false),
     [paused, setPaused] = useState(false),
     [open, setOpen] = useState(true),
@@ -49,11 +48,11 @@ export default function WatercolorWorkshop() {
         WORKSHOP_BRUSHES,
       );
       engine.current.setPoeticFragments([]);
-      engine.current.setBrush(NEUTRAL_BRUSH.id);
+      engine.current.setBrush(DEFAULT_WORKSHOP_BRUSH.id);
       engine.current.setPadSource(bank);
       engine.current.setCameraMode("drone");
       engine.current.pauseChillSession(false);
-      setBrush(NEUTRAL_BRUSH.id);
+      setBrush(DEFAULT_WORKSHOP_BRUSH.id);
       setGyro(false);
       setPaused(false);
       const track =

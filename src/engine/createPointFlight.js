@@ -15,7 +15,6 @@ export function createPointFlight({ seed = 37 } = {}) {
     orbitGoal = new THREE.Vector3(),
     radial = new THREE.Vector3(),
     tangent = new THREE.Vector3();
-  const assistedOrbit = new THREE.Vector3();
   const worldUp = new THREE.Vector3(0, 1, 0),
     side = new THREE.Vector3(),
     flightUp = new THREE.Vector3(),
@@ -27,9 +26,7 @@ export function createPointFlight({ seed = 37 } = {}) {
   const acrobatics = createFlightAcrobatics();
   const candidateSide = new THREE.Vector3();
   let hasBubbleTarget = false;
-  let sculptureAssist = false,
-    pilotX = 0,
-    pilotY = 0;
+  let sculptureAssist = false;
   let captured = false,
     time = 0,
     holding = false,
@@ -79,7 +76,6 @@ export function createPointFlight({ seed = 37 } = {}) {
       acrobatics.cancel();
       holding = true;
       inputStrength = 0;
-      pilotX = pilotY = 0;
       idleTime = 0;
       target.copy(direction);
       captured = false;
@@ -87,17 +83,15 @@ export function createPointFlight({ seed = 37 } = {}) {
     setPilot(x, y, frame) {
       holding = true;
       inputStrength = Math.min(1, Math.hypot(x, y));
-      pilotX = x;
-      pilotY = y;
-      if (sculptureAssist) {
-        right.copy(frame.right).normalize();
-        up.copy(frame.up).normalize();
-        return;
-      }
       if (!captured) {
         right.copy(frame.right).normalize();
         up.copy(frame.up).normalize();
-        forward.crossVectors(up, right).normalize();
+        if (sculptureAssist) {
+          // Lock the gesture basis once: camera motion cannot feed back into steering.
+          forward.copy(direction);
+          right.addScaledVector(forward, -right.dot(forward)).normalize();
+          up.crossVectors(right, forward).normalize();
+        } else forward.crossVectors(up, right).normalize();
         captured = true;
       }
       target
@@ -140,43 +134,6 @@ export function createPointFlight({ seed = 37 } = {}) {
         return pose;
       }
       const autonomous = !holding && idleTime > 0.3;
-      if (sculptureAssist && holding) {
-        // Relative steering keeps turning while held, rather than locking a heading.
-        target
-          .copy(direction)
-          .addScaledVector(right, pilotX * 0.9)
-          .addScaledVector(up, pilotY * 0.7)
-          .normalize();
-        radial.copy(position).sub(orbitCenter);
-        const distance = Math.max(0.001, Math.hypot(radial.x, radial.z));
-        radial.set(radial.x / distance, 0, radial.z / distance);
-        tangent.set(-radial.z, 0, radial.x);
-        assistedOrbit
-          .copy(tangent)
-          .multiplyScalar(2.6)
-          .addScaledVector(
-            radial,
-            THREE.MathUtils.clamp((orbitRadius - distance) * 0.65, -5, 5),
-          );
-        assistedOrbit.y = THREE.MathUtils.clamp(
-          (orbitCenter.y - position.y) * 0.5,
-          -2,
-          2,
-        );
-        assistedOrbit.normalize();
-        // The visitor has priority; outward drift receives a gradual stronger nudge.
-        const outside = THREE.MathUtils.smoothstep(
-          distance,
-          orbitRadius * 1.2,
-          orbitRadius * 2.2,
-        );
-        target
-          .lerp(
-            assistedOrbit,
-            (0.1 + outside * 0.45) * (1 - inputStrength * 0.65),
-          )
-          .normalize();
-      }
       if (autonomous && hasBubbleTarget) {
         target.copy(bubbleTarget).sub(position);
         if (target.lengthSq() < 0.0001) target.copy(direction);
@@ -263,7 +220,6 @@ export function createPointFlight({ seed = 37 } = {}) {
       orbitRadius = 18;
       speed = sculptureAssist ? 1.85 : 2.6;
       inputStrength = 0;
-      pilotX = pilotY = 0;
     },
   };
 }

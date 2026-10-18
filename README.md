@@ -4,9 +4,9 @@ Un atelier de peinture et de sculpture aquarelle en trois dimensions, sur un cie
 
 Glisser guide l’oizo. Maintenir le toucher pendant 320 ms déclenche un seul tracé depuis la pointe du pinceau ailé ; relâcher arrête la peinture et laisse l’oiseau revenir progressivement en orbite autour du centre de l’œuvre. La palette permet de choisir les matières existantes, sans bulles ni récit dans le parcours principal.
 
-Le pilotage de l’atelier tourne continuellement pendant le glissement. Une assistance orbitale douce garde le centre de la scène comme repère, ralentit le vol et accompagne le retour au relâchement, sans déplacement forcé ni téléportation. Un appui maintenu sans direction permet aussi de peindre en orbite.
+Le pilotage manuel garde le repère du début du geste : glisser indique une direction, maintenir ne provoque pas une rotation sans fin. L’orbite ne détourne plus le pinceau pendant le toucher ; elle reprend doucement au relâchement autour du centre de la scène. La caméra suit en trois quarts, avec un champ plus serré et une distance stable pour mieux lire la peinture.
 
-Les matières de l’atelier sont des feuilles pigmentaires à une seule couche : lavis continus, grain, réserves et liserés de séchage. Les anciennes géométries de brume sont remplacées ici par des rubans aquarellés ; la musique module la diffusion et les détails de matière. Les parcours historiques conservent leurs réglages.
+Cinq matières seulement : encre de nuit, formes corail, pigment cobalt, poussière d’or et taches émeraude. Elles réutilisent cinq moteurs distincts et possèdent chacune une couleur, une silhouette et une texture propre. Leur opacité conserve une base visible même à faible énergie musicale ; l’analyse audio renforce les variations locales des pigments et des particules. Les particules anciennes sont figées et regroupées dans l’archive picturale.
 
 Un bouton bascule entre suivi FPV et contemplation gyro 360°, avec autorisation du capteur et alternative tactile. Gravity accompagne la sculpture et conserve l’analyse musicale des pigments, le volume et la pause. L’atelier n’impose pas de fin chronométrée.
 
