@@ -224,7 +224,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     gyroRelative.identity();
     canvas.dataset.cameraMode = mode;
     if (next === "panorama") {
-      journey.reset();
+      journey.reset(panoramaExploreOnly);
       panoramaYaw = Math.PI;
       panoramaPitch = 0;
       panoramaDial = 0;
@@ -324,10 +324,12 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       desiredQuaternion.setFromRotationMatrix(matrix).multiply(gyroRelative);
       if (panoramaExploreOnly && journey.moving && journey.returnWeight > 0) {
         // Ease the FPV framing back toward the work instead of flying into empty space.
-        target.copy(journey.focus);
+        target.copy(journey.focus).lerp(journey.lookTarget, 0.3);
+        if (target.distanceToSquared(camera.position) < 0.2)
+          target.copy(journey.lookTarget);
         matrix.lookAt(camera.position, target, up);
         returnAim.setFromRotationMatrix(matrix);
-        desiredQuaternion.slerp(returnAim, journey.returnWeight * 0.75);
+        desiredQuaternion.slerp(returnAim, 0.88);
       }
       camera.quaternion.slerp(desiredQuaternion, mix(4));
       // A restrained lens opening accompanies travel; no roll or camera shake.
@@ -341,6 +343,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       camera.updateProjectionMatrix();
       canvas.dataset.journeyMoving = String(journey.moving);
       canvas.dataset.journeyHeading = journey.direction.toArray().join(",");
+      canvas.dataset.journeyGuided = String(journey.guided);
+      canvas.dataset.journeyFocus = journey.focus.toArray().join(",");
       return;
     }
     if (mode === "sculpt") {

@@ -51,6 +51,7 @@ test("2D squiggle source survives a reactive 360 world round trip and supports u
   await expect(paper).toBeHidden();
   await expect(world).toHaveAttribute("data-source-strokes", "1");
   await expect(world).toHaveAttribute("data-camera-mode", "panorama");
+  await expect(world).toHaveAttribute("data-journey-guided", "true");
   await expect
     .poll(async () => Number(await world.getAttribute("data-painted-samples")))
     .toBeGreaterThan(2);
@@ -864,7 +865,11 @@ test("guided FPV stays near the sculpture under sustained outward steering and p
       outward = new T.Vector3();
     j.setSculpture(center, 8);
     j.travel(new T.Vector3(0, 0, 1));
-    let maxDistance = 0,
+    let minDistance = Infinity,
+      crossings = 0,
+      previousX = j.position.x,
+      maxSettledDistance = 0,
+      maxDistance = 0,
       maxStep = 0,
       returnSeen = false;
     for (let i = 0; i < 60 * 600; i++) {
@@ -874,6 +879,15 @@ test("guided FPV stays near the sculpture under sustained outward steering and p
       j.update(1 / 60);
       maxStep = Math.max(maxStep, j.position.distanceTo(before));
       maxDistance = Math.max(maxDistance, j.position.distanceTo(center));
+      if (i > 60 * 30) {
+        minDistance = Math.min(minDistance, j.position.distanceTo(center));
+        maxSettledDistance = Math.max(
+          maxSettledDistance,
+          j.position.distanceTo(center),
+        );
+        if (previousX * j.position.x < 0) crossings++;
+      }
+      previousX = j.position.x;
       returnSeen ||= j.returnWeight > 0.5;
     }
     j.stop();
@@ -881,14 +895,22 @@ test("guided FPV stays near the sculpture under sustained outward steering and p
     const stopped = j.position.clone();
     for (let i = 0; i < 60; i++) j.update(1 / 60);
     return {
+      minDistance,
+      crossings,
+      maxSettledDistance,
       maxDistance,
       maxStep,
       returnSeen,
       tail: j.position.distanceTo(stopped),
+      keptGuidance: (j.reset(true), j.guided),
     };
   });
+  expect(result.keptGuidance).toBe(true);
   expect(result.returnSeen).toBe(true);
-  expect(result.maxDistance).toBeLessThan(14);
+  expect(result.maxDistance).toBeLessThan(8.1);
+  expect(result.maxSettledDistance).toBeLessThan(6);
+  expect(result.minDistance).toBeLessThan(2);
+  expect(result.crossings).toBeGreaterThan(10);
   expect(result.maxStep).toBeLessThan(0.025);
   expect(result.tail).toBeLessThan(0.001);
 });

@@ -1593,9 +1593,9 @@ export function createSoundNest(
       if (!sourceBounds.isEmpty()) {
         const focus = sourceBounds.getCenter(new THREE.Vector3());
         const radius = sourceBounds.getSize(new THREE.Vector3()).length() * 0.5;
-        rig.setPanoramaSculpture(focus, Math.max(8, radius));
+        rig.setPanoramaSculpture(focus, Math.max(2.2, radius));
         xrJourney.reset();
-        xrJourney.setSculpture(focus, Math.max(8, radius));
+        xrJourney.setSculpture(focus, Math.max(2.2, radius));
       }
       updateBounds();
     },

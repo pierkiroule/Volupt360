@@ -4,15 +4,23 @@ export function createPanoramaJourney() {
   const position = new THREE.Vector3(0, 0, 20),
     direction = new THREE.Vector3(0, 0, -1);
   const focus = new THREE.Vector3(),
-    inward = new THREE.Vector3(),
-    tangent = new THREE.Vector3(),
-    up = new THREE.Vector3(0, 1, 0),
-    requested = direction.clone(),
-    desired = new THREE.Vector3();
+    desired = new THREE.Vector3(),
+    delta = new THREE.Vector3();
+  const lookTarget = new THREE.Vector3();
   let guided = false,
-    radius = 12,
+    radius = 8,
     time = 0,
+    phase = 0,
     returnWeight = 0;
+  function path(angle, output) {
+    return output
+      .set(
+        Math.cos(angle) * radius,
+        Math.sin(angle * 2) * radius * 0.18,
+        Math.sin(angle * 2) * radius * 0.5,
+      )
+      .add(focus);
+  }
   let moving = false,
     speed = 0;
   return {
@@ -24,35 +32,41 @@ export function createPanoramaJourney() {
     get returnWeight() {
       return returnWeight;
     },
+    get lookTarget() {
+      return lookTarget;
+    },
+    get guided() {
+      return guided;
+    },
     get focus() {
       return focus;
     },
     setSculpture(center, extent) {
       guided = true;
       focus.copy(center);
-      radius = Math.max(6, Math.min(22, extent));
+      radius = Math.max(1.6, Math.min(18, extent * 0.72));
+      phase = Math.atan2(position.z - focus.z, position.x - focus.x);
+      path(phase + 0.45, lookTarget);
     },
     travel(heading) {
       if (heading.lengthSq() < 0.001) return;
       direction.copy(heading).normalize();
-      requested.copy(direction);
       moving = true;
     },
     stop() {
       moving = false;
     },
-    reset() {
+    reset(preserveSculpture = false) {
       position.set(0, 0, 20);
       direction.set(0, 0, -1);
       moving = false;
       speed = 0;
-      guided = false;
+      guided = preserveSculpture && guided;
       time = 0;
       returnWeight = 0;
     },
     steer(heading, dt) {
       if (!moving || heading.lengthSq() < 0.001) return;
-      requested.copy(heading).normalize();
       if (!guided)
         direction
           .lerp(heading, 1 - Math.exp(-Math.min(dt, 0.1) * 3))
@@ -62,25 +76,22 @@ export function createPanoramaJourney() {
       dt = THREE.MathUtils.clamp(dt, 0, 0.1);
       time += dt;
       if (guided && moving) {
-        inward.subVectors(focus, position);
-        const distance = inward.length();
-        inward.normalize();
-        returnWeight = THREE.MathUtils.smoothstep(
-          distance,
-          radius * 0.65,
-          radius * 1.25,
-        );
-        tangent.crossVectors(inward, up);
-        if (tangent.lengthSq() < 0.01) tangent.set(1, 0, 0);
-        tangent.normalize();
-        desired
-          .copy(requested)
-          .multiplyScalar(1 - returnWeight)
-          .addScaledVector(inward, returnWeight * 1.8)
-          .addScaledVector(tangent, 0.22 + returnWeight * 0.35);
-        desired.y += Math.sin(time * 0.23) * 0.09 * (1 - returnWeight);
-        desired.normalize();
-        direction.lerp(desired, 1 - Math.exp(-dt * 1.4)).normalize();
+        // A closed figure-eight alternates orbital views with crossings of the work.
+        // Gaze never becomes an unbounded translation command.
+        phase +=
+          (dt * (1.1 + Math.sin(time * 0.19) * 0.12)) / Math.max(1.6, radius);
+        path(phase, desired);
+        delta.subVectors(desired, position);
+        const gap = delta.length();
+        if (gap > 0.0001) direction.copy(delta).normalize();
+        returnWeight = 1;
+        path(phase + 0.5, lookTarget);
+        const cruise = 1.2 + Math.sin(time * 0.19) * 0.12;
+        speed +=
+          (Math.min(cruise, gap * 1.7) - speed) * (1 - Math.exp(-dt * 3));
+        // Never overshoot the moving target, including on a slow frame.
+        position.addScaledVector(direction, Math.min(gap, speed * dt));
+        return;
       }
       const cruise = guided ? 1.2 + Math.sin(time * 0.19) * 0.18 : 0.9;
       speed += ((moving ? cruise : 0) - speed) * (1 - Math.exp(-dt * 4));
