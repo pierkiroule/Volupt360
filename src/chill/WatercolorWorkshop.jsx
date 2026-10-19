@@ -19,6 +19,9 @@ export default function WatercolorWorkshop() {
   const [world, setWorld] = useState(false),
     [worldBusy, setWorldBusy] = useState(false),
     [count, setCount] = useState(0);
+  const [stickerMode, setStickerMode] = useState(false);
+  const [stickerSize, setStickerSize] = useState(64);
+  const [stickerOpacity, setStickerOpacity] = useState(0.9);
   const [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
     [color, setColor] = useState(DEFAULT_WORKSHOP_BRUSH.color),
     [size, setSize] = useState(18),
@@ -53,8 +56,15 @@ export default function WatercolorWorkshop() {
     };
   }, []);
   useEffect(() => {
-    paper.current?.setConfig({ brush, color, size, opacity });
-  }, [brush, color, size, opacity]);
+    paper.current?.setConfig({
+      mode: stickerMode ? "sticker" : "paint",
+      emoji: WORKSHOP_BRUSHES.find((b) => b.id === brush).sensory.emoji,
+      brush,
+      color,
+      size: stickerMode ? stickerSize : size,
+      opacity: stickerMode ? stickerOpacity : opacity,
+    });
+  }, [brush, color, size, opacity, stickerMode, stickerSize, stickerOpacity]);
   useEffect(() => {
     paper.current?.setVisible(started && !world);
     paper.current?.setEnabled(started && !paused && !world);
@@ -231,6 +241,24 @@ export default function WatercolorWorkshop() {
               </div>
               {!world && (
                 <>
+                  <div
+                    className="paper-mode"
+                    role="group"
+                    aria-label="Mode de création"
+                  >
+                    <button
+                      aria-pressed={!stickerMode}
+                      onClick={() => setStickerMode(false)}
+                    >
+                      Peindre
+                    </button>
+                    <button
+                      aria-pressed={stickerMode}
+                      onClick={() => setStickerMode(true)}
+                    >
+                      Stickers
+                    </button>
+                  </div>
                   <section
                     className="landscape-palette symbolic-palette"
                     aria-label="Matières symboliques"
@@ -264,41 +292,63 @@ export default function WatercolorWorkshop() {
                       · à votre façon
                     </p>
                   </section>
-                  <details className="paper-adjustments">
+                  <details
+                    key={stickerMode ? "sticker" : "paint"}
+                    className="paper-adjustments"
+                    open={stickerMode || undefined}
+                  >
                     <summary aria-label="Réglages de la brosse">
                       Réglages
                     </summary>
                     <div className="paper-settings">
-                      <label>
-                        Couleur
-                        <input
-                          type="color"
-                          aria-label="Couleur de la brosse"
-                          value={color}
-                          onChange={(e) => setColor(e.target.value)}
-                        />
-                      </label>
+                      {!stickerMode && (
+                        <label>
+                          Couleur
+                          <input
+                            type="color"
+                            aria-label="Couleur de la brosse"
+                            value={color}
+                            onChange={(e) => setColor(e.target.value)}
+                          />
+                        </label>
+                      )}
                       <label>
                         Taille
                         <input
                           type="range"
-                          aria-label="Taille de la brosse"
+                          aria-label={
+                            stickerMode
+                              ? "Taille du sticker"
+                              : "Taille de la brosse"
+                          }
                           min="2"
-                          max="80"
-                          value={size}
-                          onChange={(e) => setSize(Number(e.target.value))}
+                          max={stickerMode ? "160" : "80"}
+                          value={stickerMode ? stickerSize : size}
+                          onChange={(e) =>
+                            (stickerMode ? setStickerSize : setSize)(
+                              Number(e.target.value),
+                            )
+                          }
                         />
                       </label>
                       <label>
                         Opacité
                         <input
                           type="range"
-                          aria-label="Opacité de la brosse"
+                          aria-label={
+                            stickerMode
+                              ? "Opacité du sticker"
+                              : "Opacité de la brosse"
+                          }
                           min=".1"
                           max="1"
                           step=".05"
-                          value={opacity}
-                          onChange={(e) => setOpacity(Number(e.target.value))}
+                          value={stickerMode ? stickerOpacity : opacity}
+                          onChange={(e) =>
+                            (stickerMode ? setStickerOpacity : setOpacity)(
+                              Number(e.target.value),
+                            )
+                          }
                         />
                       </label>
                     </div>

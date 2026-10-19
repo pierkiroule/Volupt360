@@ -1,3 +1,4 @@
+import { createEmojiStickers } from "../chill/createEmojiStickers.js";
 import { createContemplationState } from "../chill/createContemplationState.js";
 import { createSculptureGesture } from "./createSculptureGesture.js";
 import { paintingToWorld } from "../chill/paintingToWorld.js";
@@ -204,6 +205,8 @@ export function createSoundNest(
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
   const pigmentArchive = createPigmentArchive();
   landscape.add(pigmentArchive.group);
+  const emojiStickers = createEmojiStickers();
+  landscape.add(emojiStickers.group);
   const marks = [],
     totalBounds = new THREE.Box3(),
     extent = new THREE.Vector3();
@@ -467,6 +470,7 @@ export function createSoundNest(
     marks.forEach(destroyStroke);
     marks.length = 0;
     pigmentArchive.clear();
+    emojiStickers.clear();
     retiredTextures.forEach((binding) => binding.texture.dispose());
     retiredTextures.clear();
     traceMemory.clear();
@@ -1367,6 +1371,11 @@ export function createSoundNest(
       .toArray()
       .map((n) => n.toFixed(5))
       .join(",");
+    if (paintingWorld)
+      emojiStickers.update(
+        lifeTime,
+        padSource?.getVisualFeatures?.().energy || 0,
+      );
     if (chillMode && moodAtmosphere)
       moodAtmosphere.object.position.copy(camera.position);
 
@@ -1499,8 +1508,17 @@ export function createSoundNest(
       paintingWorld = true;
       rig.setPanoramaExploreOnly(true);
       for (let layer = 0; layer < document.strokes.length; layer++) {
-        const s = document.strokes[layer],
-          base = generatedBrushes.get(s.brush);
+        const s = document.strokes[layer];
+        if (s.type === "sticker") {
+          emojiStickers.add(
+            s,
+            layer,
+            document.strokes.length,
+            document.width / document.height,
+          );
+          continue;
+        }
+        const base = generatedBrushes.get(s.brush);
         if (!base) continue;
         paintOverride = {
           ...base,
@@ -1555,6 +1573,7 @@ export function createSoundNest(
         }
         finishPad(s.brush);
       }
+      renderer.domElement.dataset.stickerCount = String(emojiStickers.count);
       paintOverride = null;
       renderer.domElement.dataset.sourceStrokes = String(
         document.strokes.length,
@@ -1966,6 +1985,7 @@ export function createSoundNest(
       imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();
+      emojiStickers.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

@@ -2724,3 +2724,16 @@ label:focus-visible {
   color: #58636a;
   max-width: 35em;
 }
+.watercolor-workshop .paper-mode {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.chill-experience.watercolor-workshop .paper-mode button {
+  height: 28px;
+  min-height: 28px;
+  padding: 2px 12px;
+  font:
+    11px/1.2 system-ui,
+    sans-serif;
+}

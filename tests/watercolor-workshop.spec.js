@@ -761,3 +761,92 @@ test("sensory signatures have distinct smooth spectral responses and preserve le
     }
   }
 });
+
+test("emoji stickers keep size and opacity, float in 3D and survive undo and round trips", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  const paper = page.locator(".painting-paper");
+  const world = page.locator("#stage canvas:not(.painting-paper)");
+  await page.getByRole("button", { name: "Stickers", exact: true }).click();
+  await page.getByRole("button", { name: "Vague", exact: true }).click();
+  await page.getByRole("slider", { name: "Taille du sticker" }).fill("90");
+  await page.getByRole("slider", { name: "Opacité du sticker" }).fill("0.3");
+  await page.mouse.move(100, 200);
+  await page.mouse.down();
+  await page.mouse.move(240, 280, { steps: 10 });
+  await page.mouse.up();
+  await expect(paper).toHaveAttribute("data-stroke-count", "1");
+  const pixels = await paper.evaluate((c) => {
+    const p = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    let max = 0;
+    for (let i = 3; i < p.length; i += 4) max = Math.max(max, p[i]);
+    return { max, source: c.toDataURL() };
+  });
+  expect(pixels.max).toBeGreaterThan(0);
+  expect(pixels.max).toBeLessThanOrEqual(77);
+  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
+  await expect(world).toHaveAttribute("data-sticker-count", "1");
+  await expect(world).toHaveAttribute("data-source-strokes", "1");
+  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(pixels.source);
+  await page.getByRole("button", { name: "Peindre", exact: true }).click();
+  await page.mouse.move(130, 260);
+  await page.mouse.down();
+  await page.mouse.move(260, 300, { steps: 10 });
+  await page.mouse.up();
+  await expect(paper).toHaveAttribute("data-stroke-count", "2");
+  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(pixels.source);
+  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
+  await expect(paper).toHaveAttribute("data-stroke-count", "0");
+});
+
+test("floating emoji sprites preserve transparency, move softly and release textures", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createEmojiStickers } =
+      await import("/src/chill/createEmojiStickers.js");
+    const stickers = createEmojiStickers();
+    const source = {
+      emoji: "🌊",
+      points: [{ u: 0.5, v: 0.5 }],
+      size: 0.15,
+      opacity: 0.35,
+    };
+    stickers.add(source, 0, 1, 1);
+    stickers.add(source, 1, 2, 1);
+    const sprite = stickers.group.children[0],
+      second = stickers.group.children[1];
+    const shared = sprite.material.map === second.material.map;
+    let textures = 0,
+      materials = 0;
+    sprite.material.map.addEventListener("dispose", () => textures++);
+    for (const s of stickers.group.children)
+      s.material.addEventListener("dispose", () => materials++);
+    const before = sprite.position.clone();
+    stickers.update(2, 0.7);
+    const moved = sprite.position.distanceTo(before),
+      opacity = sprite.material.opacity;
+    stickers.dispose();
+    return {
+      shared,
+      moved,
+      opacity,
+      textures,
+      materials,
+      count: stickers.count,
+    };
+  });
+  expect(result.shared).toBe(true);
+  expect(result.moved).toBeGreaterThan(0);
+  expect(result.moved).toBeLessThan(0.2);
+  expect(result.opacity).toBe(0.35);
+  expect(result.textures).toBe(1);
+  expect(result.materials).toBe(2);
+  expect(result.count).toBe(0);
+});

@@ -39,6 +39,8 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     cache = new Map();
   let active = null,
     config = {
+      mode: "paint",
+      emoji: DEFAULT_WORKSHOP_BRUSH.sensory.emoji,
       brush: DEFAULT_WORKSHOP_BRUSH.id,
       color: DEFAULT_WORKSHOP_BRUSH.color,
       size: 18,
@@ -77,6 +79,16 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     return image;
   }
   function dot(stroke, p, index) {
+    if (stroke.type === "sticker") {
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.font = `${stroke.size * Math.min(width, height)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(stroke.emoji, p.u * width, p.v * height);
+      ctx.restore();
+      return;
+    }
     const brush =
       WORKSHOP_BRUSHES.find((b) => b.id === stroke.brush) ||
       DEFAULT_WORKSHOP_BRUSH;
@@ -230,9 +242,15 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   }
   const down = (e) => {
     if (!enabled || !e.isPrimary || e.button > 0) return;
+    if (
+      config.mode === "sticker" &&
+      strokes.filter((s) => s.type === "sticker").length >= 256
+    )
+      return;
     const p = point(e);
     const stroke = {
       ...config,
+      type: config.mode === "sticker" ? "sticker" : "paint",
       size: config.size / Math.min(width, height),
       seed: strokes.length * 971 + 811,
       points: [p],
@@ -244,7 +262,12 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     canvas.setPointerCapture(e.pointerId);
   };
   const move = (e) => {
-    if (!active || e.pointerId !== active.id) return;
+    if (
+      !active ||
+      e.pointerId !== active.id ||
+      active.stroke.type === "sticker"
+    )
+      return;
     for (const event of e.getCoalescedEvents?.().length
       ? e.getCoalescedEvents()
       : [e]) {

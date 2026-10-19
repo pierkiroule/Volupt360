@@ -10,6 +10,8 @@ Le parcours éducatif propose d’évoquer librement une situation, de dessiner 
 
 Les signatures sensorielles sont modifiables dans `src/chill/sensoryQualities.js`. Chaque matière possède une bande spectrale, une inertie, une réponse aux transitoires, une humidité et une vitesse propres. Les mêmes enveloppes accompagnent les dépôts actifs et archivés ; les anciens modes conservent leur réponse par défaut.
 
+Le mode **Stickers** pose l’émoji sélectionné d’un seul contact, avec taille et opacité indépendantes des brosses. Peinture et stickers partagent le même historique d’annulation. En 3D, les stickers sont des plans transparents orientés vers le regard, placés en profondeur dans le paysage et animés d’une légère dérive. Ce ne sont pas des modèles volumétriques. Une texture est partagée par symbole, avec un plafond de 256 stickers ; les matériaux et textures sont libérés lors du nettoyage. L’apparence des émojis dépend des polices de l’appareil.
+
 Les traits, leurs points et leurs réglages sont la source du document. La version 3D déploie cette composition autour du spectateur sur des surfaces courbes, avec une séparation progressive des couches. L’opacité conserve son rôle de transparence. Le retour en 2D retrouve le tableau intact ; les modifications suivantes alimentent la prochaine construction 3D.
 
 Le monde devient un audiovisualiseur à 360° : Gravity anime les pigments et les particules, y compris les dépôts archivés. Gyroscope, gestes et molette orientent le regard. Le gyroscope est demandé dès l’entrée en 3D (glissement tactile en secours). Pendant le voyage, le regard infléchit progressivement le cap, comme un drone, avec accélération et arrêt amortis. Pause du voyage arrête progressivement la translation sans arrêter la musique.
