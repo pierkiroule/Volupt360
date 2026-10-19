@@ -53,3 +53,10 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/
 ```
 
 Les contrôles ciblent les contacts sans rebond, le glisser-déposer, la taille et l’opacité, la consigne, l’aller-retour 2D / 3D, la réaction locale à l’audio, le voyage et le nettoyage GPU. Le confort, le gyroscope et le rendu sur téléphone physique restent à valider. L’apparence native des émojis dépend des polices de l’appareil.
+
+The sensory 3D scene also includes `createSensoryCurrents`: drifting pigment seeds
+and unfurling, fading ink streamers. Two shared GPU batches serve at most 24
+representative nodes (3,456 seeds and 144 streamers). Motion and lifecycles run
+in shaders; only anchors and smoothed local audio energy are uploaded each frame.
+No textures or geometries are allocated during animation. Clearing or leaving
+the world releases the field geometry and materials through the network lifecycle.

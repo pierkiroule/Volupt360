@@ -980,3 +980,35 @@ test("sensory words fade, drift and include occasional metaphors without rasteri
   expect(r.released).toBe(4);
   expect(r.remaining).toBe(0);
 });
+
+test("sensory currents compile, react locally and reuse bounded GPU buffers", async ({ page }) => {
+  await page.goto("/");
+  const errors = [];
+  page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+  const result = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createSensoryCurrents } = await import("/src/chill/createSensoryCurrents.js");
+    const field = createSensoryCurrents();
+    const nodes = Array.from({length:48}, (_,i)=>({entry:{color:"#729e9c"},energy:0,object:{position:new T.Vector3(i%6,0,0)}}));
+    field.setNodes(nodes);
+    const mesh=field.group.children[0], buffer=mesh.geometry.attributes.anchor.array;
+    field.update(0);
+    nodes[0].energy=.8; nodes[0].object.position.y=2;
+    for(let i=0;i<360;i++) field.update(i/60);
+    const renderer=new T.WebGLRenderer(), scene=new T.Scene(), camera=new T.PerspectiveCamera(60,1,.1,100);
+    renderer.setSize(256,256); camera.position.z=12;scene.add(field.group);renderer.render(scene,camera);
+    const stats=field.stats, local=mesh.geometry.attributes.energy.getX(0), other=mesh.geometry.attributes.energy.getX(144);
+    const same=buffer===mesh.geometry.attributes.anchor.array;
+    let disposed=0;
+    for(const m of field.group.children){m.geometry.addEventListener("dispose",()=>disposed++);m.material.addEventListener("dispose",()=>disposed++);}
+    field.dispose();renderer.dispose();
+    return {stats,local,other,same,disposed,remaining:field.group.children.length};
+  });
+  expect(result.stats).toEqual({hosts:24,particles:3456,filaments:144,drawCalls:2});
+  expect(result.local).toBeCloseTo(.8);
+  expect(result.other).toBe(0);
+  expect(result.same).toBe(true);
+  expect(result.disposed).toBe(4);
+  expect(result.remaining).toBe(0);
+  expect(errors).toEqual([]);
+});

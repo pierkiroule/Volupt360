@@ -1,3 +1,4 @@
+import { createSensoryCurrents } from "./createSensoryCurrents.js";
 import { createSensoryAtmosphere } from "./createSensoryAtmosphere.js";
 import * as THREE from "three";
 import { emojiById } from "./sensoryEmojiCatalog.js";
@@ -10,7 +11,8 @@ export function createSensoryNetwork() {
     bounds = new THREE.Box3(),
     textures = new Map();
   const atmosphere = createSensoryAtmosphere();
-  group.add(atmosphere.group);
+  const currents = createSensoryCurrents();
+  group.add(atmosphere.group, currents.group);
   const sphereGeometry = new THREE.SphereGeometry(1, 16, 12);
   const nodes = [],
     links = [],
@@ -64,9 +66,10 @@ export function createSensoryNetwork() {
       mesh?.material.dispose();
     }
     atmosphere.clear();
+    currents.clear();
     atmosphericTime = 0;
     group.clear();
-    group.add(atmosphere.group);
+    group.add(atmosphere.group, currents.group);
     nodes.length = links.length = 0;
     bounds.makeEmpty();
     dust = threads = sparks = ribbons = null;
@@ -132,6 +135,7 @@ export function createSensoryNetwork() {
           nodes.length * particlesPerNode + links.length * sparksPerLink,
         textures: textures.size,
         atmosphere: atmosphere.stats,
+        currents: currents.stats,
       };
     },
     setDocument(document) {
@@ -282,6 +286,7 @@ export function createSensoryNetwork() {
       group.add(ribbons);
       dynamicMeshes = [dust, threads, sparks];
       atmosphere.setNodes(nodes, links);
+      currents.setNodes(nodes);
       this.update(0, {}, 0);
     },
     update(time, audio, dt) {
@@ -393,6 +398,7 @@ export function createSensoryNetwork() {
       ribbons.geometry.attributes.aEnergy.needsUpdate = true;
       atmosphericTime += dt;
       atmosphere.update(atmosphericTime);
+      currents.update(atmosphericTime);
       for (const mesh of dynamicMeshes) {
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.attributes.color.needsUpdate = true;
@@ -402,6 +408,7 @@ export function createSensoryNetwork() {
     dispose() {
       clear();
       atmosphere.dispose();
+      currents.dispose();
       group.clear();
       sphereGeometry.dispose();
       stain.dispose();
