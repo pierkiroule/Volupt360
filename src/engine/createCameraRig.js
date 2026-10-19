@@ -11,6 +11,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     revision = 0,
     disposed = false;
   const journey = createPanoramaJourney();
+  let panoramaExploreOnly = false;
   let panoramaDial = 0;
   let povLocked = false,
     povArrival = 0,
@@ -76,7 +77,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   listen(canvas, "pointerdown", (event) => {
     if (
       mode === "sculpt" ||
-      mode === "panorama" ||
+      (mode === "panorama" && !panoramaExploreOnly) ||
       (mode === "drone" && getFlight().windEnabled)
     )
       return;
@@ -125,7 +126,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (!dragging || event.pointerId !== dragging.id) return;
     const dx = event.clientX - dragging.x;
     const dy = event.clientY - dragging.y;
-    if (mode === "gyro") {
+    if (mode === "gyro" || mode === "panorama") {
       panoramaYaw -= dx * 0.0035;
       panoramaPitch = THREE.MathUtils.clamp(
         panoramaPitch + dy * 0.0035,
@@ -468,6 +469,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   canvas.dataset.droneDistance = String(distanceSetting);
   return {
+    setPanoramaExploreOnly(value) {
+      panoramaExploreOnly = value;
+    },
     travelPanorama() {
       camera.getWorldDirection(direction);
       journey.travel(direction);

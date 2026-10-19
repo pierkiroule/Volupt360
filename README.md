@@ -1,22 +1,18 @@
-# OIZO •° — Atelier aquarelle
+# OIZO •° — Un trait, plusieurs mondes
 
-Un atelier de peinture et de sculpture aquarelle en trois dimensions, sur un ciel blanc.
+Un atelier de squiggles : dessiner sur un papier 2D, puis entrer dans une interprétation 3D et musicale du même tableau.
 
-L’atelier commence dans un panorama 360° immobile, en grand-angle. La molette et les gestes à deux doigts orientent le regard ; le bouton gyroscope active explicitement l’orientation du téléphone, avec alternative tactile complète.
+Le papier propose cinq matières symboliques, avec pictogrammes et noms visibles : **Fil, Vague, Roche, Étincelles et Empreinte**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. Couleur, taille, opacité et annulation restent accessibles.
 
-Un doigt ou le bouton gauche dessine immédiatement, à une profondeur réglable devant le regard. Le pincement et le curseur règlent cette profondeur. Les points déposés restent dans le monde ; on peut donc peindre pendant le déplacement comme à l’arrêt.
+Les traits, leurs points et leurs réglages sont la source du document. La version 3D déploie cette composition autour du spectateur sur des surfaces courbes, avec une séparation progressive des couches. L’opacité conserve son rôle de transparence. Le retour en 2D retrouve le tableau intact ; les modifications suivantes alimentent la prochaine construction 3D.
 
-Viser une direction puis toucher Voyager capture cette direction. Regarder ailleurs ne dévie pas la trajectoire. Pause du voyage freine doucement et permet de peindre sur place sans couper la musique. Relancer Voyager capture la nouvelle direction regardée. La pause générale suspend séparément l’ensemble de l’expérience.
+Le monde devient un audiovisualiseur à 360° : Gravity anime les pigments et les particules, y compris les dépôts archivés. Gyroscope, gestes et molette orientent le regard. Voyager mémorise une direction ; regarder ailleurs ne change pas le cap. Pause du voyage arrête progressivement la translation sans arrêter la musique.
 
-À deux doigts (ou au bouton droit), on regarde autour de soi sans déposer de peinture ; relâcher tous les doigts réarme le dessin. La pointe volante n’est plus affichée dans l’atelier. Les anciens parcours conservent leur pilotage.
+Un bouton VR apparaît si WebXR annonce une session immersive disponible. L’entrée utilise le renderer XR natif de Three.js et présente le monde depuis son centre ; le casque contrôle le regard. Cette première entrée est un mode de contemplation, sans peinture aux contrôleurs. L’exécution sur casque physique reste à valider.
 
-Cinq matières seulement : encre de nuit, formes corail, pigment cobalt, poussière d’or et taches émeraude. Elles réutilisent cinq moteurs distincts et possèdent chacune une couleur, une silhouette et une texture propre. Leur opacité conserve une base visible même à faible énergie musicale ; l’analyse audio renforce les variations locales des pigments et des particules. Les particules anciennes sont figées et regroupées dans l’archive picturale.
+Les textures détaillées sont générées une fois par brosse et réutilisées. Le rendu GPU est suspendu pendant le dessin 2D ; la source raster et les données des traits restent en mémoire dans la session. Aucun backend ni traitement de données émotionnelles. L’application est une médiation artistique, sans revendication d’efficacité thérapeutique.
 
-Les textures détaillées sont des plaques RGBA procédurales : charge de pigment, grain du papier, dépôts de séchage et couverture. Elles sont calculées une fois par brosse (256 px sur mobile, 512 px sur ordinateur), avec une graine reproductible et un raccord vertical continu pour les rubans. Les shaders lisent ces détails en conservant les réserves de blanc, les auréoles et la granulation ; les particules dorées utilisent aussi cette matière. Les textures suivent le cycle de libération existant du moteur.
-
-Le panorama et le dessin coexistent dans une seule vue, avec autorisation explicite du capteur et alternative tactile. Gravity accompagne la sculpture et conserve l’analyse musicale des pigments, le volume et la pause. L’atelier n’impose pas de fin chronométrée.
-
-Les moteurs de brosses, l’archive picturale et l’export du moteur sont conservés. Le précédent conte reste accessible avec `?conte=1`, son prédécesseur avec `?original=1`.
+Les anciens parcours restent accessibles via `?conte=1` et `?original=1`.
 
 ## Développement
 

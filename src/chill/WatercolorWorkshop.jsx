@@ -5,35 +5,61 @@ import musicCatalog from "virtual:echo-music";
 import { CHILL_UNIVERSE } from "./chillConfig.js";
 import { ToolIcon } from "./ToolIcon.jsx";
 import { WORKSHOP_BRUSHES, DEFAULT_WORKSHOP_BRUSH } from "./workshopBrushes.js";
+import { createPaintingCanvas } from "./createPaintingCanvas.js";
 
 export default function WatercolorWorkshop() {
   const stage = useRef(null),
     engine = useRef(null),
+    paper = useRef(null),
     generation = useRef(0);
   const twigs = useTwigBank();
   const [started, setStarted] = useState(false),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
-    [gyro, setGyro] = useState(false),
+    [error, setError] = useState("");
+  const [world, setWorld] = useState(false),
+    [worldBusy, setWorldBusy] = useState(false),
+    [count, setCount] = useState(0);
+  const [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
+    [color, setColor] = useState(DEFAULT_WORKSHOP_BRUSH.color),
+    [size, setSize] = useState(18),
+    [opacity, setOpacity] = useState(0.9);
+  const [gyro, setGyro] = useState(false),
     [moving, setMoving] = useState(false),
     [dial, setDial] = useState(0),
     [paused, setPaused] = useState(false),
     [open, setOpen] = useState(true),
     [audioOpen, setAudioOpen] = useState(false),
-    [depth, setDepth] = useState(0);
+    [vr, setVR] = useState(false);
   useEffect(() => {
-    document.title = "OIZO •° — Atelier aquarelle";
-    engine.current = createSoundNest(stage.current, {
-      onError: setError,
-      onSculptureDepthChange: setDepth,
-    });
+    document.title = "OIZO •° — Un trait, plusieurs mondes";
+    engine.current = createSoundNest(stage.current, { onError: setError });
+    engine.current.setPaperVisible(true);
+    paper.current = createPaintingCanvas(stage.current, setCount);
+    paper.current.setVisible(false);
+    let disposed = false;
+    navigator.xr
+      ?.isSessionSupported("immersive-vr")
+      .then((v) => {
+        if (!disposed) setVR(v);
+      })
+      .catch(() => {});
     return () => {
+      disposed = true;
       generation.current++;
+      paper.current?.dispose();
+      paper.current = null;
       engine.current?.dispose();
       engine.current = null;
     };
   }, []);
+  useEffect(() => {
+    paper.current?.setConfig({ brush, color, size, opacity });
+  }, [brush, color, size, opacity]);
+  useEffect(() => {
+    paper.current?.setVisible(started && !world);
+    paper.current?.setEnabled(started && !paused && !world);
+    engine.current?.setPaperVisible(!started || !world);
+  }, [started, world, paused]);
   async function start() {
     if (busy) return;
     setBusy(true);
@@ -54,14 +80,12 @@ export default function WatercolorWorkshop() {
         WORKSHOP_BRUSHES,
       );
       engine.current.setPoeticFragments([]);
-      engine.current.setSculptureDepth(0);
-      engine.current.setBrush(DEFAULT_WORKSHOP_BRUSH.id);
       engine.current.setPadSource(bank);
-      engine.current.setCameraMode("panorama");
       engine.current.pauseChillSession(false);
-      setBrush(DEFAULT_WORKSHOP_BRUSH.id);
-      setGyro(false);
+      paper.current.clear();
+      setWorld(false);
       setMoving(false);
+      setGyro(false);
       setDial(0);
       setPaused(false);
       const track =
@@ -81,10 +105,39 @@ export default function WatercolorWorkshop() {
       if (ticket === generation.current) setBusy(false);
     }
   }
-  async function switchView() {
+  async function switchDimension() {
+    if (worldBusy) return;
+    setWorldBusy(true);
+    setError("");
+    const ticket = generation.current;
     try {
-      const enabled = await engine.current.requestContemplationGyroscope(!gyro);
-      setGyro(Boolean(enabled));
+      engine.current.stopPanorama();
+      setMoving(false);
+      if (world) {
+        await engine.current.requestContemplationGyroscope(false);
+        setGyro(false);
+        setWorld(false);
+      } else {
+        const doc = paper.current.getDocument();
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
+        if (ticket !== generation.current) return;
+        engine.current.loadPaintingWorld(doc);
+        setDial(0);
+        setWorld(true);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      if (ticket === generation.current) setWorldBusy(false);
+    }
+  }
+  async function toggleGyro() {
+    try {
+      setGyro(
+        Boolean(await engine.current.requestContemplationGyroscope(!gyro)),
+      );
     } catch (e) {
       setError(e.message);
     }
@@ -98,9 +151,8 @@ export default function WatercolorWorkshop() {
     try {
       if (paused) {
         await twigs.bank.current.preparePlayback();
-        const audio = twigs.bank.current.getSnapshot().ambience;
-        if (audio.loaded && !audio.playing)
-          await twigs.bank.current.toggleAmbience();
+        const a = twigs.bank.current.getSnapshot().ambience;
+        if (a.loaded && !a.playing) await twigs.bank.current.toggleAmbience();
       } else twigs.bank.current.pauseAmbience();
       engine.current.pauseChillSession(!paused);
       setPaused(!paused);
@@ -118,6 +170,8 @@ export default function WatercolorWorkshop() {
     engine.current.reset();
     setStarted(false);
     setBusy(false);
+    setWorldBusy(false);
+    setWorld(false);
   }
   return (
     <main
@@ -127,21 +181,18 @@ export default function WatercolorWorkshop() {
       <div id="stage" ref={stage} />
       {!started && (
         <section className="chill-welcome">
-          <span className="chill-eyebrow">
-            Un ciel de papier, un vol d’encre
-          </span>
+          <span className="chill-eyebrow">Un trait, plusieurs mondes</span>
           <h1>OIZO •°</h1>
-          <h2>Atelier aquarelle</h2>
+          <h2>Atelier de squiggles</h2>
           <p>
-            Peignez avec un doigt dans un panorama à 360°. Deux doigts ou la
-            molette orientent le regard ; pincez pour choisir la profondeur.
+            Un fil, une vague, une empreinte… Dessinez librement sur le papier.
+            À chaque matière, chacun peut donner son sens.
           </p>
           <p>
-            Visez une direction puis touchez Voyager. La pause du voyage permet
-            de peindre sur place. Activez le gyroscope pour regarder autour de
-            vous avec le téléphone.
+            Entrez ensuite dans ce même tableau : les couleurs deviennent un
+            monde à 360°, vivant au rythme de la musique.
           </p>
-          <button onClick={start} disabled={busy}>
+          <button disabled={busy} onClick={start}>
             {busy ? "Le papier s’éveille…" : "Ouvrir l’atelier"}
           </button>
         </section>
@@ -153,86 +204,151 @@ export default function WatercolorWorkshop() {
         >
           {open && (
             <div id="pictorial-tool-panel">
-              <section
-                className="landscape-palette"
-                aria-label="Matières picturales"
-              >
-                <div role="group" aria-label="Choisir une brosse">
-                  {WORKSHOP_BRUSHES.map((b) => (
+              <div className="dimension-switch">
+                <button
+                  onClick={switchDimension}
+                  disabled={worldBusy || (!world && !count)}
+                  aria-label={
+                    world
+                      ? "Revenir au tableau 2D"
+                      : "Entrer dans le tableau 3D"
+                  }
+                >
+                  {worldBusy
+                    ? "Ouverture…"
+                    : world
+                      ? "← Tableau 2D"
+                      : "Explorer en 3D →"}
+                </button>
+              </div>
+              {!world && (
+                <>
+                  <section
+                    className="landscape-palette symbolic-palette"
+                    aria-label="Matières symboliques"
+                  >
+                    <div role="group" aria-label="Choisir une brosse">
+                      {WORKSHOP_BRUSHES.map((b) => (
+                        <button
+                          key={b.id}
+                          aria-label={b.name}
+                          title={b.name}
+                          aria-pressed={brush === b.id}
+                          disabled={paused}
+                          style={{ "--brush-color": b.color }}
+                          onClick={() => {
+                            setBrush(b.id);
+                            setColor(b.color);
+                          }}
+                        >
+                          <ToolIcon name={b.glyph} />
+                          <span className="brush-name">{b.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                  <div className="paper-settings">
+                    <label>
+                      Couleur
+                      <input
+                        type="color"
+                        aria-label="Couleur de la brosse"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Taille
+                      <input
+                        type="range"
+                        aria-label="Taille de la brosse"
+                        min="2"
+                        max="80"
+                        value={size}
+                        onChange={(e) => setSize(Number(e.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Opacité
+                      <input
+                        type="range"
+                        aria-label="Opacité de la brosse"
+                        min=".1"
+                        max="1"
+                        step=".05"
+                        value={opacity}
+                        onChange={(e) => setOpacity(Number(e.target.value))}
+                      />
+                    </label>
                     <button
-                      key={b.id}
-                      aria-label={b.name}
-                      title={b.name}
-                      aria-pressed={brush === b.id}
-                      disabled={paused}
-                      style={{ "--brush-color": b.color }}
-                      onClick={() => {
-                        setBrush(b.id);
-                        engine.current.setBrush(b.id);
-                      }}
+                      aria-label="Annuler le dernier trait"
+                      title="Annuler le dernier trait"
+                      disabled={!count || paused}
+                      onClick={() => paper.current.undo()}
                     >
-                      <ToolIcon name={b.glyph} />
+                      <ToolIcon name="undo" />
                     </button>
-                  ))}
-                </div>
-              </section>
-              {
+                  </div>
+                </>
+              )}
+              {world && (
                 <label className="sculpture-depth">
-                  Profondeur
+                  Panorama
                   <input
-                    aria-label="Profondeur de dessin"
+                    aria-label="Molette panorama"
                     type="range"
-                    min="-10"
-                    max="10"
-                    step=".25"
-                    value={depth}
-                    onChange={(e) =>
-                      engine.current.setSculptureDepth(e.target.value)
-                    }
+                    min="-180"
+                    max="180"
+                    value={dial}
+                    onChange={(e) => {
+                      setDial(Number(e.target.value));
+                      engine.current.setPanoramaDial(e.target.value);
+                    }}
                   />
-                  <output>{depth.toFixed(1)}</output>
+                  <output>{dial}°</output>
                 </label>
-              }
-              <label className="sculpture-depth">
-                Panorama
-                <input
-                  aria-label="Molette panorama"
-                  type="range"
-                  min="-180"
-                  max="180"
-                  step="1"
-                  value={dial}
-                  onChange={(e) => {
-                    setDial(Number(e.target.value));
-                    engine.current.setPanoramaDial(e.target.value);
-                  }}
-                />
-                <output>{dial}°</output>
-              </label>
+              )}
               <div className="pictorial-commands">
-                <button
-                  onClick={toggleTravel}
-                  disabled={paused}
-                  aria-label={
-                    moving
-                      ? "Pause du voyage"
-                      : "Voyager dans la direction du regard"
-                  }
-                  title={moving ? "Pause du voyage" : "Voyager"}
-                  aria-pressed={moving}
-                >
-                  <ToolIcon name={moving ? "pause" : "play"} />
-                </button>
-                <button
-                  onClick={switchView}
-                  aria-label={
-                    gyro ? "Désactiver le gyroscope" : "Activer le gyroscope"
-                  }
-                  title={"Orientation du téléphone"}
-                  aria-pressed={gyro}
-                >
-                  <ToolIcon name="view" />
-                </button>
+                {world && (
+                  <>
+                    <button
+                      disabled={paused}
+                      onClick={toggleTravel}
+                      aria-label={
+                        moving
+                          ? "Pause du voyage"
+                          : "Voyager dans la direction du regard"
+                      }
+                      title={moving ? "Pause du voyage" : "Voyager"}
+                    >
+                      <ToolIcon name={moving ? "pause" : "play"} />
+                    </button>
+                    <button
+                      onClick={toggleGyro}
+                      aria-label={
+                        gyro
+                          ? "Désactiver le gyroscope"
+                          : "Activer le gyroscope"
+                      }
+                      aria-pressed={gyro}
+                    >
+                      <ToolIcon name="view" />
+                    </button>
+                    {vr && (
+                      <button
+                        aria-label="Entrer en VR"
+                        title="Entrer en VR"
+                        onClick={() =>
+                          engine.current
+                            .enterVR()
+                            .catch((e) => setError(e.message))
+                        }
+                      >
+                        <ToolIcon name="vr" />
+                      </button>
+                    )}
+                  </>
+                )}
                 <button
                   onClick={togglePause}
                   aria-label={paused ? "Reprendre" : "Faire une pause"}

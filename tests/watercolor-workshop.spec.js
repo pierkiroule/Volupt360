@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("panorama drawing stays precise while journey heading is fixed and pause keeps painting available", async ({
+test("2D squiggle source survives a reactive 360 world round trip and supports undo", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -12,127 +12,66 @@ test("panorama drawing stays precise while journey heading is fixed and pause ke
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const canvas = page.locator("canvas");
+  const paper = page.locator(".painting-paper"),
+    world = page.locator("#stage canvas:not(.painting-paper)");
+  await expect(paper).toBeVisible();
+  const labels = await page.locator(".brush-name").evaluateAll((nodes) =>
+    nodes.map((n) => {
+      const a = n.getBoundingClientRect(),
+        b = n.closest("button").getBoundingClientRect();
+      return {
+        font: parseFloat(getComputedStyle(n).fontSize),
+        inside: a.left >= b.left && a.right <= b.right,
+      };
+    }),
+  );
+  expect(labels.every((l) => l.font <= 12 && l.inside)).toBe(true);
+
   await expect(
     page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
   ).toHaveCount(5);
-  await expect(canvas).toHaveAttribute("data-camera-mode", "panorama");
-  await expect(canvas).toHaveAttribute("data-oizo", "false");
+  await page.getByRole("slider", { name: "Taille de la brosse" }).fill("25");
+  await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.65");
+  await page.mouse.move(70, 280);
+  await page.mouse.down();
+  await page.mouse.move(300, 380, { steps: 30 });
+  await page.mouse.up();
+  await expect(paper).toHaveAttribute("data-stroke-count", "1");
+  const source = await paper.evaluate((c) => c.toDataURL());
+  await page.getByRole("button", { name: "Roche", exact: true }).click();
+  await page.mouse.move(100, 400);
+  await page.mouse.down();
+  await page.mouse.move(280, 300, { steps: 25 });
+  await page.mouse.up();
+  await expect(paper).toHaveAttribute("data-stroke-count", "2");
+  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
+  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
+  await expect(paper).toBeHidden();
+  await expect(world).toHaveAttribute("data-source-strokes", "1");
+  await expect(world).toHaveAttribute("data-camera-mode", "panorama");
+  await expect
+    .poll(async () => Number(await world.getAttribute("data-painted-samples")))
+    .toBeGreaterThan(2);
+  const painted = await world.getAttribute("data-painted-samples");
   await page.mouse.move(140, 300);
   await page.mouse.down();
-  await expect(canvas).toHaveAttribute("data-direct-drawing", "true");
-  await page.mouse.move(250, 370, { steps: 20 });
-  const point = await canvas.getAttribute("data-direct-point");
-  const projected = await page.evaluate(async (point) => {
-    const T = await import("/node_modules/.vite/deps/three.js");
-    const c = document.querySelector("canvas");
-    const camera = new T.PerspectiveCamera(
-      96,
-      innerWidth / innerHeight,
-      0.08,
-      1000,
-    );
-    camera.position.fromArray(c.dataset.cameraPosition.split(",").map(Number));
-    camera.quaternion.fromArray(
-      c.dataset.cameraOrientation.split(",").map(Number),
-    );
-    camera.updateMatrixWorld();
-    const p = new T.Vector3()
-      .fromArray(point.split(",").map(Number))
-      .project(camera);
-    return [((p.x + 1) * innerWidth) / 2, ((1 - p.y) * innerHeight) / 2];
-  }, point);
-  expect(projected[0]).toBeCloseTo(250, 0);
-  expect(projected[1]).toBeCloseTo(370, 0);
+  await page.mouse.move(260, 350, { steps: 15 });
   await page.mouse.up();
-  await expect(canvas).toHaveAttribute("data-direct-drawing", "false");
-  await page.waitForTimeout(300);
-  const count = await canvas.getAttribute("data-painted-samples");
-  await page.waitForTimeout(300);
-  await expect(canvas).toHaveAttribute("data-painted-samples", count);
-  await page.getByRole("slider", { name: "Profondeur de dessin" }).fill("5");
-  await expect(canvas).toHaveAttribute("data-sculpture-depth", "5");
-  await page.mouse.move(250, 370);
-  await page.mouse.down();
-  const deeper = (await canvas.getAttribute("data-direct-point"))
-    .split(",")
-    .map(Number);
-  await page.mouse.up();
-  expect(
-    Math.hypot(...deeper.map((v, i) => v - Number(point.split(",")[i]))),
-  ).toBeGreaterThan(4.9);
-
-  // Actual two-touch Chrome events: manipulation must not add a brush trail.
-  const client = await page.context().newCDPSession(page);
-  const touch = (type, points) =>
-    client.send("Input.dispatchTouchEvent", {
-      type,
-      touchPoints: points.map(([id, x, y]) => ({ id, x, y })),
-    });
-  await touch("touchStart", [
-    [1, 120, 300],
-    [2, 260, 300],
-  ]);
-  const before = await canvas.getAttribute("data-painted-samples");
-  const oldLook = await canvas.getAttribute("data-camera-orientation");
-  await touch("touchMove", [
-    [1, 100, 330],
-    [2, 300, 330],
-  ]);
-  await expect
-    .poll(() => canvas.getAttribute("data-camera-orientation"))
-    .not.toBe(oldLook);
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-sculpture-depth")))
-    .toBeGreaterThan(5);
-  await expect(canvas).toHaveAttribute("data-painted-samples", before);
-  await touch("touchEnd", [[2, 300, 330]]);
-  await touch("touchMove", [[2, 310, 340]]);
-  await expect(canvas).toHaveAttribute("data-painted-samples", before);
-  await touch("touchEnd", []);
-  await page.getByRole("slider", { name: "Molette panorama" }).fill("45");
+  await expect(world).toHaveAttribute("data-painted-samples", painted);
   await page
     .getByRole("button", { name: "Voyager dans la direction du regard" })
     .click();
-  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
-  const heading = await canvas.getAttribute("data-journey-heading");
-  const position = await canvas.getAttribute("data-camera-position");
-  await page.getByRole("slider", { name: "Molette panorama" }).fill("-90");
-  await expect
-    .poll(() => canvas.getAttribute("data-camera-position"))
-    .not.toBe(position);
-  await expect(canvas).toHaveAttribute("data-journey-heading", heading);
-  const movingPaint = Number(await canvas.getAttribute("data-painted-samples"));
-  await page.mouse.move(140, 300);
-  await page.mouse.down();
-  await page.mouse.move(210, 350, { steps: 10 });
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(movingPaint);
-  await page.mouse.up();
+  await expect(world).toHaveAttribute("data-journey-moving", "true");
   await page.getByRole("button", { name: "Pause du voyage" }).click();
-  await expect(canvas).toHaveAttribute("data-journey-moving", "false");
-  await page.mouse.move(150, 330);
-  await page.mouse.down();
-  await page.mouse.move(220, 370, { steps: 8 });
-  await page.mouse.up();
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(Number(before));
-  await page.getByRole("button", { name: "Faire une pause" }).click();
-  const paused = await canvas.getAttribute("data-painted-samples");
-  await page.mouse.move(150, 300);
-  await page.mouse.down();
-  await page.mouse.move(230, 350);
-  await page.mouse.up();
-  await expect(canvas).toHaveAttribute("data-painted-samples", paused);
-  await page.getByRole("button", { name: "Reprendre", exact: true }).click();
-  await page.waitForTimeout(250);
-  await expect(canvas).toHaveAttribute("data-painted-samples", paused);
-  await page.getByRole("button", { name: "Sortir", exact: true }).click();
+  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
+  await expect(paper).toBeVisible();
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
+  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
+  await expect(paper).toHaveAttribute("data-stroke-count", "0");
   await expect(
-    page.getByRole("button", { name: "Ouvrir l’atelier" }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Entrer dans le tableau 3D" }),
+  ).toBeDisabled();
   expect(errors).toEqual([]);
 });
 
@@ -507,8 +446,14 @@ test("gyro changes the panorama look while the captured journey direction stays 
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  await page.getByRole("button", { name: "Vague", exact: true }).click();
+  await page.mouse.move(150, 250);
+  await page.mouse.down();
+  await page.mouse.move(300, 350, { steps: 15 });
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
   await page.getByRole("button", { name: "Activer le gyroscope" }).click();
-  const canvas = page.locator("canvas");
+  const canvas = page.locator("#stage canvas:not(.painting-paper)");
   const sensor = (alpha) =>
     page.evaluate((alpha) => {
       const e = new Event("deviceorientation");
@@ -530,4 +475,112 @@ test("gyro changes the panorama look while the captured journey direction stays 
   await expect(canvas).toHaveAttribute("data-journey-heading", heading);
   await page.getByRole("button", { name: "Désactiver le gyroscope" }).click();
   await expect(canvas).toHaveAttribute("data-gyroscope-status", "disabled");
+});
+
+test("paper-to-world projection wraps the same composition deterministically with depth by layer", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const { paintingToWorld } = await import("/src/chill/paintingToWorld.js");
+    const front = paintingToWorld({ u: 0.5, v: 0.5 }, 0, 3, 0.04),
+      back = paintingToWorld({ u: 0, v: 0.5 }, 0, 3, 0.04),
+      seam = paintingToWorld({ u: 1, v: 0.5 }, 0, 3, 0.04),
+      layer = paintingToWorld({ u: 0.5, v: 0.5 }, 2, 3, 0.04);
+    return {
+      front: front.toArray(),
+      back: back.toArray(),
+      seam: seam.distanceTo(back),
+      separation: front.distanceTo(layer),
+      repeat: front.equals(paintingToWorld({ u: 0.5, v: 0.5 }, 0, 3, 0.04)),
+    };
+  });
+  expect(r.front[2]).toBeLessThan(20);
+  expect(r.back[2]).toBeGreaterThan(20);
+  expect(r.seam).toBeLessThan(0.000001);
+  expect(r.separation).toBeCloseTo(3);
+  expect(r.repeat).toBe(true);
+});
+
+test("archived pigments keep a local audio envelope in the audiovisual world", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createBrushStroke } = await import("/src/engine/brushes.js");
+    const { createPigmentArchive } =
+      await import("/src/chill/createPigmentArchive.js");
+    const stroke = createBrushStroke("voiles", {
+      seed: 5,
+      color: new T.Color("#eb315c"),
+      dynamics: { materialMode: 3, planarWash: true, opacity: 0.9, width: 0.8 },
+    });
+    for (let i = 0; i < 4; i++)
+      stroke.append({
+        position: new T.Vector3(i, 0, 0),
+        direction: new T.Vector3(1, 0, 0),
+        side: new T.Vector3(0, 1, 0),
+        up: new T.Vector3(0, 0, 1),
+        time: i,
+        energy: 0.4,
+        low: 0.2,
+      });
+    const archive = createPigmentArchive();
+    archive.add({
+      stroke,
+      object: stroke.group,
+      brush: "voiles",
+      bounds: new T.Box3(),
+    });
+    const u = archive.group.children[0].material.uniforms;
+    const silent = u.uAudioEnergy.value;
+    archive.animate({ energy: 0.7, low: 0.5, pulse: 0.3 }, 0.1, 4);
+    const result = {
+      silent,
+      energy: u.uAudioEnergy.value,
+      low: u.uAudioLow.value,
+      time: u.uTime.value,
+    };
+    archive.dispose();
+    stroke.group.traverse((m) => {
+      m.geometry?.dispose();
+      m.material?.dispose();
+    });
+    return result;
+  });
+  expect(r.silent).toBe(0);
+  expect(r.energy).toBeGreaterThan(0.8);
+  expect(r.low).toBeGreaterThan(0.8);
+  expect(r.time).toBeGreaterThan(0);
+});
+
+test("VR entry is offered only by capability and a rejected session leaves the artwork usable", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "xr", {
+      configurable: true,
+      value: {
+        isSessionSupported: async () => true,
+        requestSession: async () => {
+          throw new Error("Casque indisponible pour ce test");
+        },
+      },
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  await page.getByRole("button", { name: "Vague", exact: true }).click();
+  await page.mouse.move(100, 250);
+  await page.mouse.down();
+  await page.mouse.move(250, 350, { steps: 10 });
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
+  await page.getByRole("button", { name: "Entrer en VR" }).click();
+  await expect(page.locator(".ambience-error")).toContainText(
+    "Casque indisponible",
+  );
+  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
+  await expect(page.locator(".painting-paper")).toBeVisible();
 });

@@ -117,6 +117,7 @@ export function createPigmentArchive() {
           dryMesh.frustumCulled = false;
           group.add(dryMesh);
           bucket = {
+            respond: mark.respond,
             mesh: dryMesh,
             geometry: null,
             vertices: 0,
@@ -194,6 +195,20 @@ export function createPigmentArchive() {
       });
       bounds.union(mark.bounds);
       traces++;
+    },
+    animate(audio, dt, time) {
+      for (const bucket of buckets.values()) {
+        const r = bucket.respond?.(audio, dt) || audio,
+          u = bucket.mesh.material.uniforms;
+        for (const [name, key] of [
+          ["uAudioEnergy", "energy"],
+          ["uAudioLow", "low"],
+          ["uAudioPulse", "pulse"],
+        ])
+          if (u[name]) u[name].value = Math.min(1, (r[key] || 0) * 2);
+        if (u.uTime) u.uTime.value = time * 0.65;
+        if (u.uParticleTime) u.uParticleTime.value = 360 + time * 0.65;
+      }
     },
     settle() {
       for (const bucket of buckets.values()) {

@@ -12,7 +12,7 @@ const common = {
 export const WORKSHOP_BRUSHES = [
   {
     id: "calligraphie",
-    name: "Encre de nuit",
+    name: "Fil",
     glyph: "breeze",
     baseId: "calligraphie",
     color: "#142448",
@@ -24,7 +24,7 @@ export const WORKSHOP_BRUSHES = [
   },
   {
     id: "voiles",
-    name: "Formes corail",
+    name: "Vague",
     glyph: "wave",
     baseId: "voiles",
     color: "#eb315c",
@@ -35,7 +35,7 @@ export const WORKSHOP_BRUSHES = [
   },
   {
     id: "falaises",
-    name: "Pigment cobalt",
+    name: "Roche",
     glyph: "mineral",
     baseId: "falaises",
     color: "#2343ce",
@@ -47,7 +47,7 @@ export const WORKSHOP_BRUSHES = [
   },
   {
     id: "lucioles",
-    name: "Poussière d’or",
+    name: "Étincelles",
     glyph: "spark",
     baseId: "lucioles",
     color: "#dc8705",
@@ -59,7 +59,7 @@ export const WORKSHOP_BRUSHES = [
   },
   {
     id: "lagons",
-    name: "Taches émeraude",
+    name: "Empreinte",
     glyph: "rain",
     baseId: "lagons",
     color: "#087b61",

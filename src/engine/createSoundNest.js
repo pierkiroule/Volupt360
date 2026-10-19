@@ -1,5 +1,6 @@
 import { createContemplationState } from "../chill/createContemplationState.js";
 import { createSculptureGesture } from "./createSculptureGesture.js";
+import { paintingToWorld } from "../chill/paintingToWorld.js";
 import { createPhasePalette } from "../chill/phasePalette.js";
 import { sampleExperience } from "../chill/experienceTimeline.js";
 import { createPigmentArchive } from "../chill/createPigmentArchive.js";
@@ -77,6 +78,13 @@ export function createSoundNest(
   const nearestBubble = new THREE.Vector3();
   const sculptureCenter = new THREE.Vector3();
   const scene = new THREE.Scene();
+  const xrOrigin = new THREE.Group();
+  scene.add(xrOrigin);
+  renderer.xr.enabled = true;
+  let xrSession = null,
+    paperMode = false,
+    paintingWorld = false,
+    paintOverride = null;
   scene.background = new THREE.Color("#f4f0e8");
   renderer.domElement.dataset.skydome = "off-white-paper";
   const pictorialFlow = createPictorialFlow();
@@ -123,8 +131,7 @@ export function createSoundNest(
   );
   let brush = "voiles",
     player = null,
-    disposed = false,
-    frameId;
+    disposed = false;
   let lifeTime = 0;
   let elapsed = 0,
     sampleClock = 0,
@@ -237,11 +244,12 @@ export function createSoundNest(
   }
   function beginStroke(id, pose) {
     closeStroke();
-    const color =
-      imageBrushes.get(id)?.sample(pose.position).color.clone() ||
-      (generatedBrushes.has(id)
-        ? new THREE.Color(generatedBrushes.get(id).color)
-        : palette.colorFor(id, serial));
+    const color = paintOverride
+      ? new THREE.Color(paintOverride.color)
+      : imageBrushes.get(id)?.sample(pose.position).color.clone() ||
+        (generatedBrushes.has(id)
+          ? new THREE.Color(generatedBrushes.get(id).color)
+          : palette.colorFor(id, serial));
     const region = compositionAt(pose.position);
     const textureLease = textures.has(id)
       ? null
@@ -251,7 +259,7 @@ export function createSoundNest(
             pose.acoustic || pose,
           )
         : null;
-    const generated = generatedBrushes.get(id);
+    const generated = paintOverride || generatedBrushes.get(id);
     const stroke = createBrushStroke(generated?.baseId || id, {
       dynamics: generated,
       seed: serial++ * 1.37 + ((generated?.seed || 0) % 10000),
@@ -700,6 +708,7 @@ export function createSoundNest(
     renderer.domElement.dataset.nozzlePaint = "false";
   }
   function onSteeringDown(event) {
+    if (paintingWorld && cameraMode === "panorama") return;
     if (
       workshopMode &&
       ["sculpt", "panorama"].includes(cameraMode) &&
@@ -780,6 +789,7 @@ export function createSoundNest(
     );
   }
   function onSteeringMove(event) {
+    if (paintingWorld && cameraMode === "panorama") return;
     if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       sculptureGesture.move(event);
       return;
@@ -827,6 +837,7 @@ export function createSoundNest(
     }
   }
   function onSteeringEnd(event) {
+    if (paintingWorld && cameraMode === "panorama") return;
     if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       if (event.type === "pointercancel") sculptureGesture.clear();
       else sculptureGesture.up(event);
@@ -901,10 +912,10 @@ export function createSoundNest(
     renderer.domElement.addEventListener(name, handler);
   function frame(now) {
     if (disposed) return;
-    frameId = requestAnimationFrame(frame);
     const milliseconds = now - lastTime;
     let dt = Math.max(0, Math.min(0.1, milliseconds / 1000));
     lastTime = now;
+    if (paperMode) return;
     if (document.hidden) return;
     if (chillPaused || contemplation.active || chillSession?.complete) dt = 0;
     const audioClock = chillSession
@@ -1236,6 +1247,7 @@ export function createSoundNest(
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
+      if (paintingWorld) pigmentArchive.animate?.(visual, dt, lifeTime);
       moodAtmosphere?.update(
         lifeTime,
         visual,
@@ -1333,11 +1345,12 @@ export function createSoundNest(
     renderer.domElement.dataset.materialTime = (
       marks[0]?.uniforms[0]?.uTime?.value ?? 0
     ).toFixed(3);
-    rig.update(
-      chillSession?.complete || contemplation.active
-        ? Math.min(0.1, milliseconds / 1000)
-        : dt,
-    );
+    if (!renderer.xr.isPresenting)
+      rig.update(
+        chillSession?.complete || contemplation.active
+          ? Math.min(0.1, milliseconds / 1000)
+          : dt,
+      );
     if (cameraMode === "panorama")
       updateDirect(dt, padSource?.getVisualFeatures?.() || {});
     renderer.domElement.dataset.cameraOrientation = camera.quaternion
@@ -1353,7 +1366,7 @@ export function createSoundNest(
         .getWorldQuaternion(new THREE.Quaternion())
         .invert();
       padSource.updateListener(
-        landscape.worldToLocal(camera.position.clone()),
+        landscape.worldToLocal(camera.getWorldPosition(new THREE.Vector3())),
         camera.getWorldDirection(new THREE.Vector3()).applyQuaternion(inverse),
         new THREE.Vector3(0, 1, 0)
           .applyQuaternion(camera.quaternion)
@@ -1364,7 +1377,8 @@ export function createSoundNest(
       renderer.domElement.dataset.instrumentVoices = String(sound?.voices || 0);
     }
     try {
-      effects.render(scene, camera);
+      if (renderer.xr.isPresenting) renderer.render(scene, camera);
+      else effects.render(scene, camera);
       if (!photo && cameraMode === "drone")
         videodio?.frame(renderer.domElement, now);
     } catch (error) {
@@ -1459,8 +1473,118 @@ export function createSoundNest(
   };
   window.addEventListener("resize", resize);
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
-  frameId = requestAnimationFrame(frame);
+  renderer.setAnimationLoop(frame);
   return {
+    setPaperVisible(visible) {
+      paperMode = visible;
+      renderer.domElement.style.visibility = visible ? "hidden" : "visible";
+      if (visible) {
+        void xrSession?.end().catch(() => {});
+        rig.stopPanorama();
+        cancelSteering();
+      }
+    },
+    loadPaintingWorld(document) {
+      reset();
+      paintingWorld = true;
+      rig.setPanoramaExploreOnly(true);
+      for (let layer = 0; layer < document.strokes.length; layer++) {
+        const s = document.strokes[layer],
+          base = generatedBrushes.get(s.brush);
+        if (!base) continue;
+        paintOverride = {
+          ...base,
+          color: s.color,
+          opacity: s.opacity,
+          width: s.size * 28 * (s.brush === "calligraphie" ? 0.28 : 1),
+        };
+        const source = s.points.filter(
+          (_, i) => i % Math.max(1, Math.ceil(s.points.length / 256)) === 0,
+        );
+        if (source.at(-1) !== s.points.at(-1)) source.push(s.points.at(-1));
+        let previous = null;
+        for (const p of source) {
+          const position = paintingToWorld(
+            p,
+            layer,
+            document.strokes.length,
+            s.size,
+          );
+          const normal = position
+            .clone()
+            .sub(new THREE.Vector3(0, 0, 20))
+            .normalize();
+          const direction = previous
+            ? position.clone().sub(previous).normalize()
+            : new THREE.Vector3(1, 0, 0);
+          const side = new THREE.Vector3()
+            .crossVectors(direction, normal)
+            .normalize();
+          if (side.lengthSq() < 0.01) side.set(0, 1, 0);
+          feedEmitter(
+            s.brush,
+            {
+              position,
+              direction,
+              side,
+              up: normal,
+              velocity: direction.clone(),
+              time: layer * 0.37,
+              energy: 0.4,
+              low: 0.2,
+              density: 1,
+              motion: 0.2,
+              accent: 0.3,
+              direct: true,
+              wake: true,
+              depositionTime: lifeTime - 2,
+            },
+            s.brush,
+          );
+          previous = position;
+        }
+        finishPad(s.brush);
+      }
+      paintOverride = null;
+      renderer.domElement.dataset.sourceStrokes = String(
+        document.strokes.length,
+      );
+      renderer.domElement.dataset.paintedSamples = String(paintedSamples);
+      this.setCameraMode("panorama");
+      updateBounds();
+    },
+    async enterVR() {
+      if (xrSession) return;
+      if (!navigator.xr)
+        throw new Error("WebXR indisponible sur cet appareil.");
+      const session = await navigator.xr.requestSession("immersive-vr", {
+        optionalFeatures: ["local-floor"],
+      });
+      if (disposed) {
+        await session.end();
+        return;
+      }
+      xrSession = session;
+      rig.stopPanorama();
+      xrOrigin.position.set(0, 0, 20);
+      xrOrigin.add(camera);
+      camera.position.set(0, 0, 0);
+      session.addEventListener(
+        "end",
+        () => {
+          xrSession = null;
+          xrOrigin.remove(camera);
+          if (!disposed) void rig.setMode("panorama");
+        },
+        { once: true },
+      );
+      try {
+        await renderer.xr.setSession(session);
+      } catch (e) {
+        await session.end();
+        throw e;
+      }
+    },
     setPadSource(source) {
       padSource?.setCaptureTap(null);
       bridge.close();
@@ -1686,6 +1810,8 @@ export function createSoundNest(
         this.setGeneratedBrush(profile.id, profile);
       chillMode = Boolean(universe.chill);
       workshopMode = Boolean(universe.workshop);
+      paintingWorld = false;
+      rig.setPanoramaExploreOnly(false);
       dance.setSculptureAssist(workshopMode);
       resonanceMode = Boolean(universe.resonanceBubbles);
       constellationMode = Boolean(universe.constellation);
@@ -1797,7 +1923,8 @@ export function createSoundNest(
     dispose() {
       cancelSteering();
       disposed = true;
-      cancelAnimationFrame(frameId);
+      renderer.setAnimationLoop(null);
+      void xrSession?.end().catch(() => {});
       window.removeEventListener("blur", cancelSteering);
       for (const [name, handler] of steeringListeners)
         renderer.domElement.removeEventListener(name, handler);
