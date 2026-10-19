@@ -893,3 +893,90 @@ test.describe("mobile touch composition", () => {
     ).toBeEnabled();
   });
 });
+
+test("sensory words fade, drift and include occasional metaphors without rasterizing in the render loop", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createSensoryAtmosphere } =
+      await import("/src/chill/createSensoryAtmosphere.js");
+    const { emojiById } = await import("/src/chill/sensoryEmojiCatalog.js");
+    const atmosphere = createSensoryAtmosphere();
+    const nodes = [
+      {
+        entry: emojiById("water"),
+        size: 1,
+        energy: 0.2,
+        object: { position: new T.Vector3(0, 0, 0) },
+      },
+      {
+        entry: emojiById("warm"),
+        size: 1.2,
+        energy: 0.7,
+        object: { position: new T.Vector3(3, 0, 1) },
+      },
+    ];
+    atmosphere.setNodes(nodes, [{ a: nodes[0], b: nodes[1] }]);
+    const sprites = atmosphere.group.children.filter((n) => n.isSprite),
+      cloud = atmosphere.group.children.find((n) => n.isMesh && !n.isSprite),
+      buffer = cloud.geometry.attributes.aCenter.array;
+    atmosphere.update(0);
+    const initial = sprites[0].visible;
+    atmosphere.update(4.3);
+    const emerged = sprites[0].material.opacity,
+      position = sprites[0].position.clone();
+    atmosphere.update(7);
+    const moved = sprites[0].position.distanceTo(position);
+    atmosphere.update(12.5);
+    const vanished = !sprites[0].visible;
+    atmosphere.update(18.5);
+    const metaphor = sprites.some(
+      (s) => s.visible && s.userData.sensoryText?.startsWith("c’est comme"),
+    );
+    let canvases = 0;
+    const create = document.createElement;
+    document.createElement = function (name, ...args) {
+      if (name === "canvas") canvases++;
+      return create.call(this, name, ...args);
+    };
+    try {
+      for (let i = 0; i < 300; i++) atmosphere.update(20 + i / 60);
+    } finally {
+      document.createElement = create;
+    }
+    const sameBuffer = buffer === cloud.geometry.attributes.aCenter.array,
+      stats = atmosphere.stats;
+    let released = 0;
+    for (const s of sprites) {
+      s.material.addEventListener("dispose", () => released++);
+    }
+    cloud.geometry.addEventListener("dispose", () => released++);
+    atmosphere.dispose();
+    return {
+      initial,
+      emerged,
+      moved,
+      vanished,
+      metaphor,
+      canvases,
+      sameBuffer,
+      stats,
+      released,
+      remaining: atmosphere.group.children.length,
+    };
+  });
+  expect(r.initial).toBe(false);
+  expect(r.emerged).toBeGreaterThan(0.7);
+  expect(r.moved).toBeGreaterThan(0.05);
+  expect(r.vanished).toBe(true);
+  expect(r.metaphor).toBe(true);
+  expect(r.canvases).toBe(0);
+  expect(r.sameBuffer).toBe(true);
+  expect(r.stats.clouds).toBe(3);
+  expect(r.stats.textTextures).toBe(4);
+  expect(r.stats.visibleTexts).toBeLessThanOrEqual(3);
+  expect(r.released).toBe(4);
+  expect(r.remaining).toBe(0);
+});

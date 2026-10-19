@@ -10,12 +10,20 @@ Le modèle indépendant conserve les positions normalisées, tailles, opacités 
 
 Le voyage suit les orbites et traversées du moteur existant, sans pilotage. Le gyroscope oriente le regard ; le glissement reste disponible en secours. Aucune interprétation émotionnelle, aucun diagnostic, aucun backend et aucune transmission du dessin ou de la consigne.
 
+## Matière et mots flottants
+
+Le paysage 3D accueille jusqu’à 18 nappes aquarellées instanciées, ancrées sur les émojis et les liens. Deux textures procédurales partagées simulent lavis, grain et dépôts pigmentaires ; leur ampleur et leur présence suivent les réponses audio locales. Les réserves de blanc et la lisibilité des émojis restent prioritaires.
+
+Trois emplacements réutilisables font émerger des mots sensoriels et, plus rarement, des métaphores « c’est comme… ». Les phrases dépendent uniquement des symboles présents et restent des propositions poétiques. Elles dérivent dans le monde, apparaissent en douceur et disparaissent après quelques secondes. Les textes sont préparés lors de la révélation, jamais rasterisés dans la boucle de rendu ; aucune texture supplémentaire n’est créée à chaque apparition. La composition 2D reste inchangée.
+
 ## Modules
 
 - `sensoryEmojiCatalog.js` : émojis, couleurs, signatures de mouvement et bandes audio.
 - `sensoryGraph.js` : ajout, déplacement contraint au disque, contacts et liens.
 - `SensoryDisc.jsx` : composition tactile, couronne, consigne et historique.
 - `createSensoryNetwork.js` : objets 3D, buffers partagés de particules et flux, nettoyage GPU.
+- `sensoryLanguage.js` : lexique sensoriel et métaphores modifiables.
+- `createSensoryAtmosphere.js` : nappes texturées, cycle des mots et cache de textes borné.
 - `WatercolorWorkshop.jsx` : parcours composition / contemplation et musique.
 
 Le modèle est plafonné à 48 objets et 96 liens, l’historique à 60 opérations. Les particules et les flux utilisent quatre lots GPU ; les textures d’émojis sont partagées par symbole. Le rendu 3D est suspendu en composition. Les modules de peinture précédents restent disponibles dans le dépôt pour préserver les parcours historiques.
