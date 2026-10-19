@@ -582,222 +582,314 @@ test("sky brush follows a moving aim with continuous finite-speed flight", async
   expect(result.jump).toBeLessThanOrEqual(0.201);
 });
 
-async function drawDisc(page, emotion = "Joie") {
-  await page.getByRole("button", { name: emotion, exact: true }).click();
-  const paper = page.locator(".painting-paper");
-  await expect(paper).toBeVisible();
-  const r = await paper.boundingBox();
-  await page.mouse.move(r.x + r.width * 0.25, r.y + r.height * 0.45);
-  await page.mouse.down();
-  await page.mouse.move(r.x + r.width * 0.7, r.y + r.height * 0.55, {
-    steps: 22,
+async function beginNetwork(page) {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Composer mon ciel" }).click();
+  await expect(
+    page.getByRole("group", { name: "Mon disque sensoriel" }),
+  ).toBeVisible();
+}
+async function dropEmoji(page, name, u, v) {
+  const palette = page.getByRole("button", {
+    name: `Ajouter ${name}`,
+    exact: true,
   });
+  const r = await page
+      .getByRole("group", { name: "Mon disque sensoriel" })
+      .boundingBox(),
+    p = await palette.boundingBox();
+  await page.mouse.move(p.x + p.width / 2, p.y + p.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(r.x + r.width * u, r.y + r.height * v, { steps: 12 });
+  await page.mouse.up();
+}
+async function dragNode(page, name, u, v) {
+  const n = page.getByRole("button", { name: `Déplacer ${name}`, exact: true }),
+    b = await n.boundingBox(),
+    r = await page
+      .getByRole("group", { name: "Mon disque sensoriel" })
+      .boundingBox();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(r.x + r.width * u, r.y + r.height * v, { steps: 15 });
   await page.mouse.up();
 }
 
-test("a silent static disc offers exactly twelve fixed pictorial brushes", async ({
+test("sensory palette surrounds the disc, supports drag/drop and collision linking and unlinking", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const audioRequests = [];
-  page.on("request", (r) => {
-    if (/\.mp3(?:\?|$)/.test(r.url())) audioRequests.push(r.url());
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
-  const palette = page.getByRole("group", { name: "Choisir une brosse" });
-  await expect(palette.getByRole("button")).toHaveCount(12);
-  await expect(page.locator("input")).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Révéler mon ciel" }),
-  ).toBeDisabled();
-  const paper = page.locator(".painting-paper");
-  await expect(paper).toBeVisible();
-  const r = await paper.boundingBox();
-  expect(Math.abs(r.width - r.height)).toBeLessThan(1);
-  await page.mouse.click(r.x + 2, r.y + 2);
-  await expect(paper).toHaveAttribute("data-stroke-count", "0");
-  await drawDisc(page);
-  await expect(paper).toHaveAttribute("data-stroke-count", "1");
-  const source = await paper.evaluate((c) => c.toDataURL());
-  await page.waitForTimeout(180);
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
-  const corner = await paper.evaluate((c) =>
-    Array.from(c.getContext("2d").getImageData(0, 0, 1, 1).data),
+  await beginNetwork(page);
+  const disc = page.getByRole("group", { name: "Mon disque sensoriel" }),
+    r = await disc.boundingBox();
+  const palette = page
+    .getByRole("group", { name: "Palette sensorielle" })
+    .getByRole("button");
+  await expect(palette).toHaveCount(12);
+  const boxes = await palette.evaluateAll((nodes) =>
+    nodes.map((n) => {
+      const b = n.getBoundingClientRect();
+      return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    }),
   );
-  expect(corner[3]).toBe(0);
-  expect(audioRequests).toEqual([]);
+  expect(
+    boxes.every(
+      (p) =>
+        Math.hypot(p.x - r.x - r.width / 2, p.y - r.y - r.height / 2) >
+        r.width / 2,
+    ),
+  ).toBe(true);
+  await dropEmoji(page, "Ondes", 0.27, 0.5);
+  await dropEmoji(page, "Chaleur", 0.72, 0.5);
+  await expect(disc.locator(".sensory-node")).toHaveCount(2);
+  await dragNode(page, "Chaleur", 0.35, 0.5);
+  await expect(disc.locator("line")).toHaveCount(1);
+  await dragNode(page, "Chaleur", 0.72, 0.5);
+  await expect(disc.locator("line")).toHaveCount(1);
+  await dragNode(page, "Chaleur", 0.35, 0.5);
+  await expect(disc.locator("line")).toHaveCount(0);
+  await page.getByRole("slider", { name: "Taille de l’émoji" }).fill("72");
+  await page.getByRole("slider", { name: "Opacité de l’émoji" }).fill("0.4");
   await expect(
-    page.getByRole("button", { name: /Stickers|Peindre en 3D|haïku/i }),
-  ).toHaveCount(0);
+    page.getByRole("button", { name: "Déplacer Chaleur" }),
+  ).toHaveCSS("opacity", "0.4");
+  await expect(
+    page.getByRole("button", { name: "Déplacer Chaleur" }),
+  ).toHaveCSS("width", "72px");
+  await page.getByRole("button", { name: "Supprimer l’émoji" }).click();
+  await expect(disc.locator(".sensory-node")).toHaveCount(1);
+  await page.getByRole("button", { name: "Annuler", exact: true }).click();
+  await expect(disc.locator(".sensory-node")).toHaveCount(2);
 });
 
-test("validation reveals an animated read-only world, music and an autonomous voyage", async ({
+test("custom instruction and the linked composition survive an animated autonomous 360 visit", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => {
-    window.__ambiences = [];
-    const NativeAudio = window.Audio;
-    window.Audio = function (...args) {
-      const element = new NativeAudio(...args);
-      window.__ambiences.push(element);
-      return element;
-    };
-    window.Audio.prototype = NativeAudio.prototype;
+  const requests = [],
+    errors = [];
+  page.on("request", (r) => {
+    if (/\.mp3(?:\?|$)/.test(r.url())) requests.push(r.url());
   });
-  const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
     if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
       errors.push(m.text());
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
-  await drawDisc(page);
-  await drawDisc(page, "Tristesse");
-  const paper = page.locator(".painting-paper"),
-    world = page.locator("#stage canvas:not(.painting-paper)");
-  const source = await paper.evaluate((c) => c.toDataURL());
-  await page.getByRole("button", { name: "Révéler mon ciel" }).click();
-  await expect(paper).toBeHidden();
-  await expect(world).toHaveAttribute("data-world-drawing", "false");
-  await expect(world).toHaveAttribute("data-journey-guided", "true");
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }),
-  ).toHaveCount(0);
+  await page.getByText("Personnaliser la consigne", { exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Consigne du thérapeute" })
+    .fill("les sensations de cette promenade.");
+  await page.getByRole("button", { name: "Composer mon ciel" }).click();
+  await expect(page.locator(".sensory-instruction summary")).toContainText(
+    "les sensations de cette promenade.",
+  );
+  await dropEmoji(page, "Ondes", 0.3, 0.5);
+  await dropEmoji(page, "Légèreté", 0.7, 0.5);
+  await dragNode(page, "Légèreté", 0.38, 0.5);
+  await dragNode(page, "Légèreté", 0.68, 0.5);
+  expect(requests).toEqual([]);
+  const before = await page.locator(".sensory-node").evaluateAll((nodes) =>
+    nodes.map((n) => ({
+      id: n.dataset.nodeId,
+      style: n.getAttribute("style"),
+    })),
+  );
+  await page.getByRole("button", { name: "Révéler mon paysage" }).click();
+  const world = page.locator("#stage canvas");
+  await expect(world).toBeVisible();
   await expect
-    .poll(() =>
-      page.evaluate(() =>
-        window.__ambiences.some(
-          (a) => !a.paused && /gravity\.mp3/i.test(a.src),
-        ),
-      ),
+    .poll(
+      async () =>
+        JSON.parse((await world.getAttribute("data-sensory-network")) || "{}")
+          .links,
     )
-    .toBe(true);
+    .toBe(1);
+  const stats = JSON.parse(await world.getAttribute("data-sensory-network"));
+  expect(stats.nodes).toBe(2);
+  expect(stats.particles).toBeGreaterThan(40);
   const time = await world.getAttribute("data-material-time");
   await expect
     .poll(() => world.getAttribute("data-material-time"))
     .not.toBe(time);
-  const samples = await world.getAttribute("data-painted-samples");
-  await page.mouse.move(100, 200);
-  await page.mouse.down();
-  await page.mouse.move(260, 350, { steps: 15 });
-  await page.mouse.up();
-  await expect(world).toHaveAttribute("data-painted-samples", samples);
   await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  await expect(world).toHaveAttribute("data-journey-moving", "true");
-  const position = await world.getAttribute("data-camera-position");
+  const pos = await world.getAttribute("data-camera-position");
   await expect
     .poll(() => world.getAttribute("data-camera-position"))
-    .not.toBe(position);
+    .not.toBe(pos);
   await page.getByRole("button", { name: "Suspendre le voyage" }).click();
-  await expect(world).toHaveAttribute("data-journey-moving", "false");
-  await page.getByRole("button", { name: "Revenir au dessin" }).click();
-  await expect(paper).toBeVisible();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
+  await page.getByRole("button", { name: "Revenir à la composition" }).click();
+  await expect(
+    page.getByRole("group", { name: "Mon disque sensoriel" }),
+  ).toBeVisible();
   expect(
-    await page.evaluate(() => window.__ambiences.every((a) => a.paused)),
-  ).toBe(true);
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  await expect(paper).toHaveAttribute("data-stroke-count", "1");
+    await page.locator(".sensory-node").evaluateAll((nodes) =>
+      nodes.map((n) => ({
+        id: n.dataset.nodeId,
+        style: n.getAttribute("style"),
+      })),
+    ),
+  ).toEqual(before);
+  await expect(page.locator(".sensory-disc-links line")).toHaveCount(1);
   expect(errors).toEqual([]);
 });
 
-test("gyro permission refusal retains complete tactile contemplation without changing the route", async ({
+test("graph contacts are one toggle per drag and preserve disc bounds and valid edges", async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    window.DeviceOrientationEvent = class extends Event {
-      static requestPermission() {
-        return Promise.resolve("denied");
-      }
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const {
+      emptySensoryGraph,
+      addSensoryNode,
+      moveSensoryNode,
+      removeSensoryNode,
+    } = await import("/src/chill/sensoryGraph.js");
+    let g = emptySensoryGraph();
+    g = addSensoryNode(g, {
+      id: "a",
+      emojiId: "water",
+      u: 0.3,
+      v: 0.5,
+      size: 0.2,
+      opacity: 0.8,
+    });
+    g = addSensoryNode(g, {
+      id: "b",
+      emojiId: "warm",
+      u: 0.7,
+      v: 0.5,
+      size: 0.2,
+      opacity: 0.5,
+    });
+    const contacts = new Set();
+    g = moveSensoryNode(g, "b", { u: 0.4, v: 0.5 }, contacts);
+    const linked = g.links.length;
+    for (let i = 0; i < 20; i++)
+      g = moveSensoryNode(g, "b", { u: 0.4 + i * 0.0001, v: 0.5 }, contacts);
+    const jitter = g.links.length;
+    g = moveSensoryNode(g, "b", { u: 0.8, v: 0.5 }, new Set());
+    g = moveSensoryNode(g, "b", { u: 0.4, v: 0.5 }, new Set());
+    const unlinked = g.links.length;
+    g = moveSensoryNode(g, "b", { u: 8, v: 8 });
+    const n = g.nodes.find((n) => n.id === "b");
+    g = removeSensoryNode(g, "a");
+    return {
+      linked,
+      jitter,
+      unlinked,
+      radius: Math.hypot(n.u - 0.5, n.v - 0.5),
+      dangling: g.links.some((l) => l.a === "a" || l.b === "a"),
     };
   });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
-  await drawDisc(page);
-  await page.getByRole("button", { name: "Révéler mon ciel" }).click();
-  const world = page.locator("#stage canvas:not(.painting-paper)");
-  await expect(world).toHaveAttribute("data-gyroscope-status", "denied");
-  const before = await world.getAttribute("data-camera-orientation");
-  await page.mouse.move(100, 200);
-  await page.mouse.down();
-  await page.mouse.move(260, 300, { steps: 15 });
-  await page.mouse.up();
-  await expect
-    .poll(() => world.getAttribute("data-camera-orientation"))
-    .not.toBe(before);
-  await expect(world).toHaveAttribute("data-journey-moving", "false");
+  expect(result.linked).toBe(1);
+  expect(result.jitter).toBe(1);
+  expect(result.unlinked).toBe(0);
+  expect(result.radius).toBeLessThanOrEqual(0.40001);
+  expect(result.dangling).toBe(false);
 });
 
-test("all twelve disc materials leave distinct marks with preset colors and clean undo", async ({
+test("3D node and connection flows react locally to audio and dispose their resources", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
-  const names = await page
-    .getByRole("group", { name: "Choisir une brosse" })
-    .getByRole("button")
-    .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("aria-label")));
-  const signatures = [];
-  for (const name of names) {
-    await drawDisc(page, name);
-    signatures.push(
-      await page.locator(".painting-paper").evaluate((c) => c.toDataURL()),
-    );
-    await page
-      .getByRole("button", { name: "Annuler le dernier trait" })
-      .click();
-  }
-  expect(new Set(signatures).size).toBe(12);
-  await expect(page.locator(".painting-paper")).toHaveAttribute(
-    "data-stroke-count",
-    "0",
-  );
-});
-
-test("gyro turns the look while the autonomous visit remains independent of steering", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    window.DeviceOrientationEvent = class extends Event {
-      static requestPermission() {
-        return Promise.resolve("granted");
-      }
+  const r = await page.evaluate(async () => {
+    const { createSensoryNetwork } =
+      await import("/src/chill/createSensoryNetwork.js");
+    const n = createSensoryNetwork();
+    n.setDocument({
+      nodes: [
+        { id: "a", emojiId: "water", u: 0.4, v: 0.5, size: 0.2, opacity: 0.5 },
+        { id: "b", emojiId: "warm", u: 0.6, v: 0.5, size: 0.2, opacity: 0.8 },
+      ],
+      links: [{ a: "a", b: "b" }],
+    });
+    const points = n.group.children.find((m) => m.isPoints),
+      line = n.group.children.find((m) => m.isLineSegments),
+      before = Array.from(points.geometry.attributes.position.array),
+      colors = Array.from(line.geometry.attributes.color.array);
+    for (let i = 0; i < 60; i++)
+      n.update(
+        0,
+        { bands: [0.9, 0.1, 0.7, 0.2, 0.1, 0.3], energy: 0.8 },
+        1 / 60,
+      );
+    const changed = before.some(
+        (x, i) =>
+          Math.abs(x - points.geometry.attributes.position.array[i]) > 0.001,
+      ),
+      flow = colors.some(
+        (x, i) => Math.abs(x - line.geometry.attributes.color.array[i]) > 0.001,
+      );
+    let disposed = 0;
+    n.group.traverse((o) => {
+      if (o.material) o.material.addEventListener("dispose", () => disposed++);
+    });
+    const stats = n.stats;
+    n.dispose();
+    return {
+      changed,
+      flow,
+      disposed,
+      stats,
+      remaining: n.group.children.length,
     };
   });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
-  await drawDisc(page);
-  await page.getByRole("button", { name: "Révéler mon ciel" }).click();
-  const world = page.locator("#stage canvas:not(.painting-paper)");
-  const sensor = (alpha) =>
-    page.evaluate((alpha) => {
-      const e = new Event("deviceorientation");
-      Object.assign(e, { alpha, beta: 80, gamma: 0 });
-      window.dispatchEvent(e);
-    }, alpha);
-  await expect(world).toBeVisible();
-  await expect(world).toHaveAttribute("data-camera-mode", "panorama");
-  await sensor(0);
-  await expect(world).toHaveAttribute("data-gyroscope-status", "active");
-  const orientation = await world.getAttribute("data-camera-orientation"),
-    position = await world.getAttribute("data-camera-position");
-  await sensor(65);
-  await expect
-    .poll(() => world.getAttribute("data-camera-orientation"))
-    .not.toBe(orientation);
-  await expect(world).toHaveAttribute("data-camera-position", position);
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  await expect(world).toHaveAttribute("data-journey-guided", "true");
-  await expect
-    .poll(() => world.getAttribute("data-camera-position"))
-    .not.toBe(position);
-  const movingLook = await world.getAttribute("data-camera-orientation");
-  await sensor(120);
-  await expect
-    .poll(() => world.getAttribute("data-camera-orientation"))
-    .not.toBe(movingLook);
+  expect(r.changed).toBe(true);
+  expect(r.flow).toBe(true);
+  expect(r.stats.nodes).toBe(2);
+  expect(r.stats.links).toBe(1);
+  expect(r.disposed).toBeGreaterThanOrEqual(7);
+  expect(r.remaining).toBe(0);
+});
+
+test.describe("mobile touch composition", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  test("a native touch drag drops an emoji from the outer palette", async ({
+    page,
+    context,
+  }) => {
+    await beginNetwork(page);
+    const palette = await page
+        .getByRole("button", { name: "Ajouter Bulles", exact: true })
+        .boundingBox(),
+      disc = await page
+        .getByRole("group", { name: "Mon disque sensoriel" })
+        .boundingBox();
+    const client = await context.newCDPSession(page),
+      start = {
+        x: palette.x + palette.width / 2,
+        y: palette.y + palette.height / 2,
+      },
+      end = { x: disc.x + disc.width * 0.5, y: disc.y + disc.height * 0.45 };
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [start],
+    });
+    for (let i = 1; i <= 12; i++)
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          {
+            x: start.x + ((end.x - start.x) * i) / 12,
+            y: start.y + ((end.y - start.y) * i) / 12,
+          },
+        ],
+      });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await expect(
+      page.getByRole("button", { name: "Déplacer Bulles", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Révéler mon paysage" }),
+    ).toBeEnabled();
+  });
 });

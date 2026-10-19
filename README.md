@@ -1,14 +1,24 @@
-# Haïkuarelle Virtuelle •° — Mon ciel émotionnel
+# Paysage sensoriel 360•° — Mon monde en résonance
 
-Un seul parcours : **dessiner sur un disque → révéler → contempler ou voyager**.
+**Composer sur un disque → relier → révéler → contempler ou voyager.**
 
-Le disque blanc cassé propose douze brosses prédéfinies : Doute, Joie, Tristesse, Élan, Soulagement, Tendresse, Peur, Sérénité, Colère, Curiosité, Émerveillement et Tension. Chaque picto possède une couleur, une taille, une transparence et une matière distinctes : encre fine, lavis, granulation, éclats, empreintes, soies, brumes, cristaux, rémanences, spirales, floraisons et nervures. Ce sont des associations artistiques libres, sans inférence psychologique.
+Douze émojis sensoriels entourent le disque : bulles, ondes, chaleur, fraîcheur, densité, légèreté, brume, vibration, tourbillon, tension, élan et rayonnement. Le thérapeute peut compléter « Décore ton ciel avec les émojis qui résonnent avec… » à l’accueil ou dans la composition. La consigne reste locale à la session et ne sert à aucune analyse.
 
-Le papier est réellement circulaire : les dépôts sont limités au disque et les gestes hors de sa surface sont ignorés. Le dessin 2D est statique et silencieux. L’annulation reste accessible ; aucun sticker, haïku, panneau de réglages ou dessin FPV.
+Glisser un émoji de la couronne vers le disque le dépose. Les objets restent déplaçables ; taille et opacité s’appliquent à l’objet sélectionné ou aux prochains dépôts. Faire se toucher deux objets crée ou retire leur lien. Une paire ne peut changer qu’une fois par déplacement ; séparer des objets déjà en contact ne supprime pas leur lien. Pour délier, séparer puis faire une nouvelle rencontre. Annulation, suppression et manipulation au clavier sont disponibles. Un clic sur la palette puis sur le disque constitue une alternative au glissement ; Entrée dépose au centre, les flèches déplacent un objet et Suppr le retire.
 
-« Révéler mon ciel » déploie les mêmes traits dans le moteur Three.js existant. Le gyro est demandé depuis le toucher de validation ; le glissement tactile reste disponible si le capteur est absent ou refusé. Le regard ne pilote pas la translation. « Voyager » suit un parcours fermé d’orbites et de traversées autour du volume peint. Suspendre revient à une contemplation stationnaire. La musique Gravity et la réponse audio locale des pigments sont réservées à ce monde 3D. Revenir au dessin coupe la musique et conserve le papier intact.
+Le modèle indépendant conserve les positions normalisées, tailles, opacités et paires de liens. Le paysage 3D utilise ces mêmes données : volumes sphériques translucides portant une face émoji orientée vers le regard, particules locales et liens courbes parcourus de flux. Il ne s’agit pas de modèles volumétriques sculptés de chaque pictogramme. Les familles sensorielles disposent de mouvements et de bandes de réponse musicale distincts. La musique Gravity et la réactivité sont réservées au monde 3D ; le retour à la composition coupe la musique et conserve le réseau.
 
-Les profils sont centralisés dans `src/chill/workshopBrushes.js`, les glyphes dans `materialGlyphs.js`. Les douze moteurs existants sont réutilisés. Le rendu GPU est suspendu en 2D ; les géométries sèches sont regroupées par matériau. Aucun backend, stockage émotionnel ou appel d’API supplémentaire. Le document reste en mémoire pendant la session. Les anciens parcours restent accessibles via leurs paramètres historiques.
+Le voyage suit les orbites et traversées du moteur existant, sans pilotage. Le gyroscope oriente le regard ; le glissement reste disponible en secours. Aucune interprétation émotionnelle, aucun diagnostic, aucun backend et aucune transmission du dessin ou de la consigne.
+
+## Modules
+
+- `sensoryEmojiCatalog.js` : émojis, couleurs, signatures de mouvement et bandes audio.
+- `sensoryGraph.js` : ajout, déplacement contraint au disque, contacts et liens.
+- `SensoryDisc.jsx` : composition tactile, couronne, consigne et historique.
+- `createSensoryNetwork.js` : objets 3D, buffers partagés de particules et flux, nettoyage GPU.
+- `WatercolorWorkshop.jsx` : parcours composition / contemplation et musique.
+
+Le modèle est plafonné à 48 objets et 96 liens, l’historique à 60 opérations. Les particules et les flux utilisent quatre lots GPU ; les textures d’émojis sont partagées par symbole. Le rendu 3D est suspendu en composition. Les modules de peinture précédents restent disponibles dans le dépôt pour préserver les parcours historiques.
 
 ## Développement
 
@@ -34,4 +44,4 @@ Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend n
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/watercolor-workshop.spec.js
 ```
 
-Les vérifications couvrent le disque statique et silencieux, les douze matières, la révélation, la musique limitée au monde 3D, le voyage autonome, le gyro refusé avec secours tactile, le retour au papier et les modules de rendu. Le confort du voyage et les capteurs sur appareils physiques restent à valider.
+Les contrôles ciblent les contacts sans rebond, le glisser-déposer, la taille et l’opacité, la consigne, l’aller-retour 2D / 3D, la réaction locale à l’audio, le voyage et le nettoyage GPU. Le confort, le gyroscope et le rendu sur téléphone physique restent à valider. L’apparence native des émojis dépend des polices de l’appareil.

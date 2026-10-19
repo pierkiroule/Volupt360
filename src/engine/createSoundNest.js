@@ -1,3 +1,4 @@
+import { createSensoryNetwork } from "../chill/createSensoryNetwork.js";
 import { createSkyNozzle } from "../chill/createSkyNozzle.js";
 import { createPanoramaJourney } from "./createPanoramaJourney.js";
 import { createContemplationState } from "../chill/createContemplationState.js";
@@ -207,6 +208,8 @@ export function createSoundNest(
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
   const pigmentArchive = createPigmentArchive();
   landscape.add(pigmentArchive.group);
+  const sensoryNetwork = createSensoryNetwork();
+  landscape.add(sensoryNetwork.group);
   const marks = [],
     totalBounds = new THREE.Box3(),
     extent = new THREE.Vector3();
@@ -470,6 +473,7 @@ export function createSoundNest(
     marks.forEach(destroyStroke);
     marks.length = 0;
     pigmentArchive.clear();
+    sensoryNetwork.clear();
     retiredTextures.forEach((binding) => binding.texture.dispose());
     retiredTextures.clear();
     traceMemory.clear();
@@ -1268,7 +1272,10 @@ export function createSoundNest(
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
-      if (paintingWorld) pigmentArchive.animate?.(visual, dt, lifeTime);
+      if (paintingWorld) {
+        pigmentArchive.animate?.(visual, dt, lifeTime);
+        sensoryNetwork.update(lifeTime, visual, dt);
+      }
       moodAtmosphere?.update(
         lifeTime,
         visual,
@@ -1364,7 +1371,9 @@ export function createSoundNest(
       );
     renderer.domElement.dataset.lifeTime = lifeTime.toFixed(3);
     renderer.domElement.dataset.materialTime = (
-      marks[0]?.uniforms[0]?.uTime?.value ?? 0
+      sensoryNetwork.count
+        ? lifeTime
+        : (marks[0]?.uniforms[0]?.uTime?.value ?? 0)
     ).toFixed(3);
     if (!renderer.xr.isPresenting)
       rig.update(
@@ -1512,6 +1521,25 @@ export function createSoundNest(
         rig.stopPanorama();
         cancelSteering();
       }
+    },
+    loadSensoryWorld(document) {
+      reset();
+      paintingWorld = true;
+      rig.setPanoramaExploreOnly(true);
+      sensoryNetwork.setDocument(document);
+      this.setCameraMode("panorama");
+      if (!sensoryNetwork.bounds.isEmpty()) {
+        const focus = sensoryNetwork.bounds.getCenter(new THREE.Vector3());
+        const radius =
+          sensoryNetwork.bounds.getSize(new THREE.Vector3()).length() * 0.5;
+        paintingFocus.copy(focus);
+        rig.setPanoramaSculpture(focus, Math.max(3, radius));
+        xrJourney.reset();
+        xrJourney.setSculpture(focus, Math.max(3, radius));
+      }
+      renderer.domElement.dataset.sensoryNetwork = JSON.stringify(
+        sensoryNetwork.stats,
+      );
     },
     loadPaintingWorld(document) {
       reset();
@@ -2019,6 +2047,7 @@ export function createSoundNest(
       imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();
+      sensoryNetwork.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

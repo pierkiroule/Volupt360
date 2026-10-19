@@ -2925,3 +2925,236 @@ label:focus-visible {
     left: 27%;
   }
 }
+.sensory-editor {
+  --sensory-disc-size: max(
+    160px,
+    min(calc(100vw - 112px), calc(100dvh - 360px), 500px)
+  );
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  touch-action: none;
+  user-select: none;
+}
+.sensory-editor[hidden] {
+  display: none;
+}
+.sensory-orbit {
+  position: absolute;
+  width: var(--sensory-disc-size);
+  height: var(--sensory-disc-size);
+  top: calc((100dvh - 40px) / 2);
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.sensory-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #faf7ee;
+  box-shadow:
+    0 10px 60px #44574412,
+    inset 0 0 0 1px #d7d9cc;
+  outline-offset: 5px;
+}
+.sensory-disc-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.sensory-disc-links line {
+  stroke-width: 0.45;
+  opacity: 0.55;
+  stroke-linecap: round;
+}
+.sensory-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+  font-family:
+    "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+.sensory-node[aria-pressed="true"] {
+  border-color: #819a8a80;
+  box-shadow: 0 0 0 3px #9ba79813;
+}
+.sensory-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sensory-ring button {
+  position: absolute;
+  left: calc(50% + var(--orbit-x) * (var(--sensory-disc-size) / 2 + 30px));
+  top: calc(50% + var(--orbit-y) * (var(--sensory-disc-size) / 2 + 30px));
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: #faf8f066;
+  font-size: 26px;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+.sensory-ring button[aria-pressed="true"] {
+  border-color: #819a8a80;
+  background: #f9f7ef;
+}
+.sensory-drag-ghost {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.sensory-instruction {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 20px;
+  right: 20px;
+  max-width: 550px;
+  margin: auto;
+  color: #52665b;
+  font:
+    13px/1.5 system-ui,
+    sans-serif;
+  text-align: center;
+  z-index: 15;
+}
+.sensory-instruction summary {
+  cursor: pointer;
+}
+.sensory-instruction span {
+  font-style: italic;
+}
+.sensory-instruction label,
+.welcome-instruction label {
+  display: block;
+  padding: 10px;
+  border-radius: 14px;
+  background: #faf8ef;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+}
+.sensory-instruction textarea,
+.welcome-instruction textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 60px;
+  margin-top: 8px;
+  border: 1px solid #bac6b7;
+  border-radius: 10px;
+  padding: 8px;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+  color: #42584b;
+  background: #fffdf7;
+  user-select: text;
+  touch-action: auto;
+}
+.welcome-instruction {
+  max-width: 350px;
+  width: 100%;
+  font:
+    12px/1.5 system-ui,
+    sans-serif;
+}
+.welcome-instruction summary {
+  cursor: pointer;
+}
+.sensory-compose-tools {
+  position: absolute;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(370px, calc(100vw - 24px));
+  padding: 10px;
+  border-radius: 22px;
+  box-sizing: border-box;
+  background: #faf8f0ed;
+  border: 1px solid #a6ae9c44;
+  color: #4d5d53;
+}
+.sensory-compose-tools p {
+  font:
+    10px/1.5 system-ui,
+    sans-serif;
+  text-align: center;
+  margin: 0 0 5px;
+}
+.sensory-settings {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sensory-settings label {
+  flex: 1;
+  min-width: 0;
+  font:
+    10px/1.3 system-ui,
+    sans-serif;
+}
+.sensory-settings input {
+  display: block;
+  width: 100%;
+  accent-color: #6f8e79;
+}
+.sensory-settings button {
+  flex: 0 0 36px;
+  width: 36px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: #52685a;
+  padding: 4px;
+  font-size: 24px;
+}
+.sensory-reveal {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  background: #536f63;
+  color: #faf8ee;
+  border: 0;
+  border-radius: 24px;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+}
+.sensory-compose-tools button:disabled {
+  opacity: 0.35;
+}
+@media (max-height: 520px) {
+  .sensory-orbit {
+    left: 29%;
+    top: 54%;
+  }
+  .sensory-compose-tools {
+    left: auto;
+    right: 12px;
+    transform: none;
+    width: 220px;
+    bottom: 20px;
+  }
+  .sensory-instruction {
+    left: 10px;
+    right: 10px;
+    font-size: 11px;
+  }
+}
