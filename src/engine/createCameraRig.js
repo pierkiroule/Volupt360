@@ -304,6 +304,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     direction.copy(state.direction).transformDirection(landscape.matrixWorld);
     center.copy(state.bounds.center).applyMatrix4(landscape.matrixWorld);
     if (mode === "panorama") {
+      if (panoramaExploreOnly) {
+        camera.getWorldDirection(direction);
+        journey.steer(direction, dt);
+      }
       journey.update(dt);
       camera.position.copy(journey.position);
       target
@@ -318,7 +322,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       matrix.lookAt(camera.position, target, up);
       desiredQuaternion.setFromRotationMatrix(matrix).multiply(gyroRelative);
       camera.quaternion.slerp(desiredQuaternion, mix(7));
-      camera.fov = 96;
+      // A restrained lens opening accompanies travel; no roll or camera shake.
+      camera.fov += ((journey.moving ? 98 : 92) - camera.fov) * mix(2);
       camera.far = 1000;
       camera.updateProjectionMatrix();
       canvas.dataset.journeyMoving = String(journey.moving);

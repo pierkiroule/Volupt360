@@ -79,6 +79,10 @@ export function createSoundNest(
   const sculptureCenter = new THREE.Vector3();
   const scene = new THREE.Scene();
   const xrOrigin = new THREE.Group();
+  const xrHeading = new THREE.Vector3(0, 0, -1);
+  const xrForward = new THREE.Vector3();
+  let xrTravel = false,
+    xrSpeed = 0;
   scene.add(xrOrigin);
   renderer.xr.enabled = true;
   let xrSession = null,
@@ -1351,6 +1355,12 @@ export function createSoundNest(
           ? Math.min(0.1, milliseconds / 1000)
           : dt,
       );
+    if (renderer.xr.isPresenting) {
+      renderer.xr.getCamera().getWorldDirection(xrForward);
+      xrHeading.lerp(xrForward, 1 - Math.exp(-dt * 3)).normalize();
+      xrSpeed += ((xrTravel ? 0.65 : 0) - xrSpeed) * (1 - Math.exp(-dt * 4));
+      xrOrigin.position.addScaledVector(xrHeading, xrSpeed * dt);
+    }
     if (cameraMode === "panorama")
       updateDirect(dt, padSource?.getVisualFeatures?.() || {});
     renderer.domElement.dataset.cameraOrientation = camera.quaternion
@@ -1566,6 +1576,8 @@ export function createSoundNest(
       }
       xrSession = session;
       rig.stopPanorama();
+      xrTravel = true;
+      xrSpeed = 0;
       xrOrigin.position.set(0, 0, 20);
       xrOrigin.add(camera);
       camera.position.set(0, 0, 0);
@@ -1836,9 +1848,11 @@ export function createSoundNest(
     },
     setSculptureDepth,
     travelPanorama() {
+      xrTravel = true;
       rig.travelPanorama();
     },
     stopPanorama() {
+      xrTravel = false;
       rig.stopPanorama();
     },
     setPanoramaDial(value) {

@@ -434,7 +434,7 @@ test("panorama journey latches its heading and decelerates without stopping draw
   expect(r.moving).toBe(false);
 });
 
-test("gyro changes the panorama look while the captured journey direction stays fixed", async ({
+test("gyro activates on entry and steers the flying panorama", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -452,7 +452,9 @@ test("gyro changes the panorama look while the captured journey direction stays 
   await page.mouse.move(300, 350, { steps: 15 });
   await page.mouse.up();
   await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await page.getByRole("button", { name: "Activer le gyroscope" }).click();
+  await expect(
+    page.getByRole("button", { name: "Désactiver le gyroscope" }),
+  ).toBeVisible();
   const canvas = page.locator("#stage canvas:not(.painting-paper)");
   const sensor = (alpha) =>
     page.evaluate((alpha) => {
@@ -472,7 +474,9 @@ test("gyro changes the panorama look while the captured journey direction stays 
   await expect
     .poll(() => canvas.getAttribute("data-camera-orientation"))
     .not.toBe(orientation);
-  await expect(canvas).toHaveAttribute("data-journey-heading", heading);
+  await expect
+    .poll(() => canvas.getAttribute("data-journey-heading"))
+    .not.toBe(heading);
   await page.getByRole("button", { name: "Désactiver le gyroscope" }).click();
   await expect(canvas).toHaveAttribute("data-gyroscope-status", "disabled");
 });
@@ -583,4 +587,43 @@ test("VR entry is offered only by capability and a rejected session leaves the a
   );
   await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
   await expect(page.locator(".painting-paper")).toBeVisible();
+});
+
+test("2D opacity caps the whole stroke even where the gesture overlaps", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createPaintingCanvas } =
+      await import("/src/chill/createPaintingCanvas.js");
+    const host = document.createElement("div");
+    document.body.append(host);
+    const paper = createPaintingCanvas(host);
+    paper.setConfig({ opacity: 0.2, size: 70 });
+    const send = (type, x) =>
+      paper.canvas.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: 1,
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: 180,
+        }),
+      );
+    // Synthetic capture needs no browser-owned pointer for this unit exercise.
+    paper.canvas.setPointerCapture = () => {};
+    send("pointerdown", 180);
+    for (let i = 0; i < 40; i++) send("pointermove", 180 + (i % 2) * 12);
+    send("pointerup", 180);
+    const pixels = paper.canvas
+      .getContext("2d")
+      .getImageData(0, 0, paper.canvas.width, paper.canvas.height).data;
+    let max = 0;
+    for (let i = 3; i < pixels.length; i += 4) max = Math.max(max, pixels[i]);
+    paper.dispose();
+    host.remove();
+    return max;
+  });
+  expect(result).toBeGreaterThan(0);
+  expect(result).toBeLessThanOrEqual(52);
 });

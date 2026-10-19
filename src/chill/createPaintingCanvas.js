@@ -12,8 +12,29 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   canvas.width = Math.round(width * ratio);
   canvas.height = Math.round(height * ratio);
   container.append(canvas);
-  const ctx = canvas.getContext("2d");
+  const output = canvas.getContext("2d");
+  const layer = document.createElement("canvas");
+  const committed = document.createElement("canvas");
+  layer.width = committed.width = canvas.width;
+  layer.height = committed.height = canvas.height;
+  const ctx = layer.getContext("2d");
+  const baseContext = committed.getContext("2d");
   ctx.scale(ratio, ratio);
+  function present(opacity = 1) {
+    output.clearRect(0, 0, canvas.width, canvas.height);
+    output.globalAlpha = 1;
+    output.drawImage(committed, 0, 0);
+    output.globalAlpha = opacity;
+    output.drawImage(layer, 0, 0);
+    output.globalAlpha = 1;
+  }
+  function commit(stroke) {
+    baseContext.globalAlpha = stroke.opacity;
+    baseContext.drawImage(layer, 0, 0);
+    baseContext.globalAlpha = 1;
+    ctx.clearRect(0, 0, width, height);
+    present();
+  }
   const strokes = [],
     cache = new Map();
   let active = null,
@@ -32,15 +53,23 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   function stamp(brush, color) {
     const key = brush.id + color;
     if (cache.has(key)) return cache.get(key);
-    const image = createPigmentPlate(brush.textureKind, brush.seed, 128, false),
+    const image = createPigmentPlate(brush.textureKind, brush.seed, 256, false),
       c = image.getContext("2d"),
-      data = c.getImageData(0, 0, 128, 128);
+      data = c.getImageData(0, 0, 256, 256);
     const rgb = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
     for (let k = 0; k < data.data.length; k += 4) {
       const load = data.data[k] / 255,
+        paper = data.data[k + 1] / 255,
         tide = data.data[k + 2] / 255;
+      // Same pigment pooling, paper tooth and tide darkening as the 3D shader.
+      const pool = Math.min(1, load * 0.7 + tide * 0.4);
+      const density = (1.08 - 0.8 * pool) * (0.87 + 0.23 * paper);
       for (let j = 0; j < 3; j++)
-        data.data[k + j] = rgb[j] * (1.1 - load * 0.45 - tide * 0.3);
+        data.data[k + j] =
+          rgb[j] * (density * (1 - tide * 0.2) + 0.25 * tide * 0.2);
+      const tooth = Math.max(0, Math.min(1, (paper - 0.2) / 0.45));
+      const reserve = 0.65 + 0.35 * tooth * tooth * (3 - 2 * tooth);
+      data.data[k + 3] *= reserve;
     }
     c.putImageData(data, 0, 0);
     cache.set(key, image);
@@ -56,7 +85,7 @@ export function createPaintingCanvas(container, onChange = () => {}) {
       y = p.v * height;
     const n = index + stroke.seed,
       texture = stamp(brush, stroke.color);
-    ctx.globalAlpha = stroke.opacity;
+    ctx.globalAlpha = 1;
     if (brush.id === "lucioles") {
       if (index % 3) return;
       for (let i = 0; i < 3; i++) {
@@ -100,12 +129,15 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   }
   function redraw() {
     ctx.clearRect(0, 0, width, height);
+    baseContext.clearRect(0, 0, canvas.width, canvas.height);
     for (const s of strokes) {
       const index = { value: 0 };
       dot(s, s.points[0], index.value++);
       for (let i = 1; i < s.points.length; i++)
         segment(s, s.points[i - 1], s.points[i], index);
+      commit(s);
     }
+    present();
   }
   function point(e) {
     const r = canvas.getBoundingClientRect(),
@@ -131,6 +163,7 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   }
   function end() {
     if (!active) return;
+    commit(active.stroke);
     active = null;
     onChange(strokes.length);
     canvas.dataset.strokeCount = String(strokes.length);
@@ -147,6 +180,7 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     strokes.push(stroke);
     active = { id: e.pointerId, stroke, index: { value: 1 } };
     dot(stroke, p, 0);
+    present(stroke.opacity);
     canvas.setPointerCapture(e.pointerId);
   };
   const move = (e) => {
@@ -159,6 +193,7 @@ export function createPaintingCanvas(container, onChange = () => {}) {
       if (Math.hypot(p.u - last.u, p.v - last.v) < 0.0005) continue;
       active.stroke.points.push(p);
       segment(active.stroke, last, p, active.index);
+      present(active.stroke.opacity);
     }
   };
   const up = (e) => {

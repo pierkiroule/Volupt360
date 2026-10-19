@@ -118,6 +118,8 @@ export default function WatercolorWorkshop() {
         setGyro(false);
         setWorld(false);
       } else {
+        // Request sensor access inside the trusted click, before yielding a frame.
+        const gyroRequest = engine.current.requestContemplationGyroscope(true);
         const doc = paper.current.getDocument();
         await new Promise((resolve) =>
           requestAnimationFrame(() => requestAnimationFrame(resolve)),
@@ -126,6 +128,7 @@ export default function WatercolorWorkshop() {
         engine.current.loadPaintingWorld(doc);
         setDial(0);
         setWorld(true);
+        setGyro(Boolean(await gyroRequest));
       }
     } catch (e) {
       setError(e.message);
