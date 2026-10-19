@@ -80,6 +80,7 @@ export function createSoundNest(
   const nearestBubble = new THREE.Vector3();
   const sculptureCenter = new THREE.Vector3();
   const scene = new THREE.Scene();
+  const paintingFocus = new THREE.Vector3(0, 0, 8);
   const xrOrigin = new THREE.Group();
   const xrJourney = createPanoramaJourney();
   const xrForward = new THREE.Vector3();
@@ -89,6 +90,7 @@ export function createSoundNest(
   let xrSession = null,
     paperMode = false,
     paintingWorld = false,
+    worldDrawing = false,
     paintOverride = null;
   scene.background = new THREE.Color("#f4f0e8");
   renderer.domElement.dataset.skydome = "off-white-paper";
@@ -675,7 +677,13 @@ export function createSoundNest(
         travel: 0,
         depth:
           cameraMode === "panorama"
-            ? 12 + sculptureDepth
+            ? (paintingWorld
+                ? THREE.MathUtils.clamp(
+                    camera.position.distanceTo(paintingFocus),
+                    2,
+                    8,
+                  )
+                : 12) + sculptureDepth
             : camera.position.length() + sculptureDepth,
       };
       renderer.domElement.dataset.directDrawing = "true";
@@ -716,7 +724,7 @@ export function createSoundNest(
     renderer.domElement.dataset.nozzlePaint = "false";
   }
   function onSteeringDown(event) {
-    if (paintingWorld && cameraMode === "panorama") return;
+    if (paintingWorld && cameraMode === "panorama" && !worldDrawing) return;
     if (
       workshopMode &&
       ["sculpt", "panorama"].includes(cameraMode) &&
@@ -797,7 +805,7 @@ export function createSoundNest(
     );
   }
   function onSteeringMove(event) {
-    if (paintingWorld && cameraMode === "panorama") return;
+    if (paintingWorld && cameraMode === "panorama" && !worldDrawing) return;
     if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       sculptureGesture.move(event);
       return;
@@ -845,7 +853,7 @@ export function createSoundNest(
     }
   }
   function onSteeringEnd(event) {
-    if (paintingWorld && cameraMode === "panorama") return;
+    if (paintingWorld && cameraMode === "panorama" && !worldDrawing) return;
     if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       if (event.type === "pointercancel") sculptureGesture.clear();
       else sculptureGesture.up(event);
@@ -1592,6 +1600,7 @@ export function createSoundNest(
       }
       if (!sourceBounds.isEmpty()) {
         const focus = sourceBounds.getCenter(new THREE.Vector3());
+        paintingFocus.copy(focus);
         const radius = sourceBounds.getSize(new THREE.Vector3()).length() * 0.5;
         rig.setPanoramaSculpture(focus, Math.max(2.2, radius));
         xrJourney.reset();
@@ -1727,6 +1736,24 @@ export function createSoundNest(
       if (binding !== previous)
         this.setBrushTexture(profile.id, binding, { preserveExisting: true });
       return next;
+    },
+    setWorldPainting(enabled, tool) {
+      sculptureGesture.clear();
+      worldDrawing = Boolean(enabled && paintingWorld);
+      rig.setPanoramaDrawing(worldDrawing);
+      renderer.domElement.dataset.worldDrawing = String(worldDrawing);
+      if (tool) {
+        this.setBrush(tool.brush);
+        const profile = generatedBrushes.get(tool.brush);
+        paintOverride = profile
+          ? {
+              ...profile,
+              color: tool.color,
+              opacity: tool.opacity,
+              width: (tool.size / Math.min(innerWidth, innerHeight)) * 28,
+            }
+          : null;
+      } else paintOverride = null;
     },
     setBrush(id) {
       if (BRUSHES.some((item) => item.id === id) && id !== brush) {

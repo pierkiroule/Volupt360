@@ -11,7 +11,8 @@ export default function WatercolorWorkshop() {
   const stage = useRef(null),
     engine = useRef(null),
     paper = useRef(null),
-    generation = useRef(0);
+    generation = useRef(0),
+    worldSource = useRef(null);
   const twigs = useTwigBank();
   const [started, setStarted] = useState(false),
     [busy, setBusy] = useState(false),
@@ -19,6 +20,7 @@ export default function WatercolorWorkshop() {
   const [world, setWorld] = useState(false),
     [worldBusy, setWorldBusy] = useState(false),
     [count, setCount] = useState(0);
+  const [draw3D, setDraw3D] = useState(true);
   const [stickerMode, setStickerMode] = useState(false);
   const [stickerSize, setStickerSize] = useState(64);
   const [stickerOpacity, setStickerOpacity] = useState(0.9);
@@ -61,15 +63,30 @@ export default function WatercolorWorkshop() {
       emoji: WORKSHOP_BRUSHES.find((b) => b.id === brush).sensory.emoji,
       brush,
       color,
-      size: stickerMode ? stickerSize : size,
-      opacity: stickerMode ? stickerOpacity : opacity,
+      size: !world && stickerMode ? stickerSize : size,
+      opacity: !world && stickerMode ? stickerOpacity : opacity,
     });
-  }, [brush, color, size, opacity, stickerMode, stickerSize, stickerOpacity]);
+  }, [
+    brush,
+    color,
+    size,
+    opacity,
+    stickerMode,
+    stickerSize,
+    stickerOpacity,
+    world,
+  ]);
   useEffect(() => {
     paper.current?.setVisible(started && !world);
     paper.current?.setEnabled(started && !paused && !world);
     engine.current?.setPaperVisible(!started || !world);
   }, [started, world, paused]);
+  useEffect(() => {
+    engine.current?.setWorldPainting(
+      started && world && draw3D && !paused,
+      world ? { brush, color, size, opacity } : null,
+    );
+  }, [started, world, draw3D, paused, brush, color, size, opacity]);
   async function start() {
     if (busy) return;
     setBusy(true);
@@ -93,6 +110,7 @@ export default function WatercolorWorkshop() {
       engine.current.setPadSource(bank);
       engine.current.pauseChillSession(false);
       paper.current.clear();
+      worldSource.current = null;
       setWorld(false);
       setMoving(false);
       setGyro(false);
@@ -135,7 +153,11 @@ export default function WatercolorWorkshop() {
           requestAnimationFrame(() => requestAnimationFrame(resolve)),
         );
         if (ticket !== generation.current) return;
-        engine.current.loadPaintingWorld(doc);
+        const source = JSON.stringify(doc);
+        if (worldSource.current !== source) {
+          engine.current.loadPaintingWorld(doc);
+          worldSource.current = source;
+        }
         setDial(0);
         setWorld(true);
         setGyro(Boolean(await gyroRequest));
@@ -239,26 +261,47 @@ export default function WatercolorWorkshop() {
                       : "Explorer en 3D →"}
                 </button>
               </div>
-              {!world && (
+              {
                 <>
-                  <div
-                    className="paper-mode"
-                    role="group"
-                    aria-label="Mode de création"
-                  >
-                    <button
-                      aria-pressed={!stickerMode}
-                      onClick={() => setStickerMode(false)}
+                  {!world ? (
+                    <div
+                      className="paper-mode"
+                      role="group"
+                      aria-label="Mode de création"
                     >
-                      Peindre
-                    </button>
-                    <button
-                      aria-pressed={stickerMode}
-                      onClick={() => setStickerMode(true)}
+                      <button
+                        aria-pressed={!stickerMode}
+                        onClick={() => setStickerMode(false)}
+                      >
+                        Peindre
+                      </button>
+                      <button
+                        aria-pressed={stickerMode}
+                        onClick={() => setStickerMode(true)}
+                      >
+                        Stickers
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className="paper-mode"
+                      role="group"
+                      aria-label="Interaction en 3D"
                     >
-                      Stickers
-                    </button>
-                  </div>
+                      <button
+                        aria-pressed={draw3D}
+                        onClick={() => setDraw3D(true)}
+                      >
+                        Peindre en 3D
+                      </button>
+                      <button
+                        aria-pressed={!draw3D}
+                        onClick={() => setDraw3D(false)}
+                      >
+                        Regarder
+                      </button>
+                    </div>
+                  )}
                   <section
                     className="landscape-palette symbolic-palette"
                     aria-label="Matières symboliques"
@@ -293,15 +336,15 @@ export default function WatercolorWorkshop() {
                     </p>
                   </section>
                   <details
-                    key={stickerMode ? "sticker" : "paint"}
+                    key={!world && stickerMode ? "sticker" : "paint"}
                     className="paper-adjustments"
-                    open={stickerMode || undefined}
+                    open={(!world && stickerMode) || undefined}
                   >
                     <summary aria-label="Réglages de la brosse">
                       Réglages
                     </summary>
                     <div className="paper-settings">
-                      {!stickerMode && (
+                      {(world || !stickerMode) && (
                         <label>
                           Couleur
                           <input
@@ -317,15 +360,15 @@ export default function WatercolorWorkshop() {
                         <input
                           type="range"
                           aria-label={
-                            stickerMode
+                            !world && stickerMode
                               ? "Taille du sticker"
                               : "Taille de la brosse"
                           }
                           min="2"
-                          max={stickerMode ? "160" : "80"}
-                          value={stickerMode ? stickerSize : size}
+                          max={!world && stickerMode ? "160" : "80"}
+                          value={!world && stickerMode ? stickerSize : size}
                           onChange={(e) =>
-                            (stickerMode ? setStickerSize : setSize)(
+                            (!world && stickerMode ? setStickerSize : setSize)(
                               Number(e.target.value),
                             )
                           }
@@ -336,25 +379,27 @@ export default function WatercolorWorkshop() {
                         <input
                           type="range"
                           aria-label={
-                            stickerMode
+                            !world && stickerMode
                               ? "Opacité du sticker"
                               : "Opacité de la brosse"
                           }
                           min=".1"
                           max="1"
                           step=".05"
-                          value={stickerMode ? stickerOpacity : opacity}
+                          value={
+                            !world && stickerMode ? stickerOpacity : opacity
+                          }
                           onChange={(e) =>
-                            (stickerMode ? setStickerOpacity : setOpacity)(
-                              Number(e.target.value),
-                            )
+                            (!world && stickerMode
+                              ? setStickerOpacity
+                              : setOpacity)(Number(e.target.value))
                           }
                         />
                       </label>
                     </div>
                   </details>
                 </>
-              )}
+              }
               {world && (
                 <label className="sculpture-depth">
                   Panorama

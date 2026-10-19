@@ -12,7 +12,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     disposed = false;
   const journey = createPanoramaJourney();
   const returnAim = new THREE.Quaternion();
-  let panoramaExploreOnly = false;
+  let panoramaExploreOnly = false,
+    panoramaDrawing = false;
   let panoramaDial = 0;
   let povLocked = false,
     povArrival = 0,
@@ -78,7 +79,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   listen(canvas, "pointerdown", (event) => {
     if (
       mode === "sculpt" ||
-      (mode === "panorama" && !panoramaExploreOnly) ||
+      (mode === "panorama" && (!panoramaExploreOnly || panoramaDrawing)) ||
       (mode === "drone" && getFlight().windEnabled)
     )
       return;
@@ -493,6 +494,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   return {
     setPanoramaSculpture(center, radius) {
       journey.setSculpture(center, radius);
+    },
+    setPanoramaDrawing(value) {
+      panoramaDrawing = value;
+      dragging = null;
     },
     setPanoramaExploreOnly(value) {
       panoramaExploreOnly = value;

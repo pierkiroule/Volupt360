@@ -55,6 +55,7 @@ test("2D squiggle source survives a reactive 360 world round trip and supports u
   await expect
     .poll(async () => Number(await world.getAttribute("data-painted-samples")))
     .toBeGreaterThan(2);
+  await page.getByRole("button", { name: "Regarder", exact: true }).click();
   const painted = await world.getAttribute("data-painted-samples");
   await page.mouse.move(140, 300);
   await page.mouse.down();
@@ -913,4 +914,52 @@ test("guided FPV stays near the sculpture under sustained outward steering and p
   expect(result.crossings).toBeGreaterThan(10);
   expect(result.maxStep).toBeLessThan(0.025);
   expect(result.tail).toBeLessThan(0.001);
+});
+
+test("FPV exposes ten brushes and paints while travelling without rotating under the finger", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  await page.mouse.move(90, 200);
+  await page.mouse.down();
+  await page.mouse.move(270, 300, { steps: 20 });
+  await page.mouse.up();
+  const paper = page.locator(".painting-paper"),
+    world = page.locator("#stage canvas:not(.painting-paper)");
+  const source = await paper.evaluate((c) => c.toDataURL());
+  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
+  await expect(world).toHaveAttribute("data-world-drawing", "true");
+  await expect(
+    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
+  ).toHaveCount(10);
+  await page.getByRole("button", { name: "Roche", exact: true }).click();
+  await expect(world).toHaveAttribute("data-active-brush", "falaises");
+  await page
+    .getByRole("button", { name: "Voyager dans la direction du regard" })
+    .click();
+  const before = Number(await world.getAttribute("data-painted-samples"));
+  await page.mouse.move(90, 210);
+  await page.mouse.down();
+  await expect(world).toHaveAttribute("data-direct-drawing", "true");
+  await page.mouse.move(270, 310, { steps: 25 });
+  await page.mouse.up();
+  await expect(world).toHaveAttribute("data-direct-drawing", "false");
+  await expect
+    .poll(async () => Number(await world.getAttribute("data-painted-samples")))
+    .toBeGreaterThan(before + 2);
+  await expect(world).toHaveAttribute("data-journey-moving", "true");
+  const painted = await world.getAttribute("data-painted-samples");
+  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
+  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
+  await expect(world).toHaveAttribute("data-painted-samples", painted);
+  await page.getByRole("button", { name: "Regarder", exact: true }).click();
+  await expect(world).toHaveAttribute("data-world-drawing", "false");
+  await page.mouse.move(90, 210);
+  await page.mouse.down();
+  await page.mouse.move(270, 310, { steps: 10 });
+  await page.mouse.up();
+  await expect(world).toHaveAttribute("data-painted-samples", painted);
 });
