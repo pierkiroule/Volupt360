@@ -8,8 +8,8 @@ const roles = {
 };
 
 /** One reusable local envelope per deposit. No frame allocations or shared phase. */
-export function createMaterialResponse(brush, seed) {
-  const primary = roles[brush] ?? 2;
+export function createMaterialResponse(brush, seed, sensory = null) {
+  const primary = sensory?.band ?? roles[brush] ?? 2;
   const secondary = (primary + 2 + (seed % 2)) % 6;
   const output = {
     energy: 0,
@@ -21,7 +21,7 @@ export function createMaterialResponse(brush, seed) {
     moisture: 0.6,
   };
   let previous = 0;
-  const speed = 3.5 + (seed % 7) * 0.55;
+  const speed = sensory?.smoothing ?? 3.5 + (seed % 7) * 0.55;
   return (audio, dt) => {
     const hasSpectrum = audio.bands?.length === 6;
     const a = hasSpectrum
@@ -37,7 +37,7 @@ export function createMaterialResponse(brush, seed) {
     const accent = Math.min(
       1,
       Math.max(0, energy - previous) * 8 +
-        (audio.pulse || 0) * (0.22 + (seed % 3) * 0.12),
+        (audio.pulse || 0) * (sensory?.pulse ?? 0.22 + (seed % 3) * 0.12),
     );
     previous += (energy - previous) * (1 - Math.exp(-dt * 2));
     output.energy +=
@@ -58,7 +58,7 @@ export function createMaterialResponse(brush, seed) {
         1,
         output.moisture +
           dt *
-            (output.low * 0.16 +
+            (output.low * (sensory ? sensory.moisture * 0.22 : 0.16) +
               output.pulse * 0.08 -
               (0.022 + output.high * 0.045) * output.moisture),
       ),

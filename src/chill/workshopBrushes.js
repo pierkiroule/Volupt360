@@ -1,3 +1,4 @@
+import { SENSORY_QUALITIES } from "./sensoryQualities.js";
 // Ten complementary pigment gestures, using the existing audio-reactive engines.
 const common = {
   detailedWatercolor: true,
@@ -69,6 +70,7 @@ export const WORKSHOP_BRUSHES = [
     seed: 11935,
     planarWash: false,
     paintStamp: true,
+    paperGesture: "bubbles",
     particleCount: 3,
     sampleStride: 4,
     dispersion: 0.18,
@@ -102,20 +104,20 @@ export const WORKSHOP_BRUSHES = [
   },
   {
     id: "dilution",
-    name: "Marée",
+    name: "Givre",
     glyph: "neutral",
     baseId: "dilution",
-    color: "#168b9b",
+    color: "#2583b6",
     textureKind: "wash",
     style: 20,
     width: 1.1,
     seed: 14794,
-    paperGesture: "tide",
+    paperGesture: "crystal",
     moodDiffusion: 0.65,
   },
   {
     id: "echo",
-    name: "Écho",
+    name: "Braise",
     glyph: "wave",
     baseId: "echo",
     color: "#b85520",
@@ -125,10 +127,11 @@ export const WORKSHOP_BRUSHES = [
     seed: 15747,
     paperGesture: "echo",
     moodGranulation: 1.7,
+    moodMotion: "wave",
   },
   {
     id: "hachures",
-    name: "Trame",
+    name: "Spirale",
     glyph: "angular",
     baseId: "hachures",
     color: "#355e43",
@@ -136,11 +139,17 @@ export const WORKSHOP_BRUSHES = [
     style: 0,
     width: 0.65,
     seed: 16700,
-    paperGesture: "hatch",
+    paperGesture: "spiral",
     planarWash: false,
     particleCount: 3,
+    moodMotion: "swirl",
     sampleStride: 3,
     dispersion: 0.12,
   },
-].map((profile) => ({ ...common, ...profile }));
+].map((profile) => ({
+  ...common,
+  ...profile,
+  sensory: SENSORY_QUALITIES[profile.id],
+  speed: SENSORY_QUALITIES[profile.id].tempo,
+}));
 export const DEFAULT_WORKSHOP_BRUSH = WORKSHOP_BRUSHES[1];

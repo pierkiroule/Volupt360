@@ -31,7 +31,7 @@ export default function WatercolorWorkshop() {
     [audioOpen, setAudioOpen] = useState(false),
     [vr, setVR] = useState(false);
   useEffect(() => {
-    document.title = "OIZO •° — Un trait, plusieurs mondes";
+    document.title = "Senso360•° — Mon paysage sensoriel";
     engine.current = createSoundNest(stage.current, { onError: setError });
     engine.current.setPaperVisible(true);
     paper.current = createPaintingCanvas(stage.current, setCount);
@@ -184,16 +184,21 @@ export default function WatercolorWorkshop() {
       <div id="stage" ref={stage} />
       {!started && (
         <section className="chill-welcome">
-          <span className="chill-eyebrow">Un trait, plusieurs mondes</span>
-          <h1>OIZO •°</h1>
-          <h2>Atelier de squiggles</h2>
+          <span className="chill-eyebrow">Dessiner · Explorer · Ressentir</span>
+          <h1>Senso360•°</h1>
+          <h2>Mon paysage sensoriel</h2>
           <p>
-            Un fil, une vague, une empreinte… Dessinez librement sur le papier.
-            À chaque matière, chacun peut donner son sens.
+            Une pression, un frisson, un souffle… Évoquez une situation, si vous
+            le souhaitez, et donnez forme à ce que vous ressentez. Chaque émoji
+            ouvre une matière : sa signification vous appartient.
           </p>
           <p>
-            Entrez ensuite dans ce même tableau : les couleurs deviennent un
-            monde à 360°, vivant au rythme de la musique.
+            Entrez ensuite dans votre paysage à 360°. La musique fait vibrer,
+            onduler et diffuser vos traces. Revenez au dessin à tout moment.
+          </p>
+          <p className="sensory-note">
+            Une exploration artistique et éducative de la sensorialité, sans
+            analyse de vos choix ni interprétation psychologique automatique.
           </p>
           <button disabled={busy} onClick={start}>
             {busy ? "Le papier s’éveille…" : "Ouvrir l’atelier"}
@@ -235,7 +240,7 @@ export default function WatercolorWorkshop() {
                         <button
                           key={b.id}
                           aria-label={b.name}
-                          title={b.name}
+                          title={`${b.sensory.emoji} ${b.name} · ${b.sensory.quality}`}
                           aria-pressed={brush === b.id}
                           disabled={paused}
                           style={{ "--brush-color": b.color }}
@@ -244,11 +249,20 @@ export default function WatercolorWorkshop() {
                             setColor(b.color);
                           }}
                         >
-                          <ToolIcon name={b.glyph} />
+                          <span className="sensory-emoji" aria-hidden="true">
+                            {b.sensory.emoji}
+                          </span>
                           <span className="brush-name">{b.name}</span>
                         </button>
                       ))}
                     </div>
+                    <p className="sensory-hint" aria-live="polite">
+                      {
+                        WORKSHOP_BRUSHES.find((b) => b.id === brush)?.sensory
+                          .quality
+                      }{" "}
+                      · à votre façon
+                    </p>
                   </section>
                   <details className="paper-adjustments">
                     <summary aria-label="Réglages de la brosse">

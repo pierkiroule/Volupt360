@@ -286,7 +286,7 @@ export function createSoundNest(
           ? 0.85
           : 0.15,
       opening: region.opening,
-      respond: createMaterialResponse(id, serial),
+      respond: createMaterialResponse(id, serial, generated?.sensory),
       uniforms: [],
       uniformStamp: -1,
       life: generated?.life || "Fluide",

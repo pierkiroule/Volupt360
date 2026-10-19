@@ -88,21 +88,39 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     ctx.globalAlpha = 1;
     if (brush.paperGesture) {
       const mode = brush.paperGesture;
-      const copies = mode === "threads" ? 3 : mode === "echo" ? 3 : 1;
-      if (mode === "hatch" && index % 3) return;
+      const copies = [
+        "threads",
+        "echo",
+        "crystal",
+        "spiral",
+        "bubbles",
+      ].includes(mode)
+        ? 3
+        : 1;
+      if ((mode === "hatch" || mode === "crystal") && index % 3) return;
       if (mode === "tide" && index % 3) return;
       for (let i = 0; i < copies; i++) {
         ctx.save();
         const spread = (i - (copies - 1) / 2) * base * 0.36;
-        ctx.translate(x, y + spread);
+        const orbit = n * 0.17 + (i * Math.PI * 2) / 3;
+        ctx.translate(
+          x + (mode === "spiral" ? Math.cos(orbit) * base * 0.4 : 0),
+          y + (mode === "spiral" ? Math.sin(orbit) * base * 0.4 : spread),
+        );
         ctx.rotate(
-          mode === "hatch" ? -0.65 + hash(n) * 0.3 : (hash(n) - 0.5) * 0.4,
+          mode === "crystal"
+            ? (i * Math.PI) / 3
+            : mode === "spiral"
+              ? orbit
+              : mode === "hatch"
+                ? -0.65 + hash(n) * 0.3
+                : (hash(n) - 0.5) * 0.4,
         );
         const w =
           base *
           (mode === "threads"
             ? 0.8
-            : mode === "hatch"
+            : mode === "hatch" || mode === "crystal"
               ? 0.12
               : mode === "cloud"
                 ? 1.6
@@ -118,7 +136,7 @@ export function createPaintingCanvas(container, onChange = () => {}) {
                 : 1);
         ctx.globalAlpha =
           mode === "cloud" ? 0.16 : mode === "echo" ? 0.7 - i * 0.18 : 0.72;
-        if (mode === "tide") {
+        if (mode === "tide" || mode === "bubbles") {
           // Pigment gathers on a broken rim, leaving an airy paper reserve.
           ctx.beginPath();
           ctx.ellipse(0, 0, w * 0.43, h * 0.36, 0, 0, Math.PI * 2);

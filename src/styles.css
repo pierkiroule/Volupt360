@@ -2702,3 +2702,25 @@ label:focus-visible {
 .watercolor-workshop .pictorial-tools.is-open #pictorial-tool-panel {
   gap: 1px;
 }
+
+.watercolor-workshop .symbolic-palette .sensory-emoji {
+  font:
+    23px/1.1 system-ui,
+    sans-serif;
+  filter: none;
+}
+.watercolor-workshop .sensory-hint {
+  margin: 2px 4px;
+  text-align: center;
+  font:
+    10px/1.4 system-ui,
+    sans-serif;
+  color: #52606a;
+}
+.watercolor-workshop .chill-welcome .sensory-note {
+  font:
+    12px/1.5 system-ui,
+    sans-serif;
+  color: #58636a;
+  max-width: 35em;
+}

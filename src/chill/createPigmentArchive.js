@@ -118,6 +118,7 @@ export function createPigmentArchive() {
           group.add(dryMesh);
           bucket = {
             respond: mark.respond,
+            motionScale: mark.motionScale || 0.65,
             mesh: dryMesh,
             geometry: null,
             vertices: 0,
@@ -206,8 +207,9 @@ export function createPigmentArchive() {
           ["uAudioPulse", "pulse"],
         ])
           if (u[name]) u[name].value = Math.min(1, (r[key] || 0) * 2);
-        if (u.uTime) u.uTime.value = time * 0.65;
-        if (u.uParticleTime) u.uParticleTime.value = 360 + time * 0.65;
+        if (u.uTime) u.uTime.value = time * bucket.motionScale;
+        if (u.uParticleTime)
+          u.uParticleTime.value = 360 + time * bucket.motionScale;
       }
     },
     settle() {

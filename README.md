@@ -1,8 +1,14 @@
-# OIZO •° — Un trait, plusieurs mondes
+# Senso360•° — Mon paysage sensoriel
 
 Un atelier de squiggles (opacité appliquée au trait complet, et non à chaque tampon superposé) : dessiner sur un papier 2D, puis entrer dans une interprétation 3D et musicale du même tableau.
 
-Le papier propose dix matières symboliques, avec pictogrammes et noms visibles : **Fil, Vague, Roche, Étincelles, Empreinte, Soie, Nuage, Marée, Écho et Trame**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. La palette défile horizontalement et toute la barre se replie. Couleur, taille et opacité sont regroupées dans « Réglages », fermé par défaut ; annuler reste directement accessible.
+Le papier propose dix matières symboliques, avec émojis et noms visibles : **Fil, Vague, Roche, Étincelles, Empreinte, Soie, Nuage, Givre, Braise et Spirale**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. La palette défile horizontalement et toute la barre se replie. Couleur, taille et opacité sont regroupées dans « Réglages », fermé par défaut ; annuler reste directement accessible.
+
+Les émojis sont des invitations ouvertes : 🧵 tension/lien, 🌊 ondulation/flux, 🪨 densité/appui, ⚡ picotement/vibration, 🫧 expansion/pulsation, 🪶 légèreté/effleurement, 🌫️ diffusion/enveloppement, ❄️ fraîcheur/grain, 🔥 chaleur/rayonnement, 🌀 rotation/circulation. Ces mots ne constituent ni une liste exhaustive des sensations ni une interprétation clinique. Leur sens appartient à la personne.
+
+Le parcours éducatif propose d’évoquer librement une situation, de dessiner ses sensations puis d’explorer le paysage sous une autre perspective. Aucun récit personnel n’est demandé ni enregistré. Le dessin reste local à la session. Il n’y a ni diagnostic ni revendication d’efficacité hypnothérapeutique démontrée.
+
+Les signatures sensorielles sont modifiables dans `src/chill/sensoryQualities.js`. Chaque matière possède une bande spectrale, une inertie, une réponse aux transitoires, une humidité et une vitesse propres. Les mêmes enveloppes accompagnent les dépôts actifs et archivés ; les anciens modes conservent leur réponse par défaut.
 
 Les traits, leurs points et leurs réglages sont la source du document. La version 3D déploie cette composition autour du spectateur sur des surfaces courbes, avec une séparation progressive des couches. L’opacité conserve son rôle de transparence. Le retour en 2D retrouve le tableau intact ; les modifications suivantes alimentent la prochaine construction 3D.
 

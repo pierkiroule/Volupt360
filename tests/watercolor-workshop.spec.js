@@ -693,3 +693,71 @@ test("ten materials paint distinct seeded marks and the compact tray folds compl
   expect(results.every((r) => r.coverage > 0)).toBe(true);
   expect(new Set(results.map((r) => r.hash)).size).toBe(10);
 });
+
+test("Senso360 presents ten open sensory invitations without collecting a situation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle("Senso360•° — Mon paysage sensoriel");
+  await expect(page.getByRole("heading", { name: "Senso360•°" })).toBeVisible();
+  await expect(page.getByText(/sans analyse de vos choix/)).toBeVisible();
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  const emojis = page.locator(".sensory-emoji");
+  await expect(emojis).toHaveCount(10);
+  expect(new Set(await emojis.allTextContents()).size).toBe(10);
+  await page.getByRole("button", { name: "Givre", exact: true }).click();
+  await expect(page.locator(".sensory-hint")).toContainText(
+    "Fraîcheur, grain, frisson",
+  );
+  await expect(page.locator(".sensory-hint")).toContainText("à votre façon");
+  await page.getByRole("button", { name: "Replier les outils" }).click();
+  await expect(page.locator(".sensory-emoji")).toHaveCount(0);
+});
+
+test("sensory signatures have distinct smooth spectral responses and preserve legacy defaults", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { SENSORY_QUALITIES } =
+      await import("/src/chill/sensoryQualities.js");
+    const { createMaterialResponse } =
+      await import("/src/engine/createMaterialResponse.js");
+    const signatures = Object.values(SENSORY_QUALITIES).map((s) => {
+      const run = createMaterialResponse("voiles", 1, s);
+      const audio = {
+        bands: [0.8, 0.6, 0.4, 0.3, 0.2, 0.1],
+        energy: 0.4,
+        pulse: 0.5,
+      };
+      const first = { ...run(audio, 1 / 60) };
+      for (let i = 0; i < 90; i++) run(audio, 1 / 60);
+      const sustained = { ...run(audio, 1 / 60) };
+      for (let i = 0; i < 600; i++) run({ energy: 0 }, 1 / 60);
+      return { first, sustained, silent: { ...run({ energy: 0 }, 1 / 60) } };
+    });
+    const old = createMaterialResponse("voiles", 7);
+    const fallback = createMaterialResponse("voiles", 7, null);
+    const audio = { energy: 0.3, low: 0.2, high: 0.1, pulse: 0.2 };
+    return {
+      signatures,
+      legacy:
+        JSON.stringify(old(audio, 0.016)) ===
+        JSON.stringify(fallback(audio, 0.016)),
+    };
+  });
+  expect(result.legacy).toBe(true);
+  expect(
+    new Set(result.signatures.map((s) => s.sustained.energy.toFixed(4))).size,
+  ).toBeGreaterThan(5);
+  for (const s of result.signatures) {
+    expect(s.first.energy).toBeGreaterThan(0);
+    expect(s.first.energy).toBeLessThan(s.sustained.energy);
+    expect(s.silent.energy).toBeLessThan(0.001);
+    for (const v of Object.values(s.sustained)) {
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(1);
+    }
+  }
+});
