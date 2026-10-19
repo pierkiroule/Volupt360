@@ -582,86 +582,92 @@ test("sky brush follows a moving aim with continuous finite-speed flight", async
   expect(result.jump).toBeLessThanOrEqual(0.201);
 });
 
-test("one to three emojis generate a mandala with a bounded accessible palette", async ({
+async function paintLine(page, y = 0.5) {
+  const box = await page.locator(".emoji-paper").boundingBox();
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * y, {
+    steps: 25,
+  });
+  await page.mouse.up();
+}
+test("emoji brushes paint distinct continuous matter with size, opacity and undo", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Faire éclore mon mandala" }).click();
-  const palette = page.getByRole("group", { name: "Émojis du mandala" });
-  await expect(palette.getByRole("button")).toHaveCount(12);
+  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
   await expect(
-    page.getByRole("button", { name: "Entrer dans mon mandala" }),
+    page.getByRole("group", { name: "Brosses émojis" }).getByRole("button"),
+  ).toHaveCount(12);
+  await expect(
+    page.getByRole("button", { name: "Révéler en 3D" }),
   ).toBeDisabled();
-  await palette.getByRole("button", { name: "Ondes", exact: true }).click();
-  const paths = page.locator(".mandala-paper path"),
-    before = await paths.first().getAttribute("d");
-  expect(await paths.count()).toBeGreaterThan(90);
-  await palette.getByRole("button", { name: "Chaleur", exact: true }).click();
-  await palette.getByRole("button", { name: "Légèreté", exact: true }).click();
+  await paintLine(page);
+  await expect(page.locator(".emoji-paper svg")).toHaveAttribute(
+    "data-strokes",
+    "1",
+  );
+  const wave = page.locator(".emoji-paper path").first();
+  await expect(wave).toHaveAttribute("stroke", "#62899f");
+  const before = await wave.getAttribute("d");
+  expect(before.split("L").length).toBeGreaterThan(40);
+  await page.getByRole("button", { name: "Chaleur", exact: true }).click();
+  await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.3");
+  await paintLine(page, 0.35);
+  expect(
+    await page.locator('.emoji-paper path[stroke="#bc8969"]').count(),
+  ).toBeGreaterThan(0);
+  expect(
+    Number(
+      await page
+        .locator('.emoji-paper path[stroke="#bc8969"]')
+        .first()
+        .getAttribute("stroke-opacity"),
+    ),
+  ).toBeLessThan(0.3);
+  await page.screenshot({ path: "/tmp/emoji-painting.png" });
+  await page.getByRole("button", { name: "Annuler", exact: true }).click();
+  await expect(page.locator(".emoji-paper svg")).toHaveAttribute(
+    "data-strokes",
+    "1",
+  );
+  expect(await wave.getAttribute("d")).toBe(before);
+  await page.getByRole("button", { name: "Effacer", exact: true }).click();
   await expect(
-    palette.getByRole("button", { name: "Bulles", exact: true }),
+    page.getByRole("button", { name: "Révéler en 3D" }),
   ).toBeDisabled();
-  expect(await paths.first().getAttribute("d")).not.toBe(before);
-  const signature = await paths.first().getAttribute("d");
-  await page.getByRole("button", { name: "Autre éclosion" }).click();
-  expect(await paths.first().getAttribute("d")).not.toBe(signature);
-  await page.screenshot({ path: "/tmp/mandala-composer.png" });
-  await palette.getByRole("button", { name: "Chaleur", exact: true }).click();
-  await expect(
-    palette.getByRole("button", { name: "Bulles", exact: true }),
-  ).toBeEnabled();
 });
-
-test("the same mandala opens into a musical 360 landscape and survives return", async ({
+test("the painting survives an animated musical 360 journey and return", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const errors = [],
-    requests = [];
+  const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
-    if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
+    if (m.type() === "error" && /shader|WebGL|THREE/.test(m.text()))
       errors.push(m.text());
   });
-  page.on("request", (r) => {
-    if (/\.mp3(?:\?|$)/.test(r.url())) requests.push(r.url());
-  });
   await page.goto("/");
-  await page.getByRole("button", { name: "Faire éclore mon mandala" }).click();
-  await page.getByRole("button", { name: "Ondes", exact: true }).click();
-  await page.getByRole("button", { name: "Chaleur", exact: true }).click();
-  const before = await page.locator(".mandala-paper svg").innerHTML();
-  expect(requests).toEqual([]);
-  await page.getByRole("button", { name: "Entrer dans mon mandala" }).click();
-  const canvas = page.locator("#stage canvas");
-  await expect(canvas).toBeVisible();
+  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
+  await paintLine(page);
+  const before = await page.locator(".emoji-paper svg").innerHTML();
+  await page.getByRole("button", { name: "Révéler en 3D" }).click();
+  const world = page.locator("#stage canvas");
+  await expect(world).toBeVisible();
   await expect
     .poll(
       async () =>
-        JSON.parse((await canvas.getAttribute("data-sensory-network")) || "{}")
-          .mandala,
+        JSON.parse((await world.getAttribute("data-sensory-network")) || "{}")
+          .painting,
     )
     .toBe(true);
-  const time = await canvas.getAttribute("data-material-time");
-  await expect
-    .poll(() => canvas.getAttribute("data-material-time"))
-    .not.toBe(time);
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-material-time")))
-    .toBeGreaterThan(0.3);
-  await page.screenshot({ path: "/tmp/mandala-landscape.png" });
   await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  const pos = await canvas.getAttribute("data-camera-position");
+  const pos = await world.getAttribute("data-camera-position");
   await expect
-    .poll(() => canvas.getAttribute("data-camera-position"))
+    .poll(() => world.getAttribute("data-camera-position"))
     .not.toBe(pos);
-  await page.getByRole("button", { name: "Suspendre le voyage" }).click();
   await page.getByRole("button", { name: "Revenir à la composition" }).click();
-  await expect(
-    page.getByRole("region", { name: "Composer un mandala" }),
-  ).toBeVisible();
-  expect(await page.locator(".mandala-paper svg").innerHTML()).toBe(before);
+  expect(await page.locator(".emoji-paper svg").innerHTML()).toBe(before);
   expect(errors).toEqual([]);
 });
 
@@ -780,16 +786,39 @@ test.describe("mobile touch composition", () => {
     isMobile: true,
     viewport: { width: 390, height: 844 },
   });
-  test("native touch chooses emojis and reveals the mandala", async ({
+  test("native touch paints immediately and follows the finger", async ({
     page,
+    context,
   }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Faire éclore mon mandala" }).tap();
-    await page.getByRole("button", { name: "Bulles", exact: true }).tap();
-    await expect(
-      page.getByRole("button", { name: "Bulles", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("button", { name: "Entrer dans mon mandala" }).tap();
+    await page.getByRole("button", { name: "Peindre mon ciel" }).tap();
+    const r = await page.locator(".emoji-paper").boundingBox(),
+      client = await context.newCDPSession(page);
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: r.x + r.width * 0.3, y: r.y + r.height * 0.5 }],
+    });
+    await expect(page.locator(".emoji-paper svg")).toHaveAttribute(
+      "data-strokes",
+      "1",
+    );
+    for (let i = 1; i <= 15; i++)
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          { x: r.x + r.width * (0.3 + i * 0.025), y: r.y + r.height * 0.5 },
+        ],
+      });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    expect(
+      (await page.locator(".emoji-paper path").first().getAttribute("d")).split(
+        "L",
+      ).length,
+    ).toBeGreaterThan(15);
+    await page.getByRole("button", { name: "Révéler en 3D" }).tap();
     await expect(page.locator("#stage canvas")).toBeVisible();
   });
 });
@@ -947,66 +976,63 @@ test("sensory currents compile, react locally and reuse bounded GPU buffers", as
   expect(errors).toEqual([]);
 });
 
-test("mandala generation is reproducible and its landscape preserves paths with bounded reusable resources", async ({
+test("all twelve emoji brushes have different signatures and reusable 3D resources", async ({
   page,
 }) => {
   await page.goto("/");
   const r = await page.evaluate(async () => {
-    const { generateMandala, mandalaPoint } =
-      await import("/src/chill/mandalaGenerator.js");
-    const { createMandalaLandscape } =
-      await import("/src/chill/createMandalaLandscape.js");
-    const a = generateMandala(["water", "warm"]),
-      b = generateMandala(["cold", "mist"]);
-    const same =
-      JSON.stringify(a) === JSON.stringify(generateMandala(["water", "warm"]));
-    const different = JSON.stringify(a.paths) !== JSON.stringify(b.paths);
-    const empty = generateMandala([]).paths.length;
-    const clamped = generateMandala(["water", "warm", "cold", "mist"]).choices
-      .length;
-    const landscape = createMandalaLandscape();
-    landscape.setDocument(a);
+    const { createEmojiPainting } = await import("/src/chill/emojiPainting.js"),
+      { SENSORY_EMOJIS } = await import("/src/chill/sensoryEmojiCatalog.js"),
+      { createPictorialLandscape } =
+        await import("/src/chill/createPictorialLandscape.js");
+    const make = (id) => ({
+      emojiId: id,
+      size: 0.04,
+      opacity: 0.6,
+      points: [
+        { x: -0.3, y: 0 },
+        { x: 0.3, y: 0 },
+      ],
+    });
+    const docs = SENSORY_EMOJIS.map((e) => createEmojiPainting([make(e.id)]));
+    const signatures = new Set(
+      docs.map((d) =>
+        JSON.stringify(d.paths.map((p) => [p.points, p.width, p.color])),
+      ),
+    ).size;
+    const stroke = make("water"),
+      doc = createEmojiPainting([stroke]);
+    const cache = doc.paths[0] === createEmojiPainting([stroke]).paths[0];
+    const landscape = createPictorialLandscape();
+    landscape.setDocument(doc);
     const mesh = landscape.group.children[0],
       buffer = mesh.geometry.attributes.position.array;
-    const expected = a.paths.reduce((n, p) => n + p.points.length * 2, 0);
-    const count = mesh.geometry.attributes.position.count;
-    for (let i = 0; i < 360; i++)
-      landscape.update(i / 60, { bands: [0.8, 0.2, 0, 0, 0, 0] }, 1 / 60);
-    const reused = buffer === mesh.geometry.attributes.position.array;
-    const energy = mesh.material.uniforms.bands.value[0];
-    const height = landscape.bounds.max.y - landscape.bounds.min.y;
+    for (let i = 0; i < 180; i++)
+      landscape.update(i / 60, { bands: [0.8, 0, 0, 0, 0, 0] }, 1 / 60);
+    const energy = mesh.material.uniforms.bands.value[0],
+      reused = buffer === mesh.geometry.attributes.position.array;
     let disposed = 0;
     for (const m of landscape.group.children) {
       m.geometry.addEventListener("dispose", () => disposed++);
       m.material.addEventListener("dispose", () => disposed++);
     }
-    landscape.setDocument(b);
-    const disposedOnReplace = disposed;
+    landscape.setDocument(docs[1]);
     landscape.dispose();
     return {
-      same,
-      different,
-      empty,
-      clamped,
-      count,
-      expected,
-      reused,
+      signatures,
+      cache,
       energy,
-      height,
-      disposedOnReplace,
+      reused,
+      disposed,
       remaining: landscape.group.children.length,
-      projection: mandalaPoint({ x: 0, y: 0 }, 0),
+      empty: createEmojiPainting([]).paths.length,
     };
   });
-  expect(r.same).toBe(true);
-  expect(r.different).toBe(true);
-  expect(r.empty).toBe(0);
-  expect(r.clamped).toBe(3);
-  expect(r.count).toBe(r.expected);
-  expect(r.reused).toBe(true);
+  expect(r.signatures).toBe(12);
+  expect(r.cache).toBe(true);
   expect(r.energy).toBeGreaterThan(0.7);
-  expect(r.height).toBeGreaterThan(2);
-  expect(r.disposedOnReplace).toBe(4);
+  expect(r.reused).toBe(true);
+  expect(r.disposed).toBe(4);
   expect(r.remaining).toBe(0);
-  expect(r.projection).toEqual([0, 0, 20]);
+  expect(r.empty).toBe(0);
 });

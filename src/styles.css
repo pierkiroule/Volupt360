@@ -3159,8 +3159,8 @@ label:focus-visible {
   }
 }
 
-/* Resonant mandala: one drawing, one quiet mobile-first workspace. */
-.mandala-composer {
+/* Emoji painting: one drawing, one quiet mobile-first workspace. */
+.emoji-painter {
   position: fixed;
   inset: 0;
   z-index: 8;
@@ -3177,27 +3177,27 @@ label:focus-visible {
     radial-gradient(ellipse at 30% 20%, #dbe7df70, transparent 65%),
     radial-gradient(ellipse at 80% 80%, #e2d6c350, transparent 60%);
 }
-.mandala-composer[hidden] {
+.emoji-painter[hidden] {
   display: none;
 }
-.mandala-composer header {
+.emoji-painter header {
   text-align: center;
   max-width: 480px;
 }
-.mandala-composer h1 {
+.emoji-painter h1 {
   font-family: Caveat, cursive;
   font-size: clamp(28px, 5vw, 42px);
   font-weight: 500;
   margin: 5px 0;
 }
-.mandala-composer header p {
+.emoji-painter header p {
   font:
     13px/1.5 system-ui,
     sans-serif;
   margin: 4px 0;
   color: #61716a;
 }
-.mandala-paper {
+.emoji-paper {
   position: relative;
   flex-shrink: 0;
   width: min(55vh, 86vw, 510px);
@@ -3208,13 +3208,18 @@ label:focus-visible {
     0 0 0 1px #8d988526;
   background: #faf7ef;
 }
-.mandala-paper svg {
+.emoji-paper {
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+}
+.emoji-paper svg {
   display: block;
   width: 100%;
   height: 100%;
   border-radius: 50%;
 }
-.mandala-empty {
+.emoji-empty {
   position: absolute;
   inset: 0;
   display: grid;
@@ -3226,16 +3231,16 @@ label:focus-visible {
   color: #78887c;
   pointer-events: none;
 }
-.mandala-controls {
+.emoji-controls {
   width: min(420px, 100%);
   text-align: center;
 }
-.mandala-palette {
+.emoji-palette {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 6px;
 }
-.mandala-palette button {
+.emoji-palette button {
   font-size: 25px;
   line-height: 1;
   min-height: 44px;
@@ -3247,22 +3252,22 @@ label:focus-visible {
     background 0.2s,
     transform 0.2s;
 }
-.mandala-palette button[aria-pressed="true"] {
+.emoji-palette button[aria-pressed="true"] {
   background: #dce7df;
   border-color: #7e9d8a;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px #637d641a;
 }
-.mandala-palette button:disabled {
+.emoji-palette button:disabled {
   opacity: 0.32;
   cursor: default;
 }
-.mandala-palette button:focus-visible,
-.mandala-actions button:focus-visible {
+.emoji-palette button:focus-visible,
+.emoji-actions button:focus-visible {
   outline: 2px solid #4c7463;
   outline-offset: 3px;
 }
-.mandala-selection {
+.emoji-selection {
   font:
     12px/1.4 system-ui,
     sans-serif;
@@ -3270,16 +3275,16 @@ label:focus-visible {
   min-height: 24px;
   margin: 8px 0;
 }
-.mandala-selection span {
+.emoji-selection span {
   font-size: 20px;
   margin-left: 10px;
 }
-.mandala-actions {
+.emoji-actions {
   display: flex;
   gap: 8px;
   justify-content: center;
 }
-.mandala-actions button {
+.emoji-actions button {
   min-height: 44px;
   border: 1px solid #8c9c8840;
   border-radius: 24px;
@@ -3291,32 +3296,62 @@ label:focus-visible {
     sans-serif;
   cursor: pointer;
 }
-.mandala-actions .mandala-reveal {
+.emoji-actions .emoji-reveal {
   background: #486958;
   color: #fff;
   border: 0;
 }
-.mandala-actions button:disabled {
+.emoji-actions button:disabled {
   opacity: 0.35;
   cursor: default;
 }
 @media (max-height: 650px) {
-  .mandala-composer {
+  .emoji-painter {
     gap: 7px;
     justify-content: flex-start;
   }
-  .mandala-paper {
+  .emoji-paper {
     width: min(46vh, 70vw);
   }
-  .mandala-composer .chill-eyebrow {
+  .emoji-painter .chill-eyebrow {
     display: none;
   }
-  .mandala-composer h1 {
+  .emoji-painter h1 {
     font-size: 26px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mandala-palette button {
+  .emoji-palette button {
     transition: none;
   }
+}
+
+.emoji-settings {
+  display: flex;
+  gap: 18px;
+  margin: 10px 0;
+  font:
+    12px system-ui,
+    sans-serif;
+  color: #526a5c;
+}
+.emoji-settings label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.emoji-settings input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #486958;
+}
+.emoji-controls > p {
+  font:
+    12px system-ui,
+    sans-serif;
+}
+.emoji-painter button,
+.emoji-painter input {
+  touch-action: manipulation;
 }

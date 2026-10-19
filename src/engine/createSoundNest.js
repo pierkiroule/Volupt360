@@ -1536,7 +1536,7 @@ export function createSoundNest(
         rig.setPanoramaSculpture(
           focus,
           Math.max(3, radius),
-          document.kind === "resonant-mandala",
+          document.kind === "emoji-painting",
         );
         xrJourney.reset();
         xrJourney.setSculpture(focus, Math.max(3, radius));

@@ -1,8 +1,16 @@
 import * as THREE from "three";
-import { mandalaPoint } from "./mandalaGenerator.js";
+import { paintingToWorld } from "./paintingToWorld.js";
+function pictorialPoint(point, layer = 0) {
+  return paintingToWorld(
+    { u: point.x + 0.5, v: point.y + 0.5 },
+    layer,
+    80,
+    0.04,
+  ).toArray();
+}
 
 /** A single ribbon batch retains every 2D petal; bounded local motion lives on the GPU. */
-export function createMandalaLandscape() {
+export function createPictorialLandscape() {
   const group = new THREE.Group(),
     bounds = new THREE.Box3();
   let mesh = null,
@@ -28,7 +36,7 @@ export function createMandalaLandscape() {
     },
     setDocument(doc) {
       clear();
-      if (doc.kind !== "resonant-mandala") return;
+      if (doc.kind !== "emoji-painting") return;
       active = true;
       const positions = [],
         colors = [],
@@ -48,7 +56,7 @@ export function createMandalaLandscape() {
             len = Math.hypot(dx, dy) || 1;
           for (let edge = 0; edge < 2; edge++) {
             const sign = edge ? 1 : -1,
-              world = mandalaPoint(
+              world = pictorialPoint(
                 {
                   x: p.x - (dy / len) * path.width * sign * 0.75,
                   y: p.y + (dx / len) * path.width * sign * 0.75,
@@ -96,7 +104,7 @@ export function createMandalaLandscape() {
         dp = [],
         dc = [];
       for (const dot of doc.dots) {
-        dp.push(...mandalaPoint(dot, 2));
+        dp.push(...pictorialPoint(dot, 2));
         tint.set(dot.color);
         dc.push(tint.r, tint.g, tint.b);
       }

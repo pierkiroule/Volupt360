@@ -1,36 +1,36 @@
-# Mandala en résonance •° — Un dessin, un monde
+# Ciel en résonance •° — Des émojis pour peindre
 
-**Choisir 1 à 3 émojis → faire éclore un mandala → entrer dans son paysage 3D.**
+**Choisir une brosse émoji → dessiner librement → révéler son paysage 3D.**
 
-La palette de douze symboles propose des inspirations sensorielles ouvertes. Aucun
-symbole n’est déposé dans l’œuvre : leurs couleurs et leurs signatures influencent
-la composition de pétales entrelacés, de couronnes, de nervures et de pigments.
-La sélection est limitée à trois ; toucher un choix actif le retire. « Autre
-éclosion » produit une variation reproductible sans changer les choix.
+Douze brosses traduisent les symboles en matières : la vague produit des rubans bleus
+ondulants, le feu des langues chaudes, la plume des nervures, le flocon des cristaux,
+la pierre des granulations, la brume des lavis, la vibration des lignes brisées,
+le tourbillon des spirales, le fil des fibres, la pousse des ramifications,
+le soleil des rayons et les bulles de petits anneaux. Les émojis servent à choisir
+la brosse, ils ne sont pas tamponnés dans le dessin.
 
-Le mandala 2D est silencieux et statique. Le monde 3D conserve les mêmes chemins et
-couleurs, déployés en relief autour d’un centre commun. Le premier regard offre une
-vue en hauteur ; le voyage autonome alterne orbites et traversées. Le gyroscope
-oriente seulement le regard, avec glissement tactile de secours. La musique
-Gravity anime les pigments et filaments via des enveloppes spectrales lissées.
-Le retour à la composition suspend la musique et conserve le mandala.
+Le toucher ou la souris dépose immédiatement la matière sur un disque blanc cassé.
+Taille, opacité, annulation et effacement sont disponibles. La 2D est silencieuse.
+La révélation reprend les mêmes géométries et couleurs dans un paysage 3D enveloppant.
+Gravity et les enveloppes spectrales lissées font vivre les rubans, nuages et
+particules. Le voyage autonome reste borné autour de l’œuvre ; gyro et glissement
+orientent le regard. Revenir au dessin conserve les tracés et suspend la musique.
 
-## Architecture
+## Architecture et limites
 
-- `mandalaGenerator.js` : génération déterministe, symétrie partagée et projection 3D.
-- `MandalaComposer.jsx` : sélection accessible, aperçu SVG texturé et variations.
-- `createMandalaLandscape.js` : chemins en rubans GPU partagés, dépôts et animation locale.
-- `createSensoryNetwork.js` : intégration au monde existant et gestion des ressources.
-- `createSensoryAtmosphere.js` / `createSensoryCurrents.js` : nappes aquarellées,
-  mots sensoriels, particules et filaments, ancrés sur la composition.
-- `WatercolorWorkshop.jsx` : sélection, révélation, gyro, musique et voyage.
+- `EmojiPainter.jsx` : interface, capture tactile et dessin immédiat.
+- `emojiPainting.js` : douze signatures procédurales ; géométrie commune aux deux vues.
+- `createPictorialLandscape.js` : rubans et pigments GPU, projection et audio local.
+- `createSensoryNetwork.js` : intégration avec nappes, mots sensoriels et particules.
+- `WatercolorWorkshop.jsx` : parcours dessin / contemplation, musique et navigation.
 
-Le dessin est calculé uniquement lors d’un changement de sélection ou de variation.
-La géométrie 3D est construite à la révélation ; l’animation utilise ensuite les
-mêmes buffers et des uniformes. Les deux lots du mandala sont libérés au remplacement
-et à la destruction du monde. Aucun backend, aucune analyse émotionnelle et aucune
-transmission de la sélection. Les anciens modules d’édition restent dans le dépôt
-mais ne constituent plus le parcours principal.
+La session conserve au maximum 80 tracés. Chaque geste conserve jusqu’à 256 points
+avant simplification progressive et rééchantillonnage borné (1 024 points de travail).
+Les tracés terminés sont mis en cache par référence ; les textures ne sont pas
+régénérées par frame. La géométrie 3D est créée à la révélation, réutilisée pendant
+l’animation et libérée au remplacement ou à la destruction. Les sélections n’ont
+aucune interprétation clinique. Aucun backend ni transmission des dessins.
+Les modules du mandala ont été retirés du parcours et du dépôt.
 
 ## Développement
 
@@ -56,10 +56,9 @@ Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend n
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/watercolor-workshop.spec.js
 ```
 
-Les contrôles ciblent la limite de sélection, la génération reproductible, les différences
-entre combinaisons, le toucher mobile, l’aller-retour 2D / 3D, la réponse locale à
-l’audio, le voyage et le nettoyage GPU. Des contrôles des anciens moteurs réutilisés
-sont conservés dans cette suite. Les suites historiques des concepts abandonnés ne
-font pas partie de cette validation. Le confort et le gyroscope sur téléphone
-physique restent à valider. L’apparence des émojis de la palette dépend des polices
-de l’appareil ; ils ne sont pas affichés dans le paysage.
+Les contrôles ciblent les douze signatures, la continuité du tracé, l’opacité,
+l’annulation, les gestes tactiles natifs, l’aller-retour 2D / 3D, les enveloppes
+audio, le voyage et le nettoyage GPU. La suite conserve aussi des contrôles des
+moteurs historiques réutilisés. Les autres anciennes suites correspondent à des
+concepts abandonnés. Le confort et le gyroscope sur appareil physique restent à
+valider.

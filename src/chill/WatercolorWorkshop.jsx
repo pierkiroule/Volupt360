@@ -1,4 +1,4 @@
-import { MandalaComposer } from "./MandalaComposer.jsx";
+import { EmojiPainter } from "./EmojiPainter.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
@@ -23,7 +23,7 @@ export default function WatercolorWorkshop() {
     [sound, setSound] = useState(true),
     [error, setError] = useState("");
   useEffect(() => {
-    document.title = "Mandala en résonance •° — Un dessin, un monde";
+    document.title = "Ciel en résonance •° — Des émojis pour peindre";
     engine.current = createSoundNest(stage.current, { onError: setError });
     engine.current.setPaperVisible(true);
     return () => {
@@ -142,25 +142,26 @@ export default function WatercolorWorkshop() {
       <div id="stage" ref={stage} />
       {!started && (
         <section className="chill-welcome">
-          <span className="chill-eyebrow">Choisir · Éclore · Voyager</span>
+          <span className="chill-eyebrow">Tracer · Ressentir · Voyager</span>
           <h1>
-            Mandala en résonance
+            Ciel en résonance
             <br />
             360•°
           </h1>
           <h2>Un dessin, un monde</h2>
           <p>
-            Choisis de un à trois émojis. Leurs couleurs et leurs rythmes
-            s’entrelacent en un mandala singulier, fin et organique.
+            Choisis une brosse émoji, puis dessine librement. La vague laisse un
+            ruban bleu ondulant, la plume des nervures légères, le feu des
+            langues de pigments chauds.
           </p>
           <p>
-            Puis entre dans ton dessin : il s’ouvre en paysage 3D vivant, porté
-            par la musique. Contemple-le à 360° ou laisse le voyage te guider.
+            Ton dessin devient ensuite un paysage 3D vivant, animé par la
+            musique. Contemple-le à 360° ou laisse le voyage te porter.
           </p>
-          <button onClick={start}>Faire éclore mon mandala</button>
+          <button onClick={start}>Peindre mon ciel</button>
         </section>
       )}
-      <MandalaComposer
+      <EmojiPainter
         ref={paper}
         visible={started && !world}
         onChange={setCount}
