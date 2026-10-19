@@ -2543,3 +2543,24 @@ label:focus-visible {
     line-height: 1.45;
   }
 }
+
+.sculpture-depth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font:
+    12px/1.5 system-ui,
+    sans-serif;
+  padding: 0.3rem 0.5rem;
+  color: #334452;
+}
+.sculpture-depth input {
+  width: 120px;
+  min-height: 28px;
+  accent-color: #536a76;
+}
+.sculpture-depth output {
+  width: 3ch;
+  font-variant-numeric: tabular-nums;
+}

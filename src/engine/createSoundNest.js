@@ -1,4 +1,5 @@
 import { createContemplationState } from "../chill/createContemplationState.js";
+import { createSculptureGesture } from "./createSculptureGesture.js";
 import { createPhasePalette } from "../chill/phasePalette.js";
 import { sampleExperience } from "../chill/experienceTimeline.js";
 import { createPigmentArchive } from "../chill/createPigmentArchive.js";
@@ -46,6 +47,7 @@ export function createSoundNest(
     onSessionInterrupted,
     onContemplationChange,
     onAcrobaticChange,
+    onSculptureDepthChange,
   } = {},
 ) {
   const mobile =
@@ -472,6 +474,7 @@ export function createSoundNest(
     navigation.active = false;
     navigation.energy = navigation.motion = 0;
     landscape.position.set(0, 0, 0);
+    if (workshopMode) landscape.quaternion.identity();
     tip.visible = false;
     renderer.domElement.dataset.markCount = "0";
     renderer.domElement.dataset.painterPosition = "0,0,0";
@@ -537,6 +540,7 @@ export function createSoundNest(
   let steeringGesture = null,
     steeringMoves = 0;
   let directGesture = null;
+  let sculptureDepth = 0;
   const directTarget = new THREE.Vector3(),
     directPoint = new THREE.Vector3(),
     directLast = new THREE.Vector3(),
@@ -547,7 +551,8 @@ export function createSoundNest(
     viewNormal = new THREE.Vector3(),
     directVelocity = new THREE.Vector3();
   function updateDirect(dt, features) {
-    if (!directGesture || photo || cameraMode !== "sculpt") return;
+    if (!directGesture || photo || chillPaused || cameraMode !== "sculpt")
+      return;
     const g = directGesture;
     g.clock = (g.clock || 0) + dt;
     if (g.samples > 1 && g.clock < 1 / 30) return;
@@ -562,7 +567,9 @@ export function createSoundNest(
       .sub(camera.position)
       .normalize();
     camera.getWorldDirection(viewNormal);
-    const depth = 29 + (g.pressure - 0.5) * 6 + Math.sin(g.travel * 0.12) * 2;
+    const depth = workshopMode
+      ? g.depth
+      : 29 + (g.pressure - 0.5) * 6 + Math.sin(g.travel * 0.12) * 2;
     directTarget
       .copy(camera.position)
       .addScaledVector(
@@ -573,7 +580,8 @@ export function createSoundNest(
     if (!g.samples) {
       directPoint.copy(directTarget);
       directLast.copy(directPoint);
-    } else directPoint.lerp(directTarget, 1 - Math.exp(-dt * 24));
+    } else if (workshopMode) directPoint.copy(directTarget);
+    else directPoint.lerp(directTarget, 1 - Math.exp(-dt * 24));
     const distance = directPoint.distanceTo(directLast);
     if (g.samples > 1 && distance < 0.045) return;
     directVelocity
@@ -610,16 +618,59 @@ export function createSoundNest(
     g.samples++;
     g.clock = 0;
     renderer.domElement.dataset.directSamples = String(g.samples);
+    renderer.domElement.dataset.directPoint = directPoint.toArray().join(",");
+    renderer.domElement.dataset.paintEmitter = "finger";
+    renderer.domElement.dataset.paintedSamples = String(paintedSamples);
   }
   function endDirect() {
     if (!directGesture) return;
     finishPad(brush);
     const id = directGesture.id;
     directGesture = null;
-    if (renderer.domElement.hasPointerCapture(id))
+    if (!workshopMode && renderer.domElement.hasPointerCapture(id))
       renderer.domElement.releasePointerCapture(id);
     renderer.domElement.dataset.directDrawing = "false";
   }
+  function setSculptureDepth(value) {
+    if (!Number.isFinite(Number(value))) return;
+    sculptureDepth = THREE.MathUtils.clamp(Number(value), -10, 10);
+    renderer.domElement.dataset.sculptureDepth = String(sculptureDepth);
+    onSculptureDepthChange?.(sculptureDepth);
+  }
+  const sculptureGesture = createSculptureGesture({
+    start(event) {
+      void padSource.preparePlayback();
+      camera.updateMatrixWorld(true);
+      directDirection
+        .set(1, 0, 0)
+        .applyQuaternion(landscape.quaternion.clone().invert());
+      directGesture = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        pressure: event.pressure || 0.5,
+        samples: 0,
+        travel: 0,
+        depth: camera.position.length() + sculptureDepth,
+      };
+      renderer.domElement.dataset.directDrawing = "true";
+      updateDirect(1 / 60, padSource.getVisualFeatures?.() || {});
+    },
+    move(event) {
+      if (!directGesture) return;
+      directGesture.x = event.clientX;
+      directGesture.y = event.clientY;
+      directGesture.clock = 1 / 30;
+      updateDirect(1 / 60, padSource.getVisualFeatures?.() || {});
+    },
+    end: endDirect,
+    rotate(dx, dy) {
+      rig.rotateSculpture(dx, dy);
+    },
+    depth(delta) {
+      setSculptureDepth(sculptureDepth + delta);
+    },
+  });
   function stopNozzlePaint() {
     if (nozzlePaint) {
       finishPad(nozzlePaint.id);
@@ -641,6 +692,18 @@ export function createSoundNest(
   }
   function onSteeringDown(event) {
     if (
+      workshopMode &&
+      cameraMode === "sculpt" &&
+      padSource &&
+      !chillPaused &&
+      (event.button === 0 || event.button === 2)
+    ) {
+      renderer.domElement.setPointerCapture(event.pointerId);
+      sculptureGesture.down(event);
+      return;
+    }
+    if (
+      !workshopMode &&
       cameraMode === "sculpt" &&
       padSource &&
       event.isPrimary &&
@@ -708,6 +771,10 @@ export function createSoundNest(
     );
   }
   function onSteeringMove(event) {
+    if (workshopMode && cameraMode === "sculpt") {
+      sculptureGesture.move(event);
+      return;
+    }
     if (directGesture?.id === event.pointerId) {
       directGesture.x = event.clientX;
       directGesture.y = event.clientY;
@@ -751,6 +818,13 @@ export function createSoundNest(
     }
   }
   function onSteeringEnd(event) {
+    if (workshopMode && cameraMode === "sculpt") {
+      if (event.type === "pointercancel") sculptureGesture.clear();
+      else sculptureGesture.up(event);
+      if (renderer.domElement.hasPointerCapture(event.pointerId))
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      return;
+    }
     if (directGesture?.id === event.pointerId) {
       endDirect();
       return;
@@ -768,6 +842,7 @@ export function createSoundNest(
       renderer.domElement.releasePointerCapture(event.pointerId);
   }
   function cancelSteering() {
+    sculptureGesture.clear();
     endDirect();
     if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
   }
@@ -1390,7 +1465,7 @@ export function createSoundNest(
       onBubbleScore?.(0, 24);
       padSource = source;
       navigation.windEnabled = Boolean(source);
-      if (source && !oizo) {
+      if (source && !oizo && !workshopMode) {
         oizo = createOizo();
         landscape.add(oizo.group);
       }
@@ -1622,9 +1697,11 @@ export function createSoundNest(
       renderer.domElement.dataset.echoMood = String(universe.seed);
       renderer.domElement.dataset.moodBackground = universe.background;
     },
+    setSculptureDepth,
     setCameraMode(next) {
       if (resonanceMode && (next === "gyro" || contemplation.active)) return;
       endDirect();
+      sculptureGesture.clear();
       if (next === "sculpt") directSculpture = true;
       else if (next === "drone") directSculpture = false;
       if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });

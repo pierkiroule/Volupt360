@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("white watercolor workshop: hold paints, release stops, palette and both views work", async ({
+test("direct drawing follows the finger precisely; depth, rotation and contemplation preserve the work", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -11,70 +11,106 @@ test("white watercolor workshop: hold paints, release stops, palette and both vi
       errors.push(m.text());
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Prendre son envol" }).click();
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
   const canvas = page.locator("canvas");
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }),
-  ).toBeVisible();
-  await expect(canvas).toHaveAttribute("data-mood-background", "#ffffff");
   await expect(
     page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
   ).toHaveCount(5);
-  await expect(canvas).toHaveAttribute("data-constellation", "false");
-  await expect(canvas).toHaveAttribute("data-painted-samples", "0");
-  await page.mouse.move(195, 300);
+  await expect(canvas).toHaveAttribute("data-camera-mode", "sculpt");
+  await expect(canvas).toHaveAttribute("data-oizo", "false");
+  await page.mouse.move(140, 300);
   await page.mouse.down();
+  await expect(canvas).toHaveAttribute("data-direct-drawing", "true");
+  await page.mouse.move(250, 370, { steps: 20 });
+  const point = await canvas.getAttribute("data-direct-point");
+  const projected = await page.evaluate(async (point) => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const c = document.querySelector("canvas");
+    const camera = new T.PerspectiveCamera(
+      70,
+      innerWidth / innerHeight,
+      0.08,
+      1000,
+    );
+    camera.position.fromArray(c.dataset.cameraPosition.split(",").map(Number));
+    camera.quaternion.fromArray(
+      c.dataset.cameraOrientation.split(",").map(Number),
+    );
+    camera.updateMatrixWorld();
+    const p = new T.Vector3()
+      .fromArray(point.split(",").map(Number))
+      .project(camera);
+    return [((p.x + 1) * innerWidth) / 2, ((1 - p.y) * innerHeight) / 2];
+  }, point);
+  expect(projected[0]).toBeCloseTo(250, 0);
+  expect(projected[1]).toBeCloseTo(370, 0);
   await page.mouse.up();
-  await page.waitForTimeout(450);
-  await expect(canvas).toHaveAttribute("data-painted-samples", "0");
-  await page.mouse.down();
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(3);
-  await expect(canvas).toHaveAttribute("data-paint-emitter", "brush-tip");
-  await expect(canvas).toHaveAttribute("data-paint-emitter-count", "1");
-  await expect(canvas).toHaveAttribute("data-mark-count", "1");
-  await page.mouse.move(245, 260, { steps: 8 });
-  await page.mouse.up();
-  await expect(canvas).toHaveAttribute("data-nozzle-paint", "false");
-  // Let the existing brush bridge flush the final wing samples and diagnostics.
+  await expect(canvas).toHaveAttribute("data-direct-drawing", "false");
   await page.waitForTimeout(300);
   const count = await canvas.getAttribute("data-painted-samples");
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(300);
   await expect(canvas).toHaveAttribute("data-painted-samples", count);
-  await page
-    .getByRole("group", { name: "Choisir une brosse" })
-    .getByRole("button")
-    .first()
-    .click();
-  await expect(
-    page
-      .getByRole("group", { name: "Choisir une brosse" })
-      .getByRole("button")
-      .first(),
-  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("slider", { name: "Profondeur de dessin" }).fill("5");
+  await expect(canvas).toHaveAttribute("data-sculpture-depth", "5");
+  await page.mouse.move(250, 370);
+  await page.mouse.down();
+  const deeper = (await canvas.getAttribute("data-direct-point"))
+    .split(",")
+    .map(Number);
+  await page.mouse.up();
+  expect(
+    Math.hypot(...deeper.map((v, i) => v - Number(point.split(",")[i]))),
+  ).toBeGreaterThan(4.9);
+
+  // Actual two-touch Chrome events: manipulation must not add a brush trail.
+  const client = await page.context().newCDPSession(page);
+  const touch = (type, points) =>
+    client.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: points.map(([id, x, y]) => ({ id, x, y })),
+    });
+  await touch("touchStart", [
+    [1, 120, 300],
+    [2, 260, 300],
+  ]);
+  const before = await canvas.getAttribute("data-painted-samples");
+  await touch("touchMove", [
+    [1, 100, 330],
+    [2, 300, 330],
+  ]);
+  await expect(canvas).toHaveAttribute("data-sculpture-rotation", /.+/);
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-sculpture-depth")))
+    .toBeGreaterThan(5);
+  await expect(canvas).toHaveAttribute("data-painted-samples", before);
+  await touch("touchEnd", [[2, 300, 330]]);
+  await touch("touchMove", [[2, 310, 340]]);
+  await expect(canvas).toHaveAttribute("data-painted-samples", before);
+  await touch("touchEnd", []);
   await page.getByRole("button", { name: "Contempler en gyro 360°" }).click();
   await expect(canvas).toHaveAttribute("data-camera-mode", "gyro");
-  const orientation = await canvas.getAttribute("data-camera-orientation");
-  await page.mouse.move(180, 250);
+  await page.getByRole("button", { name: "Revenir au dessin" }).click();
+  await expect(canvas).toHaveAttribute("data-camera-mode", "sculpt");
+  await page.mouse.move(150, 330);
   await page.mouse.down();
-  await page.mouse.move(290, 320, { steps: 10 });
+  await page.mouse.move(220, 370, { steps: 8 });
   await page.mouse.up();
   await expect
-    .poll(() => canvas.getAttribute("data-camera-orientation"))
-    .not.toBe(orientation);
-  await page.getByRole("button", { name: "Revenir en FPV" }).click();
-  await expect(canvas).toHaveAttribute("data-camera-mode", "drone");
+    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
+    .toBeGreaterThan(Number(before));
   await page.getByRole("button", { name: "Faire une pause" }).click();
-  await page.mouse.move(195, 300);
+  const paused = await canvas.getAttribute("data-painted-samples");
+  await page.mouse.move(150, 300);
   await page.mouse.down();
-  await page.waitForTimeout(500);
+  await page.mouse.move(230, 350);
   await page.mouse.up();
-  await expect(canvas).toHaveAttribute("data-painted-samples", count);
+  await expect(canvas).toHaveAttribute("data-painted-samples", paused);
   await page.getByRole("button", { name: "Reprendre", exact: true }).click();
+  await page.waitForTimeout(250);
+  await expect(canvas).toHaveAttribute("data-painted-samples", paused);
   await page.getByRole("button", { name: "Sortir", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Prendre son envol" }),
+    page.getByRole("button", { name: "Ouvrir l’atelier" }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });

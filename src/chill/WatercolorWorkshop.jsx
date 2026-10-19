@@ -18,10 +18,14 @@ export default function WatercolorWorkshop() {
     [gyro, setGyro] = useState(false),
     [paused, setPaused] = useState(false),
     [open, setOpen] = useState(true),
-    [audioOpen, setAudioOpen] = useState(false);
+    [audioOpen, setAudioOpen] = useState(false),
+    [depth, setDepth] = useState(0);
   useEffect(() => {
     document.title = "OIZO •° — Atelier aquarelle";
-    engine.current = createSoundNest(stage.current, { onError: setError });
+    engine.current = createSoundNest(stage.current, {
+      onError: setError,
+      onSculptureDepthChange: setDepth,
+    });
     return () => {
       generation.current++;
       engine.current?.dispose();
@@ -48,9 +52,10 @@ export default function WatercolorWorkshop() {
         WORKSHOP_BRUSHES,
       );
       engine.current.setPoeticFragments([]);
+      engine.current.setSculptureDepth(0);
       engine.current.setBrush(DEFAULT_WORKSHOP_BRUSH.id);
       engine.current.setPadSource(bank);
-      engine.current.setCameraMode("drone");
+      engine.current.setCameraMode("sculpt");
       engine.current.pauseChillSession(false);
       setBrush(DEFAULT_WORKSHOP_BRUSH.id);
       setGyro(false);
@@ -76,7 +81,7 @@ export default function WatercolorWorkshop() {
     try {
       const next = !gyro;
       if (next) await engine.current.requestContemplationGyroscope(true);
-      await engine.current.setCameraMode(next ? "gyro" : "drone");
+      await engine.current.setCameraMode(next ? "gyro" : "sculpt");
       setGyro(next);
     } catch (e) {
       setError(e.message);
@@ -121,13 +126,12 @@ export default function WatercolorWorkshop() {
           <h1>OIZO •°</h1>
           <h2>Atelier aquarelle</h2>
           <p>
-            Glissez pour guider l’oizo. Maintenez le toucher pour peindre depuis
-            la pointe du pinceau ailé. Relâchez : il retrouve doucement le
-            centre de votre sculpture.
+            Dessinez directement avec un doigt. Deux doigts font tourner l’œuvre
+            ; pincez pour choisir la profondeur du prochain tracé.
           </p>
           <p>Choisissez vos matières, puis contemplez votre paysage à 360°.</p>
           <button onClick={start} disabled={busy}>
-            {busy ? "Le papier s’éveille…" : "Prendre son envol"}
+            {busy ? "Le papier s’éveille…" : "Ouvrir l’atelier"}
           </button>
         </section>
       )}
@@ -161,13 +165,30 @@ export default function WatercolorWorkshop() {
                   ))}
                 </div>
               </section>
+              {!gyro && (
+                <label className="sculpture-depth">
+                  Profondeur
+                  <input
+                    aria-label="Profondeur de dessin"
+                    type="range"
+                    min="-10"
+                    max="10"
+                    step=".25"
+                    value={depth}
+                    onChange={(e) =>
+                      engine.current.setSculptureDepth(e.target.value)
+                    }
+                  />
+                  <output>{depth.toFixed(1)}</output>
+                </label>
+              )}
               <div className="pictorial-commands">
                 <button
                   onClick={switchView}
                   aria-label={
-                    gyro ? "Revenir en FPV" : "Contempler en gyro 360°"
+                    gyro ? "Revenir au dessin" : "Contempler en gyro 360°"
                   }
-                  title={gyro ? "FPV" : "Gyro 360°"}
+                  title={gyro ? "Dessin" : "Gyro 360°"}
                   aria-pressed={gyro}
                 >
                   <ToolIcon name="view" />

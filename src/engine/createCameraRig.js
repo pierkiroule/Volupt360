@@ -54,6 +54,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   const matrix = new THREE.Matrix4(),
     desiredQuaternion = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
+  const correctionAxis = new THREE.Vector3(1, 0, 0);
   const listeners = [];
   const listen = (node, name, fn) => {
     node.addEventListener(name, fn);
@@ -428,6 +429,17 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   canvas.dataset.droneDistance = String(distanceSetting);
   return {
+    rotateSculpture(dx, dy) {
+      if (mode !== "sculpt") return;
+      orientation.setFromAxisAngle(up, dx * 0.006);
+      landscape.quaternion.premultiply(orientation);
+      orientation.setFromAxisAngle(correctionAxis.set(1, 0, 0), dy * 0.006);
+      landscape.quaternion.premultiply(orientation).normalize();
+      landscape.updateMatrixWorld(true);
+      canvas.dataset.sculptureRotation = landscape.quaternion
+        .toArray()
+        .join(",");
+    },
     setMode,
     async requestGyroscope(enabled = true) {
       gyroEnabled = false;
