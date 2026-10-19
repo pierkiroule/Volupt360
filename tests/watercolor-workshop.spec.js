@@ -850,3 +850,45 @@ test("floating emoji sprites preserve transparency, move softly and release text
   expect(result.materials).toBe(2);
   expect(result.count).toBe(0);
 });
+
+test("guided FPV stays near the sculpture under sustained outward steering and pauses smoothly", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createPanoramaJourney } =
+      await import("/src/engine/createPanoramaJourney.js");
+    const j = createPanoramaJourney(),
+      center = new T.Vector3(0, 0, 12),
+      outward = new T.Vector3();
+    j.setSculpture(center, 8);
+    j.travel(new T.Vector3(0, 0, 1));
+    let maxDistance = 0,
+      maxStep = 0,
+      returnSeen = false;
+    for (let i = 0; i < 60 * 600; i++) {
+      outward.subVectors(j.position, center).normalize();
+      j.steer(outward, 1 / 60);
+      const before = j.position.clone();
+      j.update(1 / 60);
+      maxStep = Math.max(maxStep, j.position.distanceTo(before));
+      maxDistance = Math.max(maxDistance, j.position.distanceTo(center));
+      returnSeen ||= j.returnWeight > 0.5;
+    }
+    j.stop();
+    for (let i = 0; i < 180; i++) j.update(1 / 60);
+    const stopped = j.position.clone();
+    for (let i = 0; i < 60; i++) j.update(1 / 60);
+    return {
+      maxDistance,
+      maxStep,
+      returnSeen,
+      tail: j.position.distanceTo(stopped),
+    };
+  });
+  expect(result.returnSeen).toBe(true);
+  expect(result.maxDistance).toBeLessThan(14);
+  expect(result.maxStep).toBeLessThan(0.025);
+  expect(result.tail).toBeLessThan(0.001);
+});

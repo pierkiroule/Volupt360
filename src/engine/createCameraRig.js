@@ -11,6 +11,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     revision = 0,
     disposed = false;
   const journey = createPanoramaJourney();
+  const returnAim = new THREE.Quaternion();
   let panoramaExploreOnly = false;
   let panoramaDial = 0;
   let povLocked = false,
@@ -321,9 +322,21 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         );
       matrix.lookAt(camera.position, target, up);
       desiredQuaternion.setFromRotationMatrix(matrix).multiply(gyroRelative);
-      camera.quaternion.slerp(desiredQuaternion, mix(7));
+      if (panoramaExploreOnly && journey.moving && journey.returnWeight > 0) {
+        // Ease the FPV framing back toward the work instead of flying into empty space.
+        target.copy(journey.focus);
+        matrix.lookAt(camera.position, target, up);
+        returnAim.setFromRotationMatrix(matrix);
+        desiredQuaternion.slerp(returnAim, journey.returnWeight * 0.75);
+      }
+      camera.quaternion.slerp(desiredQuaternion, mix(4));
       // A restrained lens opening accompanies travel; no roll or camera shake.
-      camera.fov += ((journey.moving ? 98 : 92) - camera.fov) * mix(2);
+      camera.fov +=
+        ((journey.moving
+          ? 100 + Math.sin(performance.now() * 0.00019) * 1.5
+          : 92) -
+          camera.fov) *
+        mix(2);
       camera.far = 1000;
       camera.updateProjectionMatrix();
       canvas.dataset.journeyMoving = String(journey.moving);
@@ -474,6 +487,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   canvas.dataset.droneDistance = String(distanceSetting);
   return {
+    setPanoramaSculpture(center, radius) {
+      journey.setSculpture(center, radius);
+    },
     setPanoramaExploreOnly(value) {
       panoramaExploreOnly = value;
     },

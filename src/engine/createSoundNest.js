@@ -1,3 +1,4 @@
+import { createPanoramaJourney } from "./createPanoramaJourney.js";
 import { createEmojiStickers } from "../chill/createEmojiStickers.js";
 import { createContemplationState } from "../chill/createContemplationState.js";
 import { createSculptureGesture } from "./createSculptureGesture.js";
@@ -80,10 +81,9 @@ export function createSoundNest(
   const sculptureCenter = new THREE.Vector3();
   const scene = new THREE.Scene();
   const xrOrigin = new THREE.Group();
-  const xrHeading = new THREE.Vector3(0, 0, -1);
+  const xrJourney = createPanoramaJourney();
   const xrForward = new THREE.Vector3();
-  let xrTravel = false,
-    xrSpeed = 0;
+  let xrTravel = false;
   scene.add(xrOrigin);
   renderer.xr.enabled = true;
   let xrSession = null,
@@ -1361,9 +1361,11 @@ export function createSoundNest(
       );
     if (renderer.xr.isPresenting) {
       renderer.xr.getCamera().getWorldDirection(xrForward);
-      xrHeading.lerp(xrForward, 1 - Math.exp(-dt * 3)).normalize();
-      xrSpeed += ((xrTravel ? 0.65 : 0) - xrSpeed) * (1 - Math.exp(-dt * 4));
-      xrOrigin.position.addScaledVector(xrHeading, xrSpeed * dt);
+      if (xrTravel && !xrJourney.moving) xrJourney.travel(xrForward);
+      if (!xrTravel) xrJourney.stop();
+      xrJourney.steer(xrForward, dt);
+      xrJourney.update(dt * 0.7);
+      xrOrigin.position.copy(xrJourney.position);
     }
     if (cameraMode === "panorama")
       updateDirect(dt, padSource?.getVisualFeatures?.() || {});
@@ -1580,6 +1582,21 @@ export function createSoundNest(
       );
       renderer.domElement.dataset.paintedSamples = String(paintedSamples);
       this.setCameraMode("panorama");
+      const sourceBounds = new THREE.Box3();
+      for (let i = 0; i < document.strokes.length; i++) {
+        const stroke = document.strokes[i];
+        for (const point of stroke.points)
+          sourceBounds.expandByPoint(
+            paintingToWorld(point, i, document.strokes.length, stroke.size),
+          );
+      }
+      if (!sourceBounds.isEmpty()) {
+        const focus = sourceBounds.getCenter(new THREE.Vector3());
+        const radius = sourceBounds.getSize(new THREE.Vector3()).length() * 0.5;
+        rig.setPanoramaSculpture(focus, Math.max(8, radius));
+        xrJourney.reset();
+        xrJourney.setSculpture(focus, Math.max(8, radius));
+      }
       updateBounds();
     },
     async enterVR() {
@@ -1596,8 +1613,8 @@ export function createSoundNest(
       xrSession = session;
       rig.stopPanorama();
       xrTravel = true;
-      xrSpeed = 0;
-      xrOrigin.position.set(0, 0, 20);
+      xrJourney.position.copy(camera.position);
+      xrOrigin.position.copy(xrJourney.position);
       xrOrigin.add(camera);
       camera.position.set(0, 0, 0);
       session.addEventListener(
