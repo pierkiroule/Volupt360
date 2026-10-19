@@ -18,12 +18,15 @@ void main(){
     +sin(phase*.63-travel*.71+pigmentSeed)*uAudioPulse*.32;
   vec3 drift=vec3(sin(phase*.8+travel*.7),cos(phase*.61+travel*.58+pigmentSeed),sin(phase*.73-travel*.63));
   vMaterialAge=max(0.,uWakeClock-aBirth);
-  float unfold=smoothstep(.02,mix(3.8,1.7,uMaterialMode),vMaterialAge);
+  float unfold=smoothstep(.02,uMaterialMode>1.5?.65:mix(3.8,1.7,min(1.,uMaterialMode)),vMaterialAge);
   float width=.015+.985*unfold;
   vec3 deformation=normal*breath+drift*(.04+uAudioEnergy*.72);
   if(uMaterialMode>.5){
     float localPhase=uv.y*37.+uv.x*8.+pigmentSeed;
     deformation=normal*(sin(localPhase+uTime*.7)*uAudioLow*.055+sin(localPhase*1.7-uTime)*uAudioPulse*.035);
+    if(uMaterialMode>2.5){
+      deformation=normal*(sin(localPhase*.6+uTime*.8)*uAudioLow*.18+sin(localPhase*1.3-uTime)*uAudioPulse*.1);
+    }
   }
   vec3 p=mix(aTrailCenter,position,width)+unfold*(deformation+uWakeOffset);
   vec4 mv=modelViewMatrix*vec4(p,1.);

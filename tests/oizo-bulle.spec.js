@@ -24,7 +24,7 @@ async function paint(page) {
 test("emergence is paint-dependent, sequential and capped at 24 without a forced encounter", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const result = await page.evaluate(async () => {
     const { createBubbleEmergence } =
       await import("/src/chill/createBubbleEmergence.js");
@@ -70,7 +70,7 @@ test("emergence is paint-dependent, sequential and capped at 24 without a forced
 test("a real swept 3D crossing enters once, holds until resume, then dissolves", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createVocalBubbles } =
@@ -159,7 +159,7 @@ test("mobile contemplation freezes bird and active timeline, rotates only the vi
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await expect(
     page.getByRole("checkbox", { name: /Utiliser le gyroscope/ }),
   ).toBeChecked();
@@ -229,7 +229,7 @@ for (const sensorType of ["deviceorientation", "deviceorientationabsolute"]) {
   test(`granted ${sensorType} changes only orientation at a fixed POV and cleans up`, async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/?original=1");
     const result = await page.evaluate(async (sensorType) => {
       const THREE = await import("/node_modules/.vite/deps/three.js");
       const { createCameraRig } =
@@ -301,7 +301,7 @@ for (const sensorType of ["deviceorientation", "deviceorientationabsolute"]) {
 test("all eight symbolic brush signatures deposit different original watercolor geometries", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -375,7 +375,7 @@ test("disabling gyro explicitly preserves tactile mode without requesting sensor
       }
     };
   });
-  await page.goto("/");
+  await page.goto("/?original=1");
   const option = page.getByRole("checkbox", { name: /Utiliser le gyroscope/ });
   await expect(option).toBeChecked();
   await option.uncheck();

@@ -1,12 +1,26 @@
-# OIZO-BULLE •°
+# Senso360•° — Mon paysage sensoriel
 
-On sculpte son ciel émotionnel pour apprendre à le contempler autrement.
+Un atelier de squiggles (opacité appliquée au trait complet, et non à chaque tampon superposé) : dessiner sur un papier 2D, puis entrer dans une interprétation 3D et musicale du même tableau.
 
-Un oiseau peint un ciel aquarelle et encre fine. Huit Mood Brushes à pictogrammes et un lavis neutre accompagnent le geste : toucher peint depuis les deux ailes, glisser guide le vol. Une bulle à la fois émerge de la peinture et ouvre une contemplation 360° du même paysage. « Reprendre le vol » restitue immédiatement le contrôle.
+Le papier propose dix matières symboliques, avec émojis et noms visibles : **Fil, Vague, Roche, Étincelles, Empreinte, Soie, Nuage, Givre, Braise et Spirale**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. La palette défile horizontalement et toute la barre se replie. Couleur, taille et opacité sont regroupées dans « Réglages », fermé par défaut ; annuler reste directement accessible.
 
-La traversée Nuit → Aurores → Aube dure six minutes de vol actif ; contempler ne consomme pas ce temps. Les 24 phrases originales restent facultatives, sans score ni questionnaire. La musique continue dans les bulles, les pigments persistent et le final conserve la photo PNG HD.
+Les émojis sont des invitations ouvertes : 🧵 tension/lien, 🌊 ondulation/flux, 🪨 densité/appui, ⚡ picotement/vibration, 🫧 expansion/pulsation, 🪶 légèreté/effleurement, 🌫️ diffusion/enveloppement, ❄️ fraîcheur/grain, 🔥 chaleur/rayonnement, 🌀 rotation/circulation. Ces mots ne constituent ni une liste exhaustive des sensations ni une interprétation clinique. Leur sens appartient à la personne.
 
-Voir [architecture, paramètres, vérifications et limites](docs/oizo-bulle.md). L’expérience est une médiation artistique, sans efficacité thérapeutique revendiquée ni analyse des émotions. Le gyro est facultatif et réservé aux bulles ; le regard tactile reste disponible.
+Le parcours éducatif propose d’évoquer librement une situation, de dessiner ses sensations puis d’explorer le paysage sous une autre perspective. Aucun récit personnel n’est demandé ni enregistré. Le dessin reste local à la session. Il n’y a ni diagnostic ni revendication d’efficacité hypnothérapeutique démontrée.
+
+Les signatures sensorielles sont modifiables dans `src/chill/sensoryQualities.js`. Chaque matière possède une bande spectrale, une inertie, une réponse aux transitoires, une humidité et une vitesse propres. Les mêmes enveloppes accompagnent les dépôts actifs et archivés ; les anciens modes conservent leur réponse par défaut.
+
+Le mode **Stickers** pose l’émoji sélectionné d’un seul contact, avec taille et opacité indépendantes des brosses. Peinture et stickers partagent le même historique d’annulation. En 3D, les stickers sont des plans transparents orientés vers le regard, placés en profondeur dans le paysage et animés d’une légère dérive. Ce ne sont pas des modèles volumétriques. Une texture est partagée par symbole, avec un plafond de 256 stickers ; les matériaux et textures sont libérés lors du nettoyage. L’apparence des émojis dépend des polices de l’appareil.
+
+Les traits, leurs points et leurs réglages sont la source du document. La version 3D déploie cette composition autour du spectateur sur des surfaces courbes, avec une séparation progressive des couches. L’opacité conserve son rôle de transparence. Le retour en 2D retrouve le tableau intact ; les modifications suivantes alimentent la prochaine construction 3D.
+
+Le monde devient un audiovisualiseur à 360° : Gravity anime les pigments et les particules, y compris les dépôts archivés. Gyroscope, gestes et molette orientent le regard. Le gyroscope est demandé dès l’entrée en 3D (glissement tactile en secours). Pendant le voyage, un parcours fermé en huit alterne orbites et traversées autour du volume réel du tableau, avec accélération et arrêt amortis. Le regard permet de contempler, sans commander une translation illimitée vers le blanc. Le cadrage FPV conserve un ancrage vers l’œuvre. Le relief du vol vient de variations lentes de vitesse, de hauteur et de champ, sans roulis. Pause du voyage arrête progressivement la translation sans arrêter la musique.
+
+Un bouton VR apparaît si WebXR annonce une session immersive disponible. L’entrée utilise le renderer XR natif de Three.js et présente le monde depuis son centre ; le casque contrôle le regard. Le casque oriente également le voyage FPV, avec rappel de trajectoire vers l’œuvre sans rotation imposée de la tête ; aucune peinture aux contrôleurs. L’exécution sur casque physique reste à valider.
+
+Les textures détaillées sont générées une fois par brosse et réutilisées. Le rendu GPU est suspendu pendant le dessin 2D ; la source raster et les données des traits restent en mémoire dans la session. Aucun backend ni traitement de données émotionnelles. L’application est une médiation artistique, sans revendication d’efficacité thérapeutique.
+
+Les anciens parcours restent accessibles via `?conte=1` et `?original=1`.
 
 ## Développement
 

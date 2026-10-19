@@ -4,7 +4,7 @@ test("mobile tool tray is centered, entirely at the bottom, SVG-only and collaps
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   const tray = page.getByRole("navigation", { name: "Outils de peinture" });
   const bounds = await tray.boundingBox();
@@ -48,7 +48,7 @@ test("mobile tool tray is centered, entirely at the bottom, SVG-only and collaps
 test("painted celestial cycle has a crescent and stars, crosses chromatic stages, then settles to ivory paper", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());

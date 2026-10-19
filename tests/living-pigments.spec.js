@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("six watercolor and ink brushes respond within their pigment and dry without rigid transforms", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -110,7 +110,7 @@ test("six watercolor and ink brushes respond within their pigment and dry withou
 test("spectral responses keep a bounded moisture memory and distinct brush envelopes", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const { createMaterialResponse } =
       await import("/src/engine/createMaterialResponse.js");

@@ -9,17 +9,20 @@ export function createVocalBubbles({
   watercolor = false,
   staged = false,
   emergence = null,
+  constellation = false,
 }) {
   const group = new THREE.Group();
   const geometry = new THREE.SphereGeometry(2.1, 24, 16);
   const previous = new THREE.Vector3(),
     relative = new THREE.Vector3(),
     delta = new THREE.Vector3();
-  const emerging = emergence
-    ? createBubbleEmergence(fragments.length, emergence)
-    : null;
+  const emerging =
+    !constellation && emergence
+      ? createBubbleEmergence(fragments.length, emergence)
+      : null;
   let samples = 0,
-    held = false;
+    held = false,
+    heldId = null;
   const pigmentPoint = new THREE.Vector3();
   const pigmentColor = new THREE.Color("#a0b9c4"),
     newColor = new THREE.Color("#dde7e2");
@@ -42,11 +45,13 @@ export function createVocalBubbles({
           },
           resonance: { value: 0 },
           burst: { value: 0 },
-          presence: { value: staged ? 0 : 1 },
+          presence: { value: constellation ? 1 : staged ? 0 : 1 },
+          visited: { value: 0 },
+          constellation: { value: constellation ? 1 : 0 },
           watercolor: { value: watercolor ? 1 : 0 },
         },
         vertexShader: `varying vec3 n,v;void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}`,
-        fragmentShader: `varying vec3 n,v;uniform vec3 color;uniform float resonance,burst,watercolor,presence;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.2);float sheen=pow(max(0.,dot(normalize(n),normalize(vec3(-.4,.65,1.)))),18.);vec3 tint=mix(color,vec3(1.),sheen*.6*(1.-watercolor));float tear=sin(n.x*19.+n.y*13.)*sin(n.z*17.-n.y*11.);if(burst>0. && tear<burst*2.-1.)discard;float wash=.55+.45*sin(n.x*21.+sin(n.y*17.)+n.z*13.);float alpha=mix(.055+rim*.28+sheen*.14+resonance*.13,.025+rim*(.12+wash*.1)+wash*.045,watercolor);gl_FragColor=vec4(tint,alpha*(1.-burst)*presence);
+        fragmentShader: `varying vec3 n,v;uniform vec3 color;uniform float resonance,burst,watercolor,presence,visited,constellation;void main(){float rim=pow(1.-abs(dot(normalize(n),normalize(v))),2.2);float sheen=pow(max(0.,dot(normalize(n),normalize(vec3(-.4,.65,1.)))),18.);vec3 tint=mix(color,vec3(1.),sheen*.6*(1.-watercolor));float tear=sin(n.x*19.+n.y*13.)*sin(n.z*17.-n.y*11.);if(burst>0. && tear<burst*2.-1.)discard;float wash=.55+.45*sin(n.x*21.+sin(n.y*17.)+n.z*13.);float alpha=mix(.055+rim*.28+sheen*.14+resonance*.13,.025+rim*(.12+wash*.1)+wash*.045,watercolor);alpha=mix(alpha,.12+rim*.58,constellation);tint=mix(tint,mix(color+vec3(.23),color*.45,visited),constellation);gl_FragColor=vec4(tint,alpha*(1.-burst)*presence*mix(1.,.28,visited));
         #include <colorspace_fragment>
         }`,
         transparent: true,
@@ -58,7 +63,7 @@ export function createVocalBubbles({
       Math.sin(i * 1.7) * 10,
       Math.sin(angle) * radius,
     );
-    mesh.visible = !staged && !emerging;
+    mesh.visible = constellation || (!staged && !emerging);
     group.add(mesh);
     return {
       id: fragment.id,
@@ -71,13 +76,15 @@ export function createVocalBubbles({
       removed: false,
       released: !emerging,
       entered: false,
-      appearAt: staged
-        ? i < 4
-          ? i * 12
-          : i < 12
-            ? 60 + (i - 4) * 14
-            : 180 + (i - 12) * 14
-        : 0,
+      visited: false,
+      appearAt:
+        !constellation && staged
+          ? i < 4
+            ? i * 12
+            : i < 12
+              ? 60 + (i - 4) * 14
+              : 180 + (i - 12) * 14
+          : 0,
     };
   });
   return {
@@ -92,6 +99,15 @@ export function createVocalBubbles({
     },
     resume() {
       held = false;
+      if (constellation && heldId) {
+        const ring = rings.find((r) => r.id === heldId);
+        if (ring) {
+          ring.visited = true;
+          ring.entered = false;
+          ring.mesh.material.uniforms.visited.value = 1;
+        }
+        heldId = null;
+      }
       const index = emerging?.active ?? -1;
       if (index >= 0) {
         rings[index].burstAge = 0;
@@ -100,8 +116,19 @@ export function createVocalBubbles({
     },
     get activeCount() {
       return rings.filter(
-        (ring) => !ring.removed && ring.released && ring.burstAge < 0,
+        (ring) =>
+          !ring.removed && !ring.visited && ring.released && ring.burstAge < 0,
       ).length;
+    },
+    get visitedCount() {
+      return rings.filter((r) => r.visited).length;
+    },
+    get states() {
+      return rings.map((r) => ({
+        id: r.id,
+        visible: r.mesh.visible,
+        visited: r.visited,
+      }));
     },
     get count() {
       return rings.length;
@@ -110,13 +137,15 @@ export function createVocalBubbles({
       return rings.filter((ring) => ring.burstAge < 0).length;
     },
     getNearest(position, result) {
-      if (disposed || pending || held || silence > 0) return false;
+      if (disposed || pending || held || (!constellation && silence > 0))
+        return false;
       let nearest = null,
         distance = Infinity;
       for (const ring of rings) {
         if (
           !ring.released ||
           ring.entered ||
+          ring.visited ||
           ring.removed ||
           ring.burstAge >= 0 ||
           ring.cooldown > 0 ||
@@ -170,7 +199,7 @@ export function createVocalBubbles({
           ring.released && !ring.removed && elapsed >= ring.appearAt;
         if (!ring.removed)
           mesh.material.uniforms.presence.value =
-            staged || emerging
+            !constellation && (staged || emerging)
               ? THREE.MathUtils.smoothstep(
                   elapsed,
                   ring.appearAt,
@@ -214,6 +243,7 @@ export function createVocalBubbles({
           !enabled ||
           held ||
           ring.entered ||
+          (constellation && ring.visited && !pose.guided) ||
           (emerging &&
             elapsed < ring.appearAt + emerging.settings.fadeSeconds) ||
           pending ||
@@ -238,11 +268,12 @@ export function createVocalBubbles({
               collisions++;
               onScore(collisions, fragments.length);
               ring.resonance = 1;
-              if (emerging) {
+              if (emerging || constellation) {
                 held = true;
+                heldId = ring.id;
                 ring.entered = true;
               } else ring.burstAge = 0;
-              silence = 10;
+              silence = constellation ? 2 : 10;
             }
           })
           .catch(() => {})

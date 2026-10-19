@@ -6,7 +6,7 @@ export function createPoeticParticleStroke(
   { seed = 0, texture = null },
 ) {
   const capacity = 52,
-    particles = 4,
+    particles = brush.materialMode === 3 ? 3 : 4,
     vertices = capacity * particles * 6;
   const group = new THREE.Group(),
     geometry = new THREE.BufferGeometry();
@@ -35,7 +35,9 @@ export function createPoeticParticleStroke(
       uOpacity: { value: brush.opacity ?? 0.92 },
       uBrushMask: { value: texture?.texture || null },
       uHasMask: { value: texture?.photograph ? 1 : 0 },
+      uDetailedPlate: { value: texture?.detailed ? 1 : 0 },
       uKind: { value: brush.particle },
+      uPaintDots: { value: brush.materialMode === 3 ? 1 : 0 },
       uAudioEnergy: { value: 0 },
       uAudioLow: { value: 0 },
       uAudioPulse: { value: 0 },
@@ -46,7 +48,7 @@ export function createPoeticParticleStroke(
     vertexShader: `
       attribute vec3 aOffset; attribute vec3 aTint; attribute float aSeed; attribute float aBirth;
       uniform float uParticleTime; uniform float uKind; uniform float uAudioEnergy; uniform float uAudioLow;
-      varying vec2 vUv; varying vec3 vTint; varying float vPhase;
+      varying vec2 vUv; varying vec3 vTint; varying float vPhase; varying float vDistance;
       void main() {
         float age = max(0.0, uParticleTime - aBirth);
         float phase = age * (uKind == 2.0 ? 1.2 : 0.7) + aSeed;
@@ -56,12 +58,14 @@ export function createPoeticParticleStroke(
         vec3 offset = aOffset * (0.8 + uAudioEnergy * 0.7 + uAudioLow * 0.3);
         offset.xz = mat2(cos(flutter), -sin(flutter), sin(flutter), cos(flutter)) * offset.xz;
         vUv = uv; vTint = aTint; vPhase = phase;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position + offset + drift, 1.0);
+        vec4 mv=modelViewMatrix*vec4(position+offset+drift,1.);
+        vDistance=length(mv.xyz);
+        gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
-      uniform sampler2D uBrushMask; uniform float uHasMask;
-      uniform float uKind; uniform float uFade; uniform float uOpacity; uniform float uAudioEnergy; uniform float uAudioPulse;
-      varying vec2 vUv; varying vec3 vTint; varying float vPhase;
+      uniform sampler2D uBrushMask; uniform float uHasMask; uniform float uDetailedPlate;
+      uniform float uKind; uniform float uPaintDots; uniform float uFade; uniform float uOpacity; uniform float uAudioEnergy; uniform float uAudioPulse;
+      varying vec2 vUv; varying vec3 vTint; varying float vPhase; varying float vDistance;
       void main() {
         vec2 p = vUv * 2.0 - 1.0;
         float alpha = 0.0; float highlight = 0.0;
@@ -80,6 +84,11 @@ export function createPoeticParticleStroke(
         } else if (uKind < 2.5) {
           float radius = length(p); alpha = exp(-radius * radius * 7.0) * (0.6 + 0.4 * sin(vPhase * 2.0) * sin(vPhase * 2.0));
           highlight = exp(-radius * radius * 45.0) * 0.65;
+          if(uPaintDots>.5){
+            float rim=.65+sin(atan(p.y,p.x)*7.+vPhase)*.035;
+            alpha=1.-smoothstep(rim-.1,rim,radius);
+            highlight=0.;
+          }
         } else if (uKind < 3.5) {
           float trunk = p.x - sin(p.y * 5.0) * 0.12;
           alpha = 1.0 - smoothstep(0.025, 0.065, abs(trunk));
@@ -95,8 +104,14 @@ export function createPoeticParticleStroke(
           alpha = (1.0 - smoothstep(0.12, 0.3, hatch)) * (1.0 - smoothstep(0.55, 1.0, length(p)));
         }
         alpha *= (1.0 - smoothstep(0.94, 1.0, abs(p.y))) * uFade * uOpacity * (0.65 + uAudioEnergy * 0.35 + uAudioPulse * 0.25);
+        if(uPaintDots>.5) alpha*=smoothstep(1.2,3.,vDistance);
         if (alpha < 0.01) discard;
         vec3 color=mix(vTint, vec3(1.0, 0.8, 0.3), highlight);
+        if(uDetailedPlate>.5){
+          vec4 plate=texture2D(uBrushMask,vUv);
+          color*=mix(.95,.35,plate.r*.55+plate.b*.4)*(.8+plate.g*.3);
+          alpha*=smoothstep(.02,.3,plate.a)*(.65+plate.g*.35);
+        }
         if(uHasMask>.5){vec4 photo=texture2D(uBrushMask,clamp(vUv,vec2(.001),vec2(.999)));color=mix(color,photo.rgb,.92);alpha*=photo.a;}
         gl_FragColor = vec4(color, alpha);
         #include <colorspace_fragment>
@@ -136,8 +151,20 @@ export function createPoeticParticleStroke(
           .addScaledVector(sample.direction, Math.sin(phase * 1.3) * 0.4);
         const width =
           scale *
-          (brush.particle === 2 ? 0.4 : brush.particle === 5 ? 1 : 0.65);
-        const height = scale * (brush.particle === 2 ? 0.4 : 1.4);
+          (brush.particle === 2
+            ? brush.materialMode === 3
+              ? 0.16
+              : 0.4
+            : brush.particle === 5
+              ? 1
+              : 0.65);
+        const height =
+          scale *
+          (brush.particle === 2
+            ? brush.materialMode === 3
+              ? 0.16
+              : 0.4
+            : 1.4);
         const angle = Math.sin(phase) * 0.9;
         tint
           .copy(base)
@@ -182,6 +209,7 @@ export function createPoeticParticleStroke(
     setTexture(binding) {
       material.uniforms.uBrushMask.value = binding?.texture || null;
       material.uniforms.uHasMask.value = binding?.photograph ? 1 : 0;
+      material.uniforms.uDetailedPlate.value = binding?.detailed ? 1 : 0;
     },
     get full() {
       return count >= capacity;

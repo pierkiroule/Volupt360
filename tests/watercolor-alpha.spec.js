@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("pigment alpha plates reproduce seeds, retain paper reserves and connect continuous ribbons", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const { createWatercolorAlpha } =
       await import("/src/chill/createWatercolorAlpha.js");
@@ -42,7 +42,7 @@ test("welcome uses the local handwritten font and a procedural watercolor mask",
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.evaluate(() => document.fonts.ready);
   const r = await page.evaluate(() => ({
     font: document.fonts.check("24px Caveat"),

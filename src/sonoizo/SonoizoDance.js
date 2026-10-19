@@ -27,6 +27,9 @@ export function createSonoizoDance({ seed = 37, firstPerson = false } = {}) {
       seed,
     );
   return {
+    setSculptureAssist(enabled) {
+      flight.setSculptureAssist?.(enabled);
+    },
     beginAcrobatic(id) {
       return firstPerson && flight.beginAcrobatic(id);
     },

@@ -180,6 +180,7 @@ function watercolor(brush, color, seed, opacity = 1, texture = null) {
     uniforms: {
       uBrushMask: { value: texture?.texture || null },
       uHasMask: { value: texture ? 1 : 0 },
+      uDetailedPlate: { value: texture?.detailed ? 1 : 0 },
       uPhotograph: { value: texture?.photograph ? 1 : 0 },
       uMaskAspect: { value: texture?.aspect || 1 },
       uMaskRepeat: { value: texture?.repeat ?? 4 },
@@ -233,6 +234,7 @@ export function createBrushStroke(
   const brush = dynamics
     ? {
         ...template,
+        color: color?.isColor ? `#${color.getHexString()}` : template.color,
         opacity: dynamics.opacity ?? template.opacity,
         generatedWidth: dynamics.width,
         materialMode: dynamics.materialMode || 0,
@@ -249,15 +251,16 @@ export function createBrushStroke(
   let count = 0,
     finished = false;
   const ribbon = !["brumes", "lagons", "bulles", "network"].includes(id);
-  const layers = dynamics?.wakeThread
-    ? 1
-    : id === "filaments"
-      ? 4
-      : ["corolles", "aurore", "echo"].includes(id)
-        ? 3
-        : id === "calligraphie"
-          ? 1
-          : 2;
+  const layers =
+    dynamics?.wakeThread || dynamics?.planarWash
+      ? 1
+      : id === "filaments"
+        ? 4
+        : ["corolles", "aurore", "echo"].includes(id)
+          ? 3
+          : id === "calligraphie"
+            ? 1
+            : 2;
   const columns = id === "filaments" ? 8 : 12;
   const meshes = [];
   const warm = new THREE.Color("#e6d3b2");
@@ -429,6 +432,7 @@ export function createBrushStroke(
       // Volumes are spaced by movement samples, with changing scale and depth.
       // They follow the path rather than occupying repeated radial positions.
       const accented =
+        dynamics?.paintStamp ||
         id !== "lagons" ||
         (sample.accent ?? sample.motion) > 0.12 ||
         count === 0;
@@ -501,7 +505,9 @@ export function createBrushStroke(
             brush,
             color,
             seed + count * 0.17 + layer,
-            (0.6 + sample.energy * 0.7) * (sample.density ?? 1),
+            brush.materialMode === 3
+              ? 1
+              : (0.6 + sample.energy * 0.7) * (sample.density ?? 1),
             textureBinding,
           );
           material.uniforms.uSurprise.value = surprise;
@@ -690,6 +696,11 @@ export function createBrushStroke(
             lateral *= 0.55;
             vertical += Math.sin(phase * 0.4) * 0.18;
           }
+          if (dynamics?.planarWash) {
+            // Paper-like sheets with a slight uneven surface, not billowing volumes.
+            lateral *= id === "dilution" ? 0.55 : 1;
+            vertical *= 0.14;
+          }
           vertical += layer * 0.09;
           const point = pointScratch
             .copy(pose.position)
@@ -717,8 +728,10 @@ export function createBrushStroke(
         }
         mesh.material.uniforms.uOpacity.value =
           brush.opacity *
-          (pose.density ?? 1) *
-          (0.65 + pose.energy * 0.6) *
+          (brush.materialMode === 3 ? 1 : (pose.density ?? 1)) *
+          (brush.materialMode === 3
+            ? 0.88 + pose.energy * 0.12
+            : 0.65 + pose.energy * 0.6) *
           (layer && id === "voiles"
             ? 0.35
             : id === "echo"
@@ -769,6 +782,7 @@ export function createBrushStroke(
       if (!uniforms) return;
       uniforms.uBrushMask.value = next?.texture || null;
       uniforms.uHasMask.value = next ? 1 : 0;
+      uniforms.uDetailedPlate.value = next?.detailed ? 1 : 0;
       uniforms.uPhotograph.value = next?.photograph ? 1 : 0;
       uniforms.uMaskAspect.value = next?.aspect || 1;
       uniforms.uMaskRepeat.value =

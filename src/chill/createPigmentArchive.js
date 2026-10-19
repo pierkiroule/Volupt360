@@ -8,6 +8,14 @@ const layout = {
   aStrokeExtent: 1,
 };
 const attributes = Object.entries(layout);
+const particleAttributes = Object.entries({
+  position: 3,
+  aOffset: 3,
+  aTint: 3,
+  uv: 2,
+  aSeed: 1,
+  aBirth: 1,
+});
 /** Dry original brush geometries, batched by material. Growing buffers, no generic replacement lines. */
 export function createPigmentArchive() {
   const group = new THREE.Group(),
@@ -27,7 +35,7 @@ export function createPigmentArchive() {
       2 ** Math.ceil(Math.log2(Math.max(1, indices))),
     );
     const geometry = new THREE.BufferGeometry();
-    for (const [name, size] of attributes) {
+    for (const [name, size] of bucket.attributes) {
       const values =
         name === "color"
           ? new Uint8Array(vertexCapacity * size)
@@ -96,15 +104,29 @@ export function createPigmentArchive() {
           material.uniforms.uOpacity.value = opacity;
           material.uniforms.uFade.value = 1;
           material.uniforms.uAge.value = 360;
-          material.uniforms.uMoisture.value = 0.08;
-          material.uniforms.uWakeClock.value = 100000;
-          material.uniforms.uWakeOffset.value.set(0, 0, 0);
+          if (material.uniforms.uMoisture)
+            material.uniforms.uMoisture.value = 0.08;
+          if (material.uniforms.uWakeClock)
+            material.uniforms.uWakeClock.value = 100000;
+          material.uniforms.uWakeOffset?.value.set(0, 0, 0);
+          if (material.uniforms.uParticleTime)
+            material.uniforms.uParticleTime.value = 360;
           for (const name of ["uAudioEnergy", "uAudioLow", "uAudioPulse"])
             material.uniforms[name].value = 0;
           const dryMesh = new THREE.Mesh(new THREE.BufferGeometry(), material);
           dryMesh.frustumCulled = false;
           group.add(dryMesh);
-          bucket = { mesh: dryMesh, geometry: null, vertices: 0, indices: 0 };
+          bucket = {
+            respond: mark.respond,
+            motionScale: mark.motionScale || 0.65,
+            mesh: dryMesh,
+            geometry: null,
+            vertices: 0,
+            indices: 0,
+            attributes: mesh.geometry.attributes.aOffset
+              ? particleAttributes
+              : attributes,
+          };
           dryMesh.geometry.dispose();
           buckets.set(key, bucket);
         }
@@ -120,17 +142,25 @@ export function createPigmentArchive() {
           allocate(bucket, start + n, bucket.indices + indexCount);
         matrix.multiplyMatrices(inverse, mesh.matrixWorld);
         const normalMatrix = new THREE.Matrix3().getNormalMatrix(matrix);
+        const offsetMatrix = new THREE.Matrix3().setFromMatrix4(matrix);
         for (let i = 0; i < n; i++)
-          for (const [name, size] of attributes) {
+          for (const [name, size] of bucket.attributes) {
             const dst = bucket.geometry.attributes[name].array,
               k = (start + i) * size,
               src = g.attributes[name];
             if (name === "aPigmentSeed") dst[k] = u.uSeed.value;
             else if (name === "aStrokeExtent") dst[k] = u.uStrokeExtent.value;
-            else if (name === "aBirth") dst[k] = -10000;
-            else if (name === "position" || name === "aTrailCenter") {
+            else if (name === "aBirth")
+              dst[k] = 360 - (u.uParticleTime.value - src.array[i]);
+            else if (name === "aOffset") {
+              point
+                .fromBufferAttribute(src, i)
+                .applyMatrix3(offsetMatrix)
+                .toArray(dst, k);
+            } else if (name === "position" || name === "aTrailCenter") {
               point.fromBufferAttribute(g.attributes.position, i);
-              if (name === "position") point.add(u.uWakeOffset.value);
+              if (name === "position" && u.uWakeOffset)
+                point.add(u.uWakeOffset.value);
               point.applyMatrix4(matrix);
               point.toArray(dst, k);
             } else if (name === "normal") {
@@ -167,10 +197,25 @@ export function createPigmentArchive() {
       bounds.union(mark.bounds);
       traces++;
     },
+    animate(audio, dt, time) {
+      for (const bucket of buckets.values()) {
+        const r = bucket.respond?.(audio, dt) || audio,
+          u = bucket.mesh.material.uniforms;
+        for (const [name, key] of [
+          ["uAudioEnergy", "energy"],
+          ["uAudioLow", "low"],
+          ["uAudioPulse", "pulse"],
+        ])
+          if (u[name]) u[name].value = Math.min(1, (r[key] || 0) * 2);
+        if (u.uTime) u.uTime.value = time * bucket.motionScale;
+        if (u.uParticleTime)
+          u.uParticleTime.value = 360 + time * bucket.motionScale;
+      }
+    },
     settle() {
       for (const bucket of buckets.values()) {
         const uniforms = bucket.mesh.material.uniforms;
-        uniforms.uMoisture.value = 0;
+        if (uniforms.uMoisture) uniforms.uMoisture.value = 0;
         uniforms.uTime.value = 0;
         uniforms.uAge.value = 10000;
         for (const name of ["uAudioEnergy", "uAudioLow", "uAudioPulse"])

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("six-minute active session finishes the washes, then completes its eight-second departure exactly once", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const { createChillSession } =
       await import("/src/chill/createChillSession.js");
@@ -48,7 +48,7 @@ test("mobile OIZO-BULLE starts with eight symbols and a neutral brush, immediate
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?original=1");
   await expect(
     page.getByRole("heading", {
       name: "OIZO-BULLE •°",
@@ -117,7 +117,7 @@ test("completed journey opens global artwork and offers a downloadable PNG souve
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?original=1");
   await page.getByRole("button", { name: "Prendre son envol" }).click();
   await expect(page.locator(".chill-welcome")).toHaveCount(0);
   await page.mouse.move(160, 350);
@@ -172,7 +172,7 @@ test("completed journey opens global artwork and offers a downloadable PNG souve
 test("particle trails stay bounded and visibly respond to musical energy", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?original=1");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createChillTrails } =

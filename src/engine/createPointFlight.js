@@ -26,6 +26,7 @@ export function createPointFlight({ seed = 37 } = {}) {
   const acrobatics = createFlightAcrobatics();
   const candidateSide = new THREE.Vector3();
   let hasBubbleTarget = false;
+  let sculptureAssist = false;
   let captured = false,
     time = 0,
     holding = false,
@@ -47,6 +48,11 @@ export function createPointFlight({ seed = 37 } = {}) {
     progress: 0,
   };
   return {
+    setSculptureAssist(enabled) {
+      if (sculptureAssist === enabled) return;
+      sculptureAssist = enabled;
+      this.reset();
+    },
     beginAcrobatic(id) {
       holding = false;
       return acrobatics.begin(
@@ -80,7 +86,12 @@ export function createPointFlight({ seed = 37 } = {}) {
       if (!captured) {
         right.copy(frame.right).normalize();
         up.copy(frame.up).normalize();
-        forward.crossVectors(up, right).normalize();
+        if (sculptureAssist) {
+          // Lock the gesture basis once: camera motion cannot feed back into steering.
+          forward.copy(direction);
+          right.addScaledVector(forward, -right.dot(forward)).normalize();
+          up.crossVectors(right, forward).normalize();
+        } else forward.crossVectors(up, right).normalize();
         captured = true;
       }
       target
@@ -161,20 +172,24 @@ export function createPointFlight({ seed = 37 } = {}) {
       a.rotateTowards(
         b,
         Math.min(
-          dt * (holding ? 1 : 0.55),
+          dt * (holding ? (sculptureAssist ? 1.3 : 1) : 0.55),
           a.angleTo(b) * (1 - Math.exp(-dt * (holding ? 8 : 2.2))),
         ),
       );
       direction.set(0, 0, 1).applyQuaternion(a).normalize();
       speed +=
         ((holding
-          ? 2.1 + inputStrength * 1.5
+          ? sculptureAssist
+            ? 1.65 + inputStrength * 0.55
+            : 2.1 + inputStrength * 1.5
           : hasBubbleTarget
             ? Math.max(
                 0.6,
                 Math.min(2.45, 0.5 + position.distanceTo(bubbleTarget) * 0.13),
               )
-            : 2.45) -
+            : sculptureAssist
+              ? 1.85
+              : 2.45) -
           speed) *
         (1 - Math.exp(-dt * 2));
       velocity.copy(direction).multiplyScalar(speed);
@@ -191,7 +206,7 @@ export function createPointFlight({ seed = 37 } = {}) {
     },
     reset() {
       acrobatics.cancel();
-      position.set(28, 0, 0);
+      position.set(sculptureAssist ? 18 : 28, 0, 0);
       direction.set(0, 0, 1);
       target.copy(direction);
       velocity.set(0, 0, 0);
@@ -203,7 +218,7 @@ export function createPointFlight({ seed = 37 } = {}) {
       orbitCenter.set(0, 0, 0);
       orbitGoal.set(0, 0, 0);
       orbitRadius = 18;
-      speed = 2.6;
+      speed = sculptureAssist ? 1.85 : 2.6;
       inputStrength = 0;
     },
   };

@@ -5,6 +5,7 @@ varying float vMaterialAge;
 uniform sampler2D uBrushMask;
 uniform float uPhotograph;
 uniform float uHasMask,uMaskAspect,uMaskRepeat;
+uniform float uDetailedPlate;
 uniform float uAge,uSurprise,uStrokeExtent;
 uniform float uTime,uPigment,uOpacity,uLayer,uSeed,uFade,uStyle;
 varying vec2 vUv;varying vec3 vColor,vNormal,vView,vWorld;
@@ -13,12 +14,15 @@ float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h
 float fbm(vec2 p){float v=0.,a=.52;for(int i=0;i<3;i++){v+=a*noise2(p);p=p*2.07+vec2(13.1,7.7);a*=.49;}return v;}
 void main(){
 vec2 uv=vUv;
+float maskCoverage=1.;
+vec3 pigmentPlate=vec3(.5);
 uv+=vec2(sin(uTime*.075+vPigmentSeed+uv.y*3.),cos(uTime*.053+vPigmentSeed+uv.x*4.))*(.009+.012*uAudioEnergy);
 float across=abs(uv.x*2.-1.);
 float dryingRate=uStyle>19.5?.035:(uStyle<.5?.028:(uStyle<4.? .055:(uStyle<11.? .038:.085)));
 float materialAge=uMaterialMode>.5?vMaterialAge:uAge;
 float wet=exp(-materialAge*dryingRate);
 if(uMaterialMode>.5)wet=clamp(wet*.55+uMoisture*.65,0.,1.);
+if(uMaterialMode>1.5)wet=exp(-materialAge*.045)*(.65+uMoisture*.35);
 float settled=1.-wet;
 if(uMaterialMode>.5){
  float migration=noise2(uv*vec2(9.,23.)+vec2(vPigmentSeed,uTime*.09));
@@ -124,7 +128,13 @@ if(uSurprise>.5 && uSurprise<1.5){
 if(uHasMask>.5){
   vec2 maskUv=uPhotograph>.5 ? clamp(vUv,vec2(.001),vec2(.999)) : vec2(uv.x,uv.y*uMaskRepeat*uMaskAspect);
   vec4 photograph=texture2D(uBrushMask,maskUv);
+  if(uDetailedPlate>.5){
+    vec2 plateUv=vec2(vUv.x,vUv.y*uMaskRepeat*uMaskAspect);
+    photograph=texture2D(uBrushMask,plateUv);
+    pigmentPlate=photograph.rgb;
+  }
   float imageAlpha=photograph.a;
+  maskCoverage=imageAlpha;
   if(uPhotograph>.5)col=mix(col,photograph.rgb,.9);
   // Preserve empty mask areas while giving semi-transparent grain more body.
   alpha*=1.-pow(1.-imageAlpha,1.9);
@@ -145,6 +155,42 @@ if(uMaterialMode>.5){
  col*=1.-uAudioLow*.16;
  col=mix(col,base,.12*uAudioPulse);
  alpha*=.8+uAudioEnergy*.42+uAudioPulse*.22;
+}
+if(uMaterialMode>1.5){
+ // Pigment gathers at an irregular waterline, while fixed paper tooth stays visible.
+ float waterline=exp(-pow((edge-(.81+middle*.055))/.055,2.));
+ float tooth=noise2(vUv*vec2(190.,280.)+vPigmentSeed);
+ float paperReserve=smoothstep(.23,.45,tooth*.65+middle*.35);
+ col=mix(col,base*.33,waterline*(.35+settled*.2));
+ col*=.9+.14*tooth;
+ alpha*=paperReserve*(.88+waterline*.45);
+ alpha=1.-pow(1.-clamp(alpha,0.,1.),2.4);
+}
+if(uMaterialMode>2.5){
+ // Dense watercolor, not a stack of faint smoke: retain paper holes and pigment edges.
+ float waterline=exp(-pow((edge-.82-middle*.04)/.05,2.));
+ float grain=noise2(vUv*vec2(145.,230.)+vPigmentSeed);
+ float coverage=smoothstep(.025,.24,maskCoverage);
+ float tooth=mix(.92,1.,smoothstep(.15,.65,grain));
+ col=mix(base*.42,base,.52+middle*.32);
+ col=mix(col,base*.27,waterline*.4+settled*granules*.15);
+ col=mix(col,base*.6,(uAudioLow*.12+uAudioPulse*.12)*wet);
+ alpha=body*coverage*tooth*uOpacity*uFade*(.94+pool*.12+waterline*.15+uAudioPulse*.12);
+ if(abs(uStyle-15.)<.1){
+   float r=length((vUv-.5)*2.);
+   alpha*=1.-smoothstep(.52+macro*.2,.85+middle*.12,r);
+ }
+ if(uDetailedPlate>.5){
+   // Fixed paper grain underneath slow wet-to-dry pigment migration.
+   float load=pigmentPlate.r, paper= pigmentPlate.g, deposits=pigmentPlate.b;
+   float poolDensity=clamp(load*.7+deposits*(.25+settled*.2),0.,1.);
+   col=base*mix(1.08,.28,poolDensity);
+   col*=.87+.23*paper;
+   col=mix(col,base*.25,deposits*(.2+uAudioPulse*wet*.15));
+   float reserves=mix(.65,1.,smoothstep(.2,.65,paper));
+   alpha=body*smoothstep(.025,.32,maskCoverage)*uOpacity*uFade*reserves*(.82+load*.22+deposits*.18);
+   if(abs(uStyle-3.)<.1) alpha*=.55+.45*smoothstep(.2,.6,paper);
+ }
 }
 if(vStrokeExtent>0.){
   float cap=min(.035,vStrokeExtent*.35);

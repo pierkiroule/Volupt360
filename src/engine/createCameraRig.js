@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createPanoramaJourney } from "./createPanoramaJourney.js";
 
 /** Three viewpoints share an extended sculpture and a moving painter.
  * Pointer input rotates only the landscape. Every rotation reanchors the FPV
@@ -9,6 +10,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     dragging = null,
     revision = 0,
     disposed = false;
+  const journey = createPanoramaJourney();
+  const returnAim = new THREE.Quaternion();
+  let panoramaExploreOnly = false;
+  let panoramaDial = 0;
   let povLocked = false,
     povArrival = 0,
     returnBlend = 1;
@@ -54,6 +59,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   const matrix = new THREE.Matrix4(),
     desiredQuaternion = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
+  const correctionAxis = new THREE.Vector3(1, 0, 0);
   const listeners = [];
   const listen = (node, name, fn) => {
     node.addEventListener(name, fn);
@@ -70,7 +76,11 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     canvas.dataset.flightRevision = String(revision);
   }
   listen(canvas, "pointerdown", (event) => {
-    if (mode === "sculpt" || (mode === "drone" && getFlight().windEnabled))
+    if (
+      mode === "sculpt" ||
+      (mode === "panorama" && !panoramaExploreOnly) ||
+      (mode === "drone" && getFlight().windEnabled)
+    )
       return;
     if (mode === "photo" || mode === "global") {
       photoPointers.set(event.pointerId, {
@@ -117,7 +127,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (!dragging || event.pointerId !== dragging.id) return;
     const dx = event.clientX - dragging.x;
     const dy = event.clientY - dragging.y;
-    if (mode === "gyro") {
+    if (mode === "gyro" || mode === "panorama") {
       panoramaYaw -= dx * 0.0035;
       panoramaPitch = THREE.MathUtils.clamp(
         panoramaPitch + dy * 0.0035,
@@ -172,7 +182,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   );
   const onOrientation = (event) => {
     if (
-      mode !== "gyro" ||
+      (mode !== "gyro" && mode !== "panorama") ||
       !gyroEnabled ||
       !Number.isFinite(event.beta) ||
       !Number.isFinite(event.gamma) ||
@@ -213,6 +223,16 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     orientationSource = null;
     gyroRelative.identity();
     canvas.dataset.cameraMode = mode;
+    if (next === "panorama") {
+      journey.reset(panoramaExploreOnly);
+      panoramaYaw = Math.PI;
+      panoramaPitch = 0;
+      panoramaDial = 0;
+      camera.position.copy(journey.position);
+      camera.lookAt(0, 0, 0);
+      gyroEnabled = gyroPermission;
+      return;
+    }
     if (next !== "gyro") {
       onHint(
         next === "drone"
@@ -284,6 +304,49 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     painter.copy(state.position).applyMatrix4(landscape.matrixWorld);
     direction.copy(state.direction).transformDirection(landscape.matrixWorld);
     center.copy(state.bounds.center).applyMatrix4(landscape.matrixWorld);
+    if (mode === "panorama") {
+      if (panoramaExploreOnly) {
+        camera.getWorldDirection(direction);
+        journey.steer(direction, dt);
+      }
+      journey.update(dt);
+      camera.position.copy(journey.position);
+      target
+        .copy(journey.position)
+        .add(
+          behind.set(
+            Math.sin(panoramaYaw + panoramaDial) * Math.cos(panoramaPitch),
+            Math.sin(panoramaPitch),
+            Math.cos(panoramaYaw + panoramaDial) * Math.cos(panoramaPitch),
+          ),
+        );
+      matrix.lookAt(camera.position, target, up);
+      desiredQuaternion.setFromRotationMatrix(matrix).multiply(gyroRelative);
+      if (panoramaExploreOnly && journey.moving && journey.returnWeight > 0) {
+        // Ease the FPV framing back toward the work instead of flying into empty space.
+        target.copy(journey.focus).lerp(journey.lookTarget, 0.3);
+        if (target.distanceToSquared(camera.position) < 0.2)
+          target.copy(journey.lookTarget);
+        matrix.lookAt(camera.position, target, up);
+        returnAim.setFromRotationMatrix(matrix);
+        desiredQuaternion.slerp(returnAim, 0.88);
+      }
+      camera.quaternion.slerp(desiredQuaternion, mix(4));
+      // A restrained lens opening accompanies travel; no roll or camera shake.
+      camera.fov +=
+        ((journey.moving
+          ? 100 + Math.sin(performance.now() * 0.00019) * 1.5
+          : 92) -
+          camera.fov) *
+        mix(2);
+      camera.far = 1000;
+      camera.updateProjectionMatrix();
+      canvas.dataset.journeyMoving = String(journey.moving);
+      canvas.dataset.journeyHeading = journey.direction.toArray().join(",");
+      canvas.dataset.journeyGuided = String(journey.guided);
+      canvas.dataset.journeyFocus = journey.focus.toArray().join(",");
+      return;
+    }
     if (mode === "sculpt") {
       camera.position.set(0, 4, 30);
       camera.lookAt(0, 0, 0);
@@ -369,8 +432,12 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           Math.min(1, state.motion || 0) * 0.6 -
           chillDistance) *
         mix(0.8);
-      const distance = state.chill ? chillDistance : 5.5;
+      const distance = state.workshop ? 7.8 : state.chill ? chillDistance : 5.5;
       camera.position.copy(painter).addScaledVector(direction, -distance);
+      if (state.workshop) {
+        behind.crossVectors(direction, up).normalize();
+        camera.position.addScaledVector(behind, 2.2).addScaledVector(up, 1.8);
+      }
       camera.position.addScaledVector(
         up,
         state.chill
@@ -381,7 +448,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       matrix.lookAt(camera.position, target, up);
       desiredQuaternion.setFromRotationMatrix(matrix);
       camera.quaternion.copy(desiredQuaternion);
-      camera.fov = 88 + (state.opening || 0) * 3;
+      camera.fov = state.workshop ? 68 : 88 + (state.opening || 0) * 3;
       if (returnBlend < 1) {
         returnBlend = Math.min(1, returnBlend + dt / returnDuration);
         const blend = returnBlend * returnBlend * (3 - 2 * returnBlend);
@@ -424,8 +491,53 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   canvas.dataset.droneDistance = String(distanceSetting);
   return {
+    setPanoramaSculpture(center, radius) {
+      journey.setSculpture(center, radius);
+    },
+    setPanoramaExploreOnly(value) {
+      panoramaExploreOnly = value;
+    },
+    travelPanorama() {
+      camera.getWorldDirection(direction);
+      journey.travel(direction);
+    },
+    stopPanorama() {
+      journey.stop();
+    },
+    setPanoramaDial(degrees) {
+      if (Number.isFinite(Number(degrees)))
+        panoramaDial = THREE.MathUtils.degToRad(Number(degrees));
+    },
+    rotateSculpture(dx, dy) {
+      if (mode === "panorama") {
+        panoramaYaw -= dx * 0.006;
+        panoramaPitch = THREE.MathUtils.clamp(
+          panoramaPitch + dy * 0.006,
+          -1.2,
+          1.2,
+        );
+        return;
+      }
+      if (mode !== "sculpt") return;
+      orientation.setFromAxisAngle(up, dx * 0.006);
+      landscape.quaternion.premultiply(orientation);
+      orientation.setFromAxisAngle(correctionAxis.set(1, 0, 0), dy * 0.006);
+      landscape.quaternion.premultiply(orientation).normalize();
+      landscape.updateMatrixWorld(true);
+      canvas.dataset.sculptureRotation = landscape.quaternion
+        .toArray()
+        .join(",");
+    },
     setMode,
     async requestGyroscope(enabled = true) {
+      if (mode === "panorama") {
+        camera.getWorldDirection(focus);
+        panoramaYaw = Math.atan2(focus.x, focus.z) - panoramaDial;
+        panoramaPitch = Math.atan2(focus.y, Math.hypot(focus.x, focus.z));
+        gyroRelative.identity();
+        gyroReference = null;
+        orientationSource = null;
+      }
       gyroEnabled = false;
       gyroPermission = false;
       if (!enabled) {
@@ -451,6 +563,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           (await Sensor.requestPermission()) === "granted";
         if (disposed) return false;
         gyroPermission = granted;
+        if (mode === "panorama") gyroEnabled = granted;
         canvas.dataset.gyroscopeStatus = granted ? "ready" : "denied";
       } catch {
         if (!disposed) canvas.dataset.gyroscopeStatus = "denied";
