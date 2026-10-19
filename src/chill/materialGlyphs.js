@@ -1,5 +1,9 @@
 /** A shared visual alphabet for the palette, paper stamps and floating 3D marks. */
 export const MATERIAL_GLYPHS = {
+  corolles:
+    "M12 12C0 12 5 1 12 12C12 0 23 5 12 12C24 12 19 23 12 12C12 24 1 19 12 12Z",
+  racines: "M12 21L12 4M12 10L6 6M12 13L19 8M12 17L5 12M12 19L19 15",
+
   calligraphie:
     "M4 19C7 15 6 5 12 4C18 3 18 10 13 13C10 15 8 15 5 20M10 18L19 7",
   voiles: "M3 9C8 2 12 16 21 7M3 14C9 7 13 21 21 12M7 19C12 16 15 21 19 18",

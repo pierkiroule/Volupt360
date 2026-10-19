@@ -1,4 +1,3 @@
-import { HaikuGift } from "./HaikuGift.jsx";
 import { MaterialGlyph } from "./MaterialGlyph.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
@@ -15,521 +14,257 @@ export default function WatercolorWorkshop() {
     paper = useRef(null),
     generation = useRef(0),
     worldSource = useRef(null);
-  const twigs = useTwigBank();
-  const [haiku, setHaiku] = useState(null);
+  const twigs = useTwigBank({ poeticVoices: false });
   const [started, setStarted] = useState(false),
+    [world, setWorld] = useState(false),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const [world, setWorld] = useState(false),
-    [worldBusy, setWorldBusy] = useState(false),
     [count, setCount] = useState(0);
-  const [draw3D, setDraw3D] = useState(true);
-  const [stickerMode, setStickerMode] = useState(false);
-  const [stickerSize, setStickerSize] = useState(64);
-  const [stickerOpacity, setStickerOpacity] = useState(0.9);
   const [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
-    [color, setColor] = useState(DEFAULT_WORKSHOP_BRUSH.color),
-    [size, setSize] = useState(18),
-    [opacity, setOpacity] = useState(0.72);
-  const [gyro, setGyro] = useState(false),
     [moving, setMoving] = useState(false),
-    [dial, setDial] = useState(0),
-    [paused, setPaused] = useState(false),
-    [open, setOpen] = useState(true),
-    [audioOpen, setAudioOpen] = useState(false),
-    [vr, setVR] = useState(false);
+    [gyro, setGyro] = useState(false),
+    [sound, setSound] = useState(true),
+    [error, setError] = useState("");
   useEffect(() => {
-    document.title =
-      "Haïkuarelle Virtuelle •° — Un geste, un paysage, un poème";
-    engine.current = createSoundNest(stage.current, {
-      onError: setError,
-      onHaikuReveal: setHaiku,
-    });
+    document.title = "Haïkuarelle Virtuelle •° — Mon ciel émotionnel";
+    engine.current = createSoundNest(stage.current, { onError: setError });
     engine.current.setPaperVisible(true);
     paper.current = createPaintingCanvas(stage.current, setCount);
     paper.current.setVisible(false);
-    let disposed = false;
-    navigator.xr
-      ?.isSessionSupported("immersive-vr")
-      .then((v) => {
-        if (!disposed) setVR(v);
-      })
-      .catch(() => {});
     return () => {
-      disposed = true;
       generation.current++;
       paper.current?.dispose();
-      paper.current = null;
       engine.current?.dispose();
-      engine.current = null;
     };
   }, []);
   useEffect(() => {
+    const b = WORKSHOP_BRUSHES.find((b) => b.id === brush);
     paper.current?.setConfig({
-      mode: stickerMode ? "sticker" : "paint",
-      glyph: brush,
-      brush,
-      color,
-      size: !world && stickerMode ? stickerSize : size,
-      opacity: !world && stickerMode ? stickerOpacity : opacity,
+      brush: b.id,
+      color: b.color,
+      size: b.paperSize,
+      opacity: b.opacity,
     });
-  }, [
-    brush,
-    color,
-    size,
-    opacity,
-    stickerMode,
-    stickerSize,
-    stickerOpacity,
-    world,
-  ]);
+  }, [brush]);
   useLayoutEffect(() => {
     paper.current?.setVisible(started && !world);
-    paper.current?.setEnabled(started && !paused && !world);
+    paper.current?.setEnabled(started && !world);
     engine.current?.setPaperVisible(!started || !world);
-  }, [started, world, paused]);
-  useEffect(() => {
-    engine.current?.setWorldPainting(
-      started && world && draw3D && !paused && !haiku,
-      world ? { brush, color, size, opacity } : null,
+    engine.current?.setWorldPainting(false, null);
+    engine.current?.pauseChillSession(!world);
+  }, [started, world]);
+  function start() {
+    engine.current.setMood(
+      {
+        ...CHILL_UNIVERSE,
+        background: "#f7f4eb",
+        workshop: true,
+        resonanceBubbles: false,
+        constellation: false,
+      },
+      WORKSHOP_BRUSHES,
     );
-  }, [started, world, draw3D, paused, brush, color, size, opacity, haiku]);
-  useEffect(() => {
-    engine.current?.pauseChillSession(paused || Boolean(haiku));
-  }, [paused, haiku]);
-  async function start() {
-    if (busy) return;
+    engine.current.setPoeticFragments([]);
+    engine.current.setPadSource(twigs.bank.current);
+    paper.current.clear();
+    worldSource.current = null;
+    setStarted(true);
+    setError("");
+  }
+  async function reveal() {
+    if (busy || !count) return;
+    const ticket = generation.current;
     setBusy(true);
     setError("");
-    const ticket = ++generation.current;
+    // Permission requests stay inside the validating touch.
+    const permission = engine.current.requestContemplationGyroscope(true);
     try {
-      const bank = twigs.bank.current;
-      await bank.preparePlayback();
+      await twigs.bank.current.preparePlayback();
       if (ticket !== generation.current) return;
-      engine.current.setMood(
-        {
-          ...CHILL_UNIVERSE,
-          background: "#ffffff",
-          workshop: true,
-          resonanceBubbles: false,
-          constellation: false,
-        },
-        WORKSHOP_BRUSHES,
+      const doc = paper.current.getDocument(),
+        source = JSON.stringify(doc);
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
       );
-      engine.current.setPoeticFragments([]);
-      engine.current.setPadSource(bank);
-      engine.current.pauseChillSession(false);
-      paper.current.clear();
-      worldSource.current = null;
-      setHaiku(null);
-      setWorld(false);
-      setMoving(false);
-      setGyro(false);
-      setDial(0);
-      setPaused(false);
-      const track =
-        musicCatalog.find((t) => /(?:^|\/)gravity\.mp3$/i.test(t)) ??
-        musicCatalog[0];
-      if (track) {
-        const loaded = await bank.loadMoodAmbience(
-          `${import.meta.env.BASE_URL}${track}`,
-        );
-        if (ticket !== generation.current) return;
-        if (loaded) await bank.toggleAmbience();
+      if (ticket !== generation.current) return;
+      if (source !== worldSource.current) {
+        engine.current.loadPaintingWorld(doc);
+        worldSource.current = source;
       }
-      if (ticket === generation.current) setStarted(true);
+      setWorld(true);
+      setMoving(false);
+      setGyro(Boolean(await permission));
+      const bank = twigs.bank.current;
+      if (sound) {
+        let snapshot = bank.getSnapshot().ambience;
+        if (!snapshot.loaded) {
+          const track =
+            musicCatalog.find((t) => /(?:^|\/)gravity\.mp3$/i.test(t)) ??
+            musicCatalog[0];
+          if (track)
+            await bank.loadMoodAmbience(`${import.meta.env.BASE_URL}${track}`);
+        }
+        if (ticket !== generation.current) return;
+        snapshot = bank.getSnapshot().ambience;
+        if (snapshot.loaded && !snapshot.playing) await bank.toggleAmbience();
+      }
     } catch (e) {
       setError(e.message);
     } finally {
       if (ticket === generation.current) setBusy(false);
     }
   }
-  async function switchDimension() {
-    if (worldBusy) return;
-    setWorldBusy(true);
-    setError("");
-    const ticket = generation.current;
-    try {
-      engine.current.stopPanorama();
-      setMoving(false);
-      if (world) {
-        await engine.current.requestContemplationGyroscope(false);
-        setGyro(false);
-        setWorld(false);
-      } else {
-        // Request sensor access inside the trusted click, before yielding a frame.
-        const gyroRequest = engine.current.requestContemplationGyroscope(true);
-        const doc = paper.current.getDocument();
-        await new Promise((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(resolve)),
-        );
-        if (ticket !== generation.current) return;
-        const source = JSON.stringify(doc);
-        if (worldSource.current !== source) {
-          engine.current.loadPaintingWorld(doc);
-          worldSource.current = source;
-        }
-        setDial(0);
-        setWorld(true);
-        setGyro(Boolean(await gyroRequest));
-      }
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      if (ticket === generation.current) setWorldBusy(false);
-    }
+  function back() {
+    generation.current++;
+    twigs.bank.current.cancelAmbienceLoad();
+    twigs.bank.current.pauseAmbience();
+    engine.current.stopPanorama();
+    void engine.current.requestContemplationGyroscope(false);
+    setGyro(false);
+    setMoving(false);
+    setBusy(false);
+    setWorld(false);
   }
-  async function toggleGyro() {
-    try {
-      setGyro(
-        Boolean(await engine.current.requestContemplationGyroscope(!gyro)),
-      );
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-  function toggleTravel() {
+  function travel() {
     if (moving) engine.current.stopPanorama();
     else engine.current.travelPanorama();
     setMoving(!moving);
   }
-  async function togglePause() {
+  async function toggleSound() {
     try {
-      if (paused) {
-        await twigs.bank.current.preparePlayback();
-        const a = twigs.bank.current.getSnapshot().ambience;
-        if (a.loaded && !a.playing) await twigs.bank.current.toggleAmbience();
-      } else twigs.bank.current.pauseAmbience();
-      engine.current.pauseChillSession(!paused);
-      setPaused(!paused);
+      const bank = twigs.bank.current;
+      if (sound) bank.pauseAmbience();
+      else {
+        await bank.preparePlayback();
+        if (
+          bank.getSnapshot().ambience.loaded &&
+          !bank.getSnapshot().ambience.playing
+        )
+          await bank.toggleAmbience();
+      }
+      setSound(!sound);
     } catch (e) {
       setError(e.message);
     }
   }
-  function exit() {
-    generation.current++;
-    twigs.bank.current?.cancelAmbienceLoad();
-    twigs.bank.current?.pauseAmbience();
-    twigs.bank.current?.stopAll();
-    engine.current.pauseChillSession(true);
-    engine.current.setPadSource(null);
-    engine.current.reset();
-    setStarted(false);
-    setBusy(false);
-    setWorldBusy(false);
-    setWorld(false);
-  }
   return (
     <main
-      className={`immersive chill-experience watercolor-workshop ${started ? "is-running" : ""}`}
-      style={{ "--journey-ink": "#334452" }}
+      className={`immersive chill-experience watercolor-workshop sky-disc-workshop ${started ? "is-running" : ""}`}
     >
       <div id="stage" ref={stage} />
       {!started && (
         <section className="chill-welcome">
-          <span className="chill-eyebrow">
-            Un geste · Un paysage · Un poème
-          </span>
+          <span className="chill-eyebrow">Dessiner · Révéler · Contempler</span>
           <h1>
             Haïkuarelle
             <br />
             Virtuelle •°
           </h1>
-          <h2>Le papier abrite un ciel</h2>
+          <h2>Mon ciel émotionnel</h2>
           <p>
-            Un trait, une tache, un peu d’eau… Laissez les pigments inventer un
-            paysage, puis entrez dans votre aquarelle à 360°.
+            Douze couleurs, douze matières d’aquarelle et d’encre. Dessinez
+            votre ciel émotionnel sur un disque de papier.
           </p>
           <p>
-            Quelque part dans vos traces, une bulle-graine abrite un haïku.
-            Trouvez-la, touchez-la : le paysage vous offre un poème.
+            Validez : votre dessin devient un paysage vivant à 360°. Regardez
+            autour de vous ou laissez le voyage vous porter.
           </p>
           <p className="sensory-note">
-            Rien à réussir. Chaque matière, chaque rencontre peut prendre le
-            sens que vous lui donnez. Aucune interprétation psychologique
-            automatique.
+            Vos associations vous appartiennent. La musique accompagne seulement
+            la découverte en 3D.
           </p>
-          <button disabled={busy} onClick={start}>
-            {busy ? "Le papier s’éveille…" : "Ouvrir l’atelier"}
-          </button>
+          <button onClick={start}>Dessiner mon ciel</button>
         </section>
       )}
-      {started && (
+      {started && !world && (
         <nav
-          className={`pictorial-tools ${open ? "is-open" : "is-folded"}`}
-          aria-label="Outils de peinture"
+          className="sky-disc-tools"
+          aria-label="Douze brosses émotionnelles"
         >
-          {open && (
-            <div id="pictorial-tool-panel">
-              <div className="dimension-switch">
-                <button
-                  onClick={switchDimension}
-                  disabled={worldBusy || (!world && !count)}
-                  aria-label={
-                    world
-                      ? "Revenir au tableau 2D"
-                      : "Entrer dans le tableau 3D"
-                  }
-                >
-                  {worldBusy
-                    ? "Ouverture…"
-                    : world
-                      ? "← Tableau 2D"
-                      : "Explorer en 3D →"}
-                </button>
-              </div>
-              {
-                <>
-                  {!world ? (
-                    <div
-                      className="paper-mode"
-                      role="group"
-                      aria-label="Mode de création"
-                    >
-                      <button
-                        aria-pressed={!stickerMode}
-                        onClick={() => setStickerMode(false)}
-                      >
-                        Peindre
-                      </button>
-                      <button
-                        aria-pressed={stickerMode}
-                        onClick={() => setStickerMode(true)}
-                      >
-                        Stickers
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      className="paper-mode"
-                      role="group"
-                      aria-label="Interaction en 3D"
-                    >
-                      <button
-                        aria-pressed={draw3D}
-                        onClick={() => setDraw3D(true)}
-                      >
-                        Peindre en 3D
-                      </button>
-                      <button
-                        aria-pressed={!draw3D}
-                        onClick={() => setDraw3D(false)}
-                      >
-                        Regarder
-                      </button>
-                    </div>
-                  )}
-                  <section
-                    className="landscape-palette symbolic-palette"
-                    aria-label="Matières symboliques"
-                  >
-                    <div role="group" aria-label="Choisir une brosse">
-                      {WORKSHOP_BRUSHES.map((b) => (
-                        <button
-                          key={b.id}
-                          aria-label={b.name}
-                          title={`${b.name} · ${b.sensory.quality}`}
-                          aria-pressed={brush === b.id}
-                          disabled={paused}
-                          style={{ "--brush-color": b.color }}
-                          onClick={() => {
-                            setBrush(b.id);
-                            setColor(b.color);
-                          }}
-                        >
-                          <MaterialGlyph id={b.id} />
-                          <span className="brush-name">{b.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="sensory-hint" aria-live="polite">
-                      {
-                        WORKSHOP_BRUSHES.find((b) => b.id === brush)?.sensory
-                          .quality
-                      }{" "}
-                      · à votre façon
-                    </p>
-                  </section>
-                  <details
-                    key={!world && stickerMode ? "sticker" : "paint"}
-                    className="paper-adjustments"
-                    open={(!world && stickerMode) || undefined}
-                  >
-                    <summary aria-label="Réglages de la brosse">
-                      Réglages
-                    </summary>
-                    <div className="paper-settings">
-                      {(world || !stickerMode) && (
-                        <label>
-                          Couleur
-                          <input
-                            type="color"
-                            aria-label="Couleur de la brosse"
-                            value={color}
-                            onChange={(e) => setColor(e.target.value)}
-                          />
-                        </label>
-                      )}
-                      <label>
-                        Taille
-                        <input
-                          type="range"
-                          aria-label={
-                            !world && stickerMode
-                              ? "Taille du sticker"
-                              : "Taille de la brosse"
-                          }
-                          min="2"
-                          max={!world && stickerMode ? "160" : "80"}
-                          value={!world && stickerMode ? stickerSize : size}
-                          onChange={(e) =>
-                            (!world && stickerMode ? setStickerSize : setSize)(
-                              Number(e.target.value),
-                            )
-                          }
-                        />
-                      </label>
-                      <label>
-                        Opacité
-                        <input
-                          type="range"
-                          aria-label={
-                            !world && stickerMode
-                              ? "Opacité du sticker"
-                              : "Opacité de la brosse"
-                          }
-                          min=".1"
-                          max="1"
-                          step=".05"
-                          value={
-                            !world && stickerMode ? stickerOpacity : opacity
-                          }
-                          onChange={(e) =>
-                            (!world && stickerMode
-                              ? setStickerOpacity
-                              : setOpacity)(Number(e.target.value))
-                          }
-                        />
-                      </label>
-                    </div>
-                  </details>
-                </>
-              }
-              {world && (
-                <label className="sculpture-depth">
-                  Panorama
-                  <input
-                    aria-label="Molette panorama"
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={dial}
-                    onChange={(e) => {
-                      setDial(Number(e.target.value));
-                      engine.current.setPanoramaDial(e.target.value);
-                    }}
-                  />
-                  <output>{dial}°</output>
-                </label>
-              )}
-              <div className="pictorial-commands">
-                {!world && (
-                  <button
-                    aria-label="Annuler le dernier trait"
-                    title="Annuler le dernier trait"
-                    disabled={!count || paused}
-                    onClick={() => paper.current.undo()}
-                  >
-                    <ToolIcon name="undo" />
-                  </button>
-                )}
-
-                {world && (
-                  <>
-                    <button
-                      disabled={paused}
-                      onClick={toggleTravel}
-                      aria-label={
-                        moving
-                          ? "Pause du voyage"
-                          : "Voyager dans la direction du regard"
-                      }
-                      title={moving ? "Pause du voyage" : "Voyager"}
-                    >
-                      <ToolIcon name={moving ? "pause" : "play"} />
-                    </button>
-                    <button
-                      onClick={toggleGyro}
-                      aria-label={
-                        gyro
-                          ? "Désactiver le gyroscope"
-                          : "Activer le gyroscope"
-                      }
-                      aria-pressed={gyro}
-                    >
-                      <ToolIcon name="view" />
-                    </button>
-                    {vr && (
-                      <button
-                        aria-label="Entrer en VR"
-                        title="Entrer en VR"
-                        onClick={() =>
-                          engine.current
-                            .enterVR()
-                            .catch((e) => setError(e.message))
-                        }
-                      >
-                        <ToolIcon name="vr" />
-                      </button>
-                    )}
-                  </>
-                )}
-                <button
-                  onClick={togglePause}
-                  aria-label={paused ? "Reprendre" : "Faire une pause"}
-                >
-                  <ToolIcon name={paused ? "play" : "pause"} />
-                </button>
-                <button
-                  onClick={() => setAudioOpen(!audioOpen)}
-                  aria-label="Réglage du son"
-                  aria-expanded={audioOpen}
-                >
-                  <ToolIcon name="sound" />
-                </button>
-                <button onClick={exit} aria-label="Sortir">
-                  <ToolIcon name="exit" />
-                </button>
-              </div>
-              {audioOpen && (
-                <div id="pictorial-volume">
-                  <input
-                    aria-label="Volume musical"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step=".01"
-                    value={twigs.snapshot.ambience?.volume ?? 0.45}
-                    onChange={(e) =>
-                      twigs.bank.current.setAmbienceVolume(e.target.value)
-                    }
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          <button
-            className="tools-toggle"
-            aria-label={open ? "Replier les outils" : "Déplier les outils"}
-            aria-expanded={open}
-            aria-controls="pictorial-tool-panel"
-            onClick={() => setOpen(!open)}
+          <div
+            className="sky-brushes"
+            role="group"
+            aria-label="Choisir une brosse"
           >
-            <ToolIcon name={open ? "fold" : "expand"} />
-          </button>
+            {WORKSHOP_BRUSHES.map((b) => (
+              <button
+                key={b.id}
+                aria-label={b.emotion}
+                title={`${b.emotion} · ${b.name}`}
+                aria-pressed={brush === b.id}
+                style={{ "--brush-color": b.color }}
+                onClick={() => setBrush(b.id)}
+              >
+                <MaterialGlyph id={b.id} />
+              </button>
+            ))}
+          </div>
+          <p className="sky-selected" aria-live="polite">
+            {WORKSHOP_BRUSHES.find((b) => b.id === brush).emotion} ·{" "}
+            {WORKSHOP_BRUSHES.find((b) => b.id === brush).name}
+          </p>
+          <div className="sky-actions">
+            <button
+              aria-label="Annuler le dernier trait"
+              disabled={!count}
+              onClick={() => paper.current.undo()}
+            >
+              <ToolIcon name="undo" />
+            </button>
+            <button
+              className="sky-validate"
+              disabled={!count || busy}
+              onClick={reveal}
+            >
+              {busy ? "Le ciel se révèle…" : "Révéler mon ciel"}
+            </button>
+          </div>
         </nav>
       )}
-      {haiku && <HaikuGift poem={haiku} onClose={() => setHaiku(null)} />}
+      {started && world && (
+        <nav className="sky-world-tools" aria-label="Contempler le ciel">
+          <button
+            aria-label="Revenir au dessin"
+            title="Revenir au dessin"
+            onClick={back}
+          >
+            <ToolIcon name="undo" />
+          </button>
+          <button
+            aria-label={moving ? "Suspendre le voyage" : "Voyager"}
+            aria-pressed={moving}
+            onClick={travel}
+          >
+            <ToolIcon name={moving ? "pause" : "play"} />
+            <span>{moving ? "Contempler" : "Voyager"}</span>
+          </button>
+          <button
+            aria-label={sound ? "Couper la musique" : "Écouter la musique"}
+            aria-pressed={sound}
+            onClick={toggleSound}
+          >
+            <ToolIcon name="sound" />
+          </button>
+          {!gyro && (
+            <button
+              aria-label="Activer le gyroscope"
+              title="Activer le gyroscope"
+              onClick={async () => {
+                try {
+                  setGyro(
+                    Boolean(
+                      await engine.current.requestContemplationGyroscope(true),
+                    ),
+                  );
+                } catch (e) {
+                  setError(e.message);
+                }
+              }}
+            >
+              <ToolIcon name="view" />
+            </button>
+          )}
+        </nav>
+      )}
       {(error || twigs.error) && (
         <p className="ambience-error" role="status">
           {error || twigs.error}

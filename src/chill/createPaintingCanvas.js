@@ -1,4 +1,3 @@
-import { paintMaterialGlyph } from "./materialGlyphs.js";
 import { createPigmentPlate } from "./createPigmentPlate.js";
 import { WORKSHOP_BRUSHES, DEFAULT_WORKSHOP_BRUSH } from "./workshopBrushes.js";
 
@@ -7,8 +6,8 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   const canvas = document.createElement("canvas");
   canvas.className = "painting-paper";
   canvas.setAttribute("aria-label", "Tableau aquarelle 2D");
-  const width = innerWidth,
-    height = innerHeight,
+  const width = Math.max(160, Math.min(innerWidth - 24, innerHeight - 190)),
+    height = width,
     ratio = Math.min(devicePixelRatio || 1, 1.5);
   canvas.width = Math.round(width * ratio);
   canvas.height = Math.round(height * ratio);
@@ -21,6 +20,9 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   const ctx = layer.getContext("2d");
   const baseContext = committed.getContext("2d");
   ctx.scale(ratio, ratio);
+  ctx.beginPath();
+  ctx.arc(width / 2, height / 2, width / 2, 0, Math.PI * 2);
+  ctx.clip();
   function present(opacity = 1) {
     output.clearRect(0, 0, canvas.width, canvas.height);
     output.globalAlpha = 1;
@@ -40,8 +42,6 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     cache = new Map();
   let active = null,
     config = {
-      mode: "paint",
-      emoji: DEFAULT_WORKSHOP_BRUSH.sensory.emoji,
       brush: DEFAULT_WORKSHOP_BRUSH.id,
       color: DEFAULT_WORKSHOP_BRUSH.color,
       size: 18,
@@ -82,44 +82,6 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     return image;
   }
   function dot(stroke, p, index) {
-    if (stroke.type === "sticker") {
-      ctx.save();
-      ctx.globalAlpha = 1;
-      if (stroke.glyph) {
-        const key = `glyph:${stroke.glyph}:${stroke.color}`;
-        let stamp = cache.get(key);
-        if (!stamp) {
-          stamp = document.createElement("canvas");
-          stamp.width = stamp.height = 256;
-          paintMaterialGlyph(
-            stamp.getContext("2d"),
-            stroke.glyph,
-            128,
-            128,
-            220,
-            stroke.color,
-          );
-          cache.set(key, stamp);
-          if (cache.size > 16) cache.delete(cache.keys().next().value);
-        }
-        const size = stroke.size * Math.min(width, height);
-        ctx.drawImage(
-          stamp,
-          p.u * width - size / 2,
-          p.v * height - size / 2,
-          size,
-          size,
-        );
-        ctx.restore();
-        return;
-      }
-      ctx.font = `${stroke.size * Math.min(width, height)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(stroke.emoji, p.u * width, p.v * height);
-      ctx.restore();
-      return;
-    }
     const brush =
       WORKSHOP_BRUSHES.find((b) => b.id === stroke.brush) ||
       DEFAULT_WORKSHOP_BRUSH;
@@ -137,6 +99,8 @@ export function createPaintingCanvas(container, onChange = () => {}) {
         "crystal",
         "spiral",
         "bubbles",
+        "bloom",
+        "branches",
       ].includes(mode)
         ? 3
         : 1;
@@ -153,11 +117,15 @@ export function createPaintingCanvas(container, onChange = () => {}) {
         ctx.rotate(
           mode === "crystal"
             ? (i * Math.PI) / 3
-            : mode === "spiral"
-              ? orbit
-              : mode === "hatch"
-                ? -0.65 + hash(n) * 0.3
-                : (hash(n) - 0.5) * 0.4,
+            : mode === "bloom"
+              ? (i * Math.PI * 2) / 3
+              : mode === "branches"
+                ? (i - 1) * 0.7
+                : mode === "spiral"
+                  ? orbit
+                  : mode === "hatch"
+                    ? -0.65 + hash(n) * 0.3
+                    : (hash(n) - 0.5) * 0.4,
         );
         const w =
           base *
@@ -170,13 +138,17 @@ export function createPaintingCanvas(container, onChange = () => {}) {
                 : 1);
         const h =
           base *
-          (mode === "threads"
-            ? 0.08
-            : mode === "echo"
-              ? 0.18
-              : mode === "hatch"
-                ? 0.8
-                : 1);
+          (mode === "branches"
+            ? 0.1
+            : mode === "bloom"
+              ? 0.4
+              : mode === "threads"
+                ? 0.08
+                : mode === "echo"
+                  ? 0.18
+                  : mode === "hatch"
+                    ? 0.8
+                    : 1);
         ctx.globalAlpha =
           mode === "cloud" ? 0.16 : mode === "echo" ? 0.7 - i * 0.18 : 0.72;
         if (mode === "tide" || mode === "bubbles") {
@@ -246,22 +218,10 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     const r = canvas.getBoundingClientRect(),
       scale = Math.min(r.width / width, r.height / height);
     return {
-      u: Math.max(
-        0,
-        Math.min(
-          1,
-          (e.clientX - r.left - (r.width - width * scale) / 2) /
-            (width * scale),
-        ),
-      ),
-      v: Math.max(
-        0,
-        Math.min(
-          1,
-          (e.clientY - r.top - (r.height - height * scale) / 2) /
-            (height * scale),
-        ),
-      ),
+      u: (e.clientX - r.left - (r.width - width * scale) / 2) / (width * scale),
+      v:
+        (e.clientY - r.top - (r.height - height * scale) / 2) /
+        (height * scale),
     };
   }
   function end() {
@@ -273,15 +233,10 @@ export function createPaintingCanvas(container, onChange = () => {}) {
   }
   const down = (e) => {
     if (!enabled || !e.isPrimary || e.button > 0) return;
-    if (
-      config.mode === "sticker" &&
-      strokes.filter((s) => s.type === "sticker").length >= 256
-    )
-      return;
     const p = point(e);
+    if (Math.hypot(p.u - 0.5, p.v - 0.5) > 0.5) return;
     const stroke = {
       ...config,
-      type: config.mode === "sticker" ? "sticker" : "paint",
       size: config.size / Math.min(width, height),
       seed: strokes.length * 971 + 811,
       points: [p],
@@ -293,17 +248,16 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     canvas.setPointerCapture(e.pointerId);
   };
   const move = (e) => {
-    if (
-      !active ||
-      e.pointerId !== active.id ||
-      active.stroke.type === "sticker"
-    )
-      return;
+    if (!active || e.pointerId !== active.id) return;
     for (const event of e.getCoalescedEvents?.().length
       ? e.getCoalescedEvents()
       : [e]) {
       const p = point(event),
         last = active.stroke.points.at(-1);
+      if (Math.hypot(p.u - 0.5, p.v - 0.5) > 0.5) {
+        end();
+        return;
+      }
       if (Math.hypot(p.u - last.u, p.v - last.v) < 0.0005) continue;
       active.stroke.points.push(p);
       segment(active.stroke, last, p, active.index);
@@ -336,7 +290,12 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     },
     getDocument() {
       end();
-      return { width, height, strokes: JSON.parse(JSON.stringify(strokes)) };
+      return {
+        width,
+        height,
+        shape: "disk",
+        strokes: JSON.parse(JSON.stringify(strokes)),
+      };
     },
     undo() {
       end();

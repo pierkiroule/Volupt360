@@ -1,83 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-test("2D squiggle source survives a reactive 360 world round trip and supports undo", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => {
-    if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
-      errors.push(m.text());
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const paper = page.locator(".painting-paper"),
-    world = page.locator("#stage canvas:not(.painting-paper)");
-  await expect(paper).toBeVisible();
-  const labels = await page.locator(".brush-name").evaluateAll((nodes) =>
-    nodes.map((n) => {
-      const a = n.getBoundingClientRect(),
-        b = n.closest("button").getBoundingClientRect();
-      return {
-        font: parseFloat(getComputedStyle(n).fontSize),
-        inside: a.left >= b.left && a.right <= b.right,
-      };
-    }),
-  );
-  expect(labels.every((l) => l.font <= 12 && l.inside)).toBe(true);
-
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
-  ).toHaveCount(10);
-  await page.getByLabel("Réglages de la brosse", { exact: true }).click();
-  await page.getByRole("slider", { name: "Taille de la brosse" }).fill("25");
-  await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.65");
-  await page.mouse.move(70, 280);
-  await page.mouse.down();
-  await page.mouse.move(300, 380, { steps: 30 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "1");
-  const source = await paper.evaluate((c) => c.toDataURL());
-  await page.getByRole("button", { name: "Roche", exact: true }).click();
-  await page.mouse.move(100, 400);
-  await page.mouse.down();
-  await page.mouse.move(280, 300, { steps: 25 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "2");
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(paper).toBeHidden();
-  await expect(world).toHaveAttribute("data-source-strokes", "1");
-  await expect(world).toHaveAttribute("data-camera-mode", "panorama");
-  await expect(world).toHaveAttribute("data-journey-guided", "true");
-  await expect
-    .poll(async () => Number(await world.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(2);
-  await page.getByRole("button", { name: "Regarder", exact: true }).click();
-  const painted = await world.getAttribute("data-painted-samples");
-  await page.mouse.move(140, 300);
-  await page.mouse.down();
-  await page.mouse.move(260, 350, { steps: 15 });
-  await page.mouse.up();
-  await expect(world).toHaveAttribute("data-painted-samples", painted);
-  await page
-    .getByRole("button", { name: "Voyager dans la direction du regard" })
-    .click();
-  await expect(world).toHaveAttribute("data-journey-moving", "true");
-  await page.getByRole("button", { name: "Pause du voyage" }).click();
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  await expect(paper).toBeVisible();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  await expect(paper).toHaveAttribute("data-stroke-count", "0");
-  await expect(
-    page.getByRole("button", { name: "Entrer dans le tableau 3D" }),
-  ).toBeDisabled();
-  expect(errors).toEqual([]);
-});
-
 test("brush tip follows the rig through turns and parent transforms", async ({
   page,
 }) => {
@@ -201,7 +123,7 @@ test("manual steering holds a stable heading despite camera feedback; release re
   expect(Math.abs(r.right.heading[0] - r.slow.heading[0])).toBeLessThan(0.001);
 });
 
-test("ten brush families have distinct engines, colors and responsive pigment or particle materials", async ({
+test("twelve brush families have distinct engines, colors and responsive pigment or particle materials", async ({
   page,
 }) => {
   await page.goto("/");
@@ -250,9 +172,9 @@ test("ten brush families have distinct engines, colors and responsive pigment or
       return result;
     });
   });
-  expect(r).toHaveLength(10);
-  expect(new Set(r.map((p) => p.engine)).size).toBe(10);
-  expect(new Set(r.map((p) => p.color)).size).toBe(10);
+  expect(r).toHaveLength(12);
+  expect(new Set(r.map((p) => p.engine)).size).toBe(12);
+  expect(new Set(r.map((p) => p.color)).size).toBe(12);
   for (const brush of r) {
     expect(brush.count).toBeGreaterThan(0);
     expect(brush.gain).toBeGreaterThan(2);
@@ -437,53 +359,6 @@ test("panorama journey latches its heading and decelerates without stopping draw
   expect(r.moving).toBe(false);
 });
 
-test("gyro activates on entry and steers the flying panorama", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    window.DeviceOrientationEvent = class extends Event {
-      static requestPermission() {
-        return Promise.resolve("granted");
-      }
-    };
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await page.getByRole("button", { name: "Vague", exact: true }).click();
-  await page.mouse.move(150, 250);
-  await page.mouse.down();
-  await page.mouse.move(300, 350, { steps: 15 });
-  await page.mouse.up();
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(
-    page.getByRole("button", { name: "Désactiver le gyroscope" }),
-  ).toBeVisible();
-  const canvas = page.locator("#stage canvas:not(.painting-paper)");
-  const sensor = (alpha) =>
-    page.evaluate((alpha) => {
-      const e = new Event("deviceorientation");
-      Object.assign(e, { alpha, beta: 80, gamma: 0 });
-      window.dispatchEvent(e);
-    }, alpha);
-  await sensor(0);
-  await expect(canvas).toHaveAttribute("data-gyroscope-status", "active");
-  await page
-    .getByRole("button", { name: "Voyager dans la direction du regard" })
-    .click();
-  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
-  const heading = await canvas.getAttribute("data-journey-heading"),
-    orientation = await canvas.getAttribute("data-camera-orientation");
-  await sensor(70);
-  await expect
-    .poll(() => canvas.getAttribute("data-camera-orientation"))
-    .not.toBe(orientation);
-  await expect
-    .poll(() => canvas.getAttribute("data-journey-heading"))
-    .not.toBe(heading);
-  await page.getByRole("button", { name: "Désactiver le gyroscope" }).click();
-  await expect(canvas).toHaveAttribute("data-gyroscope-status", "disabled");
-});
-
 test("paper-to-world projection wraps the same composition deterministically with depth by layer", async ({
   page,
 }) => {
@@ -562,187 +437,6 @@ test("archived pigments keep a local audio envelope in the audiovisual world", a
   expect(r.time).toBeGreaterThan(0);
 });
 
-test("VR entry is offered only by capability and a rejected session leaves the artwork usable", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "xr", {
-      configurable: true,
-      value: {
-        isSessionSupported: async () => true,
-        requestSession: async () => {
-          throw new Error("Casque indisponible pour ce test");
-        },
-      },
-    });
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await page.getByRole("button", { name: "Vague", exact: true }).click();
-  await page.mouse.move(100, 250);
-  await page.mouse.down();
-  await page.mouse.move(250, 350, { steps: 10 });
-  await page.mouse.up();
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await page.getByRole("button", { name: "Entrer en VR" }).click();
-  await expect(page.locator(".ambience-error")).toContainText(
-    "Casque indisponible",
-  );
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  await expect(page.locator(".painting-paper")).toBeVisible();
-});
-
-test("2D opacity caps the whole stroke even where the gesture overlaps", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { createPaintingCanvas } =
-      await import("/src/chill/createPaintingCanvas.js");
-    const host = document.createElement("div");
-    document.body.append(host);
-    const paper = createPaintingCanvas(host);
-    paper.setConfig({ opacity: 0.2, size: 70 });
-    const send = (type, x) =>
-      paper.canvas.dispatchEvent(
-        new PointerEvent(type, {
-          pointerId: 1,
-          isPrimary: true,
-          button: 0,
-          clientX: x,
-          clientY: 180,
-        }),
-      );
-    // Synthetic capture needs no browser-owned pointer for this unit exercise.
-    paper.canvas.setPointerCapture = () => {};
-    send("pointerdown", 180);
-    for (let i = 0; i < 40; i++) send("pointermove", 180 + (i % 2) * 12);
-    send("pointerup", 180);
-    const pixels = paper.canvas
-      .getContext("2d")
-      .getImageData(0, 0, paper.canvas.width, paper.canvas.height).data;
-    let max = 0;
-    for (let i = 3; i < pixels.length; i += 4) max = Math.max(max, pixels[i]);
-    paper.dispose();
-    host.remove();
-    return max;
-  });
-  expect(result).toBeGreaterThan(0);
-  expect(result).toBeLessThanOrEqual(52);
-});
-
-test("ten materials paint distinct seeded marks and the compact tray folds completely", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await expect(
-    page.getByRole("slider", { name: "Opacité de la brosse" }),
-  ).toBeHidden();
-  await page.getByRole("button", { name: "Replier les outils" }).click();
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: "Déplier les outils" }).click();
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
-  ).toHaveCount(10);
-  const results = await page.evaluate(async () => {
-    const { createPaintingCanvas } =
-      await import("/src/chill/createPaintingCanvas.js");
-    const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
-    const host = document.createElement("div");
-    document.body.append(host);
-    const paper = createPaintingCanvas(host);
-    paper.canvas.setPointerCapture = () => {};
-    const send = (type, x) =>
-      paper.canvas.dispatchEvent(
-        new PointerEvent(type, {
-          pointerId: 1,
-          isPrimary: true,
-          button: 0,
-          clientX: x,
-          clientY: 170,
-        }),
-      );
-    const signatures = [];
-    for (const brush of WORKSHOP_BRUSHES) {
-      paper.clear();
-      paper.setConfig({
-        brush: brush.id,
-        color: "#285678",
-        size: 55,
-        opacity: 0.7,
-      });
-      send("pointerdown", 70);
-      for (let x = 75; x < 260; x += 5) send("pointermove", x);
-      send("pointerup", 260);
-      const pixels = paper.canvas
-        .getContext("2d")
-        .getImageData(0, 0, paper.canvas.width, paper.canvas.height).data;
-      let coverage = 0,
-        hash = 0;
-      for (let i = 3; i < pixels.length; i += 4) {
-        coverage += pixels[i];
-        hash = (Math.imul(hash, 31) + pixels[i]) | 0;
-      }
-      signatures.push({ coverage, hash });
-    }
-    paper.dispose();
-    host.remove();
-    return signatures;
-  });
-  expect(results.every((r) => r.coverage > 0)).toBe(true);
-  expect(new Set(results.map((r) => r.hash)).size).toBe(10);
-});
-
-test("Haïkuarelle presents ten designed glyphs and open sensory invitations without collecting a situation", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await expect(page).toHaveTitle(
-    "Haïkuarelle Virtuelle •° — Un geste, un paysage, un poème",
-  );
-  await expect(
-    page.getByRole("heading", { name: /Haïkuarelle.*Virtuelle/ }),
-  ).toBeVisible();
-  await expect(
-    page.getByText(/Aucune interprétation psychologique automatique/),
-  ).toBeVisible();
-  await expect(page.getByRole("textbox")).toHaveCount(0);
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await expect(
-    page.getByRole("group", { name: "Mode de création" }).getByRole("button"),
-  ).toHaveCount(2);
-  const modeButtons = await page
-    .getByRole("group", { name: "Mode de création" })
-    .getByRole("button")
-    .evaluateAll((nodes) =>
-      nodes.map((n) => {
-        const r = n.getBoundingClientRect();
-        return { left: r.left, right: r.right, width: r.width };
-      }),
-    );
-  expect(modeButtons[0].right).toBeLessThanOrEqual(modeButtons[1].left);
-  expect(modeButtons.every((b) => b.width >= 76)).toBe(true);
-  const emojis = page.locator(".material-glyph");
-  await expect(emojis).toHaveCount(10);
-  expect(
-    new Set(
-      await emojis
-        .locator("path")
-        .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("d"))),
-    ).size,
-  ).toBe(10);
-  await page.getByRole("button", { name: "Givre", exact: true }).click();
-  await expect(page.locator(".sensory-hint")).toContainText(
-    "Fraîcheur, grain, frisson",
-  );
-  await expect(page.locator(".sensory-hint")).toContainText("à votre façon");
-  await page.getByRole("button", { name: "Replier les outils" }).click();
-  await expect(page.locator(".material-glyph")).toHaveCount(0);
-});
-
 test("sensory signatures have distinct smooth spectral responses and preserve legacy defaults", async ({
   page,
 }) => {
@@ -788,96 +482,6 @@ test("sensory signatures have distinct smooth spectral responses and preserve le
       expect(v).toBeLessThanOrEqual(1);
     }
   }
-});
-
-test("glyph stickers keep size and opacity, float in 3D and survive undo and round trips", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const paper = page.locator(".painting-paper");
-  const world = page.locator("#stage canvas:not(.painting-paper)");
-  await page.getByRole("button", { name: "Stickers", exact: true }).click();
-  await page.getByRole("button", { name: "Vague", exact: true }).click();
-  await page.getByRole("slider", { name: "Taille du sticker" }).fill("90");
-  await page.getByRole("slider", { name: "Opacité du sticker" }).fill("0.3");
-  await page.mouse.move(100, 200);
-  await page.mouse.down();
-  await page.mouse.move(240, 280, { steps: 10 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "1");
-  const pixels = await paper.evaluate((c) => {
-    const p = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
-    let max = 0;
-    for (let i = 3; i < p.length; i += 4) max = Math.max(max, p[i]);
-    return { max, source: c.toDataURL() };
-  });
-  expect(pixels.max).toBeGreaterThan(0);
-  expect(pixels.max).toBeLessThanOrEqual(77);
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(world).toHaveAttribute("data-sticker-count", "1");
-  await expect(world).toHaveAttribute("data-source-strokes", "1");
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(pixels.source);
-  await page.getByRole("button", { name: "Peindre", exact: true }).click();
-  await page.mouse.move(130, 260);
-  await page.mouse.down();
-  await page.mouse.move(260, 300, { steps: 10 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "2");
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(pixels.source);
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  await expect(paper).toHaveAttribute("data-stroke-count", "0");
-});
-
-test("floating emoji sprites preserve transparency, move softly and release textures", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { createEmojiStickers } =
-      await import("/src/chill/createEmojiStickers.js");
-    const stickers = createEmojiStickers();
-    const source = {
-      glyph: "voiles",
-      color: "#b07578",
-      points: [{ u: 0.5, v: 0.5 }],
-      size: 0.15,
-      opacity: 0.35,
-    };
-    stickers.add(source, 0, 1, 1);
-    stickers.add(source, 1, 2, 1);
-    const sprite = stickers.group.children[0],
-      second = stickers.group.children[1];
-    const shared = sprite.material.map === second.material.map;
-    let textures = 0,
-      materials = 0;
-    sprite.material.map.addEventListener("dispose", () => textures++);
-    for (const s of stickers.group.children)
-      s.material.addEventListener("dispose", () => materials++);
-    const before = sprite.position.clone();
-    stickers.update(2, 0.7);
-    const moved = sprite.position.distanceTo(before),
-      opacity = sprite.material.opacity;
-    stickers.dispose();
-    return {
-      shared,
-      moved,
-      opacity,
-      textures,
-      materials,
-      count: stickers.count,
-    };
-  });
-  expect(result.shared).toBe(true);
-  expect(result.moved).toBeGreaterThan(0);
-  expect(result.moved).toBeLessThan(0.2);
-  expect(result.opacity).toBe(0.35);
-  expect(result.textures).toBe(1);
-  expect(result.materials).toBe(2);
-  expect(result.count).toBe(0);
 });
 
 test("guided FPV stays near the sculpture under sustained outward steering and pauses smoothly", async ({
@@ -943,56 +547,6 @@ test("guided FPV stays near the sculpture under sustained outward steering and p
   expect(result.tail).toBeLessThan(0.001);
 });
 
-test("FPV exposes ten brushes and paints while travelling without rotating under the finger", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await expect(page.locator(".painting-paper")).toBeVisible();
-  await page.mouse.move(90, 200);
-  await page.mouse.down();
-  await page.mouse.move(270, 300, { steps: 20 });
-  await page.mouse.up();
-  const paper = page.locator(".painting-paper"),
-    world = page.locator("#stage canvas:not(.painting-paper)");
-  await expect(paper).toHaveAttribute("data-stroke-count", "1");
-  const source = await paper.evaluate((c) => c.toDataURL());
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(world).toHaveAttribute("data-world-drawing", "true");
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
-  ).toHaveCount(10);
-  await page.getByRole("button", { name: "Roche", exact: true }).click();
-  await expect(world).toHaveAttribute("data-active-brush", "falaises");
-  await page
-    .getByRole("button", { name: "Voyager dans la direction du regard" })
-    .click();
-  const before = Number(await world.getAttribute("data-painted-samples"));
-  await page.mouse.move(90, 210);
-  await page.mouse.down();
-  await expect(world).toHaveAttribute("data-direct-drawing", "true");
-  await page.mouse.move(270, 310, { steps: 25 });
-  await page.mouse.up();
-  await expect(world).toHaveAttribute("data-direct-drawing", "false");
-  await expect
-    .poll(async () => Number(await world.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(before + 2);
-  await expect(world).toHaveAttribute("data-journey-moving", "true");
-  const painted = await world.getAttribute("data-painted-samples");
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(world).toHaveAttribute("data-painted-samples", painted);
-  await page.getByRole("button", { name: "Regarder", exact: true }).click();
-  await expect(world).toHaveAttribute("data-world-drawing", "false");
-  await page.mouse.move(90, 210);
-  await page.mouse.down();
-  await page.mouse.move(270, 310, { steps: 10 });
-  await page.mouse.up();
-  await expect(world).toHaveAttribute("data-painted-samples", painted);
-});
-
 test("sky brush follows a moving aim with continuous finite-speed flight", async ({
   page,
 }) => {
@@ -1028,114 +582,222 @@ test("sky brush follows a moving aim with continuous finite-speed flight", async
   expect(result.jump).toBeLessThanOrEqual(0.201);
 });
 
-test("one hidden haiku gift opens on touch, pauses the voyage and resumes on close", async ({
+async function drawDisc(page, emotion = "Joie") {
+  await page.getByRole("button", { name: emotion, exact: true }).click();
+  const paper = page.locator(".painting-paper");
+  await expect(paper).toBeVisible();
+  const r = await paper.boundingBox();
+  await page.mouse.move(r.x + r.width * 0.25, r.y + r.height * 0.45);
+  await page.mouse.down();
+  await page.mouse.move(r.x + r.width * 0.7, r.y + r.height * 0.55, {
+    steps: 22,
+  });
+  await page.mouse.up();
+}
+
+test("a silent static disc offers exactly twelve fixed pictorial brushes", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const audioRequests = [];
+  page.on("request", (r) => {
+    if (/\.mp3(?:\?|$)/.test(r.url())) audioRequests.push(r.url());
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
+  const palette = page.getByRole("group", { name: "Choisir une brosse" });
+  await expect(palette.getByRole("button")).toHaveCount(12);
+  await expect(page.locator("input")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Révéler mon ciel" }),
+  ).toBeDisabled();
+  const paper = page.locator(".painting-paper");
+  await expect(paper).toBeVisible();
+  const r = await paper.boundingBox();
+  expect(Math.abs(r.width - r.height)).toBeLessThan(1);
+  await page.mouse.click(r.x + 2, r.y + 2);
+  await expect(paper).toHaveAttribute("data-stroke-count", "0");
+  await drawDisc(page);
+  await expect(paper).toHaveAttribute("data-stroke-count", "1");
+  const source = await paper.evaluate((c) => c.toDataURL());
+  await page.waitForTimeout(180);
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
+  const corner = await paper.evaluate((c) =>
+    Array.from(c.getContext("2d").getImageData(0, 0, 1, 1).data),
+  );
+  expect(corner[3]).toBe(0);
+  expect(audioRequests).toEqual([]);
+  await expect(
+    page.getByRole("button", { name: /Stickers|Peindre en 3D|haïku/i }),
+  ).toHaveCount(0);
+});
+
+test("validation reveals an animated read-only world, music and an autonomous voyage", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.__ambiences = [];
+    const NativeAudio = window.Audio;
+    window.Audio = function (...args) {
+      const element = new NativeAudio(...args);
+      window.__ambiences.push(element);
+      return element;
+    };
+    window.Audio.prototype = NativeAudio.prototype;
+  });
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
+      errors.push(m.text());
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
+  await drawDisc(page);
+  await drawDisc(page, "Tristesse");
+  const paper = page.locator(".painting-paper"),
+    world = page.locator("#stage canvas:not(.painting-paper)");
+  const source = await paper.evaluate((c) => c.toDataURL());
+  await page.getByRole("button", { name: "Révéler mon ciel" }).click();
+  await expect(paper).toBeHidden();
+  await expect(world).toHaveAttribute("data-world-drawing", "false");
+  await expect(world).toHaveAttribute("data-journey-guided", "true");
+  await expect(
+    page.getByRole("group", { name: "Choisir une brosse" }),
+  ).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.__ambiences.some(
+          (a) => !a.paused && /gravity\.mp3/i.test(a.src),
+        ),
+      ),
+    )
+    .toBe(true);
+  const time = await world.getAttribute("data-material-time");
+  await expect
+    .poll(() => world.getAttribute("data-material-time"))
+    .not.toBe(time);
+  const samples = await world.getAttribute("data-painted-samples");
+  await page.mouse.move(100, 200);
+  await page.mouse.down();
+  await page.mouse.move(260, 350, { steps: 15 });
+  await page.mouse.up();
+  await expect(world).toHaveAttribute("data-painted-samples", samples);
+  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(world).toHaveAttribute("data-journey-moving", "true");
+  const position = await world.getAttribute("data-camera-position");
+  await expect
+    .poll(() => world.getAttribute("data-camera-position"))
+    .not.toBe(position);
+  await page.getByRole("button", { name: "Suspendre le voyage" }).click();
+  await expect(world).toHaveAttribute("data-journey-moving", "false");
+  await page.getByRole("button", { name: "Revenir au dessin" }).click();
+  await expect(paper).toBeVisible();
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
+  expect(
+    await page.evaluate(() => window.__ambiences.every((a) => a.paused)),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
+  await expect(paper).toHaveAttribute("data-stroke-count", "1");
+  expect(errors).toEqual([]);
+});
+
+test("gyro permission refusal retains complete tactile contemplation without changing the route", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.DeviceOrientationEvent = class extends Event {
+      static requestPermission() {
+        return Promise.resolve("denied");
+      }
+    };
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
+  await drawDisc(page);
+  await page.getByRole("button", { name: "Révéler mon ciel" }).click();
+  const world = page.locator("#stage canvas:not(.painting-paper)");
+  await expect(world).toHaveAttribute("data-gyroscope-status", "denied");
+  const before = await world.getAttribute("data-camera-orientation");
+  await page.mouse.move(100, 200);
+  await page.mouse.down();
+  await page.mouse.move(260, 300, { steps: 15 });
+  await page.mouse.up();
+  await expect
+    .poll(() => world.getAttribute("data-camera-orientation"))
+    .not.toBe(before);
+  await expect(world).toHaveAttribute("data-journey-moving", "false");
+});
+
+test("all twelve disc materials leave distinct marks with preset colors and clean undo", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const paper = page.locator(".painting-paper"),
-    canvas = page.locator("#stage canvas:not(.painting-paper)");
-  await expect(paper).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Ouvrir la graine de haïku" }),
-  ).toBeHidden();
-  await page.mouse.move(180, 400);
-  await page.mouse.down();
-  await page.mouse.move(205, 420, { steps: 15 });
-  await page.mouse.up();
-  const source = await paper.evaluate((c) => c.toDataURL());
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  const seed = page.getByRole("button", { name: "Ouvrir la graine de haïku" });
-  await expect(seed).toBeVisible();
-  await expect(seed).toHaveCount(1);
-  await seed.click();
-  const dialog = page.getByRole("dialog", { name: "Une graine de paysage" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.locator(".haiku-gift-poem span")).toHaveCount(3);
-  const poem = await dialog.locator(".haiku-gift-poem").textContent();
-  await expect(canvas).toHaveAttribute("data-world-drawing", "false");
-  const clock = await canvas.getAttribute("data-life-time");
-  await page.waitForTimeout(200);
-  await expect(canvas).toHaveAttribute("data-life-time", clock);
-  await expect(
-    page.getByRole("button", { name: "Reprendre l’exploration" }),
-  ).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  await expect(canvas).toHaveAttribute("data-world-drawing", "true");
-  await expect
-    .poll(() => canvas.getAttribute("data-life-time"))
-    .not.toBe(clock);
-  await page
-    .getByRole("button", { name: "Voyager dans la direction du regard" })
-    .click();
-  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
-  await seed.click();
-  const heldPosition = await canvas.getAttribute("data-camera-position");
-  await page.waitForTimeout(200);
-  await expect(canvas).toHaveAttribute("data-camera-position", heldPosition);
-  expect(await page.locator(".haiku-gift-poem").textContent()).toBe(poem);
-  await page.getByRole("button", { name: "Reprendre l’exploration" }).click();
-  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
-  await expect
-    .poll(() => canvas.getAttribute("data-camera-position"))
-    .not.toBe(heldPosition);
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
-  await expect(seed).toBeHidden();
+  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
+  const names = await page
+    .getByRole("group", { name: "Choisir une brosse" })
+    .getByRole("button")
+    .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("aria-label")));
+  const signatures = [];
+  for (const name of names) {
+    await drawDisc(page, name);
+    signatures.push(
+      await page.locator(".painting-paper").evaluate((c) => c.toDataURL()),
+    );
+    await page
+      .getByRole("button", { name: "Annuler le dernier trait" })
+      .click();
+  }
+  expect(new Set(signatures).size).toBe(12);
+  await expect(page.locator(".painting-paper")).toHaveAttribute(
+    "data-stroke-count",
+    "0",
+  );
 });
 
-test("haiku selection is deterministic, pictorial and anchored to the original drawing", async ({
+test("gyro turns the look while the autonomous visit remains independent of steering", async ({
   page,
 }) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { HAIKU_GARDEN, haikuForPainting } =
-      await import("/src/chill/haikuGarden.js");
-    const doc = {
-      width: 400,
-      height: 800,
-      strokes: [
-        {
-          brush: "voiles",
-          color: "#8899aa",
-          size: 0.05,
-          opacity: 0.8,
-          points: [
-            { u: 0.4, v: 0.4 },
-            { u: 0.5, v: 0.5 },
-            { u: 0.6, v: 0.6 },
-          ],
-        },
-      ],
-    };
-    const copy = JSON.stringify(doc),
-      first = haikuForPainting(doc),
-      second = haikuForPainting(doc);
-    const stone = haikuForPainting({
-      ...doc,
-      strokes: [{ ...doc.strokes[0], brush: "falaises" }],
-    });
-    return {
-      count: HAIKU_GARDEN.length,
-      lines: HAIKU_GARDEN.every(
-        (p) => p.lines.length === 3 && p.lines.every(Boolean),
-      ),
-      first,
-      second,
-      stone,
-      unchanged: copy === JSON.stringify(doc),
-      empty: haikuForPainting({ strokes: [] }),
-      points: doc.strokes[0].points,
+  await page.addInitScript(() => {
+    window.DeviceOrientationEvent = class extends Event {
+      static requestPermission() {
+        return Promise.resolve("granted");
+      }
     };
   });
-  expect(result.count).toBe(24);
-  expect(result.lines).toBe(true);
-  expect(result.first).toEqual(result.second);
-  expect(result.unchanged).toBe(true);
-  expect(result.first.poem.family).toBe("water");
-  expect(result.stone.poem.family).toBe("stone");
-  expect(result.points).toContainEqual(result.first.point);
-  expect(result.empty).toBeNull();
+  await page.goto("/");
+  await page.getByRole("button", { name: "Dessiner mon ciel" }).click();
+  await drawDisc(page);
+  await page.getByRole("button", { name: "Révéler mon ciel" }).click();
+  const world = page.locator("#stage canvas:not(.painting-paper)");
+  const sensor = (alpha) =>
+    page.evaluate((alpha) => {
+      const e = new Event("deviceorientation");
+      Object.assign(e, { alpha, beta: 80, gamma: 0 });
+      window.dispatchEvent(e);
+    }, alpha);
+  await expect(world).toBeVisible();
+  await expect(world).toHaveAttribute("data-camera-mode", "panorama");
+  await sensor(0);
+  await expect(world).toHaveAttribute("data-gyroscope-status", "active");
+  const orientation = await world.getAttribute("data-camera-orientation"),
+    position = await world.getAttribute("data-camera-position");
+  await sensor(65);
+  await expect
+    .poll(() => world.getAttribute("data-camera-orientation"))
+    .not.toBe(orientation);
+  await expect(world).toHaveAttribute("data-camera-position", position);
+  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(world).toHaveAttribute("data-journey-guided", "true");
+  await expect
+    .poll(() => world.getAttribute("data-camera-position"))
+    .not.toBe(position);
+  const movingLook = await world.getAttribute("data-camera-orientation");
+  await sensor(120);
+  await expect
+    .poll(() => world.getAttribute("data-camera-orientation"))
+    .not.toBe(movingLook);
 });

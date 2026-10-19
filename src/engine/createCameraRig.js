@@ -11,7 +11,11 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     revision = 0,
     disposed = false;
   const journey = createPanoramaJourney();
-  const returnAim = new THREE.Quaternion();
+  const returnAim = new THREE.Quaternion(),
+    lookOffset = new THREE.Quaternion(),
+    lookEuler = new THREE.Euler(0, 0, 0, "YXZ");
+  let homeYaw = Math.PI,
+    homePitch = 0;
   let panoramaExploreOnly = false,
     panoramaDrawing = false;
   let panoramaDial = 0;
@@ -330,7 +334,17 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           target.copy(journey.lookTarget);
         matrix.lookAt(camera.position, target, up);
         returnAim.setFromRotationMatrix(matrix);
-        desiredQuaternion.slerp(returnAim, 0.88);
+        lookEuler.set(
+          panoramaPitch - homePitch,
+          panoramaYaw - homeYaw + panoramaDial,
+          0,
+          "YXZ",
+        );
+        lookOffset.setFromEuler(lookEuler);
+        desiredQuaternion
+          .copy(returnAim)
+          .multiply(lookOffset)
+          .multiply(gyroRelative);
       }
       camera.quaternion.slerp(desiredQuaternion, mix(4));
       // A restrained lens opening accompanies travel; no roll or camera shake.
@@ -494,6 +508,14 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   return {
     setPanoramaSculpture(center, radius) {
       journey.setSculpture(center, radius);
+      focus.copy(center).sub(camera.position).normalize();
+      panoramaYaw = homeYaw = Math.atan2(focus.x, focus.z);
+      panoramaPitch = homePitch = Math.atan2(
+        focus.y,
+        Math.hypot(focus.x, focus.z),
+      );
+      gyroReference = null;
+      gyroRelative.identity();
     },
     setPanoramaDrawing(value) {
       panoramaDrawing = value;
@@ -508,6 +530,16 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     },
     stopPanorama() {
       journey.stop();
+      if (mode === "panorama" && panoramaExploreOnly) {
+        camera.getWorldDirection(focus);
+        panoramaYaw = homeYaw = Math.atan2(focus.x, focus.z) - panoramaDial;
+        panoramaPitch = homePitch = Math.atan2(
+          focus.y,
+          Math.hypot(focus.x, focus.z),
+        );
+        gyroReference = null;
+        gyroRelative.identity();
+      }
     },
     setPanoramaDial(degrees) {
       if (Number.isFinite(Number(degrees)))

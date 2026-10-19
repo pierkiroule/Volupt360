@@ -4,7 +4,7 @@ import { createTwigBank, emptyTwigSnapshot } from "./createTwigBank.js";
 import { ENABLE_SONOIZO } from "./config.js";
 
 const ids = LANDSCAPE_BRUSHES.map((brush) => brush.id);
-export function useTwigBank() {
+export function useTwigBank({ poeticVoices = true } = {}) {
   const bank = useRef(null);
   const [snapshot, setSnapshot] = useState(() => emptyTwigSnapshot(ids));
   const [error, setError] = useState("");
@@ -22,7 +22,10 @@ export function useTwigBank() {
     });
     bank.current = owner;
     setSnapshot(owner.getSnapshot());
-    if (new URLSearchParams(location.search).get("samples") !== "empty") {
+    if (
+      poeticVoices &&
+      new URLSearchParams(location.search).get("samples") !== "empty"
+    ) {
       owner.enableFireflies();
     }
     const interrupt = () => {
@@ -48,6 +51,6 @@ export function useTwigBank() {
       owner.dispose();
       bank.current = null;
     };
-  }, []);
+  }, [poeticVoices]);
   return { bank, snapshot, error, clearError: () => setError("") };
 }
