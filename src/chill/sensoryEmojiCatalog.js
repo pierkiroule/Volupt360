@@ -1,8 +1,8 @@
 /** Sensory invitations with open meanings; no emotion or clinical inference. */
 export const SENSORY_EMOJIS = [
   ["bubbles", "🫧", "Bulles", "#729e9c", 1, "orbit"],
-  ["water", "🌊", "Ondes", "#62899f", 0, "wave"],
-  ["warm", "🔥", "Chaleur", "#bc8969", 2, "rise"],
+  ["water", "🌊", "Ondes", "#286caa", 0, "wave"],
+  ["warm", "🔥", "Chaleur", "#bc3d35", 2, "rise"],
   ["cold", "❄️", "Fraîcheur", "#8daebc", 5, "crystal"],
   ["stone", "🪨", "Densité", "#7c818c", 0, "grain"],
   ["feather", "🪶", "Légèreté", "#a79bb1", 3, "float"],

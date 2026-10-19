@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createEmojiAnimation } from "./createEmojiAnimation.js";
 import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
 import {
   createEmojiPainting,
@@ -46,6 +47,8 @@ export const EmojiPainter = forwardRef(function EmojiPainter(
   const current = useRef(strokes),
     drag = useRef(null),
     surface = useRef(null),
+    animationCanvas = useRef(null),
+    animation = useRef(null),
     id = useId().replace(/:/g, "");
   const doc = useMemo(() => createEmojiPainting(strokes), [strokes]);
   const documentRef = useRef(doc);
@@ -65,6 +68,26 @@ export const EmojiPainter = forwardRef(function EmojiPainter(
   useEffect(() => onChange(strokes.length), [strokes.length, onChange]);
   useEffect(() => {
     if (!visible) drag.current = null;
+  }, [visible]);
+  useEffect(() => {
+    const painter = createEmojiAnimation(animationCanvas.current);
+    animation.current = painter;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) painter.resize(entry.contentRect.width);
+    });
+    observer.observe(surface.current);
+    return () => {
+      observer.disconnect();
+      painter.dispose();
+      animation.current = null;
+    };
+  }, []);
+  useEffect(() => {
+    animation.current?.setDocument(doc);
+  }, [doc]);
+  useEffect(() => {
+    if (visible) animation.current?.start();
+    else animation.current?.stop();
   }, [visible]);
   function point(event) {
     const r = surface.current.getBoundingClientRect();
@@ -197,6 +220,11 @@ export const EmojiPainter = forwardRef(function EmojiPainter(
             ))}
           </g>
         </svg>
+        <canvas
+          ref={animationCanvas}
+          className="emoji-live-ink"
+          aria-hidden="true"
+        />
         {!strokes.length && (
           <p className="emoji-empty">
             Glisse ton doigt

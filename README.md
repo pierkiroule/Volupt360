@@ -16,9 +16,27 @@ Gravity et les enveloppes spectrales lissées font vivre les rubans, nuages et
 particules. Le voyage autonome reste borné autour de l’œuvre ; gyro et glissement
 orientent le regard. Revenir au dessin conserve les tracés et suspend la musique.
 
+## Des matières animées dès le dessin
+
+Les douze symboles possèdent des mouvements propres : flammes orange et braises
+montantes sur un cœur rouge, crêtes bleues qui parcourent et épaississent la vague,
+bulles ascendantes, cristaux lents, grains minéraux frémissants, plumes souples,
+brumes en dérive, vibrations graphiques, spirales tournantes, fils ondulants,
+pousses qui se déploient et rayons doux. Taille et opacité s’appliquent aussi aux
+animations. La 2D reste sans son ; la musique et la réponse spectrale restent en 3D.
+
+Un canvas transparent partagé anime la matière sans actualiser React à chaque
+image. Les points des gestes sont rééchantillonnés et mis en cache. La cadence est
+limitée à environ 30 images par seconde, la résolution à 900 pixels et les détails
+à un budget adapté au nombre de tracés. Les animations 2D se suspendent en 3D et
+respectent `prefers-reduced-motion`. Les rubans 3D conservent la signature de chaque
+symbole via un attribut partagé et des mouvements GPU spécifiques.
+
 ## Architecture et limites
 
 - `EmojiPainter.jsx` : interface, capture tactile et dessin immédiat.
+- `createEmojiAnimation.js` : couche Canvas 2D animée, budget de détails et cycle de vie.
+- `emojiBrushMotion.js` : encres et mouvements symboliques des douze brosses.
 - `emojiPainting.js` : douze signatures procédurales ; géométrie commune aux deux vues.
 - `createPictorialLandscape.js` : rubans et pigments GPU, projection et audio local.
 - `createSensoryNetwork.js` : intégration avec nappes, mots sensoriels et particules.
@@ -57,7 +75,8 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/
 ```
 
 Les contrôles ciblent les douze signatures, la continuité du tracé, l’opacité,
-l’annulation, les gestes tactiles natifs, l’aller-retour 2D / 3D, les enveloppes
+l’annulation, les gestes tactiles natifs, l’évolution réelle des pixels des douze
+animations, la suspension en 3D et les préférences de mouvement réduit, l’aller-retour 2D / 3D, les enveloppes
 audio, le voyage et le nettoyage GPU. La suite conserve aussi des contrôles des
 moteurs historiques réutilisés. Les autres anciennes suites correspondent à des
 concepts abandonnés. Le confort et le gyroscope sur appareil physique restent à

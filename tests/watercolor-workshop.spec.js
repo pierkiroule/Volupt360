@@ -609,19 +609,19 @@ test("emoji brushes paint distinct continuous matter with size, opacity and undo
     "1",
   );
   const wave = page.locator(".emoji-paper path").first();
-  await expect(wave).toHaveAttribute("stroke", "#62899f");
+  await expect(wave).toHaveAttribute("stroke", "#286caa");
   const before = await wave.getAttribute("d");
   expect(before.split("L").length).toBeGreaterThan(40);
   await page.getByRole("button", { name: "Chaleur", exact: true }).click();
   await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.3");
   await paintLine(page, 0.35);
   expect(
-    await page.locator('.emoji-paper path[stroke="#bc8969"]').count(),
+    await page.locator('.emoji-paper path[stroke="#bc3d35"]').count(),
   ).toBeGreaterThan(0);
   expect(
     Number(
       await page
-        .locator('.emoji-paper path[stroke="#bc8969"]')
+        .locator('.emoji-paper path[stroke="#bc3d35"]')
         .first()
         .getAttribute("stroke-opacity"),
     ),
@@ -1035,4 +1035,101 @@ test("all twelve emoji brushes have different signatures and reusable 3D resourc
   expect(r.disposed).toBe(4);
   expect(r.remaining).toBe(0);
   expect(r.empty).toBe(0);
+});
+
+test("all twelve brush animations change actual pixels and release their animation loop", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createEmojiAnimation } =
+      await import("/src/chill/createEmojiAnimation.js");
+    const { createEmojiPainting } = await import("/src/chill/emojiPainting.js");
+    const { SENSORY_EMOJIS } =
+      await import("/src/chill/sensoryEmojiCatalog.js");
+    const { brushMotion } = await import("/src/chill/emojiBrushMotion.js");
+    const canvas = document.createElement("canvas");
+    const a = createEmojiAnimation(canvas);
+    a.resize(350);
+    const hash = () => {
+      const pixels = canvas
+        .getContext("2d")
+        .getImageData(0, 0, canvas.width, canvas.height).data;
+      let h = 2166136261;
+      for (let i = 0; i < pixels.length; i += 7)
+        h = Math.imul(h ^ pixels[i], 16777619);
+      return h;
+    };
+    const changed = [];
+    for (const e of SENSORY_EMOJIS) {
+      a.setDocument(
+        createEmojiPainting([
+          {
+            emojiId: e.id,
+            size: 0.065,
+            opacity: 0.8,
+            points: [
+              { x: -0.3, y: 0 },
+              { x: 0, y: 0.03 },
+              { x: 0.3, y: 0 },
+            ],
+          },
+        ]),
+      );
+      const before = hash();
+      a.start();
+      await new Promise((r) => setTimeout(r, 150));
+      a.stop();
+      changed.push({ id: e.id, moved: before !== hash() });
+    }
+    const stats = a.stats,
+      time = canvas.dataset.animationTime;
+    await new Promise((r) => setTimeout(r, 70));
+    const stopped = time === canvas.dataset.animationTime;
+    const signatures = new Set(
+      SENSORY_EMOJIS.map((e) => JSON.stringify(brushMotion(e.id, 0.32, 1.1))),
+    ).size;
+    a.dispose();
+    return { changed, stopped, signatures, stats, disposed: a.stats };
+  });
+  expect(result.changed.filter((x) => !x.moved)).toEqual([]);
+  expect(result.signatures).toBe(12);
+  expect(result.stopped).toBe(true);
+  expect(result.stats.details).toBeLessThanOrEqual(18);
+  expect(result.disposed.strokes).toBe(0);
+  expect(result.disposed.running).toBe(false);
+});
+
+test("2D brush animation pauses in 3D and respects reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
+  await paintLine(page);
+  const ink = page.locator(".emoji-live-ink");
+  const initial = await ink.getAttribute("data-animation-time");
+  await expect
+    .poll(() => ink.getAttribute("data-animation-time"))
+    .not.toBe(initial);
+  await page.getByRole("button", { name: "Chaleur", exact: true }).click();
+  await paintLine(page, 0.35);
+  await page.screenshot({ path: "/tmp/emoji-live-brushes.png" });
+  await page.getByRole("button", { name: "Révéler en 3D" }).click();
+  await expect(page.locator("#stage canvas")).toBeVisible();
+  const frozen = await ink.getAttribute("data-animation-time");
+  await expect
+    .poll(() =>
+      page.locator("#stage canvas").getAttribute("data-material-time"),
+    )
+    .not.toBe(null);
+  expect(await ink.getAttribute("data-animation-time")).toBe(frozen);
+  await page.getByRole("button", { name: "Revenir à la composition" }).click();
+  await expect
+    .poll(() => ink.getAttribute("data-animation-time"))
+    .not.toBe(frozen);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const reduced = await ink.getAttribute("data-animation-time");
+  await page.getByRole("button", { name: "Bulles", exact: true }).click();
+  await paintLine(page, 0.65);
+  expect(await ink.getAttribute("data-animation-time")).toBe(reduced);
 });

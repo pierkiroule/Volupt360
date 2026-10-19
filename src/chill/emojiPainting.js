@@ -11,7 +11,15 @@ export function createEmojiPainting(strokes) {
     dots = [],
     nodes = [];
   const path = (points, e, width, opacity, layer) =>
-    paths.push({ points, color: e.color, band: e.band, width, opacity, layer });
+    paths.push({
+      points,
+      color: e.color,
+      band: e.band,
+      width,
+      opacity,
+      layer,
+      emojiId: e.id,
+    });
   for (const [layer, stroke] of strokes.slice(0, MAX_PAINT_STROKES).entries()) {
     const cached = geometryCache.get(stroke);
     if (cached?.layer === layer) {
@@ -143,7 +151,7 @@ export function createEmojiPainting(strokes) {
     let last = -Infinity;
     for (let i = 0; i < samples.length; i++) {
       const p = samples[i];
-      if (p.d - last < size * 0.65) continue;
+      if (p.d - last < Math.max(size * 0.65, samples.at(-1).d / 48)) continue;
       last = p.d;
       if (e.id === "bubbles") {
         const r = size * (0.2 + (i % 3) * 0.09),
