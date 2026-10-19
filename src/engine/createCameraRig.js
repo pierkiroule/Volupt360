@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { createPanoramaJourney } from "./createPanoramaJourney.js";
 
-/** Three viewpoints share an extended sculpture and a moving painter.
- * Pointer input rotates only the landscape. Every rotation reanchors the FPV
- * route to the transformed focus; no gesture deposits or deforms pigment.
+/** Shared cameras retain the historical painting modes. In panorama exploration,
+ * dragging steers the view and holding progressively powers bounded FPV travel.
+ * Other modes retain their landscape rotation and contemplation controls.
  */
 export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   let mode = "drone",
@@ -100,6 +100,18 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     }
     if (!event.isPrimary || event.button > 0) return;
     dragging = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    if (mode === "panorama" && panoramaExploreOnly) {
+      camera.getWorldDirection(direction);
+      panoramaYaw = homeYaw =
+        Math.atan2(direction.x, direction.z) - panoramaDial;
+      panoramaPitch = homePitch = Math.atan2(
+        direction.y,
+        Math.hypot(direction.x, direction.z),
+      );
+      gyroReference = null;
+      gyroRelative.identity();
+      journey.setTouchControl(true, direction);
+    }
     if (mode === "photo" || mode === "global")
       localPivot.copy(getFlight().bounds.center);
     else localPivot.set(0, 0, 0);
@@ -135,7 +147,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (mode === "gyro" || mode === "panorama") {
       panoramaYaw -= dx * 0.0035;
       panoramaPitch = THREE.MathUtils.clamp(
-        panoramaPitch + dy * 0.0035,
+        panoramaPitch +
+          dy * (mode === "panorama" && panoramaExploreOnly ? -0.0035 : 0.0035),
         -1.2,
         1.2,
       );
@@ -178,6 +191,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       dragging.y = position.y;
     }
     if (dragging?.id !== event.pointerId) return;
+    if (mode === "panorama" && panoramaExploreOnly) {
+      journey.setTouchControl(false);
+    }
     if (canvas.hasPointerCapture(event.pointerId))
       canvas.releasePointerCapture(event.pointerId);
     dragging = null;
@@ -185,6 +201,14 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) =>
     listen(canvas, name, release),
   );
+  const cancelTouch = () => {
+    journey.setTouchControl(false);
+    dragging = null;
+  };
+  listen(window, "blur", cancelTouch);
+  listen(document, "visibilitychange", () => {
+    if (document.hidden) cancelTouch();
+  });
   const onOrientation = (event) => {
     if (
       (mode !== "gyro" && mode !== "panorama") ||
@@ -219,6 +243,8 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   listen(window, "deviceorientationabsolute", onOrientation);
   async function setMode(next) {
     const request = ++sensorRequest;
+    journey.setTouchControl(false);
+    dragging = null;
     mode = next;
     if (next === "photo" || next === "global") setPhotoZoom(1);
     photoPointers.clear();
@@ -312,7 +338,16 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     if (mode === "panorama") {
       if (panoramaExploreOnly) {
         camera.getWorldDirection(direction);
-        journey.steer(direction, dt);
+        if (journey.touching) {
+          direction
+            .set(
+              Math.sin(panoramaYaw + panoramaDial) * Math.cos(panoramaPitch),
+              Math.sin(panoramaPitch),
+              Math.cos(panoramaYaw + panoramaDial) * Math.cos(panoramaPitch),
+            )
+            .applyQuaternion(gyroRelative);
+          journey.setTouchControl(true, direction);
+        } else journey.steer(direction, dt);
       }
       journey.update(dt);
       camera.position.copy(journey.position);
@@ -341,22 +376,25 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           "YXZ",
         );
         lookOffset.setFromEuler(lookEuler);
-        desiredQuaternion
-          .copy(returnAim)
-          .multiply(lookOffset)
-          .multiply(gyroRelative);
+        returnAim.multiply(lookOffset).multiply(gyroRelative);
+        desiredQuaternion.slerp(returnAim, journey.returnWeight);
       }
       camera.quaternion.slerp(desiredQuaternion, mix(4));
       // A restrained lens opening accompanies travel; no roll or camera shake.
       camera.fov +=
-        ((journey.moving
-          ? 100 + Math.sin(performance.now() * 0.00019) * 1.5
+        ((journey.moving || journey.touching
+          ? 100 +
+            journey.throttle * 2 +
+            Math.sin(performance.now() * 0.00019) * 1.5
           : 92) -
           camera.fov) *
         mix(2);
       camera.far = 1000;
       camera.updateProjectionMatrix();
       canvas.dataset.journeyMoving = String(journey.moving);
+      canvas.dataset.journeyTouching = String(journey.touching);
+      canvas.dataset.journeySpeed = journey.speed.toFixed(3);
+      canvas.dataset.journeyThrottle = journey.throttle.toFixed(3);
       canvas.dataset.journeyHeading = journey.direction.toArray().join(",");
       canvas.dataset.journeyGuided = String(journey.guided);
       canvas.dataset.journeyFocus = journey.focus.toArray().join(",");
@@ -533,6 +571,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     },
     setPanoramaDrawing(value) {
       panoramaDrawing = value;
+      journey.setTouchControl(false);
       dragging = null;
     },
     setPanoramaExploreOnly(value) {

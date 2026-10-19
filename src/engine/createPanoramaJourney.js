@@ -7,6 +7,15 @@ export function createPanoramaJourney() {
     desired = new THREE.Vector3(),
     delta = new THREE.Vector3();
   const lookTarget = new THREE.Vector3();
+  const turnRotation = new THREE.Quaternion(),
+    identityRotation = new THREE.Quaternion();
+  const touchHeading = new THREE.Vector3(0, 0, -1),
+    inward = new THREE.Vector3(),
+    turnTarget = new THREE.Vector3();
+  let touchActive = false,
+    holdTime = 0,
+    resumeMoving = false,
+    recovery = 0;
   let guided = false,
     radius = 8,
     time = 0,
@@ -26,6 +35,32 @@ export function createPanoramaJourney() {
   return {
     position,
     direction,
+    get touching() {
+      return touchActive;
+    },
+    get speed() {
+      return speed;
+    },
+    get throttle() {
+      return touchActive ? THREE.MathUtils.smoothstep(holdTime, 0.28, 3.2) : 0;
+    },
+    setTouchControl(active, heading) {
+      if (active && !touchActive) {
+        resumeMoving = moving;
+        holdTime = 0;
+        returnWeight = 0;
+        if (speed < 0.05 && heading?.lengthSq() > 0.001)
+          direction.copy(heading).normalize();
+      }
+      if (!active && touchActive) {
+        moving = resumeMoving;
+        recovery = moving ? 1 : 0;
+        phase = Math.atan2(position.z - focus.z, position.x - focus.x);
+        holdTime = 0;
+      }
+      touchActive = active;
+      if (heading?.lengthSq() > 0.001) touchHeading.copy(heading).normalize();
+    },
     get moving() {
       return moving;
     },
@@ -54,12 +89,20 @@ export function createPanoramaJourney() {
       moving = true;
     },
     stop() {
+      touchActive = false;
+      holdTime = 0;
+      resumeMoving = false;
+      recovery = 0;
       moving = false;
     },
     reset(preserveSculpture = false) {
       position.set(0, 0, 20);
       direction.set(0, 0, -1);
       moving = false;
+      touchActive = false;
+      holdTime = 0;
+      recovery = 0;
+      resumeMoving = false;
       speed = 0;
       guided = preserveSculpture && guided;
       time = 0;
@@ -75,6 +118,39 @@ export function createPanoramaJourney() {
     update(dt) {
       dt = THREE.MathUtils.clamp(dt, 0, 0.1);
       time += dt;
+      if (touchActive) {
+        holdTime += dt;
+        const throttle = THREE.MathUtils.smoothstep(holdTime, 0.28, 3.2);
+        const manualCruise = resumeMoving ? 1.2 + throttle * 3 : throttle * 4.2;
+        turnTarget.copy(touchHeading);
+        if (guided) {
+          inward.subVectors(focus, position);
+          const distance = inward.length();
+          if (distance > 0.01) {
+            inward.divideScalar(distance);
+            // A continuous inward bias grows only outside the sculpture's neighbourhood.
+            const boundary = radius * 1.6;
+            const attraction = THREE.MathUtils.smoothstep(
+              distance,
+              radius * 0.9,
+              boundary,
+            );
+            turnTarget.lerp(inward, attraction * 0.92).normalize();
+          }
+        }
+        turnRotation
+          .setFromUnitVectors(direction, turnTarget)
+          .slerp(identityRotation, Math.exp(-dt * 3.8));
+        direction.applyQuaternion(turnRotation).normalize();
+        speed +=
+          (manualCruise - speed) *
+          (1 - Math.exp(-dt * (manualCruise > speed ? 1.5 : 3.5)));
+        position.addScaledVector(direction, speed * dt);
+        lookTarget.copy(position).addScaledVector(direction, 3);
+        returnWeight = 0;
+        return;
+      }
+
       if (guided && moving) {
         // A closed figure-eight alternates orbital views with crossings of the work.
         // Gaze never becomes an unbounded translation command.
@@ -83,8 +159,17 @@ export function createPanoramaJourney() {
         path(phase, desired);
         delta.subVectors(desired, position);
         const gap = delta.length();
-        if (gap > 0.0001) direction.copy(delta).normalize();
-        returnWeight = 1;
+        if (gap > 0.0001) {
+          turnTarget.copy(delta).normalize();
+          if (recovery > 0.001) {
+            turnRotation
+              .setFromUnitVectors(direction, turnTarget)
+              .slerp(identityRotation, Math.exp(-dt * 3));
+            direction.applyQuaternion(turnRotation).normalize();
+          } else direction.copy(turnTarget);
+        }
+        recovery *= Math.exp(-dt * 1.8);
+        returnWeight = 1 - recovery;
         path(phase + 0.5, lookTarget);
         const cruise = 1.2 + Math.sin(time * 0.19) * 0.12;
         speed +=

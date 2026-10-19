@@ -1253,3 +1253,170 @@ test("pictorial pigments respond locally, release gently and reuse textures thro
   expect(r.released).toBe(2);
   expect(errors).toEqual([]);
 });
+
+test("touch flight accelerates smoothly, steers through opposing headings and remains near the painting", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js"),
+      { createPanoramaJourney } =
+        await import("/src/engine/createPanoramaJourney.js");
+    const j = createPanoramaJourney(),
+      center = new T.Vector3(0, 0, 20),
+      heading = new T.Vector3(1, 0, 0);
+    j.setSculpture(center, 8);
+    j.setTouchControl(true, heading);
+    j.update(0.1);
+    const early = j.speed;
+    for (let i = 0; i < 240; i++) j.update(1 / 60);
+    const fast = j.speed,
+      throttle = j.throttle;
+    let maxDistance = 0,
+      maxStep = 0;
+    for (let i = 0; i < 60 * 120; i++) {
+      heading.subVectors(j.position, center);
+      if (heading.lengthSq() < 0.01) heading.set(1, 0, 0);
+      heading.normalize();
+      j.setTouchControl(true, heading);
+      const before = j.position.clone();
+      j.update(1 / 60);
+      maxDistance = Math.max(maxDistance, j.position.distanceTo(center));
+      maxStep = Math.max(maxStep, j.position.distanceTo(before));
+    }
+    j.setTouchControl(false);
+    for (let i = 0; i < 180; i++) j.update(1 / 60);
+    const slow = j.speed;
+    const stopped = j.position.clone();
+    for (let i = 0; i < 60; i++) j.update(1 / 60);
+    const tail = stopped.distanceTo(j.position);
+    j.travel(new T.Vector3(0, 0, 1));
+    j.setTouchControl(true, new T.Vector3(0, 0, -1));
+    for (let i = 0; i < 60; i++) j.update(1 / 60);
+    j.setTouchControl(false);
+    for (let i = 0; i < 180; i++) j.update(1 / 60);
+    const resumed = j.moving && j.returnWeight > 0.9;
+    j.setTouchControl(true, heading);
+    j.update(0.1);
+    j.stop();
+    for (let i = 0; i < 120; i++) j.update(1 / 60);
+    return {
+      early,
+      fast,
+      throttle,
+      maxDistance,
+      maxStep,
+      slow,
+      tail,
+      resumed,
+      cancelled: !j.touching && j.throttle === 0,
+    };
+  });
+  expect(r.early).toBeLessThan(0.01);
+  expect(r.fast).toBeGreaterThan(3);
+  expect(r.throttle).toBeGreaterThan(0.99);
+  expect(r.maxDistance).toBeLessThan(12);
+  expect(r.maxStep).toBeLessThan(0.071);
+  expect(r.slow).toBeLessThan(0.001);
+  expect(r.tail).toBeLessThan(0.001);
+  expect(r.resumed).toBe(true);
+  expect(r.cancelled).toBe(true);
+});
+
+test("FPV hold and swipe control translation and release cancels acceleration", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
+  await paintLine(page);
+  await page.getByRole("button", { name: "Révéler en 3D" }).click();
+  const canvas = page.locator("#stage canvas");
+  await expect(canvas).toBeVisible();
+  const r = await canvas.boundingBox(),
+    start = await canvas.getAttribute("data-camera-position");
+  await page.mouse.move(r.x + r.width * 0.5, r.y + r.height * 0.4);
+  await page.mouse.down();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "true");
+  await page.mouse.move(r.x + r.width * 0.7, r.y + r.height * 0.25, {
+    steps: 8,
+  });
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+    .toBeGreaterThan(0.7);
+  expect(await canvas.getAttribute("data-camera-position")).not.toBe(start);
+  await page.mouse.up();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "false");
+  await expect(canvas).toHaveAttribute("data-journey-throttle", "0.000");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+    .toBeLessThan(0.05);
+  await page.mouse.down();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "true");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(canvas).toHaveAttribute("data-journey-touching", "false");
+  await page.mouse.up();
+});
+
+test.describe("mobile FPV gestures", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  test("right and upward swipes turn the camera in the same direction and cancellation releases thrust", async ({
+    page,
+    context,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Peindre mon ciel" }).tap();
+    await paintLine(page);
+    await page.getByRole("button", { name: "Révéler en 3D" }).tap();
+    const canvas = page.locator("#stage canvas");
+    await expect(canvas).toBeVisible();
+    const initial = await canvas.getAttribute("data-camera-orientation"),
+      r = await canvas.boundingBox(),
+      client = await context.newCDPSession(page);
+    const start = { x: r.x + r.width * 0.35, y: r.y + r.height * 0.45 };
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [start],
+    });
+    for (let i = 1; i <= 12; i++)
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: start.x + i * 9, y: start.y - i * 5 }],
+      });
+    await expect
+      .poll(async () =>
+        page.evaluate(async (initial) => {
+          const T = await import("/node_modules/.vite/deps/three.js"),
+            before = new T.Quaternion().fromArray(
+              initial.split(",").map(Number),
+            ),
+            after = new T.Quaternion().fromArray(
+              document
+                .querySelector("#stage canvas")
+                .dataset.cameraOrientation.split(",")
+                .map(Number),
+            );
+          const forward = new T.Vector3(0, 0, -1).applyQuaternion(after),
+            right = new T.Vector3(1, 0, 0).applyQuaternion(before),
+            up = new T.Vector3(0, 1, 0).applyQuaternion(before);
+          return Math.min(forward.dot(right), forward.dot(up));
+        }, initial),
+      )
+      .toBeGreaterThan(0.04);
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+      .toBeGreaterThan(0.5);
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+    await expect(canvas).toHaveAttribute("data-journey-touching", "false");
+    await expect(canvas).toHaveAttribute("data-journey-throttle", "0.000");
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+      .toBeLessThan(0.05);
+  });
+});

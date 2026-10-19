@@ -3363,3 +3363,31 @@ label:focus-visible {
   border-radius: 50%;
   pointer-events: none;
 }
+.fpv-gesture-hint {
+  position: fixed;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 90vw;
+  text-align: center;
+  pointer-events: none;
+  font:
+    11px/1.4 system-ui,
+    sans-serif;
+  color: #4b625b;
+  opacity: 0.65;
+  background: #faf7efaa;
+  border-radius: 15px;
+  padding: 5px 10px;
+  animation: fpv-hint-fade 9s forwards;
+}
+@keyframes fpv-hint-fade {
+  0%,
+  65% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+  }
+}

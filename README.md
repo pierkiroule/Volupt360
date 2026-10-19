@@ -48,6 +48,21 @@ Les deux lots du paysage conservent leurs buffers ; aucune texture n’est cré�
 pendant l’animation. Le premier cadrage tient compte du format portrait avant le
 voyage immersif. La musique existante reste inchangée.
 
+## Pilotage tactile FPV
+
+Dans le monde 3D, glisser oriente le regard et le vol : droite pour tourner à droite,
+haut pour monter. Un maintien supérieur à environ 280 ms ouvre progressivement les
+gaz, jusqu’à une vitesse plafonnée après trois secondes. Un geste bref permet de
+regarder autour de soi sans démarrer un déplacement important.
+
+Au relâchement, la caméra ralentit ; si le voyage automatique était actif, elle
+reprend progressivement ses orbites et traversées. L’attraction vers l’œuvre
+augmente uniquement lorsqu’on s’en éloigne, sans téléportation. Le gyroscope reste
+compatible avec l’orientation pendant le maintien. Annulation tactile, perte de
+capture, changement de mode et perte de focus relâchent l’accélérateur. La barre
+d’outils n’est pas une surface de pilotage. Une courte indication s’estompe après
+l’entrée dans le monde.
+
 ## Architecture et limites
 
 - `EmojiPainter.jsx` : interface, capture tactile et dessin immédiat.
@@ -103,3 +118,7 @@ valider.
 Le contrôle de longue durée simule six minutes de mises à jour du moteur et vérifie
 la réutilisation des buffers et des textures. Il ne constitue pas une mesure de
 fluidité de six minutes sur téléphone physique.
+
+Les contrôles FPV comprennent aussi l’accélération progressive, les virages à
+contre-direction, deux minutes simulées de guidage vers l’extérieur, la reprise
+du voyage, le freinage et un geste tactile natif droite/haut avec annulation.

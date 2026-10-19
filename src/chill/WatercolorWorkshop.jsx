@@ -169,6 +169,11 @@ export default function WatercolorWorkshop() {
         busy={busy}
       />
       {started && world && (
+        <p className="fpv-gesture-hint">
+          Glisser pour orienter · maintenir pour accélérer
+        </p>
+      )}
+      {started && world && (
         <nav className="sky-world-tools" aria-label="Contempler le ciel">
           <button
             aria-label="Revenir à la composition"
