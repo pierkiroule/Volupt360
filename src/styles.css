@@ -3158,3 +3158,165 @@ label:focus-visible {
     font-size: 11px;
   }
 }
+
+/* Resonant mandala: one drawing, one quiet mobile-first workspace. */
+.mandala-composer {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  background: #f4f0e7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 16px max(18px, env(safe-area-inset-bottom));
+  overflow: auto;
+  color: #384b49;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, #dbe7df70, transparent 65%),
+    radial-gradient(ellipse at 80% 80%, #e2d6c350, transparent 60%);
+}
+.mandala-composer[hidden] {
+  display: none;
+}
+.mandala-composer header {
+  text-align: center;
+  max-width: 480px;
+}
+.mandala-composer h1 {
+  font-family: Caveat, cursive;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 500;
+  margin: 5px 0;
+}
+.mandala-composer header p {
+  font:
+    13px/1.5 system-ui,
+    sans-serif;
+  margin: 4px 0;
+  color: #61716a;
+}
+.mandala-paper {
+  position: relative;
+  flex-shrink: 0;
+  width: min(55vh, 86vw, 510px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow:
+    0 12px 60px #6c6e5f12,
+    0 0 0 1px #8d988526;
+  background: #faf7ef;
+}
+.mandala-paper svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.mandala-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  font:
+    24px/1.3 Caveat,
+    cursive;
+  color: #78887c;
+  pointer-events: none;
+}
+.mandala-controls {
+  width: min(420px, 100%);
+  text-align: center;
+}
+.mandala-palette {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.mandala-palette button {
+  font-size: 25px;
+  line-height: 1;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: #ffffff66;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.mandala-palette button[aria-pressed="true"] {
+  background: #dce7df;
+  border-color: #7e9d8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px #637d641a;
+}
+.mandala-palette button:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.mandala-palette button:focus-visible,
+.mandala-actions button:focus-visible {
+  outline: 2px solid #4c7463;
+  outline-offset: 3px;
+}
+.mandala-selection {
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+  color: #758176;
+  min-height: 24px;
+  margin: 8px 0;
+}
+.mandala-selection span {
+  font-size: 20px;
+  margin-left: 10px;
+}
+.mandala-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.mandala-actions button {
+  min-height: 44px;
+  border: 1px solid #8c9c8840;
+  border-radius: 24px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #526a5c;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.mandala-actions .mandala-reveal {
+  background: #486958;
+  color: #fff;
+  border: 0;
+}
+.mandala-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+@media (max-height: 650px) {
+  .mandala-composer {
+    gap: 7px;
+    justify-content: flex-start;
+  }
+  .mandala-paper {
+    width: min(46vh, 70vw);
+  }
+  .mandala-composer .chill-eyebrow {
+    display: none;
+  }
+  .mandala-composer h1 {
+    font-size: 26px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mandala-palette button {
+    transition: none;
+  }
+}

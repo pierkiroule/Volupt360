@@ -1,4 +1,4 @@
-import { SensoryDisc } from "./SensoryDisc.jsx";
+import { MandalaComposer } from "./MandalaComposer.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
@@ -17,16 +17,13 @@ export default function WatercolorWorkshop() {
     [world, setWorld] = useState(false),
     [busy, setBusy] = useState(false),
     [count, setCount] = useState(0);
-  const [instruction, setInstruction] = useState(
-    "ce que tu ressens, ici et maintenant.",
-  );
   const soundWanted = useRef(true);
   const [moving, setMoving] = useState(false),
     [gyro, setGyro] = useState(false),
     [sound, setSound] = useState(true),
     [error, setError] = useState("");
   useEffect(() => {
-    document.title = "Paysage sensoriel 360•° — Mon monde en résonance";
+    document.title = "Mandala en résonance •° — Un dessin, un monde";
     engine.current = createSoundNest(stage.current, { onError: setError });
     engine.current.setPaperVisible(true);
     return () => {
@@ -145,45 +142,30 @@ export default function WatercolorWorkshop() {
       <div id="stage" ref={stage} />
       {!started && (
         <section className="chill-welcome">
-          <span className="chill-eyebrow">Composer · Relier · Voyager</span>
+          <span className="chill-eyebrow">Choisir · Éclore · Voyager</span>
           <h1>
-            Paysage sensoriel
+            Mandala en résonance
             <br />
             360•°
           </h1>
-          <h2>Mon monde en résonance</h2>
+          <h2>Un dessin, un monde</h2>
           <p>
-            Des émojis pour composer ton ciel. Glisse-les sur le disque,
-            rapproche-les : leurs rencontres tissent des liens.
+            Choisis de un à trois émojis. Leurs couleurs et leurs rythmes
+            s’entrelacent en un mandala singulier, fin et organique.
           </p>
-          <details className="welcome-instruction">
-            <summary>Personnaliser la consigne</summary>
-            <label>
-              Décore ton ciel avec les émojis qui résonnent avec…
-              <textarea
-                aria-label="Consigne du thérapeute"
-                maxLength={240}
-                value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
-              />
-            </label>
-          </details>
           <p>
-            Révèle ton paysage : les émojis et leurs liens deviennent un réseau
-            vivant au rythme de la musique. Regarde autour de toi ou laisse le
-            voyage te porter.
+            Puis entre dans ton dessin : il s’ouvre en paysage 3D vivant, porté
+            par la musique. Contemple-le à 360° ou laisse le voyage te guider.
           </p>
-          <button onClick={start}>Composer mon ciel</button>
+          <button onClick={start}>Faire éclore mon mandala</button>
         </section>
       )}
-      <SensoryDisc
+      <MandalaComposer
         ref={paper}
         visible={started && !world}
         onChange={setCount}
         onReveal={reveal}
         busy={busy}
-        instruction={instruction}
-        onInstruction={setInstruction}
       />
       {started && world && (
         <nav className="sky-world-tools" aria-label="Contempler le ciel">

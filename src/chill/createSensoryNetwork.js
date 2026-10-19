@@ -1,3 +1,4 @@
+import { createMandalaLandscape } from "./createMandalaLandscape.js";
 import { createSensoryCurrents } from "./createSensoryCurrents.js";
 import { createSensoryAtmosphere } from "./createSensoryAtmosphere.js";
 import * as THREE from "three";
@@ -11,8 +12,9 @@ export function createSensoryNetwork() {
     bounds = new THREE.Box3(),
     textures = new Map();
   const atmosphere = createSensoryAtmosphere();
+  const mandala = createMandalaLandscape();
   const currents = createSensoryCurrents();
-  group.add(atmosphere.group, currents.group);
+  group.add(atmosphere.group, currents.group, mandala.group);
   const sphereGeometry = new THREE.SphereGeometry(1, 16, 12);
   const nodes = [],
     links = [],
@@ -67,9 +69,10 @@ export function createSensoryNetwork() {
     }
     atmosphere.clear();
     currents.clear();
+    mandala.clear();
     atmosphericTime = 0;
     group.clear();
-    group.add(atmosphere.group, currents.group);
+    group.add(atmosphere.group, currents.group, mandala.group);
     nodes.length = links.length = 0;
     bounds.makeEmpty();
     dust = threads = sparks = ribbons = null;
@@ -136,17 +139,21 @@ export function createSensoryNetwork() {
         textures: textures.size,
         atmosphere: atmosphere.stats,
         currents: currents.stats,
+        mandala: mandala.active,
       };
     },
     setDocument(document) {
       clear();
+      mandala.setDocument(document);
       const byId = new Map();
       for (const [i, n] of document.nodes
         .slice(0, MAX_SENSORY_NODES)
         .entries()) {
         const entry = emojiById(n.emojiId),
           object = new THREE.Group(),
-          origin = paintingToWorld(n, i, document.nodes.length, n.size),
+          origin = n.worldPosition
+            ? new THREE.Vector3(...n.worldPosition)
+            : paintingToWorld(n, i, document.nodes.length, n.size),
           size = THREE.MathUtils.clamp(n.size * 9, 0.55, 2.4);
         object.position.copy(origin);
         const body = new THREE.Mesh(
@@ -176,6 +183,10 @@ export function createSensoryNetwork() {
         face.scale.setScalar(size * 1.65);
         body.scale.setScalar(size);
         object.add(body, face);
+        if (document.kind === "resonant-mandala") {
+          body.visible = false;
+          face.visible = false;
+        }
         group.add(object);
         const runtime = {
           id: n.id,
@@ -193,6 +204,7 @@ export function createSensoryNetwork() {
         byId.set(n.id, runtime);
         bounds.expandByPoint(origin);
       }
+      if (mandala.active) bounds.union(mandala.bounds);
       bounds.expandByScalar(2.5);
       for (const [i, l] of document.links
         .slice(0, MAX_SENSORY_LINKS)
@@ -399,6 +411,7 @@ export function createSensoryNetwork() {
       atmosphericTime += dt;
       atmosphere.update(atmosphericTime);
       currents.update(atmosphericTime);
+      mandala.update(atmosphericTime, audio, dt);
       for (const mesh of dynamicMeshes) {
         mesh.geometry.attributes.position.needsUpdate = true;
         mesh.geometry.attributes.color.needsUpdate = true;
@@ -409,6 +422,7 @@ export function createSensoryNetwork() {
       clear();
       atmosphere.dispose();
       currents.dispose();
+      mandala.dispose();
       group.clear();
       sphereGeometry.dispose();
       stain.dispose();

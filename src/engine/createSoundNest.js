@@ -1533,7 +1533,11 @@ export function createSoundNest(
         const radius =
           sensoryNetwork.bounds.getSize(new THREE.Vector3()).length() * 0.5;
         paintingFocus.copy(focus);
-        rig.setPanoramaSculpture(focus, Math.max(3, radius));
+        rig.setPanoramaSculpture(
+          focus,
+          Math.max(3, radius),
+          document.kind === "resonant-mandala",
+        );
         xrJourney.reset();
         xrJourney.setSculpture(focus, Math.max(3, radius));
       }

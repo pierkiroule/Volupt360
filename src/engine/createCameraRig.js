@@ -506,7 +506,14 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   canvas.dataset.droneDistance = String(distanceSetting);
   return {
-    setPanoramaSculpture(center, radius) {
+    setPanoramaSculpture(center, radius, overview = false) {
+      if (overview) {
+        journey.position
+          .copy(center)
+          .add(new THREE.Vector3(0, radius * 0.85, -radius * 0.65));
+        camera.position.copy(journey.position);
+        camera.lookAt(center);
+      }
       journey.setSculpture(center, radius);
       focus.copy(center).sub(camera.position).normalize();
       panoramaYaw = homeYaw = Math.atan2(focus.x, focus.z);
