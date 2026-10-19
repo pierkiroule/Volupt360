@@ -1,3 +1,4 @@
+import { createSkyNozzle } from "../chill/createSkyNozzle.js";
 import { createPanoramaJourney } from "./createPanoramaJourney.js";
 import { createEmojiStickers } from "../chill/createEmojiStickers.js";
 import { createContemplationState } from "../chill/createContemplationState.js";
@@ -568,6 +569,7 @@ export function createSoundNest(
     directRay = new THREE.Vector3(),
     viewNormal = new THREE.Vector3(),
     directVelocity = new THREE.Vector3();
+  const skyNozzle = createSkyNozzle();
   function updateDirect(dt, features) {
     if (
       !directGesture ||
@@ -603,7 +605,12 @@ export function createSoundNest(
     if (!g.samples) {
       directPoint.copy(directTarget);
       directLast.copy(directPoint);
-    } else if (workshopMode) directPoint.copy(directTarget);
+      skyNozzle.reset(directTarget);
+    } else if (paintingWorld && worldDrawing)
+      directPoint.copy(
+        skyNozzle.update(directTarget, Math.min(g.clock, 1 / 30)),
+      );
+    else if (workshopMode) directPoint.copy(directTarget);
     else directPoint.lerp(directTarget, 1 - Math.exp(-dt * 24));
     const distance = directPoint.distanceTo(directLast);
     if (g.samples > 1 && distance < 0.045) return;
@@ -642,7 +649,9 @@ export function createSoundNest(
     g.clock = 0;
     renderer.domElement.dataset.directSamples = String(g.samples);
     renderer.domElement.dataset.directPoint = directPoint.toArray().join(",");
-    renderer.domElement.dataset.paintEmitter = "finger";
+    renderer.domElement.dataset.paintEmitter = paintingWorld
+      ? "sky-nozzle"
+      : "finger";
     renderer.domElement.dataset.paintedSamples = String(paintedSamples);
   }
   function endDirect() {

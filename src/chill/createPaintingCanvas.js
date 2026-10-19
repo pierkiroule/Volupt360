@@ -1,3 +1,4 @@
+import { paintMaterialGlyph } from "./materialGlyphs.js";
 import { createPigmentPlate } from "./createPigmentPlate.js";
 import { WORKSHOP_BRUSHES, DEFAULT_WORKSHOP_BRUSH } from "./workshopBrushes.js";
 
@@ -71,7 +72,9 @@ export function createPaintingCanvas(container, onChange = () => {}) {
           rgb[j] * (density * (1 - tide * 0.2) + 0.25 * tide * 0.2);
       const tooth = Math.max(0, Math.min(1, (paper - 0.2) / 0.45));
       const reserve = 0.65 + 0.35 * tooth * tooth * (3 - 2 * tooth);
-      data.data[k + 3] *= reserve;
+      const water =
+        brush.textureKind === "wash" ? 0.38 + tide * 0.55 + load * 0.2 : 1;
+      data.data[k + 3] *= reserve * water;
     }
     c.putImageData(data, 0, 0);
     cache.set(key, image);
@@ -82,6 +85,34 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     if (stroke.type === "sticker") {
       ctx.save();
       ctx.globalAlpha = 1;
+      if (stroke.glyph) {
+        const key = `glyph:${stroke.glyph}:${stroke.color}`;
+        let stamp = cache.get(key);
+        if (!stamp) {
+          stamp = document.createElement("canvas");
+          stamp.width = stamp.height = 256;
+          paintMaterialGlyph(
+            stamp.getContext("2d"),
+            stroke.glyph,
+            128,
+            128,
+            220,
+            stroke.color,
+          );
+          cache.set(key, stamp);
+          if (cache.size > 16) cache.delete(cache.keys().next().value);
+        }
+        const size = stroke.size * Math.min(width, height);
+        ctx.drawImage(
+          stamp,
+          p.u * width - size / 2,
+          p.v * height - size / 2,
+          size,
+          size,
+        );
+        ctx.restore();
+        return;
+      }
       ctx.font = `${stroke.size * Math.min(width, height)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";

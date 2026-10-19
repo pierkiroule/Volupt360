@@ -696,7 +696,7 @@ test("ten materials paint distinct seeded marks and the compact tray folds compl
   expect(new Set(results.map((r) => r.hash)).size).toBe(10);
 });
 
-test("Senso360 presents ten open sensory invitations without collecting a situation", async ({
+test("Senso360 presents ten designed glyphs and open sensory invitations without collecting a situation", async ({
   page,
 }) => {
   await page.goto("/");
@@ -705,16 +705,33 @@ test("Senso360 presents ten open sensory invitations without collecting a situat
   await expect(page.getByText(/sans analyse de vos choix/)).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const emojis = page.locator(".sensory-emoji");
+  const modeButtons = await page
+    .getByRole("group", { name: "Mode de création" })
+    .getByRole("button")
+    .evaluateAll((nodes) =>
+      nodes.map((n) => {
+        const r = n.getBoundingClientRect();
+        return { left: r.left, right: r.right, width: r.width };
+      }),
+    );
+  expect(modeButtons[0].right).toBeLessThanOrEqual(modeButtons[1].left);
+  expect(modeButtons.every((b) => b.width >= 76)).toBe(true);
+  const emojis = page.locator(".material-glyph");
   await expect(emojis).toHaveCount(10);
-  expect(new Set(await emojis.allTextContents()).size).toBe(10);
+  expect(
+    new Set(
+      await emojis
+        .locator("path")
+        .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("d"))),
+    ).size,
+  ).toBe(10);
   await page.getByRole("button", { name: "Givre", exact: true }).click();
   await expect(page.locator(".sensory-hint")).toContainText(
     "Fraîcheur, grain, frisson",
   );
   await expect(page.locator(".sensory-hint")).toContainText("à votre façon");
   await page.getByRole("button", { name: "Replier les outils" }).click();
-  await expect(page.locator(".sensory-emoji")).toHaveCount(0);
+  await expect(page.locator(".material-glyph")).toHaveCount(0);
 });
 
 test("sensory signatures have distinct smooth spectral responses and preserve legacy defaults", async ({
@@ -764,7 +781,7 @@ test("sensory signatures have distinct smooth spectral responses and preserve le
   }
 });
 
-test("emoji stickers keep size and opacity, float in 3D and survive undo and round trips", async ({
+test("glyph stickers keep size and opacity, float in 3D and survive undo and round trips", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -815,7 +832,8 @@ test("floating emoji sprites preserve transparency, move softly and release text
       await import("/src/chill/createEmojiStickers.js");
     const stickers = createEmojiStickers();
     const source = {
-      emoji: "🌊",
+      glyph: "voiles",
+      color: "#b07578",
       points: [{ u: 0.5, v: 0.5 }],
       size: 0.15,
       opacity: 0.35,
@@ -962,4 +980,39 @@ test("FPV exposes ten brushes and paints while travelling without rotating under
   await page.mouse.move(270, 310, { steps: 10 });
   await page.mouse.up();
   await expect(world).toHaveAttribute("data-painted-samples", painted);
+});
+
+test("sky brush follows a moving aim with continuous finite-speed flight", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createSkyNozzle } = await import("/src/chill/createSkyNozzle.js");
+    const flight = createSkyNozzle(),
+      target = new T.Vector3(20, 0, 0);
+    flight.reset(new T.Vector3());
+    let maxStep = 0;
+    const first = flight.update(target, 1 / 30).x;
+    for (let i = 0; i < 300; i++) {
+      const before = flight.position.clone();
+      flight.update(target, 1 / 30);
+      maxStep = Math.max(maxStep, before.distanceTo(flight.position));
+    }
+    const settled = flight.position.distanceTo(target);
+    target.set(-20, 12, -6);
+    const before = flight.position.clone();
+    flight.update(target, 0.3);
+    return {
+      first,
+      maxStep,
+      settled,
+      jump: before.distanceTo(flight.position),
+    };
+  });
+  expect(result.first).toBeGreaterThan(0);
+  expect(result.first).toBeLessThan(0.1);
+  expect(result.maxStep).toBeLessThanOrEqual(0.201);
+  expect(result.settled).toBeLessThan(0.01);
+  expect(result.jump).toBeLessThanOrEqual(0.201);
 });

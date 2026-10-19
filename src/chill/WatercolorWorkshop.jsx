@@ -1,3 +1,4 @@
+import { MaterialGlyph } from "./MaterialGlyph.jsx";
 import { useEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
@@ -27,7 +28,7 @@ export default function WatercolorWorkshop() {
   const [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
     [color, setColor] = useState(DEFAULT_WORKSHOP_BRUSH.color),
     [size, setSize] = useState(18),
-    [opacity, setOpacity] = useState(0.9);
+    [opacity, setOpacity] = useState(0.72);
   const [gyro, setGyro] = useState(false),
     [moving, setMoving] = useState(false),
     [dial, setDial] = useState(0),
@@ -60,7 +61,7 @@ export default function WatercolorWorkshop() {
   useEffect(() => {
     paper.current?.setConfig({
       mode: stickerMode ? "sticker" : "paint",
-      emoji: WORKSHOP_BRUSHES.find((b) => b.id === brush).sensory.emoji,
+      glyph: brush,
       brush,
       color,
       size: !world && stickerMode ? stickerSize : size,
@@ -221,7 +222,7 @@ export default function WatercolorWorkshop() {
           <h2>Mon paysage sensoriel</h2>
           <p>
             Une pression, un frisson, un souffle… Évoquez une situation, si vous
-            le souhaitez, et donnez forme à ce que vous ressentez. Chaque émoji
+            le souhaitez, et donnez forme à ce que vous ressentez. Chaque glyphe
             ouvre une matière : sa signification vous appartient.
           </p>
           <p>
@@ -311,7 +312,7 @@ export default function WatercolorWorkshop() {
                         <button
                           key={b.id}
                           aria-label={b.name}
-                          title={`${b.sensory.emoji} ${b.name} · ${b.sensory.quality}`}
+                          title={`${b.name} · ${b.sensory.quality}`}
                           aria-pressed={brush === b.id}
                           disabled={paused}
                           style={{ "--brush-color": b.color }}
@@ -320,9 +321,7 @@ export default function WatercolorWorkshop() {
                             setColor(b.color);
                           }}
                         >
-                          <span className="sensory-emoji" aria-hidden="true">
-                            {b.sensory.emoji}
-                          </span>
+                          <MaterialGlyph id={b.id} />
                           <span className="brush-name">{b.name}</span>
                         </button>
                       ))}

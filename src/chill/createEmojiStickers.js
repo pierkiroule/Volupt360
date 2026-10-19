@@ -1,3 +1,4 @@
+import { paintMaterialGlyph } from "./materialGlyphs.js";
 import * as THREE from "three";
 import { paintingToWorld } from "./paintingToWorld.js";
 
@@ -6,8 +7,10 @@ export function createEmojiStickers() {
   const group = new THREE.Group(),
     textures = new Map(),
     items = [];
-  function textureFor(emoji) {
-    if (textures.has(emoji)) return textures.get(emoji);
+  function textureFor(sticker) {
+    const emoji = sticker.emoji;
+    const key = sticker.glyph ? `${sticker.glyph}:${sticker.color}` : emoji;
+    if (textures.has(key)) return textures.get(key);
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 256;
     const ctx = canvas.getContext("2d");
@@ -15,10 +18,12 @@ export function createEmojiStickers() {
       '190px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(emoji, 128, 139);
+    if (sticker.glyph)
+      paintMaterialGlyph(ctx, sticker.glyph, 128, 128, 220, sticker.color);
+    else ctx.fillText(emoji, 128, 139);
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
-    textures.set(emoji, texture);
+    textures.set(key, texture);
     return texture;
   }
   function clear() {
@@ -35,7 +40,7 @@ export function createEmojiStickers() {
       // Bound scene objects independently of painting complexity.
       if (items.length >= 256) return;
       const material = new THREE.SpriteMaterial({
-        map: textureFor(sticker.emoji),
+        map: textureFor(sticker),
         opacity: sticker.opacity,
         transparent: true,
         depthWrite: false,
