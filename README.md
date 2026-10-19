@@ -2,17 +2,19 @@
 
 Un atelier de peinture et de sculpture aquarelle en trois dimensions, sur un ciel blanc.
 
-Un doigt (ou le bouton gauche de la souris) dessine immédiatement sur un plan parallèle à l’écran, à profondeur constante pendant le trait. La pointe volante n’est plus affichée ni utilisée dans l’atelier. Le moteur projette le doigt sur ce plan sans retard de poursuite ; les rubans conservent leur interpolation spatiale.
+L’atelier commence dans un panorama 360° immobile, en grand-angle. La molette et les gestes à deux doigts orientent le regard ; le bouton gyroscope active explicitement l’orientation du téléphone, avec alternative tactile complète.
 
-Deux doigts font pivoter l’œuvre autour du centre. Le pincement règle la profondeur du prochain trait, également accessible par un curseur. À la souris, le bouton droit permet la rotation. Aucune peinture pendant la manipulation : relâcher tous les doigts réarme le dessin. Dessiner un arc, tourner l’œuvre et tracer un second arc permet ainsi de construire un véritable volume avec des gestes précis.
+Un doigt ou le bouton gauche dessine immédiatement, à une profondeur réglable devant le regard. Le pincement et le curseur règlent cette profondeur. Les points déposés restent dans le monde ; on peut donc peindre pendant le déplacement comme à l’arrêt.
 
-La caméra reste fixe pendant le dessin. Le bouton de contemplation gyro 360° conserve une alternative tactile ; revenir au dessin retrouve le même monde et les mêmes traces. Les anciens parcours conservent leur pilotage.
+Viser une direction puis toucher Voyager capture cette direction. Regarder ailleurs ne dévie pas la trajectoire. Pause du voyage freine doucement et permet de peindre sur place sans couper la musique. Relancer Voyager capture la nouvelle direction regardée. La pause générale suspend séparément l’ensemble de l’expérience.
+
+À deux doigts (ou au bouton droit), on regarde autour de soi sans déposer de peinture ; relâcher tous les doigts réarme le dessin. La pointe volante n’est plus affichée dans l’atelier. Les anciens parcours conservent leur pilotage.
 
 Cinq matières seulement : encre de nuit, formes corail, pigment cobalt, poussière d’or et taches émeraude. Elles réutilisent cinq moteurs distincts et possèdent chacune une couleur, une silhouette et une texture propre. Leur opacité conserve une base visible même à faible énergie musicale ; l’analyse audio renforce les variations locales des pigments et des particules. Les particules anciennes sont figées et regroupées dans l’archive picturale.
 
 Les textures détaillées sont des plaques RGBA procédurales : charge de pigment, grain du papier, dépôts de séchage et couverture. Elles sont calculées une fois par brosse (256 px sur mobile, 512 px sur ordinateur), avec une graine reproductible et un raccord vertical continu pour les rubans. Les shaders lisent ces détails en conservant les réserves de blanc, les auréoles et la granulation ; les particules dorées utilisent aussi cette matière. Les textures suivent le cycle de libération existant du moteur.
 
-Un bouton bascule entre dessin et contemplation gyro 360°, avec autorisation du capteur et alternative tactile. Gravity accompagne la sculpture et conserve l’analyse musicale des pigments, le volume et la pause. L’atelier n’impose pas de fin chronométrée.
+Le panorama et le dessin coexistent dans une seule vue, avec autorisation explicite du capteur et alternative tactile. Gravity accompagne la sculpture et conserve l’analyse musicale des pigments, le volume et la pause. L’atelier n’impose pas de fin chronométrée.
 
 Les moteurs de brosses, l’archive picturale et l’export du moteur sont conservés. Le précédent conte reste accessible avec `?conte=1`, son prédécesseur avec `?original=1`.
 

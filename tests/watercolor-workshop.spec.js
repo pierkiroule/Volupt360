@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("direct drawing follows the finger precisely; depth, rotation and contemplation preserve the work", async ({
+test("panorama drawing stays precise while journey heading is fixed and pause keeps painting available", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -16,7 +16,7 @@ test("direct drawing follows the finger precisely; depth, rotation and contempla
   await expect(
     page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
   ).toHaveCount(5);
-  await expect(canvas).toHaveAttribute("data-camera-mode", "sculpt");
+  await expect(canvas).toHaveAttribute("data-camera-mode", "panorama");
   await expect(canvas).toHaveAttribute("data-oizo", "false");
   await page.mouse.move(140, 300);
   await page.mouse.down();
@@ -27,7 +27,7 @@ test("direct drawing follows the finger precisely; depth, rotation and contempla
     const T = await import("/node_modules/.vite/deps/three.js");
     const c = document.querySelector("canvas");
     const camera = new T.PerspectiveCamera(
-      70,
+      96,
       innerWidth / innerHeight,
       0.08,
       1000,
@@ -74,11 +74,14 @@ test("direct drawing follows the finger precisely; depth, rotation and contempla
     [2, 260, 300],
   ]);
   const before = await canvas.getAttribute("data-painted-samples");
+  const oldLook = await canvas.getAttribute("data-camera-orientation");
   await touch("touchMove", [
     [1, 100, 330],
     [2, 300, 330],
   ]);
-  await expect(canvas).toHaveAttribute("data-sculpture-rotation", /.+/);
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-orientation"))
+    .not.toBe(oldLook);
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-sculpture-depth")))
     .toBeGreaterThan(5);
@@ -87,10 +90,28 @@ test("direct drawing follows the finger precisely; depth, rotation and contempla
   await touch("touchMove", [[2, 310, 340]]);
   await expect(canvas).toHaveAttribute("data-painted-samples", before);
   await touch("touchEnd", []);
-  await page.getByRole("button", { name: "Contempler en gyro 360°" }).click();
-  await expect(canvas).toHaveAttribute("data-camera-mode", "gyro");
-  await page.getByRole("button", { name: "Revenir au dessin" }).click();
-  await expect(canvas).toHaveAttribute("data-camera-mode", "sculpt");
+  await page.getByRole("slider", { name: "Molette panorama" }).fill("45");
+  await page
+    .getByRole("button", { name: "Voyager dans la direction du regard" })
+    .click();
+  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
+  const heading = await canvas.getAttribute("data-journey-heading");
+  const position = await canvas.getAttribute("data-camera-position");
+  await page.getByRole("slider", { name: "Molette panorama" }).fill("-90");
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-position"))
+    .not.toBe(position);
+  await expect(canvas).toHaveAttribute("data-journey-heading", heading);
+  const movingPaint = Number(await canvas.getAttribute("data-painted-samples"));
+  await page.mouse.move(140, 300);
+  await page.mouse.down();
+  await page.mouse.move(210, 350, { steps: 10 });
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-painted-samples")))
+    .toBeGreaterThan(movingPaint);
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Pause du voyage" }).click();
+  await expect(canvas).toHaveAttribute("data-journey-moving", "false");
   await page.mouse.move(150, 330);
   await page.mouse.down();
   await page.mouse.move(220, 370, { steps: 8 });
@@ -438,4 +459,75 @@ test("detailed watercolor plates keep seeded grain, tide data and seamless conti
   expect(result.tides).toBeGreaterThan(100);
   expect(result.detailed && result.disposed).toBe(true);
   expect(result.colorSpace).toBe("");
+});
+
+test("panorama journey latches its heading and decelerates without stopping drawing or audio", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createPanoramaJourney } =
+      await import("/src/engine/createPanoramaJourney.js");
+    const j = createPanoramaJourney(),
+      look = new T.Vector3(1, 0, 0);
+    j.travel(look);
+    look.set(0, 1, 0);
+    for (let i = 0; i < 180; i++) j.update(1 / 60);
+    const moved = j.position.clone(),
+      heading = j.direction.toArray();
+    j.stop();
+    for (let i = 0; i < 120; i++) j.update(1 / 60);
+    const stopped = j.position.clone();
+    for (let i = 0; i < 60; i++) j.update(1 / 60);
+    return {
+      heading,
+      distance: moved.distanceTo(new T.Vector3(0, 0, 20)),
+      tail: stopped.distanceTo(j.position),
+      slowing: stopped.distanceTo(moved),
+      moving: j.moving,
+    };
+  });
+  expect(r.heading).toEqual([1, 0, 0]);
+  expect(r.distance).toBeGreaterThan(2);
+  expect(r.slowing).toBeLessThan(0.3);
+  expect(r.tail).toBeLessThan(0.001);
+  expect(r.moving).toBe(false);
+});
+
+test("gyro changes the panorama look while the captured journey direction stays fixed", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.DeviceOrientationEvent = class extends Event {
+      static requestPermission() {
+        return Promise.resolve("granted");
+      }
+    };
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  await page.getByRole("button", { name: "Activer le gyroscope" }).click();
+  const canvas = page.locator("canvas");
+  const sensor = (alpha) =>
+    page.evaluate((alpha) => {
+      const e = new Event("deviceorientation");
+      Object.assign(e, { alpha, beta: 80, gamma: 0 });
+      window.dispatchEvent(e);
+    }, alpha);
+  await sensor(0);
+  await expect(canvas).toHaveAttribute("data-gyroscope-status", "active");
+  await page
+    .getByRole("button", { name: "Voyager dans la direction du regard" })
+    .click();
+  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
+  const heading = await canvas.getAttribute("data-journey-heading"),
+    orientation = await canvas.getAttribute("data-camera-orientation");
+  await sensor(70);
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-orientation"))
+    .not.toBe(orientation);
+  await expect(canvas).toHaveAttribute("data-journey-heading", heading);
+  await page.getByRole("button", { name: "Désactiver le gyroscope" }).click();
+  await expect(canvas).toHaveAttribute("data-gyroscope-status", "disabled");
 });

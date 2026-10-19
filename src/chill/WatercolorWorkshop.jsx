@@ -16,6 +16,8 @@ export default function WatercolorWorkshop() {
     [error, setError] = useState(""),
     [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
     [gyro, setGyro] = useState(false),
+    [moving, setMoving] = useState(false),
+    [dial, setDial] = useState(0),
     [paused, setPaused] = useState(false),
     [open, setOpen] = useState(true),
     [audioOpen, setAudioOpen] = useState(false),
@@ -55,10 +57,12 @@ export default function WatercolorWorkshop() {
       engine.current.setSculptureDepth(0);
       engine.current.setBrush(DEFAULT_WORKSHOP_BRUSH.id);
       engine.current.setPadSource(bank);
-      engine.current.setCameraMode("sculpt");
+      engine.current.setCameraMode("panorama");
       engine.current.pauseChillSession(false);
       setBrush(DEFAULT_WORKSHOP_BRUSH.id);
       setGyro(false);
+      setMoving(false);
+      setDial(0);
       setPaused(false);
       const track =
         musicCatalog.find((t) => /(?:^|\/)gravity\.mp3$/i.test(t)) ??
@@ -79,13 +83,16 @@ export default function WatercolorWorkshop() {
   }
   async function switchView() {
     try {
-      const next = !gyro;
-      if (next) await engine.current.requestContemplationGyroscope(true);
-      await engine.current.setCameraMode(next ? "gyro" : "sculpt");
-      setGyro(next);
+      const enabled = await engine.current.requestContemplationGyroscope(!gyro);
+      setGyro(Boolean(enabled));
     } catch (e) {
       setError(e.message);
     }
+  }
+  function toggleTravel() {
+    if (moving) engine.current.stopPanorama();
+    else engine.current.travelPanorama();
+    setMoving(!moving);
   }
   async function togglePause() {
     try {
@@ -126,10 +133,14 @@ export default function WatercolorWorkshop() {
           <h1>OIZO •°</h1>
           <h2>Atelier aquarelle</h2>
           <p>
-            Dessinez directement avec un doigt. Deux doigts font tourner l’œuvre
-            ; pincez pour choisir la profondeur du prochain tracé.
+            Peignez avec un doigt dans un panorama à 360°. Deux doigts ou la
+            molette orientent le regard ; pincez pour choisir la profondeur.
           </p>
-          <p>Choisissez vos matières, puis contemplez votre paysage à 360°.</p>
+          <p>
+            Visez une direction puis touchez Voyager. La pause du voyage permet
+            de peindre sur place. Activez le gyroscope pour regarder autour de
+            vous avec le téléphone.
+          </p>
           <button onClick={start} disabled={busy}>
             {busy ? "Le papier s’éveille…" : "Ouvrir l’atelier"}
           </button>
@@ -165,7 +176,7 @@ export default function WatercolorWorkshop() {
                   ))}
                 </div>
               </section>
-              {!gyro && (
+              {
                 <label className="sculpture-depth">
                   Profondeur
                   <input
@@ -181,14 +192,43 @@ export default function WatercolorWorkshop() {
                   />
                   <output>{depth.toFixed(1)}</output>
                 </label>
-              )}
+              }
+              <label className="sculpture-depth">
+                Panorama
+                <input
+                  aria-label="Molette panorama"
+                  type="range"
+                  min="-180"
+                  max="180"
+                  step="1"
+                  value={dial}
+                  onChange={(e) => {
+                    setDial(Number(e.target.value));
+                    engine.current.setPanoramaDial(e.target.value);
+                  }}
+                />
+                <output>{dial}°</output>
+              </label>
               <div className="pictorial-commands">
+                <button
+                  onClick={toggleTravel}
+                  disabled={paused}
+                  aria-label={
+                    moving
+                      ? "Pause du voyage"
+                      : "Voyager dans la direction du regard"
+                  }
+                  title={moving ? "Pause du voyage" : "Voyager"}
+                  aria-pressed={moving}
+                >
+                  <ToolIcon name={moving ? "pause" : "play"} />
+                </button>
                 <button
                   onClick={switchView}
                   aria-label={
-                    gyro ? "Revenir au dessin" : "Contempler en gyro 360°"
+                    gyro ? "Désactiver le gyroscope" : "Activer le gyroscope"
                   }
-                  title={gyro ? "Dessin" : "Gyro 360°"}
+                  title={"Orientation du téléphone"}
                   aria-pressed={gyro}
                 >
                   <ToolIcon name="view" />

@@ -551,7 +551,12 @@ export function createSoundNest(
     viewNormal = new THREE.Vector3(),
     directVelocity = new THREE.Vector3();
   function updateDirect(dt, features) {
-    if (!directGesture || photo || chillPaused || cameraMode !== "sculpt")
+    if (
+      !directGesture ||
+      photo ||
+      chillPaused ||
+      !["sculpt", "panorama"].includes(cameraMode)
+    )
       return;
     const g = directGesture;
     g.clock = (g.clock || 0) + dt;
@@ -643,6 +648,7 @@ export function createSoundNest(
       camera.updateMatrixWorld(true);
       directDirection
         .set(1, 0, 0)
+        .applyQuaternion(camera.quaternion)
         .applyQuaternion(landscape.quaternion.clone().invert());
       directGesture = {
         id: event.pointerId,
@@ -651,7 +657,10 @@ export function createSoundNest(
         pressure: event.pressure || 0.5,
         samples: 0,
         travel: 0,
-        depth: camera.position.length() + sculptureDepth,
+        depth:
+          cameraMode === "panorama"
+            ? 12 + sculptureDepth
+            : camera.position.length() + sculptureDepth,
       };
       renderer.domElement.dataset.directDrawing = "true";
       updateDirect(1 / 60, padSource.getVisualFeatures?.() || {});
@@ -693,7 +702,7 @@ export function createSoundNest(
   function onSteeringDown(event) {
     if (
       workshopMode &&
-      cameraMode === "sculpt" &&
+      ["sculpt", "panorama"].includes(cameraMode) &&
       padSource &&
       !chillPaused &&
       (event.button === 0 || event.button === 2)
@@ -771,7 +780,7 @@ export function createSoundNest(
     );
   }
   function onSteeringMove(event) {
-    if (workshopMode && cameraMode === "sculpt") {
+    if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       sculptureGesture.move(event);
       return;
     }
@@ -818,7 +827,7 @@ export function createSoundNest(
     }
   }
   function onSteeringEnd(event) {
-    if (workshopMode && cameraMode === "sculpt") {
+    if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       if (event.type === "pointercancel") sculptureGesture.clear();
       else sculptureGesture.up(event);
       if (renderer.domElement.hasPointerCapture(event.pointerId))
@@ -1234,7 +1243,7 @@ export function createSoundNest(
         chillSession?.state,
       );
       chillTrails?.update(dt, lifeTime, visual);
-      updateDirect(dt, visual);
+      if (cameraMode !== "panorama") updateDirect(dt, visual);
       let drift = 0;
       for (const mark of marks) {
         const local = mark.respond(visual, dt);
@@ -1329,6 +1338,8 @@ export function createSoundNest(
         ? Math.min(0.1, milliseconds / 1000)
         : dt,
     );
+    if (cameraMode === "panorama")
+      updateDirect(dt, padSource?.getVisualFeatures?.() || {});
     renderer.domElement.dataset.cameraOrientation = camera.quaternion
       .toArray()
       .map((n) => n.toFixed(5))
@@ -1698,11 +1709,20 @@ export function createSoundNest(
       renderer.domElement.dataset.moodBackground = universe.background;
     },
     setSculptureDepth,
+    travelPanorama() {
+      rig.travelPanorama();
+    },
+    stopPanorama() {
+      rig.stopPanorama();
+    },
+    setPanoramaDial(value) {
+      rig.setPanoramaDial(value);
+    },
     setCameraMode(next) {
       if (resonanceMode && (next === "gyro" || contemplation.active)) return;
       endDirect();
       sculptureGesture.clear();
-      if (next === "sculpt") directSculpture = true;
+      if (next === "sculpt" || next === "panorama") directSculpture = true;
       else if (next === "drone") directSculpture = false;
       if (steeringGesture) onSteeringEnd({ pointerId: steeringGesture.id });
       const wasPhoto = photo;
