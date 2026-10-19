@@ -250,48 +250,45 @@ export default function WatercolorWorkshop() {
                       ))}
                     </div>
                   </section>
-                  <div className="paper-settings">
-                    <label>
-                      Couleur
-                      <input
-                        type="color"
-                        aria-label="Couleur de la brosse"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Taille
-                      <input
-                        type="range"
-                        aria-label="Taille de la brosse"
-                        min="2"
-                        max="80"
-                        value={size}
-                        onChange={(e) => setSize(Number(e.target.value))}
-                      />
-                    </label>
-                    <label>
-                      Opacité
-                      <input
-                        type="range"
-                        aria-label="Opacité de la brosse"
-                        min=".1"
-                        max="1"
-                        step=".05"
-                        value={opacity}
-                        onChange={(e) => setOpacity(Number(e.target.value))}
-                      />
-                    </label>
-                    <button
-                      aria-label="Annuler le dernier trait"
-                      title="Annuler le dernier trait"
-                      disabled={!count || paused}
-                      onClick={() => paper.current.undo()}
-                    >
-                      <ToolIcon name="undo" />
-                    </button>
-                  </div>
+                  <details className="paper-adjustments">
+                    <summary aria-label="Réglages de la brosse">
+                      Réglages
+                    </summary>
+                    <div className="paper-settings">
+                      <label>
+                        Couleur
+                        <input
+                          type="color"
+                          aria-label="Couleur de la brosse"
+                          value={color}
+                          onChange={(e) => setColor(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Taille
+                        <input
+                          type="range"
+                          aria-label="Taille de la brosse"
+                          min="2"
+                          max="80"
+                          value={size}
+                          onChange={(e) => setSize(Number(e.target.value))}
+                        />
+                      </label>
+                      <label>
+                        Opacité
+                        <input
+                          type="range"
+                          aria-label="Opacité de la brosse"
+                          min=".1"
+                          max="1"
+                          step=".05"
+                          value={opacity}
+                          onChange={(e) => setOpacity(Number(e.target.value))}
+                        />
+                      </label>
+                    </div>
+                  </details>
                 </>
               )}
               {world && (
@@ -312,6 +309,17 @@ export default function WatercolorWorkshop() {
                 </label>
               )}
               <div className="pictorial-commands">
+                {!world && (
+                  <button
+                    aria-label="Annuler le dernier trait"
+                    title="Annuler le dernier trait"
+                    disabled={!count || paused}
+                    onClick={() => paper.current.undo()}
+                  >
+                    <ToolIcon name="undo" />
+                  </button>
+                )}
+
                 {world && (
                   <>
                     <button
@@ -390,6 +398,7 @@ export default function WatercolorWorkshop() {
             className="tools-toggle"
             aria-label={open ? "Replier les outils" : "Déplier les outils"}
             aria-expanded={open}
+            aria-controls="pictorial-tool-panel"
             onClick={() => setOpen(!open)}
           >
             <ToolIcon name={open ? "fold" : "expand"} />

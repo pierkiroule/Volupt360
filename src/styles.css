@@ -2662,3 +2662,43 @@ label:focus-visible {
   button {
   height: 58px;
 }
+
+/* Compact, scrollable pigment tray: ten materials without covering the paper. */
+.watercolor-workshop .symbolic-palette > div {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  padding: 2px 1px 5px;
+  touch-action: pan-x;
+}
+.chill-experience.watercolor-workshop
+  .pictorial-tools
+  .symbolic-palette
+  button {
+  flex: 0 0 48px;
+  min-width: 48px;
+  height: 44px;
+  gap: 2px;
+}
+.watercolor-workshop .symbolic-palette button .brush-name {
+  font-size: 9px;
+}
+.watercolor-workshop .paper-adjustments summary {
+  cursor: pointer;
+  color: #47525e;
+  font:
+    11px/1.4 system-ui,
+    sans-serif;
+  padding: 5px 8px;
+  text-align: center;
+}
+.watercolor-workshop .paper-adjustments[open] summary {
+  padding-bottom: 2px;
+}
+.watercolor-workshop .dimension-switch button {
+  min-height: 32px;
+  font-size: 12px;
+}
+.watercolor-workshop .pictorial-tools.is-open #pictorial-tool-panel {
+  gap: 1px;
+}

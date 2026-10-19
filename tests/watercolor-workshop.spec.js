@@ -29,7 +29,8 @@ test("2D squiggle source survives a reactive 360 world round trip and supports u
 
   await expect(
     page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
-  ).toHaveCount(5);
+  ).toHaveCount(10);
+  await page.getByLabel("Réglages de la brosse", { exact: true }).click();
   await page.getByRole("slider", { name: "Taille de la brosse" }).fill("25");
   await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.65");
   await page.mouse.move(70, 280);
@@ -198,7 +199,7 @@ test("manual steering holds a stable heading despite camera feedback; release re
   expect(Math.abs(r.right.heading[0] - r.slow.heading[0])).toBeLessThan(0.001);
 });
 
-test("five brush families have distinct engines, colors and responsive pigment or particle materials", async ({
+test("ten brush families have distinct engines, colors and responsive pigment or particle materials", async ({
   page,
 }) => {
   await page.goto("/");
@@ -247,9 +248,9 @@ test("five brush families have distinct engines, colors and responsive pigment o
       return result;
     });
   });
-  expect(r).toHaveLength(5);
-  expect(new Set(r.map((p) => p.engine)).size).toBe(5);
-  expect(new Set(r.map((p) => p.color)).size).toBe(5);
+  expect(r).toHaveLength(10);
+  expect(new Set(r.map((p) => p.engine)).size).toBe(10);
+  expect(new Set(r.map((p) => p.color)).size).toBe(10);
   for (const brush of r) {
     expect(brush.count).toBeGreaterThan(0);
     expect(brush.gain).toBeGreaterThan(2);
@@ -626,4 +627,69 @@ test("2D opacity caps the whole stroke even where the gesture overlaps", async (
   });
   expect(result).toBeGreaterThan(0);
   expect(result).toBeLessThanOrEqual(52);
+});
+
+test("ten materials paint distinct seeded marks and the compact tray folds completely", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  await expect(
+    page.getByRole("slider", { name: "Opacité de la brosse" }),
+  ).toBeHidden();
+  await page.getByRole("button", { name: "Replier les outils" }).click();
+  await expect(
+    page.getByRole("group", { name: "Choisir une brosse" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Déplier les outils" }).click();
+  await expect(
+    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
+  ).toHaveCount(10);
+  const results = await page.evaluate(async () => {
+    const { createPaintingCanvas } =
+      await import("/src/chill/createPaintingCanvas.js");
+    const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
+    const host = document.createElement("div");
+    document.body.append(host);
+    const paper = createPaintingCanvas(host);
+    paper.canvas.setPointerCapture = () => {};
+    const send = (type, x) =>
+      paper.canvas.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: 1,
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: 170,
+        }),
+      );
+    const signatures = [];
+    for (const brush of WORKSHOP_BRUSHES) {
+      paper.clear();
+      paper.setConfig({
+        brush: brush.id,
+        color: "#285678",
+        size: 55,
+        opacity: 0.7,
+      });
+      send("pointerdown", 70);
+      for (let x = 75; x < 260; x += 5) send("pointermove", x);
+      send("pointerup", 260);
+      const pixels = paper.canvas
+        .getContext("2d")
+        .getImageData(0, 0, paper.canvas.width, paper.canvas.height).data;
+      let coverage = 0,
+        hash = 0;
+      for (let i = 3; i < pixels.length; i += 4) {
+        coverage += pixels[i];
+        hash = (Math.imul(hash, 31) + pixels[i]) | 0;
+      }
+      signatures.push({ coverage, hash });
+    }
+    paper.dispose();
+    host.remove();
+    return signatures;
+  });
+  expect(results.every((r) => r.coverage > 0)).toBe(true);
+  expect(new Set(results.map((r) => r.hash)).size).toBe(10);
 });

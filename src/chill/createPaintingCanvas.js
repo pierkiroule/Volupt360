@@ -86,7 +86,49 @@ export function createPaintingCanvas(container, onChange = () => {}) {
     const n = index + stroke.seed,
       texture = stamp(brush, stroke.color);
     ctx.globalAlpha = 1;
-    if (brush.id === "lucioles") {
+    if (brush.paperGesture) {
+      const mode = brush.paperGesture;
+      const copies = mode === "threads" ? 3 : mode === "echo" ? 3 : 1;
+      if (mode === "hatch" && index % 3) return;
+      if (mode === "tide" && index % 3) return;
+      for (let i = 0; i < copies; i++) {
+        ctx.save();
+        const spread = (i - (copies - 1) / 2) * base * 0.36;
+        ctx.translate(x, y + spread);
+        ctx.rotate(
+          mode === "hatch" ? -0.65 + hash(n) * 0.3 : (hash(n) - 0.5) * 0.4,
+        );
+        const w =
+          base *
+          (mode === "threads"
+            ? 0.8
+            : mode === "hatch"
+              ? 0.12
+              : mode === "cloud"
+                ? 1.6
+                : 1);
+        const h =
+          base *
+          (mode === "threads"
+            ? 0.08
+            : mode === "echo"
+              ? 0.18
+              : mode === "hatch"
+                ? 0.8
+                : 1);
+        ctx.globalAlpha =
+          mode === "cloud" ? 0.16 : mode === "echo" ? 0.7 - i * 0.18 : 0.72;
+        if (mode === "tide") {
+          // Pigment gathers on a broken rim, leaving an airy paper reserve.
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w * 0.43, h * 0.36, 0, 0, Math.PI * 2);
+          ctx.ellipse(0, 0, w * 0.32, h * 0.25, 0, 0, Math.PI * 2);
+          ctx.clip("evenodd");
+        }
+        ctx.drawImage(texture, -w / 2, -h / 2, w, h);
+        ctx.restore();
+      }
+    } else if (brush.id === "lucioles") {
       if (index % 3) return;
       for (let i = 0; i < 3; i++) {
         const r = n * 7 + i * 31;

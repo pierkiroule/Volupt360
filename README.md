@@ -2,7 +2,7 @@
 
 Un atelier de squiggles (opacité appliquée au trait complet, et non à chaque tampon superposé) : dessiner sur un papier 2D, puis entrer dans une interprétation 3D et musicale du même tableau.
 
-Le papier propose cinq matières symboliques, avec pictogrammes et noms visibles : **Fil, Vague, Roche, Étincelles et Empreinte**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. Couleur, taille, opacité et annulation restent accessibles.
+Le papier propose dix matières symboliques, avec pictogrammes et noms visibles : **Fil, Vague, Roche, Étincelles, Empreinte, Soie, Nuage, Marée, Écho et Trame**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. La palette défile horizontalement et toute la barre se replie. Couleur, taille et opacité sont regroupées dans « Réglages », fermé par défaut ; annuler reste directement accessible.
 
 Les traits, leurs points et leurs réglages sont la source du document. La version 3D déploie cette composition autour du spectateur sur des surfaces courbes, avec une séparation progressive des couches. L’opacité conserve son rôle de transparence. Le retour en 2D retrouve le tableau intact ; les modifications suivantes alimentent la prochaine construction 3D.
 
