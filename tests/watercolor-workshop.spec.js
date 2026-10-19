@@ -705,6 +705,9 @@ test("Senso360 presents ten designed glyphs and open sensory invitations without
   await expect(page.getByText(/sans analyse de vos choix/)).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  await expect(
+    page.getByRole("group", { name: "Mode de création" }).getByRole("button"),
+  ).toHaveCount(2);
   const modeButtons = await page
     .getByRole("group", { name: "Mode de création" })
     .getByRole("button")
@@ -940,12 +943,14 @@ test("FPV exposes ten brushes and paints while travelling without rotating under
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  await expect(page.locator(".painting-paper")).toBeVisible();
   await page.mouse.move(90, 200);
   await page.mouse.down();
   await page.mouse.move(270, 300, { steps: 20 });
   await page.mouse.up();
   const paper = page.locator(".painting-paper"),
     world = page.locator("#stage canvas:not(.painting-paper)");
+  await expect(paper).toHaveAttribute("data-stroke-count", "1");
   const source = await paper.evaluate((c) => c.toDataURL());
   await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
   await expect(world).toHaveAttribute("data-world-drawing", "true");

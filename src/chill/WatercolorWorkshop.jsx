@@ -1,5 +1,5 @@
 import { MaterialGlyph } from "./MaterialGlyph.jsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
 import musicCatalog from "virtual:echo-music";
@@ -77,7 +77,7 @@ export default function WatercolorWorkshop() {
     stickerOpacity,
     world,
   ]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     paper.current?.setVisible(started && !world);
     paper.current?.setEnabled(started && !paused && !world);
     engine.current?.setPaperVisible(!started || !world);
