@@ -1,3 +1,4 @@
+import { spatialBrushPoint } from "./spatialBrushFrame.js";
 import { createPigmentPlate } from "./createPigmentPlate.js";
 import {
   pictorialVertex,
@@ -8,7 +9,8 @@ import {
 import * as THREE from "three";
 import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
 import { paintingToWorld } from "./paintingToWorld.js";
-function pictorialPoint(point, layer = 0) {
+function pictorialPoint(point, layer = 0, frame = null) {
+  if (frame) return spatialBrushPoint(point, frame);
   return paintingToWorld(
     { u: point.x + 0.5, v: point.y + 0.5 },
     layer,
@@ -96,9 +98,10 @@ export function createPictorialLandscape() {
                   y: p.y + (dx / len) * path.width * sign * 0.75,
                 },
                 path.layer,
+                path.frame,
               );
             positions.push(...world);
-            centers.push(...pictorialPoint(p, path.layer));
+            centers.push(...pictorialPoint(p, path.layer, path.frame));
             bounds.expandByPoint(new THREE.Vector3(...world));
             colors.push(tint.r, tint.g, tint.b);
             data.push(path.band, path.opacity, path.layer);
@@ -162,7 +165,7 @@ export function createPictorialLandscape() {
             ),
           );
         for (let copy = 0; copy < 2; copy++) {
-          dp.push(...pictorialPoint(dot, dot.layer || 0));
+          dp.push(...pictorialPoint(dot, dot.layer || 0, dot.frame));
           tint.set(dot.color);
           if (motif === 2 && copy === 1)
             tint.lerp(new THREE.Color("#ed893d"), 0.65);

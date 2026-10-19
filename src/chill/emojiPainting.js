@@ -1,3 +1,4 @@
+import { spatialBrushPoint } from "./spatialBrushFrame.js";
 import { emojiById } from "./sensoryEmojiCatalog.js";
 
 export const MAX_PAINT_STROKES = 80;
@@ -247,6 +248,13 @@ export function createEmojiPainting(strokes) {
         size: size * 2,
         opacity,
       };
+      if (stroke.frame) {
+        for (let i = firstPath; i < paths.length; i++)
+          paths[i].frame = stroke.frame;
+        for (let i = firstDot; i < dots.length; i++)
+          dots[i].frame = stroke.frame;
+        node.worldPosition = spatialBrushPoint(p, stroke.frame);
+      }
       if (nodes.length < 24) nodes.push(node);
       geometryCache.set(stroke, {
         layer,

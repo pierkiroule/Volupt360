@@ -1,87 +1,51 @@
-# Ciel en résonance •° — Des émojis pour peindre
+# Ciel en résonance •° — Sculpture 360°
 
-**Choisir une brosse émoji → dessiner librement → révéler son paysage 3D.**
+**Entrer dans l’atelier 3D → choisir une brosse → activer Sculpter → naviguer.**
 
-Douze brosses traduisent les symboles en matières : la vague produit des rubans bleus
-ondulants, le feu des langues chaudes, la plume des nervures, le flocon des cristaux,
-la pierre des granulations, la brume des lavis, la vibration des lignes brisées,
-le tourbillon des spirales, le fil des fibres, la pousse des ramifications,
-le soleil des rayons et les bulles de petits anneaux. Les émojis servent à choisir
-la brosse, ils ne sont pas tamponnés dans le dessin.
+Le disque 2D et la révélation ne font plus partie du parcours. La caméra est en
+retrait du point de sculpture : la brosse dépose devant elle, à une distance
+réglable. Les gestes pilotent toujours le vol, même pendant la sculpture.
+« Sculpter » active ou coupe seulement le dépôt. Le voyage automatique peut
+également déposer la matière. Les traces restent ancrées dans le monde lorsqu’on
+regarde ailleurs ou qu’on s’éloigne.
 
-Le toucher ou la souris dépose immédiatement la matière sur un disque blanc cassé.
-Taille, opacité, annulation et effacement sont disponibles. La 2D est silencieuse.
-La révélation reprend les mêmes géométries et couleurs dans un paysage 3D enveloppant.
-Gravity et les enveloppes spectrales lissées font vivre les rubans, nuages et
-particules. Le voyage autonome reste borné autour de l’œuvre ; gyro et glissement
-orientent le regard. Revenir au dessin conserve les tracés et suspend la musique.
+Douze brosses émojis conservent leurs signatures : vagues bleues, flammes et braises,
+bulles, cristaux, matières minérales, plumes, brumes, vibrations, spirales, fibres,
+pousses et rayons. Les textures pigmentaires et la réponse spectrale locale sont
+conservées. La musique Gravity commence à l’entrée, si disponible. Aucun synthétiseur
+ni backend ajouté.
 
-## Des matières animées dès le dessin
+## Navigation et outils
 
-Les douze symboles possèdent des mouvements propres : flammes orange et braises
-montantes sur un cœur rouge, crêtes bleues qui parcourent et épaississent la vague,
-bulles ascendantes, cristaux lents, grains minéraux frémissants, plumes souples,
-brumes en dérive, vibrations graphiques, spirales tournantes, fils ondulants,
-pousses qui se déploient et rayons doux. Taille et opacité s’appliquent aussi aux
-animations. La 2D reste sans son ; la musique et la réponse spectrale restent en 3D.
+Glisser tourne le vol ; maintenir plus de 280 ms accélère progressivement. Relâcher
+ralentit ou reprend le voyage automatique s’il était actif. Le gyro oriente le
+regard, avec alternative tactile. Une attraction douce conserve la proximité de
+l’œuvre. Le bouton Sculpter ne bloque ni le pilotage tactile ni le gyro.
 
-Un canvas transparent partagé anime la matière sans actualiser React à chaque
-image. Les points des gestes sont rééchantillonnés et mis en cache. La cadence est
-limitée à environ 30 images par seconde, la résolution à 900 pixels et les détails
-à un budget adapté au nombre de tracés. Les animations 2D se suspendent en 3D et
-respectent `prefers-reduced-motion`. Les rubans 3D conservent la signature de chaque
-symbole via un attribut partagé et des mouvements GPU spécifiques.
+La palette et les contrôles sont placés dans une barre inférieure pliable :
+Sculpter, voyage, annulation, musique, gyro. Les réglages de taille, opacité et
+distance de dépôt se déplient séparément. L’accueil conserve la session ; effacer
+retire explicitement l’œuvre. Les captures et le parcours 2D ne sont pas proposés.
 
-## Pigments et résonance locale
+## Architecture et performance
 
-Les brosses disposent de lavis et de dépôts secs détaillés, calculés une seule fois
-par symbole. Une empreinte humide diffuse puis laisse un grain plus sec et des
-petites auréoles capillaires. Le dessin reste présent sous ces détails vivants.
+- `WatercolorWorkshop.jsx` : atelier 3D, palette, bascule de dépôt et musique.
+- `createSpatialEmojiPainter.js` : échantillonnage du point devant la caméra, aperçu
+  immédiat, matière en cours et matière finalisée.
+- `spatialBrushFrame.js` : projection sur la trajectoire 3D réellement parcourue.
+- `emojiPainting.js` : les douze signatures procédurales réutilisées.
+- `createPictorialLandscape.js` / `pictorialShaders.js` : pigments, diffusion,
+  gonflement local et particules audioréactives dans des lots GPU partagés.
+- `createPanoramaJourney.js` / `createCameraRig.js` : vol, accélération, retour et regard.
 
-En 3D, deux textures de données partagées décrivent charge pigmentaire, dent du
-papier, dépôts et couverture. Les rubans gonflent autour de leur ligne centrale :
-leur amplitude et leur diffusion suivent la bande spectrale de la brosse, avec
-attaque et relâchement lissés. Les transitoires renforcent brièvement les détails,
-sans déplacement global ni flash. Un lot plafonné à 4 096 particules diffuse le
-pigment le long des gestes : braises montantes, gouttelettes, anneaux et dérives.
-Les deux lots du paysage conservent leurs buffers ; aucune texture n’est créée
-pendant l’animation. Le premier cadrage tient compte du format portrait avant le
-voyage immersif. La musique existante reste inchangée.
-
-## Pilotage tactile FPV
-
-Dans le monde 3D, glisser oriente le regard et le vol : droite pour tourner à droite,
-haut pour monter. Un maintien supérieur à environ 280 ms ouvre progressivement les
-gaz, jusqu’à une vitesse plafonnée après trois secondes. Un geste bref permet de
-regarder autour de soi sans démarrer un déplacement important.
-
-Au relâchement, la caméra ralentit ; si le voyage automatique était actif, elle
-reprend progressivement ses orbites et traversées. L’attraction vers l’œuvre
-augmente uniquement lorsqu’on s’en éloigne, sans téléportation. Le gyroscope reste
-compatible avec l’orientation pendant le maintien. Annulation tactile, perte de
-capture, changement de mode et perte de focus relâchent l’accélérateur. La barre
-d’outils n’est pas une surface de pilotage. Une courte indication s’estompe après
-l’entrée dans le monde.
-
-## Architecture et limites
-
-- `EmojiPainter.jsx` : interface, capture tactile et dessin immédiat.
-- `createEmojiAnimation.js` : couche Canvas 2D animée, budget de détails et cycle de vie.
-- `emojiBrushMotion.js` : encres et mouvements symboliques des douze brosses.
-- `createBrushPigments.js` : cache borné des empreintes aquarellées 2D.
-- `pictorialShaders.js` : matière pigmentaire, gonflement local et particules 3D.
-- `emojiPainting.js` : douze signatures procédurales ; géométrie commune aux deux vues.
-- `createPictorialLandscape.js` : rubans et pigments GPU, projection et audio local.
-- `createSensoryNetwork.js` : intégration avec nappes, mots sensoriels et particules.
-- `WatercolorWorkshop.jsx` : parcours dessin / contemplation, musique et navigation.
-
-La session conserve au maximum 80 tracés. Chaque geste conserve jusqu’à 256 points
-avant simplification progressive et rééchantillonnage borné (1 024 points de travail).
-Les tracés terminés sont mis en cache par référence ; les textures ne sont pas
-régénérées par frame. La géométrie 3D est créée à la révélation, réutilisée pendant
-l’animation et libérée au remplacement ou à la destruction. Les sélections n’ont
-aucune interprétation clinique. Aucun backend ni transmission des dessins.
-Les modules du mandala ont été retirés du parcours et du dépôt.
+Le dépôt est échantillonné par distance. Chaque portion conserve au maximum 256
+points, puis démarre une nouvelle portion continue, dans la limite de 80 portions.
+Le guide immédiat réutilise un buffer ; les détails de la matière en cours sont
+reconstruits au plus à 20 Hz. La matière validée est regroupée dans deux lots, la
+matière en cours dans deux autres. Les textures restent partagées et sont libérées
+à la destruction. Aucun dépôt ne relie un saut de caméra ou deux sessions séparées.
+Les anciens modules de dessin restent dans le dépôt sans être montés dans l’interface.
+Aucune analyse émotionnelle ni transmission des œuvres.
 
 ## Développement
 
@@ -104,21 +68,13 @@ Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend n
 ## Tests
 
 ```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/watercolor-workshop.spec.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/watercolor-workshop.spec.js tests/spatial-workshop.spec.js
 ```
 
-Les contrôles ciblent les douze signatures, la continuité du tracé, l’opacité,
-l’annulation, les gestes tactiles natifs, l’évolution réelle des pixels des douze
-animations, la suspension en 3D et les préférences de mouvement réduit, l’aller-retour 2D / 3D, les enveloppes
-audio, le voyage et le nettoyage GPU. La suite conserve aussi des contrôles des
-moteurs historiques réutilisés. Les autres anciennes suites correspondent à des
-concepts abandonnés. Le confort et le gyroscope sur appareil physique restent à
-valider.
-
-Le contrôle de longue durée simule six minutes de mises à jour du moteur et vérifie
-la réutilisation des buffers et des textures. Il ne constitue pas une mesure de
-fluidité de six minutes sur téléphone physique.
-
-Les contrôles FPV comprennent aussi l’accélération progressive, les virages à
-contre-direction, deux minutes simulées de guidage vers l’extérieur, la reprise
-du voyage, le freinage et un geste tactile natif droite/haut avec annulation.
+Les contrôles couvrent l’entrée directe en 3D, l’absence d’éditeur 2D, le dépôt
+pendant le vol tactile et automatique, l’arrêt indépendant de la sculpture,
+l’annulation, la conservation de la session, les douze signatures, l’ancrage
+spatial et la libération des ressources. Les tests réutilisables des anciens
+moteurs et des matières sont conservés. Les anciennes suites de parcours retirés
+ne constituent pas la validation du parcours courant. Le confort et la fluidité
+sur téléphone physique restent à vérifier.

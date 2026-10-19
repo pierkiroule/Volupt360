@@ -582,95 +582,6 @@ test("sky brush follows a moving aim with continuous finite-speed flight", async
   expect(result.jump).toBeLessThanOrEqual(0.201);
 });
 
-async function paintLine(page, y = 0.5) {
-  const box = await page.locator(".emoji-paper").boundingBox();
-  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * y);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * y, {
-    steps: 25,
-  });
-  await page.mouse.up();
-}
-test("emoji brushes paint distinct continuous matter with size, opacity and undo", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
-  await expect(
-    page.getByRole("group", { name: "Brosses émojis" }).getByRole("button"),
-  ).toHaveCount(12);
-  await expect(
-    page.getByRole("button", { name: "Révéler en 3D" }),
-  ).toBeDisabled();
-  await paintLine(page);
-  await expect(page.locator(".emoji-paper svg")).toHaveAttribute(
-    "data-strokes",
-    "1",
-  );
-  const wave = page.locator(".emoji-paper path").first();
-  await expect(wave).toHaveAttribute("stroke", "#286caa");
-  const before = await wave.getAttribute("d");
-  expect(before.split("L").length).toBeGreaterThan(40);
-  await page.getByRole("button", { name: "Chaleur", exact: true }).click();
-  await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.3");
-  await paintLine(page, 0.35);
-  expect(
-    await page.locator('.emoji-paper path[stroke="#bc3d35"]').count(),
-  ).toBeGreaterThan(0);
-  expect(
-    Number(
-      await page
-        .locator('.emoji-paper path[stroke="#bc3d35"]')
-        .first()
-        .getAttribute("stroke-opacity"),
-    ),
-  ).toBeLessThan(0.3);
-  await page.screenshot({ path: "/tmp/emoji-painting.png" });
-  await page.getByRole("button", { name: "Annuler", exact: true }).click();
-  await expect(page.locator(".emoji-paper svg")).toHaveAttribute(
-    "data-strokes",
-    "1",
-  );
-  expect(await wave.getAttribute("d")).toBe(before);
-  await page.getByRole("button", { name: "Effacer", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Révéler en 3D" }),
-  ).toBeDisabled();
-});
-test("the painting survives an animated musical 360 journey and return", async ({
-  page,
-}) => {
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => {
-    if (m.type() === "error" && /shader|WebGL|THREE/.test(m.text()))
-      errors.push(m.text());
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
-  await paintLine(page);
-  const before = await page.locator(".emoji-paper svg").innerHTML();
-  await page.getByRole("button", { name: "Révéler en 3D" }).click();
-  const world = page.locator("#stage canvas");
-  await expect(world).toBeVisible();
-  await expect
-    .poll(
-      async () =>
-        JSON.parse((await world.getAttribute("data-sensory-network")) || "{}")
-          .painting,
-    )
-    .toBe(true);
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  const pos = await world.getAttribute("data-camera-position");
-  await expect
-    .poll(() => world.getAttribute("data-camera-position"))
-    .not.toBe(pos);
-  await page.getByRole("button", { name: "Revenir à la composition" }).click();
-  expect(await page.locator(".emoji-paper svg").innerHTML()).toBe(before);
-  expect(errors).toEqual([]);
-});
-
 test("graph contacts are one toggle per drag and preserve disc bounds and valid edges", async ({
   page,
 }) => {
@@ -778,49 +689,6 @@ test("3D node and connection flows react locally to audio and dispose their reso
   expect(r.stats.links).toBe(1);
   expect(r.disposed).toBeGreaterThanOrEqual(7);
   expect(r.remaining).toBe(0);
-});
-
-test.describe("mobile touch composition", () => {
-  test.use({
-    hasTouch: true,
-    isMobile: true,
-    viewport: { width: 390, height: 844 },
-  });
-  test("native touch paints immediately and follows the finger", async ({
-    page,
-    context,
-  }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Peindre mon ciel" }).tap();
-    const r = await page.locator(".emoji-paper").boundingBox(),
-      client = await context.newCDPSession(page);
-    await client.send("Input.dispatchTouchEvent", {
-      type: "touchStart",
-      touchPoints: [{ x: r.x + r.width * 0.3, y: r.y + r.height * 0.5 }],
-    });
-    await expect(page.locator(".emoji-paper svg")).toHaveAttribute(
-      "data-strokes",
-      "1",
-    );
-    for (let i = 1; i <= 15; i++)
-      await client.send("Input.dispatchTouchEvent", {
-        type: "touchMove",
-        touchPoints: [
-          { x: r.x + r.width * (0.3 + i * 0.025), y: r.y + r.height * 0.5 },
-        ],
-      });
-    await client.send("Input.dispatchTouchEvent", {
-      type: "touchEnd",
-      touchPoints: [],
-    });
-    expect(
-      (await page.locator(".emoji-paper path").first().getAttribute("d")).split(
-        "L",
-      ).length,
-    ).toBeGreaterThan(15);
-    await page.getByRole("button", { name: "Révéler en 3D" }).tap();
-    await expect(page.locator("#stage canvas")).toBeVisible();
-  });
 });
 
 test("sensory words fade, drift and include occasional metaphors without rasterizing in the render loop", async ({
@@ -1100,40 +968,6 @@ test("all twelve brush animations change actual pixels and release their animati
   expect(result.disposed.running).toBe(false);
 });
 
-test("2D brush animation pauses in 3D and respects reduced motion", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
-  await paintLine(page);
-  const ink = page.locator(".emoji-live-ink");
-  const initial = await ink.getAttribute("data-animation-time");
-  await expect
-    .poll(() => ink.getAttribute("data-animation-time"))
-    .not.toBe(initial);
-  await page.getByRole("button", { name: "Chaleur", exact: true }).click();
-  await paintLine(page, 0.35);
-  await page.screenshot({ path: "/tmp/emoji-live-brushes.png" });
-  await page.getByRole("button", { name: "Révéler en 3D" }).click();
-  await expect(page.locator("#stage canvas")).toBeVisible();
-  const frozen = await ink.getAttribute("data-animation-time");
-  await expect
-    .poll(() =>
-      page.locator("#stage canvas").getAttribute("data-material-time"),
-    )
-    .not.toBe(null);
-  expect(await ink.getAttribute("data-animation-time")).toBe(frozen);
-  await page.getByRole("button", { name: "Revenir à la composition" }).click();
-  await expect
-    .poll(() => ink.getAttribute("data-animation-time"))
-    .not.toBe(frozen);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const reduced = await ink.getAttribute("data-animation-time");
-  await page.getByRole("button", { name: "Bulles", exact: true }).click();
-  await paintLine(page, 0.65);
-  expect(await ink.getAttribute("data-animation-time")).toBe(reduced);
-});
-
 test("pictorial pigments respond locally, release gently and reuse textures through long playback", async ({
   page,
 }) => {
@@ -1327,9 +1161,9 @@ test("FPV hold and swipe control translation and release cancels acceleration", 
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Peindre mon ciel" }).click();
-  await paintLine(page);
-  await page.getByRole("button", { name: "Révéler en 3D" }).click();
+  await page
+    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+    .click();
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toBeVisible();
   const r = await canvas.boundingBox(),
@@ -1368,9 +1202,9 @@ test.describe("mobile FPV gestures", () => {
     context,
   }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Peindre mon ciel" }).tap();
-    await paintLine(page);
-    await page.getByRole("button", { name: "Révéler en 3D" }).tap();
+    await page
+      .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+      .tap();
     const canvas = page.locator("#stage canvas");
     await expect(canvas).toBeVisible();
     const initial = await canvas.getAttribute("data-camera-orientation"),

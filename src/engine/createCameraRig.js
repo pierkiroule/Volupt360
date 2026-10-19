@@ -544,6 +544,9 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   void setMode("drone");
   canvas.dataset.droneDistance = String(distanceSetting);
   return {
+    updatePanoramaSculptureBounds(center, radius) {
+      journey.setSculpture(center, radius);
+    },
     setPanoramaSculpture(center, radius, overview = false) {
       if (overview) {
         const framing = Math.min(2, Math.max(1, 0.9 / camera.aspect));

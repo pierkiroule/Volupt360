@@ -1,3 +1,4 @@
+import { createSpatialEmojiPainter } from "../chill/createSpatialEmojiPainter.js";
 import { createSensoryNetwork } from "../chill/createSensoryNetwork.js";
 import { createSkyNozzle } from "../chill/createSkyNozzle.js";
 import { createPanoramaJourney } from "./createPanoramaJourney.js";
@@ -52,6 +53,7 @@ export function createSoundNest(
     onContemplationChange,
     onAcrobaticChange,
     onSculptureDepthChange,
+    onSpatialChange,
   } = {},
 ) {
   const mobile =
@@ -210,6 +212,20 @@ export function createSoundNest(
   landscape.add(pigmentArchive.group);
   const sensoryNetwork = createSensoryNetwork();
   landscape.add(sensoryNetwork.group);
+  const spatialPainter = createSpatialEmojiPainter(
+    renderer.domElement,
+    camera,
+    (stats) => {
+      onSpatialChange?.(stats);
+      if (!stats.bounds.isEmpty()) {
+        const center = stats.bounds.getCenter(new THREE.Vector3()),
+          radius = stats.bounds.getSize(new THREE.Vector3()).length() * 0.5;
+        rig.updatePanoramaSculptureBounds(center, Math.max(3, radius));
+      }
+    },
+  );
+  landscape.add(spatialPainter.group);
+
   const marks = [],
     totalBounds = new THREE.Box3(),
     extent = new THREE.Vector3();
@@ -474,6 +490,7 @@ export function createSoundNest(
     marks.length = 0;
     pigmentArchive.clear();
     sensoryNetwork.clear();
+    spatialPainter.clear();
     retiredTextures.forEach((binding) => binding.texture.dispose());
     retiredTextures.clear();
     traceMemory.clear();
@@ -1275,6 +1292,7 @@ export function createSoundNest(
       if (paintingWorld) {
         pigmentArchive.animate?.(visual, dt, lifeTime);
         sensoryNetwork.update(lifeTime, visual, dt);
+        spatialPainter.update(lifeTime, visual, dt);
       }
       moodAtmosphere?.update(
         lifeTime,
@@ -1371,7 +1389,7 @@ export function createSoundNest(
       );
     renderer.domElement.dataset.lifeTime = lifeTime.toFixed(3);
     renderer.domElement.dataset.materialTime = (
-      sensoryNetwork.count
+      sensoryNetwork.count || spatialPainter.count
         ? lifeTime
         : (marks[0]?.uniforms[0]?.uTime?.value ?? 0)
     ).toFixed(3);
@@ -1519,8 +1537,28 @@ export function createSoundNest(
       if (visible) {
         void xrSession?.end().catch(() => {});
         rig.stopPanorama();
+        spatialPainter.setTool(null);
         cancelSteering();
       }
+    },
+    startSpatialSculpture() {
+      reset();
+      paintingWorld = true;
+      worldDrawing = false;
+      rig.setPanoramaExploreOnly(true);
+      this.setCameraMode("panorama");
+      rig.updatePanoramaSculptureBounds(new THREE.Vector3(0, 0, 20), 8);
+    },
+    setSpatialSculptureTool(tool) {
+      spatialPainter.setTool(tool);
+      rig.setPanoramaDrawing(false);
+      renderer.domElement.dataset.worldDrawing = String(Boolean(tool));
+    },
+    undoSpatialStroke() {
+      spatialPainter.undo();
+    },
+    clearSpatialSculpture() {
+      spatialPainter.clear();
     },
     loadSensoryWorld(document) {
       reset();
@@ -2052,6 +2090,7 @@ export function createSoundNest(
       tip.geometry.dispose();
       tip.material.dispose();
       sensoryNetwork.dispose();
+      spatialPainter.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
