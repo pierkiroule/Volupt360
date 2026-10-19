@@ -1,3 +1,4 @@
+import { HaikuGift } from "./HaikuGift.jsx";
 import { MaterialGlyph } from "./MaterialGlyph.jsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
@@ -15,6 +16,7 @@ export default function WatercolorWorkshop() {
     generation = useRef(0),
     worldSource = useRef(null);
   const twigs = useTwigBank();
+  const [haiku, setHaiku] = useState(null);
   const [started, setStarted] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -37,8 +39,12 @@ export default function WatercolorWorkshop() {
     [audioOpen, setAudioOpen] = useState(false),
     [vr, setVR] = useState(false);
   useEffect(() => {
-    document.title = "Senso360•° — Mon paysage sensoriel";
-    engine.current = createSoundNest(stage.current, { onError: setError });
+    document.title =
+      "Haïkuarelle Virtuelle •° — Un geste, un paysage, un poème";
+    engine.current = createSoundNest(stage.current, {
+      onError: setError,
+      onHaikuReveal: setHaiku,
+    });
     engine.current.setPaperVisible(true);
     paper.current = createPaintingCanvas(stage.current, setCount);
     paper.current.setVisible(false);
@@ -84,10 +90,13 @@ export default function WatercolorWorkshop() {
   }, [started, world, paused]);
   useEffect(() => {
     engine.current?.setWorldPainting(
-      started && world && draw3D && !paused,
+      started && world && draw3D && !paused && !haiku,
       world ? { brush, color, size, opacity } : null,
     );
-  }, [started, world, draw3D, paused, brush, color, size, opacity]);
+  }, [started, world, draw3D, paused, brush, color, size, opacity, haiku]);
+  useEffect(() => {
+    engine.current?.pauseChillSession(paused || Boolean(haiku));
+  }, [paused, haiku]);
   async function start() {
     if (busy) return;
     setBusy(true);
@@ -112,6 +121,7 @@ export default function WatercolorWorkshop() {
       engine.current.pauseChillSession(false);
       paper.current.clear();
       worldSource.current = null;
+      setHaiku(null);
       setWorld(false);
       setMoving(false);
       setGyro(false);
@@ -217,21 +227,27 @@ export default function WatercolorWorkshop() {
       <div id="stage" ref={stage} />
       {!started && (
         <section className="chill-welcome">
-          <span className="chill-eyebrow">Dessiner · Explorer · Ressentir</span>
-          <h1>Senso360•°</h1>
-          <h2>Mon paysage sensoriel</h2>
+          <span className="chill-eyebrow">
+            Un geste · Un paysage · Un poème
+          </span>
+          <h1>
+            Haïkuarelle
+            <br />
+            Virtuelle •°
+          </h1>
+          <h2>Le papier abrite un ciel</h2>
           <p>
-            Une pression, un frisson, un souffle… Évoquez une situation, si vous
-            le souhaitez, et donnez forme à ce que vous ressentez. Chaque glyphe
-            ouvre une matière : sa signification vous appartient.
+            Un trait, une tache, un peu d’eau… Laissez les pigments inventer un
+            paysage, puis entrez dans votre aquarelle à 360°.
           </p>
           <p>
-            Entrez ensuite dans votre paysage à 360°. La musique fait vibrer,
-            onduler et diffuser vos traces. Revenez au dessin à tout moment.
+            Quelque part dans vos traces, une bulle-graine abrite un haïku.
+            Trouvez-la, touchez-la : le paysage vous offre un poème.
           </p>
           <p className="sensory-note">
-            Une exploration artistique et éducative de la sensorialité, sans
-            analyse de vos choix ni interprétation psychologique automatique.
+            Rien à réussir. Chaque matière, chaque rencontre peut prendre le
+            sens que vous lui donnez. Aucune interprétation psychologique
+            automatique.
           </p>
           <button disabled={busy} onClick={start}>
             {busy ? "Le papier s’éveille…" : "Ouvrir l’atelier"}
@@ -513,6 +529,7 @@ export default function WatercolorWorkshop() {
           </button>
         </nav>
       )}
+      {haiku && <HaikuGift poem={haiku} onClose={() => setHaiku(null)} />}
       {(error || twigs.error) && (
         <p className="ambience-error" role="status">
           {error || twigs.error}

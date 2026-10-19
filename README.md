@@ -1,6 +1,12 @@
-# Senso360•° — Mon paysage sensoriel
+# Haïkuarelle Virtuelle •° — Un geste, un paysage, un poème
 
-Un atelier de squiggles (opacité appliquée au trait complet, et non à chaque tampon superposé) : dessiner sur un papier 2D, puis entrer dans une interprétation 3D et musicale du même tableau.
+Un atelier aquarellé : dessiner sur un papier 2D, entrer dans le même paysage à 360° et y découvrir un poème caché. L’opacité s’applique au trait complet, et non à chaque tampon superposé.
+
+Une unique bulle-graine émerge à proximité d’un point réellement peint. Son haïku est choisi localement parmi 24 poèmes originaux en trois vers, selon les matières, couleurs et longueur des tracés. Les mots sont une résonance artistique, sans interprétation psychologique. Une même source conserve le même poème et le même emplacement ; les ajouts FPV ne remplacent pas le cadeau existant.
+
+Toucher la graine ouvre une modale native accessible (focus piégé, bouton de retour et Échap). Le temps de la scène et le voyage sont suspendus pendant la lecture ; la musique continue. Fermer reprend la scène dans son état précédent. La graine reste disponible pour relire le poème. Elle n’est ni un objectif obligatoire ni un score.
+
+`src/chill/haikuGarden.js` contient les textes et la sélection déterministe ; `createHaikuSeed.js` gère la présence 3D et sa cible tactile/clavier ; `HaikuGift.jsx` gère la lecture. Aucun service réseau ou stockage de dessin supplémentaire. Deux géométries légères et deux matériaux réutilisés sont libérés au démontage. La graine est actuellement découvrable sur mobile et ordinateur ; l’interaction aux contrôleurs WebXR n’est pas implémentée.
 
 Le papier propose dix matières symboliques, avec glyphes vectoriels et noms visibles : **Fil, Vague, Roche, Étincelles, Empreinte, Soie, Nuage, Givre, Braise et Spirale**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. La palette défile horizontalement et toute la barre se replie. Couleur, taille et opacité sont regroupées dans « Réglages », fermé par défaut ; annuler reste directement accessible.
 

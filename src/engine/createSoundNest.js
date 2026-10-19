@@ -1,3 +1,4 @@
+import { createHaikuSeed } from "../chill/createHaikuSeed.js";
 import { createSkyNozzle } from "../chill/createSkyNozzle.js";
 import { createPanoramaJourney } from "./createPanoramaJourney.js";
 import { createEmojiStickers } from "../chill/createEmojiStickers.js";
@@ -44,6 +45,7 @@ export function createSoundNest(
   {
     onHint,
     onError,
+    onHaikuReveal,
     onBubbleScore,
     onPoeticFragment,
     onSessionProgress,
@@ -210,6 +212,8 @@ export function createSoundNest(
   landscape.add(pigmentArchive.group);
   const emojiStickers = createEmojiStickers();
   landscape.add(emojiStickers.group);
+  const haikuSeed = createHaikuSeed(container, onHaikuReveal);
+  landscape.add(haikuSeed.group);
   const marks = [],
     totalBounds = new THREE.Box3(),
     extent = new THREE.Vector3();
@@ -474,6 +478,7 @@ export function createSoundNest(
     marks.length = 0;
     pigmentArchive.clear();
     emojiStickers.clear();
+    haikuSeed.clear();
     retiredTextures.forEach((binding) => binding.texture.dispose());
     retiredTextures.clear();
     traceMemory.clear();
@@ -1399,6 +1404,13 @@ export function createSoundNest(
       moodAtmosphere.object.position.copy(camera.position);
 
     camera.updateMatrixWorld();
+    haikuSeed.update(
+      camera,
+      dt,
+      innerWidth,
+      innerHeight,
+      paintingWorld && !paperMode && !renderer.xr.isPresenting,
+    );
     if (!photo && padSource?.updateListener) {
       const inverse = landscape
         .getWorldQuaternion(new THREE.Quaternion())
@@ -1515,6 +1527,7 @@ export function createSoundNest(
   return {
     setPaperVisible(visible) {
       paperMode = visible;
+      if (visible) haikuSeed.update(camera, 0, innerWidth, innerHeight, false);
       renderer.domElement.style.visibility = visible ? "hidden" : "visible";
       if (visible) {
         void xrSession?.end().catch(() => {});
@@ -1592,6 +1605,7 @@ export function createSoundNest(
         }
         finishPad(s.brush);
       }
+      haikuSeed.setPainting(document);
       renderer.domElement.dataset.stickerCount = String(emojiStickers.count);
       paintOverride = null;
       renderer.domElement.dataset.sourceStrokes = String(
@@ -2038,6 +2052,7 @@ export function createSoundNest(
       imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();
+      haikuSeed.dispose();
       emojiStickers.dispose();
       effects.dispose();
       renderer.dispose();

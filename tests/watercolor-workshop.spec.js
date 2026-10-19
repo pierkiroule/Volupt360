@@ -696,13 +696,19 @@ test("ten materials paint distinct seeded marks and the compact tray folds compl
   expect(new Set(results.map((r) => r.hash)).size).toBe(10);
 });
 
-test("Senso360 presents ten designed glyphs and open sensory invitations without collecting a situation", async ({
+test("Haïkuarelle presents ten designed glyphs and open sensory invitations without collecting a situation", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Senso360•° — Mon paysage sensoriel");
-  await expect(page.getByRole("heading", { name: "Senso360•°" })).toBeVisible();
-  await expect(page.getByText(/sans analyse de vos choix/)).toBeVisible();
+  await expect(page).toHaveTitle(
+    "Haïkuarelle Virtuelle •° — Un geste, un paysage, un poème",
+  );
+  await expect(
+    page.getByRole("heading", { name: /Haïkuarelle.*Virtuelle/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Aucune interprétation psychologique automatique/),
+  ).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
   await expect(
@@ -1020,4 +1026,116 @@ test("sky brush follows a moving aim with continuous finite-speed flight", async
   expect(result.maxStep).toBeLessThanOrEqual(0.201);
   expect(result.settled).toBeLessThan(0.01);
   expect(result.jump).toBeLessThanOrEqual(0.201);
+});
+
+test("one hidden haiku gift opens on touch, pauses the voyage and resumes on close", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
+  const paper = page.locator(".painting-paper"),
+    canvas = page.locator("#stage canvas:not(.painting-paper)");
+  await expect(paper).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Ouvrir la graine de haïku" }),
+  ).toBeHidden();
+  await page.mouse.move(180, 400);
+  await page.mouse.down();
+  await page.mouse.move(205, 420, { steps: 15 });
+  await page.mouse.up();
+  const source = await paper.evaluate((c) => c.toDataURL());
+  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
+  const seed = page.getByRole("button", { name: "Ouvrir la graine de haïku" });
+  await expect(seed).toBeVisible();
+  await expect(seed).toHaveCount(1);
+  await seed.click();
+  const dialog = page.getByRole("dialog", { name: "Une graine de paysage" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(".haiku-gift-poem span")).toHaveCount(3);
+  const poem = await dialog.locator(".haiku-gift-poem").textContent();
+  await expect(canvas).toHaveAttribute("data-world-drawing", "false");
+  const clock = await canvas.getAttribute("data-life-time");
+  await page.waitForTimeout(200);
+  await expect(canvas).toHaveAttribute("data-life-time", clock);
+  await expect(
+    page.getByRole("button", { name: "Reprendre l’exploration" }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(canvas).toHaveAttribute("data-world-drawing", "true");
+  await expect
+    .poll(() => canvas.getAttribute("data-life-time"))
+    .not.toBe(clock);
+  await page
+    .getByRole("button", { name: "Voyager dans la direction du regard" })
+    .click();
+  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
+  await seed.click();
+  const heldPosition = await canvas.getAttribute("data-camera-position");
+  await page.waitForTimeout(200);
+  await expect(canvas).toHaveAttribute("data-camera-position", heldPosition);
+  expect(await page.locator(".haiku-gift-poem").textContent()).toBe(poem);
+  await page.getByRole("button", { name: "Reprendre l’exploration" }).click();
+  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-position"))
+    .not.toBe(heldPosition);
+  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
+  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
+  await expect(seed).toBeHidden();
+});
+
+test("haiku selection is deterministic, pictorial and anchored to the original drawing", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { HAIKU_GARDEN, haikuForPainting } =
+      await import("/src/chill/haikuGarden.js");
+    const doc = {
+      width: 400,
+      height: 800,
+      strokes: [
+        {
+          brush: "voiles",
+          color: "#8899aa",
+          size: 0.05,
+          opacity: 0.8,
+          points: [
+            { u: 0.4, v: 0.4 },
+            { u: 0.5, v: 0.5 },
+            { u: 0.6, v: 0.6 },
+          ],
+        },
+      ],
+    };
+    const copy = JSON.stringify(doc),
+      first = haikuForPainting(doc),
+      second = haikuForPainting(doc);
+    const stone = haikuForPainting({
+      ...doc,
+      strokes: [{ ...doc.strokes[0], brush: "falaises" }],
+    });
+    return {
+      count: HAIKU_GARDEN.length,
+      lines: HAIKU_GARDEN.every(
+        (p) => p.lines.length === 3 && p.lines.every(Boolean),
+      ),
+      first,
+      second,
+      stone,
+      unchanged: copy === JSON.stringify(doc),
+      empty: haikuForPainting({ strokes: [] }),
+      points: doc.strokes[0].points,
+    };
+  });
+  expect(result.count).toBe(24);
+  expect(result.lines).toBe(true);
+  expect(result.first).toEqual(result.second);
+  expect(result.unchanged).toBe(true);
+  expect(result.first.poem.family).toBe("water");
+  expect(result.stone.poem.family).toBe("stone");
+  expect(result.points).toContainEqual(result.first.point);
+  expect(result.empty).toBeNull();
 });

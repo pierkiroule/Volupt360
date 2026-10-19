@@ -2799,3 +2799,76 @@ label:focus-visible {
     transparent 68%
   );
 }
+.haiku-seed-target {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 12;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.haiku-seed-target[hidden] {
+  display: none;
+}
+.haiku-seed-target:focus-visible {
+  outline: 1px solid #817c63;
+  outline-offset: 3px;
+  background: #d8d6c329;
+}
+.haiku-gift {
+  width: min(370px, calc(100vw - 40px));
+  padding: 30px 20px;
+  box-sizing: border-box;
+  border: 1px solid #a1a58d55;
+  border-radius: 24px;
+  color: #43534e;
+  background: #faf8f0;
+  text-align: center;
+  box-shadow: 0 20px 80px #293d4026;
+}
+.haiku-gift::backdrop {
+  background: #48565366;
+  backdrop-filter: blur(5px);
+}
+.haiku-gift-mark {
+  font-size: 36px;
+  color: #969778;
+}
+.haiku-gift h2 {
+  font:
+    11px/1.5 system-ui,
+    sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.haiku-gift-poem {
+  font:
+    24px/1.6 var(--hand),
+    Georgia,
+    serif;
+  margin: 28px 0;
+}
+.haiku-gift-poem span {
+  display: block;
+}
+.haiku-gift button {
+  border: 1px solid #86958555;
+  background: #e9ede4;
+  color: #425448;
+  border-radius: 30px;
+  min-height: 44px;
+  padding: 10px 20px;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+}
+.watercolor-workshop .chill-welcome h1 {
+  font-size: clamp(2rem, 9vw, 3.5rem);
+  line-height: 1.05;
+  margin: 0;
+}
