@@ -508,9 +508,16 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
   return {
     setPanoramaSculpture(center, radius, overview = false) {
       if (overview) {
+        const framing = Math.min(2, Math.max(1, 0.9 / camera.aspect));
         journey.position
           .copy(center)
-          .add(new THREE.Vector3(0, radius * 0.85, -radius * 0.65));
+          .add(
+            new THREE.Vector3(
+              0,
+              radius * 0.85 * framing,
+              -radius * 0.65 * framing,
+            ),
+          );
         camera.position.copy(journey.position);
         camera.lookAt(center);
       }

@@ -1,3 +1,4 @@
+import { createBrushPigments } from "./createBrushPigments.js";
 import { BRUSH_INKS, brushMotion } from "./emojiBrushMotion.js";
 
 /** A bounded transparent canvas animates deposited matter without React renders. */
@@ -10,6 +11,7 @@ export function createEmojiAnimation(canvas) {
     running = false,
     lastDraw = 0;
   const sampleCache = new WeakMap();
+  const pigments = createBrushPigments();
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   function sample(stroke) {
     if (sampleCache.has(stroke)) return sampleCache.get(stroke);
@@ -50,6 +52,8 @@ export function createEmojiAnimation(canvas) {
       ...stroke,
       samples: out,
       inks: BRUSH_INKS[stroke.emojiId] || BRUSH_INKS.water,
+      pigments: pigments.get(stroke.emojiId),
+      born: time,
     };
     sampleCache.set(stroke, sampled);
     return sampled;
@@ -124,6 +128,41 @@ export function createEmojiAnimation(canvas) {
         ctx.strokeStyle = inks[1];
         ctx.fillStyle = inks[1];
         ctx.lineWidth = sz * 0.045;
+        const wet = Math.exp(-Math.max(0, time - s.born) / 2.2);
+        // Water diffuses, then a dry tide and paper tooth remain visible.
+        ctx.save();
+        ctx.rotate(phase + Math.sin(time * 0.2 + phase) * 0.08);
+        const spread = sz * (1.5 + wet * 0.65),
+          dry = sz * (1.1 + (1 - wet) * 0.35);
+        ctx.globalAlpha = a * (id === "mist" ? 0.16 : 0.19);
+        ctx.drawImage(
+          s.pigments[0],
+          -spread / 2,
+          -spread * 0.3,
+          spread,
+          spread * 0.6,
+        );
+        ctx.globalAlpha = a * (0.12 + (1 - wet) * 0.22);
+        ctx.drawImage(s.pigments[1], -dry / 2, -dry * 0.25, dry, dry * 0.5);
+        ctx.restore();
+        ctx.globalAlpha = a * 0.65;
+        // Fine capillary rings dissolve independently along the deposited gesture.
+        if (
+          i % 3 === 0 &&
+          (id === "water" || id === "bubbles" || id === "mist")
+        ) {
+          const cycle = (time * 0.13 + phase) % 1,
+            r = sz * (0.2 + cycle * 0.6);
+          ctx.save();
+          ctx.scale(1, 0.5);
+          ctx.globalAlpha = a * Math.sin(cycle * Math.PI) * 0.16;
+          ctx.strokeStyle = inks[0];
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
         if (id === "warm") {
           const h = sz * (0.35 + 0.3 * (1 + Math.sin(time * 2.6 + phase * 6))),
             bend = Math.sin(time * 2 + phase) * sz * 0.16;
@@ -321,6 +360,7 @@ export function createEmojiAnimation(canvas) {
     dispose() {
       this.stop();
       strokes = [];
+      pigments.dispose();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     },
     get stats() {
@@ -347,6 +387,7 @@ export function createEmojiAnimation(canvas) {
             ),
           0,
         ),
+        pigmentPairs: pigments.count,
         running,
         time,
       };

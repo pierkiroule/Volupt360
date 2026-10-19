@@ -32,11 +32,29 @@ limitée à environ 30 images par seconde, la résolution à 900 pixels et les d
 respectent `prefers-reduced-motion`. Les rubans 3D conservent la signature de chaque
 symbole via un attribut partagé et des mouvements GPU spécifiques.
 
+## Pigments et résonance locale
+
+Les brosses disposent de lavis et de dépôts secs détaillés, calculés une seule fois
+par symbole. Une empreinte humide diffuse puis laisse un grain plus sec et des
+petites auréoles capillaires. Le dessin reste présent sous ces détails vivants.
+
+En 3D, deux textures de données partagées décrivent charge pigmentaire, dent du
+papier, dépôts et couverture. Les rubans gonflent autour de leur ligne centrale :
+leur amplitude et leur diffusion suivent la bande spectrale de la brosse, avec
+attaque et relâchement lissés. Les transitoires renforcent brièvement les détails,
+sans déplacement global ni flash. Un lot plafonné à 4 096 particules diffuse le
+pigment le long des gestes : braises montantes, gouttelettes, anneaux et dérives.
+Les deux lots du paysage conservent leurs buffers ; aucune texture n’est créée
+pendant l’animation. Le premier cadrage tient compte du format portrait avant le
+voyage immersif. La musique existante reste inchangée.
+
 ## Architecture et limites
 
 - `EmojiPainter.jsx` : interface, capture tactile et dessin immédiat.
 - `createEmojiAnimation.js` : couche Canvas 2D animée, budget de détails et cycle de vie.
 - `emojiBrushMotion.js` : encres et mouvements symboliques des douze brosses.
+- `createBrushPigments.js` : cache borné des empreintes aquarellées 2D.
+- `pictorialShaders.js` : matière pigmentaire, gonflement local et particules 3D.
 - `emojiPainting.js` : douze signatures procédurales ; géométrie commune aux deux vues.
 - `createPictorialLandscape.js` : rubans et pigments GPU, projection et audio local.
 - `createSensoryNetwork.js` : intégration avec nappes, mots sensoriels et particules.
@@ -81,3 +99,7 @@ audio, le voyage et le nettoyage GPU. La suite conserve aussi des contrôles des
 moteurs historiques réutilisés. Les autres anciennes suites correspondent à des
 concepts abandonnés. Le confort et le gyroscope sur appareil physique restent à
 valider.
+
+Le contrôle de longue durée simule six minutes de mises à jour du moteur et vérifie
+la réutilisation des buffers et des textures. Il ne constitue pas une mesure de
+fluidité de six minutes sur téléphone physique.

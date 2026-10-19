@@ -1133,3 +1133,123 @@ test("2D brush animation pauses in 3D and respects reduced motion", async ({
   await paintLine(page, 0.65);
   expect(await ink.getAttribute("data-animation-time")).toBe(reduced);
 });
+
+test("pictorial pigments respond locally, release gently and reuse textures through long playback", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const errors = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createEmojiPainting } = await import("/src/chill/emojiPainting.js"),
+      { createPictorialLandscape } =
+        await import("/src/chill/createPictorialLandscape.js");
+    const doc = createEmojiPainting(
+      ["water", "warm", "bubbles"].map((id, i) => ({
+        emojiId: id,
+        size: 0.06,
+        opacity: 0.9,
+        points: [
+          { x: -0.25, y: (i - 1) * 0.16 },
+          { x: 0, y: (i - 1) * 0.16 + 0.05 },
+          { x: 0.25, y: (i - 1) * 0.16 },
+        ],
+      })),
+    );
+    const landscape = createPictorialLandscape();
+    landscape.setDocument(doc);
+    const [ribbon, particles] = landscape.group.children,
+      buffer = ribbon.geometry.attributes.position.array,
+      particleBuffer = particles.geometry.attributes.position.array,
+      u = ribbon.material.uniforms;
+    let released = 0;
+    for (const name of ["wetPlate", "dryPlate"])
+      u[name].value.addEventListener("dispose", () => released++);
+    const renderer = new T.WebGLRenderer({ preserveDrawingBuffer: true });
+    renderer.setSize(256, 256);
+    const scene = new T.Scene(),
+      camera = new T.PerspectiveCamera(65, 1, 0.1, 100);
+    scene.background = new T.Color("#faf7ef");
+    scene.add(landscape.group);
+    const center = landscape.bounds.getCenter(new T.Vector3());
+    camera.position.copy(center).add(new T.Vector3(0, 4, -13));
+    camera.lookAt(center);
+    const hash = () => {
+      renderer.render(scene, camera);
+      const gl = renderer.getContext(),
+        pixels = new Uint8Array(256 * 256 * 4);
+      gl.readPixels(0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      let h = 0;
+      for (let i = 0; i < pixels.length; i += 11)
+        h = (Math.imul(h, 31) + pixels[i]) | 0;
+      return h;
+    };
+    landscape.update(2, { bands: [0, 0, 0, 0, 0, 0] }, 0.1);
+    const silent = hash();
+    for (let i = 0; i < 30; i++)
+      landscape.update(
+        2,
+        { energy: 0.5, flux: 0.6, bands: [0.9, 0, 0, 0, 0, 0] },
+        1 / 60,
+      );
+    const sounding = hash(),
+      local = Array.from(u.bands.value),
+      accent = u.accent.value;
+    landscape.update(2, { energy: 0, bands: [0, 0, 0, 0, 0, 0] }, 1 / 60);
+    const release = u.bands.value[0];
+    let canvases = 0;
+    const create = document.createElement;
+    document.createElement = function (name, ...args) {
+      if (name === "canvas") canvases++;
+      return create.call(this, name, ...args);
+    };
+    try {
+      for (let i = 0; i < 21600; i++)
+        landscape.update(
+          i / 60,
+          { energy: 0.2, bands: [0.2, 0.1, 0.3, 0.1, 0.2, 0.1] },
+          1 / 60,
+        );
+    } finally {
+      document.createElement = create;
+    }
+    const bounded = particles.geometry.attributes.position.count <= 4096,
+      reused =
+        buffer === ribbon.geometry.attributes.position.array &&
+        particleBuffer === particles.geometry.attributes.position.array;
+    landscape.update(
+      362,
+      { energy: NaN, flux: Infinity, bands: [NaN, Infinity, -5] },
+      1 / 60,
+    );
+    const finite = Array.from(u.bands.value).every(Number.isFinite);
+    landscape.dispose();
+    renderer.dispose();
+    return {
+      changed: silent !== sounding,
+      local,
+      accent,
+      release,
+      canvases,
+      bounded,
+      reused,
+      finite,
+      released,
+    };
+  });
+  expect(r.changed).toBe(true);
+  expect(r.local[0]).toBeGreaterThan(0.7);
+  expect(r.local[2]).toBe(0);
+  expect(r.accent).toBeGreaterThan(0);
+  expect(r.release).toBeGreaterThan(r.local[0] * 0.9);
+  expect(r.release).toBeLessThan(r.local[0]);
+  expect(r.canvases).toBe(0);
+  expect(r.bounded).toBe(true);
+  expect(r.reused).toBe(true);
+  expect(r.finite).toBe(true);
+  expect(r.released).toBe(2);
+  expect(errors).toEqual([]);
+});
