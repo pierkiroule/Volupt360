@@ -9,7 +9,11 @@ pause des animations, export PNG et effacement.
 Le bouton **360°** projette le même document sur un panorama intérieur avec
 ses effets animés. **Peindre** ajoute des gestes au document partagé ;
 **Regarder** permet de tourner la vue au doigt, à la souris ou avec le gyroscope.
-Les gestes ajoutés en 360° retrouvent leur place sur la feuille 2D. La couture
+**Voyager** avance en FPV : glisser oriente le vol, maintenir accélère progressivement.
+Relâcher conserve une allure lente ; une assistance ramène le vol vers l’intérieur
+avant le bord du panorama. **Pause vol** immobilise immédiatement la caméra.
+Le voyage ne dessine pas ; revenir à **Peindre** permet de tracer depuis le nouveau
+point de vue. Les gestes ajoutés en 360° retrouvent leur place sur la feuille 2D. La couture
 panoramique découpe les gestes qui la traversent. Il s’agit d’une peinture
 panoramique avec effets dans l’espace, pas d’un éditeur de volumes indépendants.
 

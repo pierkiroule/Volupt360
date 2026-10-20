@@ -128,6 +128,32 @@ test("mobile native touch creates continuous strokes and compact tools stay acce
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await page
+    .getByRole("button", { name: "Entrer en 360", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Voyager en FPV" }).click();
+  const world = page.locator(".squiggle-world canvas");
+  await expect(world).toHaveAttribute("data-interaction", "travel");
+  const heading = await world.getAttribute("data-heading");
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: 130, y: 320, id: 2 }],
+  });
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: 240, y: 350, id: 2 }],
+  });
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect.poll(() => world.getAttribute("data-heading")).not.toBe(heading);
+  await expect(world).toHaveAttribute("data-strokes", "1");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
   await context.close();
 });
 test("all brushes render ink without errors and opacity is adjustable", async ({
@@ -220,4 +246,44 @@ test("gyro permission, recenter and refusal retain tactile navigation", async ({
     "data-strokes",
     "1",
   );
+});
+
+test("FPV voyage moves, steers, accelerates and stops without painting", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Entrer en 360", exact: true })
+    .click();
+  const canvas = page.locator(".squiggle-world canvas");
+  await expect(canvas).toHaveAttribute("data-interaction", "paint");
+  await page.getByRole("button", { name: "Voyager en FPV" }).click();
+  await expect(canvas).toHaveAttribute("data-interaction", "travel");
+  const start = await canvas.getAttribute("data-position");
+  await expect.poll(() => canvas.getAttribute("data-position")).not.toBe(start);
+  const heading = await canvas.getAttribute("data-heading");
+  await stroke(page, ".squiggle-world canvas", 0.3, 0.4);
+  await expect
+    .poll(() => canvas.getAttribute("data-heading"))
+    .not.toBe(heading);
+  await expect(canvas).toHaveAttribute("data-strokes", "0");
+  await page.mouse.move(650, 350);
+  await page.mouse.down();
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-speed")))
+    .toBeGreaterThan(1);
+  await page.waitForTimeout(10000);
+  await page.mouse.up();
+  const position = (await canvas.getAttribute("data-position"))
+    .split(",")
+    .map(Number);
+  expect(Math.hypot(...position)).toBeLessThanOrEqual(6.301);
+  await page.getByRole("button", { name: "Arrêter le voyage FPV" }).click();
+  await expect(canvas).toHaveAttribute("data-interaction", "look");
+  const stopped = await canvas.getAttribute("data-position");
+  await page.waitForTimeout(200);
+  await expect(canvas).toHaveAttribute("data-position", stopped);
+  await page.getByRole("button", { name: "Peindre", exact: false }).click();
+  await stroke(page, ".squiggle-world canvas");
+  await expect(canvas).toHaveAttribute("data-strokes", "1");
 });

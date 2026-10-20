@@ -98,6 +98,7 @@ function Painting({ strokes, draft, source, paused, onCapture }) {
 function Interaction({
   strokes,
   paint,
+  travel,
   tool,
   onStroke,
   onDraft,
@@ -116,7 +117,11 @@ function Interaction({
     sensor = useRef(new THREE.Quaternion()),
     base = useRef(new THREE.Quaternion()),
     reference = useRef(null),
-    sensorReady = useRef(false);
+    sensorReady = useRef(false),
+    flight = useRef({ held: false, holdTime: 0, speed: 0 }),
+    forward = useRef(new THREE.Vector3()),
+    inward = useRef(new THREE.Vector3()),
+    nextPosition = useRef(new THREE.Vector3());
   useEffect(() => {
     // Enter facing the latest gesture instead of a potentially empty longitude.
     const recent = strokes.at(-1);
@@ -205,6 +210,8 @@ function Interaction({
         if (p) state.current.onErase(p);
         return;
       }
+      flight.current.held = true;
+      flight.current.holdTime = 0;
       gesture = {
         id: e.pointerId,
         x: e.clientX,
@@ -247,6 +254,8 @@ function Interaction({
       gesture.y = e.clientY;
     };
     const up = (e) => {
+      if (!e || (gesture && e.pointerId === gesture.id))
+        flight.current.held = false;
       if (!gesture || (e && e.pointerId !== gesture.id)) return;
       if (gesture.paint && gesture.stroke.points.length)
         state.current.onStroke(gesture.stroke);
@@ -301,7 +310,74 @@ function Interaction({
       desired.current,
       1 - Math.exp(-Math.min(dt, 0.1) * 10),
     );
-    gl.domElement.dataset.interaction = paint ? "paint" : "look";
+    const step = Math.min(dt, 0.05),
+      f = flight.current;
+    // Fly inside the painted sphere; ease back towards its centre before its edge.
+    if (travel && !paused) {
+      f.holdTime = f.held ? f.holdTime + step : 0;
+      f.speed = THREE.MathUtils.damp(
+        f.speed,
+        f.held ? 0.65 + Math.min(1, f.holdTime / 2) : 0.65,
+        2,
+        step,
+      );
+      forward.current.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      inward.current.copy(camera.position).negate();
+      const radius = camera.position.length();
+      if (radius > 3.5) {
+        const influence = THREE.MathUtils.smoothstep(radius, 3.5, 6.2);
+        forward.current
+          .lerp(inward.current.normalize(), influence * 0.9)
+          .normalize();
+        if (!f.held && !gyro) {
+          viewEuler.current.setFromQuaternion(camera.quaternion, "YXZ");
+          const targetYaw = Math.atan2(-inward.current.x, -inward.current.z);
+          const delta = Math.atan2(
+            Math.sin(targetYaw - goal.current.yaw),
+            Math.cos(targetYaw - goal.current.yaw),
+          );
+          goal.current.yaw += delta * (1 - Math.exp(-step * influence * 0.8));
+          goal.current.pitch = THREE.MathUtils.damp(
+            goal.current.pitch,
+            Math.asin(THREE.MathUtils.clamp(inward.current.y, -1, 1)),
+            0.6 * influence,
+            step,
+          );
+        }
+      }
+      nextPosition.current
+        .copy(camera.position)
+        .addScaledVector(forward.current, step * f.speed);
+      nextPosition.current.clampLength(0, 6.3);
+      camera.position.copy(nextPosition.current);
+    } else {
+      f.speed = 0;
+      f.holdTime = 0;
+    }
+    const nextFov = THREE.MathUtils.damp(
+      camera.fov,
+      travel ? 82 + f.speed * 2 : 75,
+      2,
+      step,
+    );
+    if (Math.abs(camera.fov - nextFov) > 0.001) {
+      camera.fov = nextFov;
+      camera.updateProjectionMatrix();
+    }
+    gl.domElement.dataset.speed = f.speed.toFixed(3);
+    gl.domElement.dataset.position = camera.position
+      .toArray()
+      .map((n) => n.toFixed(4))
+      .join(",");
+    gl.domElement.dataset.heading = camera.quaternion
+      .toArray()
+      .map((n) => n.toFixed(4))
+      .join(",");
+    gl.domElement.dataset.interaction = travel
+      ? "travel"
+      : paint
+        ? "paint"
+        : "look";
   });
   return null;
 }

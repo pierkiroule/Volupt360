@@ -151,6 +151,10 @@
   background: #fff6;
 }
 .squiggle-view-tools {
+  max-width: calc(100% - 24px);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: max-content;
   position: absolute;
   top: 95px;
   left: 50%;

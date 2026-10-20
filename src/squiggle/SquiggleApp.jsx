@@ -37,6 +37,7 @@ export default function SquiggleApp() {
     [opacity, setOpacity] = useState(0.85),
     [mode, setMode] = useState("2d"),
     [paint, setPaint] = useState(true),
+    [travel, setTravel] = useState(false),
     [source, setSource] = useState(null),
     [more, setMore] = useState(false),
     [paused, setPaused] = useState(
@@ -138,6 +139,7 @@ export default function SquiggleApp() {
     return () => window.removeEventListener("keydown", key);
   }, [undo]);
   const changeMode = () => {
+    setTravel(false);
     setMode(mode === "2d" ? "360" : "2d");
     setGyro(false);
     setDraft(null);
@@ -175,6 +177,7 @@ export default function SquiggleApp() {
               draft={draft}
               source={source}
               paint={paint}
+              travel={travel}
               tool={tool}
               paused={paused}
               gyro={gyro}
@@ -201,9 +204,11 @@ export default function SquiggleApp() {
           <p>
             {mode === "2d"
               ? "Un geste. Une matière. Ton monde."
-              : paint
-                ? "Dessine dans ton univers."
-                : "Glisse pour regarder autour de toi."}
+              : travel
+                ? "Glisse pour piloter · Maintiens pour accélérer."
+                : paint
+                  ? "Dessine dans ton univers."
+                  : "Glisse pour regarder autour de toi."}
           </p>
         </div>
         <button
@@ -221,14 +226,31 @@ export default function SquiggleApp() {
             aria-pressed={paint}
             onClick={() => {
               setPaint(true);
+              setTravel(false);
               setErase(false);
               setGyro(false);
             }}
           >
             ✎ Peindre
           </button>
-          <button aria-pressed={!paint} onClick={() => setPaint(false)}>
+          <button
+            aria-pressed={!paint && !travel}
+            onClick={() => {
+              setPaint(false);
+              setTravel(false);
+            }}
+          >
             ◉ Regarder
+          </button>
+          <button
+            aria-pressed={travel}
+            aria-label={travel ? "Arrêter le voyage FPV" : "Voyager en FPV"}
+            onClick={() => {
+              setPaint(false);
+              setTravel(!travel);
+            }}
+          >
+            {travel ? "Ⅱ Pause vol" : "➤ Voyager"}
           </button>
           {!paint && (
             <button
@@ -271,6 +293,7 @@ export default function SquiggleApp() {
               onClick={() => {
                 setBrush(b.id);
                 setPaint(true);
+                setTravel(false);
                 setErase(false);
                 setGyro(false);
               }}
@@ -342,6 +365,7 @@ export default function SquiggleApp() {
               onClick={() => {
                 setErase(!erase);
                 setPaint(true);
+                setTravel(false);
                 setGyro(false);
               }}
             >
