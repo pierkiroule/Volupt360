@@ -59,9 +59,28 @@ export const EMOTION_POETRY: Record<string, string[]> = {
     "le possible entre les lignes",
   ],
 };
+const NUANCE_POETRY: Record<string, string[]> = {
+  serenite: ["intervalle", "un espace entre deux souffles"],
+  tendresse: ["proximité", "un contour accueille une couleur"],
+  curiosite: ["détour", "une ouverture dans la trame"],
+  fierte: ["ampleur", "une ligne trouve sa hauteur"],
+  gratitude: ["lien", "une trace rejoint une autre"],
+  espoir: ["germe", "un horizon encore à peindre"],
+  nostalgie: ["rémanence", "un reflet garde plusieurs temps"],
+  melancolie: ["velours", "le bleu a des profondeurs"],
+  solitude: ["archipel", "un espace autour d’une présence"],
+  fatigue: ["repos", "la matière prend son temps"],
+  frustration: ["nœud", "un fil cherche un autre passage"],
+  inquietude: ["frémissement", "un contour reste ouvert"],
+  ennui: ["interstice", "le presque immobile a ses détails"],
+  enthousiasme: ["foisonnement", "des possibles se croisent"],
+  emerveillement: ["immensité", "un détail ouvre un monde"],
+  apaisement: ["accalmie", "les courants gardent leur nuance"],
+};
 export function poetryFor(ids: string[]) {
   const pool = [...COMMON_POETRY];
-  for (const id of [...ids].sort()) pool.push(...(EMOTION_POETRY[id] ?? []));
+  for (const id of [...ids].sort())
+    pool.push(...(EMOTION_POETRY[id] ?? NUANCE_POETRY[id] ?? []));
   if (ids.length > 1)
     pool.push(
       "deux couleurs peuvent cohabiter",

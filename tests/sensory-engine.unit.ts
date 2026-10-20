@@ -328,3 +328,37 @@ test("touch replies remain in the current harmony and cannot start audio through
   bus.gesture(0, 0.5);
   assert.equal(calls, 1);
 });
+
+test("all 24 emotional nuances produce finite distinct palettes and coherent musical identities", async () => {
+  const { EMOTION_TAGS } = await import("../src/data/emotionWheel.ts"),
+    { GenerativeScore } = await import("../src/audio/generativeScore.ts"),
+    { poetryFor } = await import("../src/data/orbitalPoetry.ts");
+  assert.equal(EMOTION_TAGS.length, 24);
+  assert.equal(new Set(EMOTION_TAGS.map((t) => t.id)).size, 24);
+  const palettes = new Set<string>();
+  for (const tag of EMOTION_TAGS) {
+    const p = transduce({
+      version: 1,
+      seed: 4242,
+      words: [{ ...tag, intensity: 70 }],
+    });
+    assert.ok(
+      p.palette.flat().every((v) => Number.isFinite(v) && v >= 0 && v <= 1),
+    );
+    palettes.add(JSON.stringify(p.palette));
+    assert.ok(poetryFor([tag.id]).length > 8);
+  }
+  assert.ok(palettes.size >= 20);
+  const a = new GenerativeScore(10, {
+      openness: 0.8,
+      fluidity: 0.9,
+      weight: -0.5,
+    }),
+    b = new GenerativeScore(10, {
+      openness: -0.5,
+      fluidity: -0.7,
+      weight: 0.8,
+    });
+  assert.notEqual(a.beat, b.beat);
+  assert.notDeepEqual(a.next(0.5), b.next(0.5));
+});

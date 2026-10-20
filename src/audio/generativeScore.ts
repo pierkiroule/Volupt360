@@ -16,9 +16,24 @@ export class GenerativeScore {
   private harmony = [50, 57, 61, 66, 69];
   private motif = [0, 2, 1, 4, 2, 1, 3, 0];
   readonly beat: number;
-  constructor(seed: number) {
+  private openness: number;
+  private fluidity: number;
+  private transpose: number;
+  constructor(
+    seed: number,
+    profile?: { openness: number; fluidity: number; weight: number },
+  ) {
+    this.openness = profile?.openness ?? 0;
+    this.fluidity = profile?.fluidity ?? 0;
+    this.transpose = profile
+      ? profile.weight > 0.35
+        ? -2
+        : profile.openness > 0.5
+          ? 2
+          : 0
+      : 0;
     this.random = seededRandom(seed);
-    this.beat = 60 / (66 + this.random() * 10);
+    this.beat = 60 / (66 + this.random() * 10 + this.openness * 4);
   }
   response(position: number, pan: number): MusicalEvent {
     const index = Math.min(
@@ -49,7 +64,7 @@ export class GenerativeScore {
         [43, 50, 54, 57, 62],
         [45, 52, 57, 59, 64],
       ],
-      chord = chords[chordIndex],
+      chord = chords[chordIndex].map((note) => note + this.transpose),
       notes: MusicalEvent[] = [];
     this.harmony = chord;
     if (beat === 0) {
@@ -88,11 +103,13 @@ export class GenerativeScore {
       notes.push({
         kind: "melody",
         midi,
-        duration: this.beat * (2.2 + this.random()),
+        duration:
+          this.beat * (2.2 + this.random() + Math.max(0, this.fluidity) * 0.7),
         gain: 0.085 + this.random() * 0.025,
         pan: (this.random() - 0.5) * 0.65,
         offset: 0.015 + this.random() * 0.027,
-        timbre: section % 3 === 2 ? "string" : "felt",
+        timbre:
+          (section + (this.fluidity < 0 ? 1 : 0)) % 3 === 2 ? "string" : "felt",
       });
     }
     if (

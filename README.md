@@ -1,14 +1,33 @@
 # CosmoMood 360•° — Mon univers émotionnel
 
 Un disque, une à trois émotions, une orb miniature à découvrir puis à traverser.
-Les huit émojis entourent le disque ; leurs sélections modifient immédiatement
+24 émojis et nuances sont accessibles par trois couronnes de huit autour du disque ;
+leurs sélections modifient immédiatement
 l’aperçu 3D. Toucher l’orb ouvre le même univers en contemplation ou en voyage.
 Un fond noir étoilé accompagne la composition et l’immersion.
 
 La bibliothèque conserve huit repères émotionnels inspirés du modèle de Plutchik,
+complétés par seize nuances du langage courant, sans prétention de classification validée,
 mais l’interface ne représente plus une roue. Les mélanges ne sont ni classés ni
 interprétés automatiquement : c’est une proposition artistique d’externalisation,
 pas un instrument psychométrique validé ou un diagnostic.
+
+## Des univers plus différenciés
+
+La sélection reste limitée à trois émotions, même en passant d’une couronne à l’autre.
+Les nouvelles nuances incluent sérénité, tendresse, curiosité, fierté, gratitude,
+espoir, nostalgie, mélancolie, solitude, fatigue, frustration, inquiétude, ennui,
+enthousiasme, émerveillement et apaisement. Chaque entrée possède son vecteur
+artistique, sa palette et ses fragments poétiques.
+
+Les volumes varient dans leur étirement et leur diffusion. Quatorze voiles de
+lavis ajourés ajoutent des strates aux encres et rubans, avec granulation, auréoles
+et diffusion locale liée au son ; sept voiles en qualité réduite. Les matrices
+et la géométrie sont réutilisées, sans accumulation au fil du temps.
+
+Le profil partagé influence également le tempo dans une plage douce, le registre
+harmonique, la longueur des notes et l’articulation feutrée ou pincée. Cela varie
+les univers sans attribuer une musique « correcte » à une émotion.
 
 ## Disque et aperçu immersif
 
@@ -129,9 +148,9 @@ Les anciens ateliers restent disponibles via leurs paramètres d’URL.
 - `src/utils/sensoryComposition.ts` : validation, JSON, UTF-8/base64url et exports.
 - `src/scene/SensoryFallback.tsx` : ciel SVG de secours sans WebGL et export PNG (sans navigation spatiale).
 
-La scène utilise quatre dessins GPU principaux : 44 volumes organiques instanciés,
-22 rubans de lavis, 28 filaments d’encre et 2 400 grains. En qualité réduite :
-28 volumes, 12 rubans, 12 filaments, 1 000 grains et DPR 1 au lieu de 1,5 maximum. Pas de textures externes ni de ray marching. Les buffers
+La scène utilise cinq ensembles principaux de matières : 44 volumes organiques instanciés,
+14 voiles, 22 rubans de lavis, 28 filaments d’encre et 2 400 grains. En qualité réduite :
+28 volumes, 7 voiles, 12 rubans, 12 filaments, 1 000 grains et DPR 1 au lieu de 1,5 maximum. Pas de textures externes ni de ray marching. Les buffers
 sont recréés uniquement quand la graine change ; intensités et couleurs sont
 interpolées. Écouteurs, géométries et contexte audio sont nettoyés.
 

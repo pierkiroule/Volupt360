@@ -30,7 +30,11 @@ export class SensoryAudio {
       new Float32Array([0, 1, 0.12, 0.032, 0.008]),
     );
     this.params = params;
-    this.score = new GenerativeScore(seed);
+    this.score = new GenerativeScore(seed, {
+      openness: params.axes[1],
+      fluidity: params.axes[2],
+      weight: params.axes[0],
+    });
     const random = seededRandom(seed);
     this.master = c.createGain();
     this.master.gain.value = 0;

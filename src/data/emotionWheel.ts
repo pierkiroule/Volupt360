@@ -7,7 +7,7 @@ export interface EmotionTag extends SensoryWord {
   emoji: string;
   color: string;
   hue: number;
-  opposite: string;
+  opposite?: string;
 }
 export const EMOTION_WHEEL: EmotionTag[] = [
   {
@@ -83,5 +83,153 @@ export const EMOTION_WHEEL: EmotionTag[] = [
     vector: [-0.25, 0.55, 0.25, 0.2, 0.6, 0.55, 0.7, -0.1],
   },
 ];
-export const emotionFor = (id: string) =>
-  EMOTION_WHEEL.find((e) => e.id === id);
+/** Additional everyday nuances: editorial vocabulary, not a validated classification. */
+const nuances: [
+  string,
+  string,
+  string,
+  string,
+  number,
+  SensoryWord["vector"],
+][] = [
+  [
+    "serenite",
+    "Sérénité",
+    "😌",
+    "#80bdb9",
+    0.48,
+    [0, 0.4, 1, -0.9, 0.3, 0.95, 0.6, -0.7],
+  ],
+  [
+    "tendresse",
+    "Tendresse",
+    "🥰",
+    "#d79fb6",
+    0.93,
+    [-0.3, 0.5, 0.85, -0.5, -0.1, 0.8, 0.3, -0.4],
+  ],
+  [
+    "curiosite",
+    "Curiosité",
+    "🧐",
+    "#7dbbc3",
+    0.53,
+    [-0.3, 0.75, 0.45, 0.3, 0.7, 0.5, 0.8, 0.5],
+  ],
+  [
+    "fierte",
+    "Fierté",
+    "😎",
+    "#c7a66d",
+    0.1,
+    [-0.2, 0.8, 0.2, 0.15, 0.8, 0.9, 0.3, -0.3],
+  ],
+  [
+    "gratitude",
+    "Gratitude",
+    "🙏",
+    "#c2b58d",
+    0.15,
+    [0, 0.6, 0.8, -0.5, 0.5, 0.85, 0.4, -0.5],
+  ],
+  [
+    "espoir",
+    "Espoir",
+    "🌱",
+    "#98bf8d",
+    0.32,
+    [-0.5, 0.75, 0.6, -0.15, 0.6, 0.7, 0.6, 0.1],
+  ],
+  [
+    "nostalgie",
+    "Nostalgie",
+    "🥹",
+    "#b8a3be",
+    0.77,
+    [0.3, -0.1, 0.85, -0.45, -0.3, 0.8, 0.9, 0.1],
+  ],
+  [
+    "melancolie",
+    "Mélancolie",
+    "😔",
+    "#8d9fba",
+    0.63,
+    [0.55, -0.3, 0.8, -0.7, -0.4, 0.65, 1, -0.15],
+  ],
+  [
+    "solitude",
+    "Solitude",
+    "🫥",
+    "#8b9aaf",
+    0.6,
+    [0.2, -0.6, 0.5, -0.65, -0.1, -0.2, 1, -0.1],
+  ],
+  [
+    "fatigue",
+    "Fatigue",
+    "😴",
+    "#9a94b9",
+    0.72,
+    [0.9, -0.5, 0.65, -0.95, -0.7, 0.5, 0.7, -0.5],
+  ],
+  [
+    "frustration",
+    "Frustration",
+    "😤",
+    "#be917c",
+    0.055,
+    [0.4, -0.4, -0.8, 0.6, 0.5, -0.65, 0.3, 0.5],
+  ],
+  [
+    "inquietude",
+    "Inquiétude",
+    "😟",
+    "#9d9dbf",
+    0.69,
+    [0.2, -0.4, -0.5, 0.4, -0.3, -0.3, 0.8, 0.65],
+  ],
+  [
+    "ennui",
+    "Ennui",
+    "😐",
+    "#a5aab0",
+    0.57,
+    [0.5, -0.4, -0.1, -0.8, -0.3, 0.7, 0.4, -0.9],
+  ],
+  [
+    "enthousiasme",
+    "Enthousiasme",
+    "🤩",
+    "#d7b36b",
+    0.115,
+    [-0.6, 1, 0.6, 0.8, 0.8, 0.5, 0.5, 0.65],
+  ],
+  [
+    "emerveillement",
+    "Émerveillement",
+    "✨",
+    "#b8b2d5",
+    0.7,
+    [-0.7, 0.9, 0.9, 0.1, 0.5, 0.65, 1, 0.45],
+  ],
+  [
+    "apaisement",
+    "Apaisement",
+    "🌿",
+    "#8bb5a6",
+    0.43,
+    [-0.2, 0.35, 1, -0.8, 0.15, 1, 0.5, -0.65],
+  ],
+];
+export const EMOTION_TAGS: EmotionTag[] = [
+  ...EMOTION_WHEEL,
+  ...nuances.map(([id, label, emoji, color, hue, vector]) => ({
+    id,
+    label,
+    emoji,
+    color,
+    hue,
+    vector,
+  })),
+];
+export const emotionFor = (id: string) => EMOTION_TAGS.find((e) => e.id === id);

@@ -841,3 +841,23 @@
 .sensory-world {
   animation: cosmo-enter 0.6s ease-out both;
 }
+.cosmo-emoji-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 4px auto 14px;
+}
+.cosmo-emoji-pages span {
+  color: #c7d0e2;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.sensory-app .cosmo-emoji-pages button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 27px;
+  border-radius: 50%;
+  background: #17213a66;
+}

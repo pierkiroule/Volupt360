@@ -22,7 +22,7 @@ vec3 colors(float x){return mix(mix(uColor0,uColor1,smoothstep(.1,.75,x)),uColor
 `;
 export const cloudVertex = /* glsl */ `${field}
 varying vec3 vLocal;varying vec3 vWorld;varying vec3 vNormal;varying float vSeed;
-void main(){vLocal=position;vSeed=fract(instanceMatrix[3].x*.137+instanceMatrix[3].z*.271);vec3 p=position*(1.+sin(position.y*4.+uTime*.4+vSeed*8.)*.22+sin(position.x*3.-position.z*4.+uTime*.2)*.16);vec3 world=(instanceMatrix*vec4(p,1.)).xyz;world=flow(world);vWorld=world;vNormal=normalize(mat3(instanceMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);}`;
+void main(){vLocal=position;vSeed=fract(instanceMatrix[3].x*.137+instanceMatrix[3].z*.271);vec3 p=position*(1.+sin(position.y*4.+uTime*.4+vSeed*8.)*.22+sin(position.x*3.-position.z*4.+uTime*.2)*.16);p.x*=1.+max(0.,uA.z)*.5;p.z*=1.-max(0.,uA.z)*.2;vec3 world=(instanceMatrix*vec4(p,1.)).xyz;world=flow(world);vWorld=world;vNormal=normalize(mat3(instanceMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);}`;
 export const cloudFragment = /* glsl */ `${field}
 varying vec3 vLocal;varying vec3 vWorld;varying vec3 vNormal;varying float vSeed;
 void main(){
@@ -31,7 +31,7 @@ void main(){
  float n=pigment(wet*(2.6-echo*.25)+vec3(vSeed*12.,uTime*.07+uAudio.y*.05,0.));
  float facing=abs(dot(normalize(vNormal),normalize(cameraPosition-vWorld)));
  float granule=noise(vLocal*38.+vSeed*7.);
- float wash=smoothstep(.34,.72,n)*(.22+.28*facing);
+ float wash=smoothstep(mix(.41,.28,uSoftness),.72,n)*(.22+.28*facing);
  float tide=exp(-pow(n-.44,2.)*1100.)*.32;
  float capillary=pow(1.-abs(sin(n*58.+granule*1.2)),8.)*.1;
  float dry=sin(uTime*.17+vSeed*6.)*.5+.5;
@@ -85,6 +85,16 @@ void main(){float age=uEchoTime-aBorn;vLife=smoothstep(0.,.9,age)*(1.-smoothstep
 export const burstFragment = /* glsl */ `${field}
 varying float vLife;varying float vTint;
 void main(){vec2 p=gl_PointCoord-.5;float granule=noise(vec3(p*12.,vTint*15.));float mask=1.-smoothstep(.22,.52,length(p)+(granule-.5)*.08);gl_FragColor=vec4(colors(vTint),mask*vLife*.34);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+}`;
+
+export const mistVertex = /* glsl */ `${field}
+varying vec2 vUv;varying float vSeed;varying vec3 vWorld;
+void main(){vUv=uv;vSeed=fract(instanceMatrix[3].x*.17+instanceMatrix[3].y*.23);vec3 p=position;p.z+=sin(p.x*5.+uTime*.12+vSeed*8.)*.09;vWorld=flow((instanceMatrix*vec4(p,1.)).xyz);gl_Position=projectionMatrix*viewMatrix*vec4(vWorld,1.);}`;
+export const mistFragment = /* glsl */ `${field}
+varying vec2 vUv;varying float vSeed;varying vec3 vWorld;
+void main(){vec2 q=(vUv-.5)*2.;float n=pigment(vec3(q*2.8,vSeed*20.+uTime*.035));float margin=smoothstep(0.,.15,vUv.x)*smoothstep(0.,.15,1.-vUv.x)*smoothstep(0.,.15,vUv.y)*smoothstep(0.,.15,1.-vUv.y);float edge=(1.-smoothstep(.28,1.,length(q)+(n-.5)*.3))*margin;float fold=sin(q.x*5.+q.y*2.+n*5.+uTime*.1)*.5+.5;float tide=exp(-pow(n-.47,2.)*1800.);float grain=noise(vec3(q*57.,vSeed*30.));float dry=mix(.75,1.,grain)*smoothstep(.15,.6,n+.15);float local=resonance(vWorld);vec3 color=colors(fract(vSeed*.7+n*.4));color*=1.-tide*.35-grain*.08;gl_FragColor=vec4(color,edge*dry*(.08+fold*.13+tide*.08+local*.08));
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
 }`;

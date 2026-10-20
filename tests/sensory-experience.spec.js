@@ -508,3 +508,42 @@ test("miniature orb previews the selected world and opens it on tap", async ({
     page.getByRole("button", { name: "Joie", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
 });
+
+test("24 emoji nuances keep selections across orbit pages and enforce the same three-choice limit", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Composer mon univers", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Joie", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Émojis suivants", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Tendresse", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Émojis suivants", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Émerveillement", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Fatigue", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("slider", { name: "Présence Joie" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("slider", { name: "Présence Tendresse" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Émojis suivants", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Joie", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByRole("button", { name: "Entrer dans mon univers", exact: true })
+    .click();
+  await expect(page.locator(".sensory-world canvas")).toBeVisible();
+});

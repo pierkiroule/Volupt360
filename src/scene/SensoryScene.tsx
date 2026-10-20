@@ -9,6 +9,8 @@ import * as THREE from "three";
 import { transduce } from "../transduction/engine.ts";
 import { useSensoryStore } from "../store/useSensoryStore.ts";
 import {
+  mistVertex,
+  mistFragment,
   burstVertex,
   burstFragment,
   cloudVertex,
@@ -54,6 +56,7 @@ function Matter({
   const { gl, scene, camera } = useThree(),
     time = useRef(0),
     clouds = useRef<THREE.InstancedMesh>(null),
+    veils = useRef<THREE.InstancedMesh>(null),
     echoTime = useRef(0),
     lastBurst = useRef(-10),
     burstSlot = useRef(0),
@@ -138,6 +141,13 @@ function Matter({
   useEffect(() => {
     world.matrices.forEach((m, i) => clouds.current?.setMatrixAt(i, m));
     if (clouds.current) clouds.current.instanceMatrix.needsUpdate = true;
+    const spread = new THREE.Matrix4().makeScale(3.2, 4, 1);
+    for (let i = 0; i < 14; i++)
+      veils.current?.setMatrixAt(
+        i,
+        world.matrices[i * 3].clone().multiply(spread),
+      );
+    if (veils.current) veils.current.instanceMatrix.needsUpdate = true;
     return () => {
       world.ribbons.dispose();
       world.ink.dispose();
@@ -289,6 +299,22 @@ function Matter({
           uniforms={uniforms}
           vertexShader={cloudVertex}
           fragmentShader={cloudFragment}
+          transparent
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </instancedMesh>
+      <instancedMesh
+        ref={veils}
+        args={[undefined, undefined, 14]}
+        count={low ? 7 : 14}
+        frustumCulled={false}
+      >
+        <planeGeometry args={[1, 1, 18, 12]} />
+        <shaderMaterial
+          uniforms={uniforms}
+          vertexShader={mistVertex}
+          fragmentShader={mistFragment}
           transparent
           depthWrite={false}
           side={THREE.DoubleSide}

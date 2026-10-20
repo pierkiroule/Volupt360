@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, useState, type ReactNode } from "react";
-import { EMOTION_WHEEL, emotionFor } from "../data/emotionWheel.ts";
+import { EMOTION_TAGS, emotionFor } from "../data/emotionWheel.ts";
 import { useSensoryStore } from "../store/useSensoryStore.ts";
 const Scene = lazy(() => import("../scene/SensoryScene.tsx"));
 const noCapture = () => {};
@@ -20,7 +20,8 @@ class PreviewBoundary extends Component<
   }
 }
 export default function EmotionDisc() {
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState(false),
+    [page, setPage] = useState(0);
   const { composition, setWords, birth } = useSensoryStore(),
     words = composition.words;
   return (
@@ -56,7 +57,7 @@ export default function EmotionDisc() {
             {words.length ? "Toucher pour entrer" : "Choisis tes émotions"}
           </span>
         </button>
-        {EMOTION_WHEEL.map((emotion, i) => {
+        {EMOTION_TAGS.slice(page * 8, page * 8 + 8).map((emotion, i) => {
           const angle = (i * Math.PI) / 4 - Math.PI / 2,
             selected = words.some((w) => w.id === emotion.id);
           return (
@@ -94,6 +95,21 @@ export default function EmotionDisc() {
             </button>
           );
         })}
+      </div>
+      <div className="cosmo-emoji-pages" aria-label="Parcourir les émojis">
+        <button
+          aria-label="Émojis précédents"
+          onClick={() => setPage((page + 2) % 3)}
+        >
+          ‹
+        </button>
+        <span aria-live="polite">{page + 1}/3 · 24 nuances</span>
+        <button
+          aria-label="Émojis suivants"
+          onClick={() => setPage((page + 1) % 3)}
+        >
+          ›
+        </button>
       </div>
       <p className="cosmo-selection-count" aria-live="polite">
         {words.length}/3 émotions ·{" "}
