@@ -235,13 +235,11 @@ test("valid JSON restores seeded choices and WebGL context loss falls back witho
       },
     ],
   };
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: "sky.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(composition)),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "sky.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(composition)),
+  });
   await expect(page.locator("canvas")).toHaveAttribute("data-sky-seed", "7331");
   await page
     .getByRole("button", { name: "Faire évoluer mon ciel", exact: true })
