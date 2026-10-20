@@ -19,6 +19,15 @@ effacées. La densité du dessin donne une profondeur au paysage. Trois animatio
 sont disponibles : Courants, Respiration et Résonances. Les mouvements sont locaux,
 lents et adoucis par les enveloppes audio du moteur existant.
 
+Des nuages de grains colorés et des filaments suivent les zones réellement peintes.
+Les graves animent la profondeur et les volumes ; les médiums entraînent les courants
+et les fils ; les aigus enrichissent les détails. Les transitoires produisent une
+accentuation douce, sans flash. Le style change par interpolation. Le dessin 2D
+reste statique et les préférences de réduction des mouvements sont respectées.
+Les effets utilisent deux lots GPU supplémentaires et des buffers fixes : jusqu’à
+1400 particules/32 filaments sur mobile, 3200 particules/64 filaments sur ordinateur.
+Aucun effet n’est généré dans les zones vides d’un dessin vierge.
+
 Importer son MP3 (20 Mo maximum) active la lecture et l’analyse Web Audio native.
 Aucun morceau n’est chargé automatiquement. Sans fichier, l’animation fonctionne
 silencieusement. Lecture/pause et volume restent accessibles. Retourner au dessin

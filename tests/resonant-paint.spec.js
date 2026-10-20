@@ -225,3 +225,158 @@ test.describe("mobile drawing", () => {
     ).toBeVisible();
   });
 });
+
+test("drawing-born FX keep bounded reusable buffers, source colors and smooth spectral motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const { createResonantWorld } =
+      await import("/src/resonant/createResonantWorld.js");
+    const w = createResonantWorld(),
+      canvas = document.createElement("canvas");
+    canvas.width = 300;
+    canvas.height = 200;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ff0000";
+    ctx.fillRect(50, 40, 180, 110);
+    w.setCanvas(canvas);
+    const mesh = w.group.children[0],
+      fx = w.group.children[1],
+      points = fx.children[0],
+      lines = fx.children[1];
+    const position = points.geometry.attributes.position,
+      color = points.geometry.attributes.color;
+    const count = points.geometry.drawRange.count,
+      capacity = position.count;
+    let sourceColors = true,
+      finite = true,
+      disposed = 0;
+    for (let i = 0; i < count; i++) {
+      sourceColors &&=
+        color.array[i * 3] > 0.3 &&
+        color.array[i * 3 + 1] === 0 &&
+        color.array[i * 3 + 2] === 0;
+      finite &&= Number.isFinite(position.array[i * 3]);
+    }
+    for (const child of fx.children)
+      for (const resource of [child.geometry, child.material])
+        resource.addEventListener("dispose", () => disposed++);
+    const initial = mesh.material.uniforms.energy.value;
+    w.setStyle("ripple");
+    w.update(
+      1,
+      { bands: [1, 0.2, 0.7, 0.3, 0.8, 0.9], energy: 0.8, flux: 0.5 },
+      1 / 60,
+    );
+    const first = mesh.material.uniforms.style.value;
+    for (let i = 0; i < 180; i++)
+      w.update(
+        i / 60,
+        { bands: [1, 0.2, 0.7, 0.3, 0.8, 0.9], energy: 0.8, flux: 0.5 },
+        1 / 60,
+      );
+    const energy = mesh.material.uniforms.energy.value,
+      style = mesh.material.uniforms.style.value;
+    w.setCanvas(canvas);
+    const stable =
+      position === points.geometry.attributes.position &&
+      count === points.geometry.drawRange.count;
+    const filaments = lines.geometry.drawRange.count;
+    ctx.clearRect(0, 0, 300, 200);
+    w.setCanvas(canvas);
+    const cleared =
+      points.geometry.drawRange.count === 0 &&
+      lines.geometry.drawRange.count === 0;
+    w.dispose();
+    return {
+      count,
+      capacity,
+      sourceColors,
+      finite,
+      initial,
+      energy,
+      first,
+      style,
+      stable,
+      filaments,
+      cleared,
+      disposed,
+    };
+  });
+  expect(r.count).toBeGreaterThan(300);
+  expect(r.count).toBeLessThanOrEqual(r.capacity);
+  expect(r.capacity).toBeLessThanOrEqual(3200);
+  expect(r.sourceColors && r.finite && r.stable && r.cleared).toBe(true);
+  expect(r.filaments).toBeGreaterThan(100);
+  expect(r.first).toBeGreaterThan(0);
+  expect(r.first).toBeLessThan(0.1);
+  expect(r.style).toBeGreaterThan(1.9);
+  expect(r.energy).toBeGreaterThan(r.initial + 0.4);
+  expect(r.disposed).toBe(4);
+});
+
+test("spectral response changes rendered 360 pixels with a fixed camera and clock", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createResonantWorld } =
+      await import("/src/resonant/createResonantWorld.js");
+    const renderer = new T.WebGLRenderer({ preserveDrawingBuffer: true });
+    renderer.setSize(160, 120);
+    const scene = new T.Scene(),
+      camera = new T.PerspectiveCamera(80, 4 / 3, 0.1, 100);
+    camera.position.z = 20;
+    camera.lookAt(0, 0, 8);
+    const drawing = document.createElement("canvas");
+    drawing.width = 300;
+    drawing.height = 200;
+    const ctx = drawing.getContext("2d");
+    ctx.fillStyle = "#376e88";
+    ctx.fillRect(20, 30, 260, 140);
+    const world = createResonantWorld();
+    scene.add(world.group);
+    world.setCanvas(drawing);
+    const read = () => {
+      renderer.render(scene, camera);
+      const pixels = new Uint8Array(160 * 120 * 4);
+      renderer
+        .getContext()
+        .readPixels(
+          0,
+          0,
+          160,
+          120,
+          renderer.getContext().RGBA,
+          renderer.getContext().UNSIGNED_BYTE,
+          pixels,
+        );
+      return pixels;
+    };
+    world.update(3, { energy: 0 }, 1 / 60);
+    const before = read();
+    for (let i = 0; i < 180; i++)
+      world.update(
+        3,
+        { energy: 0.9, bands: [1, 0.5, 0.8, 0.3, 0.9, 0.7], flux: 0.4 },
+        1 / 60,
+      );
+    const after = read();
+    let changed = 0;
+    for (let i = 0; i < before.length; i += 4)
+      if (
+        Math.abs(before[i] - after[i]) +
+          Math.abs(before[i + 1] - after[i + 1]) +
+          Math.abs(before[i + 2] - after[i + 2]) >
+        4
+      )
+        changed++;
+    world.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    return changed;
+  });
+  expect(result).toBeGreaterThan(300);
+});
