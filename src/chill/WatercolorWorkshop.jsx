@@ -15,7 +15,7 @@ export default function WatercolorWorkshop() {
     soundWanted = useRef(true);
   const twigs = useTwigBank({ poeticVoices: false });
   const [started, setStarted] = useState(false),
-    [sculpt, setSculpt] = useState(false),
+    [vr, setVr] = useState(false),
     [brush, setBrush] = useState("water"),
     [size, setSize] = useState(0.045),
     [opacity, setOpacity] = useState(0.8),
@@ -28,13 +28,14 @@ export default function WatercolorWorkshop() {
     [error, setError] = useState("");
   const tools = useSculptTools({
     enabled: started,
-    sculpting: sculpt,
-    traveling: moving,
+    sculpting: started,
+    traveling: false,
   });
   useEffect(() => {
     document.title = "Ciel en résonance •° — Sculpture 360°";
     engine.current = createSoundNest(stage.current, {
       onError: setError,
+      onVRChange: setVr,
       onSpatialChange: (stats) => setCount(stats.strokes),
     });
     engine.current.setPaperVisible(true);
@@ -47,9 +48,11 @@ export default function WatercolorWorkshop() {
     engine.current?.setPaperVisible(!started);
     engine.current?.pauseChillSession(!started);
     engine.current?.setSpatialSculptureTool(
-      started && sculpt ? { emojiId: brush, size, opacity, depth } : null,
+      started
+        ? { emojiId: brush, size, opacity, depth, touchOnly: true }
+        : null,
     );
-  }, [started, sculpt, brush, size, opacity, depth]);
+  }, [started, brush, size, opacity, depth]);
   async function playMusic(ticket) {
     try {
       const bank = twigs.bank.current;
@@ -111,7 +114,6 @@ export default function WatercolorWorkshop() {
     void engine.current.requestContemplationGyroscope(false);
     setGyro(false);
     setMoving(false);
-    setSculpt(false);
     setStarted(false);
   }
   function travel() {
@@ -141,13 +143,14 @@ export default function WatercolorWorkshop() {
           </h1>
           <h2>Le voyage devient matière</h2>
           <p>
-            Choisis une brosse émoji et active « Sculpter ». En naviguant, tu
-            déposes des vagues, des flammes, des filaments et des pigments
-            vivants dans l’espace.
+            Choisis une brosse émoji et touche le ciel : ton vol dépose des
+            vagues, des flammes, des filaments et des pigments vivants dans
+            l’espace.
           </p>
           <p>
-            Glisse pour tourner. Maintiens pour accélérer. Relâche pour ralentir
-            ou laisse le voyage te porter. La musique anime ton paysage.
+            Glisse pour tourner et dessiner. Maintiens pour accélérer. Relâche
+            pour arrêter le tracé et contempler. La musique anime ton paysage, à
+            360° ou en VR.
           </p>
           <button onClick={start}>
             {initialized.current
@@ -159,9 +162,8 @@ export default function WatercolorWorkshop() {
       {started && (
         <>
           <p className="fpv-gesture-hint">
-            {sculpt
-              ? "La brosse suit ton vol · glisser pour tourner"
-              : "Maintenir pour accélérer · activer Sculpter pour peindre"}
+            Toucher pour sculpter · glisser pour tourner · relâcher pour
+            contempler
           </p>
           <section
             id="spatial-tools"
@@ -235,15 +237,6 @@ export default function WatercolorWorkshop() {
             )}
             <nav aria-label="Sculpter et naviguer">
               <button
-                className="sculpt-switch"
-                aria-label="Sculpter"
-                aria-pressed={sculpt}
-                onClick={() => setSculpt(!sculpt)}
-              >
-                <ToolIcon name="wave" />
-                <span>Sculpter</span>
-              </button>
-              <button
                 aria-label={moving ? "Suspendre le voyage" : "Voyager"}
                 aria-pressed={moving}
                 onClick={travel}
@@ -252,7 +245,7 @@ export default function WatercolorWorkshop() {
               </button>
               <button
                 aria-label="Annuler le dernier tracé"
-                disabled={!count && !sculpt}
+                disabled={!count}
                 onClick={() => engine.current.undoSpatialStroke()}
               >
                 <ToolIcon name="undo" />
@@ -286,6 +279,22 @@ export default function WatercolorWorkshop() {
                 <ToolIcon name="view" />
               </button>
               <button
+                aria-label={vr ? "Quitter la VR" : "Entrer en VR"}
+                title="Casque VR"
+                aria-pressed={vr}
+                onClick={async () => {
+                  setError("");
+                  try {
+                    if (vr) await engine.current.exitVR();
+                    else await engine.current.enterVR();
+                  } catch (e) {
+                    setError(e.message);
+                  }
+                }}
+              >
+                <ToolIcon name="vr" />
+              </button>
+              <button
                 aria-label={folded ? "Déplier les outils" : "Plier les outils"}
                 aria-expanded={!folded}
                 onClick={() => setFolded(!folded)}
@@ -296,7 +305,7 @@ export default function WatercolorWorkshop() {
             {!folded && (
               <div className="spatial-secondary">
                 <button
-                  disabled={!count && !sculpt}
+                  disabled={!count}
                   onClick={() => engine.current.clearSpatialSculpture()}
                 >
                   Effacer l’œuvre
@@ -327,17 +336,6 @@ export default function WatercolorWorkshop() {
                 </span>
                 <span>Outils</span>
               </button>
-              {sculpt && (
-                <button
-                  aria-label="Arrêter la sculpture"
-                  onClick={() => {
-                    setSculpt(false);
-                    tools.show();
-                  }}
-                >
-                  <ToolIcon name="pause" />
-                </button>
-              )}
             </nav>
           )}
         </>

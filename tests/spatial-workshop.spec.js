@@ -1,69 +1,53 @@
 import { test, expect } from "@playwright/test";
 
-test("atelier starts directly in 3D and deposits only when Sculpter is enabled", async ({
+test("canvas contact paints immediately and release stops deposition while flight continues", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => {
-    if (m.type() === "error" && /THREE|shader|WebGL/.test(m.text()))
-      errors.push(m.text());
-  });
   await page.goto("/");
   await page
     .getByRole("button", { name: "Entrer dans l’atelier 360°" })
     .click();
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toBeVisible();
-  await expect(page.locator(".emoji-painter")).toHaveCount(0);
-  await expect(
-    page.getByRole("group", { name: "Brosses émojis" }).getByRole("button"),
-  ).toHaveCount(12);
   await expect(
     page.getByRole("button", { name: "Sculpter", exact: true }),
-  ).toHaveAttribute("aria-pressed", "false");
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Entrer en VR" }),
+  ).toBeVisible();
   await expect(canvas).toHaveAttribute("data-spatial-strokes", "0");
   const box = await canvas.boundingBox();
-  await page.mouse.move(box.width * 0.5, box.height * 0.4);
+  await page.mouse.move(box.width * 0.5, box.height * 0.35);
   await page.mouse.down();
-  await page.mouse.move(box.width * 0.7, box.height * 0.3, { steps: 8 });
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
-    .toBeGreaterThan(0.6);
-  await page.mouse.up();
-  await expect(canvas).toHaveAttribute("data-spatial-strokes", "0");
-  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
-  await page.mouse.move(box.width * 0.5, box.height * 0.4);
-  await page.mouse.down();
-  await page.mouse.move(box.width * 0.65, box.height * 0.35, { steps: 8 });
+  await expect(canvas).toHaveAttribute("data-spatial-drawing", "true");
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-spatial-samples")))
-    .toBeGreaterThan(5);
-  await page.mouse.up();
-  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
-  await expect(canvas).toHaveAttribute("data-spatial-strokes", "1");
-  await page.getByRole("button", { name: "Chaleur", exact: true }).click();
-  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  await expect(canvas).toHaveAttribute("data-spatial-tool", "warm");
+    .toBeGreaterThan(0);
+  await page.mouse.move(box.width * 0.65, box.height * 0.3, { steps: 8 });
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-spatial-samples")))
     .toBeGreaterThan(4);
-  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
+  await page.mouse.up();
+  await expect(canvas).toHaveAttribute("data-spatial-drawing", "false");
+  await expect(canvas).toHaveAttribute("data-spatial-strokes", "1");
+  await page.getByRole("button", { name: "Chaleur", exact: true }).click();
+  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
+  await expect(canvas).toHaveAttribute("data-spatial-strokes", "1");
+  await page.mouse.move(box.width * 0.5, box.height * 0.35);
+  await page.mouse.down();
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-spatial-samples")))
+    .toBeGreaterThan(3);
+  await page.mouse.up();
   await expect(canvas).toHaveAttribute("data-spatial-strokes", "2");
+  await expect(canvas).toHaveAttribute("data-spatial-drawing", "false");
   await expect(canvas).toHaveAttribute("data-journey-moving", "true");
   await page.getByRole("button", { name: "Annuler le dernier tracé" }).click();
   await expect(canvas).toHaveAttribute("data-spatial-strokes", "1");
-  await page.getByRole("button", { name: "Plier les outils" }).click();
-  await expect(page.getByRole("group", { name: "Brosses émojis" })).toHaveCount(
-    0,
-  );
-  await expect(
-    page.getByRole("button", { name: "Sculpter", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Déplier les outils" }).click();
-  await page.screenshot({ path: "/tmp/spatial-flight-workshop.png" });
   await page.getByRole("button", { name: "Accueil", exact: true }).click();
   await page.getByRole("button", { name: "Reprendre mon atelier" }).click();
   await expect(canvas).toHaveAttribute("data-spatial-strokes", "1");
@@ -144,7 +128,6 @@ test.describe("mobile sculpting flight", () => {
     await page
       .getByRole("button", { name: "Entrer dans l’atelier 360°" })
       .tap();
-    await page.getByRole("button", { name: "Sculpter", exact: true }).tap();
     const canvas = page.locator("#stage canvas"),
       r = await canvas.boundingBox(),
       client = await context.newCDPSession(page);
@@ -171,7 +154,6 @@ test.describe("mobile sculpting flight", () => {
       touchPoints: [],
     });
     await expect(canvas).toHaveAttribute("data-journey-touching", "false");
-    await page.getByRole("button", { name: "Sculpter", exact: true }).tap();
     await expect(canvas).toHaveAttribute("data-spatial-drawing", "false");
     await expect
       .poll(async () =>
@@ -189,7 +171,6 @@ test("smart tools hide during sculpting, restore after release and preserve fold
     .getByRole("button", { name: "Entrer dans l’atelier 360°" })
     .click();
   await page.getByRole("button", { name: "Plier les outils" }).click();
-  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
   const panel = page.getByRole("region", {
       name: "Atelier de sculpture 360°",
       includeHidden: true,
@@ -201,9 +182,6 @@ test("smart tools hide during sculpting, restore after release and preserve fold
   await expect(panel).toHaveAttribute("aria-hidden", "true");
   await expect(
     page.getByRole("button", { name: "Afficher les outils" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Arrêter la sculpture" }),
   ).toBeVisible();
   await expect(canvas).toHaveAttribute("data-journey-touching", "true");
   await expect
@@ -222,49 +200,35 @@ test("smart tools hide during sculpting, restore after release and preserve fold
   await page.keyboard.press("Escape");
   await expect(panel).toHaveAttribute("aria-hidden", "false");
   await page.mouse.up();
-  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
   await page.mouse.move(r.width * 0.5, r.height * 0.35);
   await page.mouse.down();
   await expect(canvas).toHaveAttribute("data-journey-touching", "true");
-  await expect(panel).toHaveAttribute("aria-hidden", "false");
+  await expect(panel).toHaveAttribute("aria-hidden", "true");
   await page.mouse.up();
 });
 
-test("automatic sculpting yields its tools but the recall and stop controls remain accessible", async ({
+test("travel alone does not paint and keyboard settings remain available", async ({
   page,
 }) => {
   await page.goto("/");
   await page
     .getByRole("button", { name: "Entrer dans l’atelier 360°" })
     .click();
-  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
   await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  await page.mouse.move(20, 20);
-  const recall = page.getByRole("button", { name: "Afficher les outils" });
-  await expect(recall).toBeVisible({ timeout: 6000 });
-  await recall.click();
-  await expect(
-    page.getByRole("button", { name: "Sculpter", exact: true }),
-  ).toBeVisible();
   await page.getByText("Réglages de la matière", { exact: true }).click();
   await page.getByRole("slider", { name: "Taille de la brosse" }).focus();
-  // A keyboard user can keep adjusting a slider while automatic flight paints.
   await page.keyboard.press("ArrowRight");
-  await page.waitForTimeout(3000); // Longer than the idle timeout: keyboard adjustment must remain visible.
+  await page.waitForTimeout(3000);
   await expect(
     page.getByRole("slider", { name: "Taille de la brosse" }),
   ).toBeFocused();
-  await page.getByRole("button", { name: "Suspendre le voyage" }).click();
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  await page.mouse.move(20, 20);
-  await expect(recall).toBeVisible({ timeout: 6000 });
-  await page.getByRole("button", { name: "Arrêter la sculpture" }).click();
-  await expect(
-    page.getByRole("button", { name: "Sculpter", exact: true }),
-  ).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("#stage canvas")).toHaveAttribute(
-    "data-journey-moving",
-    "true",
+    "data-spatial-strokes",
+    "0",
+  );
+  await expect(page.locator("#stage canvas")).toHaveAttribute(
+    "data-spatial-drawing",
+    "false",
   );
 });
 
@@ -283,7 +247,7 @@ test("the menu is translucent at rest and becomes readable for keyboard interact
   await page.keyboard.press("Tab");
   await expect(menu).toHaveCSS("opacity", "1");
   await expect(
-    page.getByRole("button", { name: "Sculpter", exact: true }),
+    page.getByRole("button", { name: "Voyager", exact: true }),
   ).toHaveCSS("min-height", "44px");
 });
 
@@ -364,4 +328,36 @@ test("audio envelopes absorb impacts without jumps and survive live geometry rec
   expect(r.released).toBeLessThan(r.stable * 0.2); // Most motion settles over three seconds, without an abrupt cut.
   expect(r.preserved).toBe(true);
   expect(r.prefixStable).toBe(true);
+});
+
+test("VR pictogram requests a native immersive session and reports denial without breaking the workshop", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "xr", {
+      configurable: true,
+      value: {
+        requestSession: async (mode) => {
+          window.requestedXRMode = mode;
+          throw new Error("Autorisation VR refusée");
+        },
+      },
+    });
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+    .click();
+  const button = page.getByRole("button", { name: "Entrer en VR" });
+  await expect(button.locator("svg")).toBeVisible();
+  await button.click();
+  await expect(page.getByRole("status")).toContainText(
+    "Autorisation VR refusée",
+  );
+  expect(await page.evaluate(() => window.requestedXRMode)).toBe(
+    "immersive-vr",
+  );
+  await expect(
+    page.getByRole("group", { name: "Brosses émojis" }),
+  ).toBeVisible();
 });

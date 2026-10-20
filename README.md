@@ -1,12 +1,13 @@
 # Ciel en résonance •° — Sculpture 360°
 
-**Entrer dans l’atelier 3D → choisir une brosse → activer Sculpter → naviguer.**
+**Entrer dans l’atelier 3D → choisir une brosse → toucher pour sculpter en naviguant.**
 
 Le disque 2D et la révélation ne font plus partie du parcours. La caméra est en
 retrait du point de sculpture : la brosse dépose devant elle, à une distance
 réglable. Les gestes pilotent toujours le vol, même pendant la sculpture.
-« Sculpter » active ou coupe seulement le dépôt. Le voyage automatique peut
-également déposer la matière. Les traces restent ancrées dans le monde lorsqu’on
+Le contact avec le canevas active immédiatement le dépôt. Le relâchement,
+l’annulation du geste ou la perte de capture le terminent. Le voyage automatique
+continue sans déposer tant que le canevas n’est pas touché. Les traces restent ancrées dans le monde lorsqu’on
 regarde ailleurs ou qu’on s’éloigne.
 
 Douze brosses émojis conservent leurs signatures : vagues bleues, flammes et braises,
@@ -20,16 +21,17 @@ ni backend ajouté.
 Glisser tourne le vol ; maintenir plus de 280 ms accélère progressivement. Relâcher
 ralentit ou reprend le voyage automatique s’il était actif. Le gyro oriente le
 regard, avec alternative tactile. Une attraction douce conserve la proximité de
-l’œuvre. Le bouton Sculpter ne bloque ni le pilotage tactile ni le gyro.
+l’œuvre. Le même contact dessine et pilote, sans bouton de sculpture intermédiaire.
+Toucher un outil ne dépose aucune matière.
 
 La palette et les contrôles sont placés dans une barre inférieure pliable :
-Sculpter, voyage, annulation, musique, gyro. Les réglages de taille, opacité et
+Voyage, annulation, musique, gyro et casque VR. Les réglages de taille, opacité et
 distance de dépôt se déplient séparément. L’accueil conserve la session ; effacer
 retire explicitement l’œuvre. Les captures et le parcours 2D ne sont pas proposés.
 
 ## Architecture et performance
 
-- `WatercolorWorkshop.jsx` : atelier 3D, palette, bascule de dépôt et musique.
+- `WatercolorWorkshop.jsx` : atelier 3D, palette, dépôt au contact, VR et musique.
 - `createSpatialEmojiPainter.js` : échantillonnage du point devant la caméra, aperçu
   immédiat, matière en cours et matière finalisée.
 - `spatialBrushFrame.js` : projection sur la trajectoire 3D réellement parcourue.
@@ -81,17 +83,22 @@ sur téléphone physique restent à vérifier.
 
 ## Une interface qui s’efface pendant le geste
 
-`useSculptTools` masque les outils après 140 ms de geste de sculpture et les
-rappelle 850 ms après le relâchement. En voyage automatique avec sculpture, ils
-s’effacent après 2,8 secondes sans interaction. Le mode plié est conservé.
-Un rappel compact affiche la brosse sélectionnée et permet de rouvrir les outils
-ou de couper immédiatement le dépôt sans interrompre le voyage.
+`useSculptTools` masque les outils après 140 ms de contact et les rappelle 850 ms
+après le relâchement. Le mode plié est conservé. Un rappel compact affiche la brosse
+sélectionnée et permet de rouvrir les outils. L’opacité de repos est de 0,74 ; le
+menu redevient opaque au toucher, au survol ou au focus clavier. Les réglages au
+clavier restent visibles. Les cibles mesurent au moins 44 px. Le menu caché est
+inerte ; Échap le rappelle. Les transitions respectent le mouvement réduit.
 
-Le menu a une opacité de 0,74 au repos, puis redevient opaque au toucher, au survol
-avec une souris ou au focus clavier. Un réglage au clavier maintient les outils
-visibles. Les commandes tactiles mesurent au moins 44 px. Les outils masqués sont
-inertes et retirés de la navigation accessible ; Échap les rappelle. Les délais
-sont annulés à la sortie et les transitions respectent le mouvement réduit.
+## Casque VR
+
+Le pictogramme casque ouvre une session WebXR `immersive-vr` depuis le geste de
+l’utilisateur. La gâchette d’un contrôleur (`selectstart` / `selectend`) joue le rôle
+du contact tactile pour déposer la matière. La fin de session coupe le dépôt et
+revient à la caméra panorama. Le bouton permet également de quitter la VR. Les
+refus d’autorisation et les appareils incompatibles affichent une erreur sans
+bloquer l’atelier. La VR requiert HTTPS, un navigateur et un casque compatibles ;
+le test matériel en casque reste à réaliser.
 
 ## Résonance fluide
 
