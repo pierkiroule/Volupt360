@@ -133,9 +133,9 @@ function Matter({
     uniforms.uStretch.value += (p.stretch - uniforms.uStretch.value) * f;
     uniforms.uDensity.value += (p.density - uniforms.uDensity.value) * f;
     const bg = scene.background as THREE.Color;
-    bg.r += (colors[0].r * 0.035 + 0.008 - bg.r) * f;
-    bg.g += (colors[0].g * 0.035 + 0.006 - bg.g) * f;
-    bg.b += (colors[0].b * 0.035 + 0.015 - bg.b) * f;
+    bg.r += (colors[0].r * 0.014 + 0.008 - bg.r) * f;
+    bg.g += (colors[0].g * 0.014 + 0.012 - bg.g) * f;
+    bg.b += (colors[0].b * 0.014 + 0.027 - bg.b) * f;
     gl.domElement.dataset.skyTime = time.current.toFixed(3);
     gl.domElement.dataset.skySeed = String(composition.seed);
     gl.domElement.dataset.worldClouds = String(low ? 28 : 44);

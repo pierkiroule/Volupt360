@@ -11,6 +11,25 @@ pour tous les publics, ni d’un diagnostic. Source du modèle : Robert Plutchik
 « The Nature of Emotions », American Scientist, 89(4), 2001, p. 344–350 :
 https://www.americanscientist.org/article/the-nature-of-emotions
 
+## Pilotage, 360° et composition musicale
+
+- Gyro 360° activé par un bouton explicite, avec permission lorsque le navigateur
+  l’exige. HTTPS requis ; faute de capteur ou de permission, le tactile reste utilisable.
+  La première mesure calibre le regard sans imposer de rotation. « Recentrer »
+  reprend la pose courante comme référence. Les écouteurs sont retirés à la sortie.
+- Le geste tactile prime sur le retour vers le centre, qui attend 1,8 seconde
+  après le relâchement. La caméra utilise une interpolation de quaternion ;
+  la correction spatiale est désactivée en contemplation.
+- La musique native Web Audio suit une horloge de 66–76 BPM : accords étendus,
+  basse douce, motifs mélodiques transformés et pulsations feutrées. Les notes
+  sont anticipées sur l’horloge audio (250 ms), pas déclenchées par les frames.
+  La réverbération procédurale, l’écho filtré, la stéréo et la compression sont
+  conservés. Plafond de 48 oscillateurs, enveloppes douces et nettoyage à la fin
+  de chaque note ; aucun sample externe.
+- `src/audio/generativeScore.ts` sépare les règles de composition du graphe audio.
+  Les émotions modulent la densité, le filtrage et l’espace sonore, suivant
+  des correspondances artistiques.
+
 ## Parcours
 
 - Choisir 1 à 3 émoji-tags sur la roue, avec une présence visuelle réglable.

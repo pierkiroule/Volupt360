@@ -1,10 +1,78 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { deviceQuaternion } from "./gyroOrientation.ts";
 import { useSensoryStore } from "../store/useSensoryStore.ts";
 /** Manual heading with inertia; a soft inward field keeps the sculpture within reach. */
 export default function DroneNavigation() {
   const { camera, gl } = useThree();
+  const device = useRef(new THREE.Quaternion()),
+    base = useRef(new THREE.Quaternion()),
+    reference = useRef(new THREE.Quaternion()),
+    desired = useRef(new THREE.Quaternion()),
+    scratch = useRef(new THREE.Quaternion()),
+    calibrated = useRef(false),
+    hasSample = useRef(false),
+    lastRecenter = useRef(0),
+    lastTouch = useRef(0),
+    touching = useRef(false),
+    rotation = useRef(new THREE.Euler());
+  const gyro = useSensoryStore((s) => s.gyro);
+  useEffect(() => {
+    if (!gyro) {
+      hasSample.current = false;
+      calibrated.current = false;
+      return;
+    }
+    const sample = (event: DeviceOrientationEvent) => {
+      if (
+        event.alpha === null ||
+        event.beta === null ||
+        event.gamma === null ||
+        ![event.alpha, event.beta, event.gamma].every(Number.isFinite)
+      )
+        return;
+      deviceQuaternion(
+        event.alpha,
+        event.beta,
+        event.gamma,
+        window.screen.orientation?.angle ?? 0,
+        device.current,
+      );
+      hasSample.current = true;
+      if (!calibrated.current) {
+        reference.current.copy(device.current).invert();
+        base.current.copy(camera.quaternion);
+        target.current.yaw = 0;
+        target.current.pitch = 0;
+        heading.current.yaw = 0;
+        heading.current.pitch = 0;
+        calibrated.current = true;
+      }
+      if (useSensoryStore.getState().gyroStatus !== "active")
+        useSensoryStore.getState().patch({ gyroStatus: "active" });
+    };
+    window.addEventListener("deviceorientation", sample);
+    const timeout = setTimeout(() => {
+      if (!hasSample.current)
+        useSensoryStore
+          .getState()
+          .patch({ gyro: false, gyroStatus: "unavailable" });
+    }, 5000);
+    return () => {
+      window.removeEventListener("deviceorientation", sample);
+      clearTimeout(timeout);
+      const euler = new THREE.Euler().setFromQuaternion(
+        camera.quaternion,
+        "YXZ",
+      );
+      target.current.yaw = euler.y;
+      target.current.pitch = euler.x;
+      heading.current.yaw = euler.y;
+      heading.current.pitch = euler.x;
+      calibrated.current = false;
+    };
+  }, [gyro, camera]);
   const target = useRef({ yaw: 0, pitch: 0, fov: 70, boost: false }),
     heading = useRef({ yaw: 0, pitch: 0 }),
     velocity = useRef(new THREE.Vector3()),
@@ -18,7 +86,9 @@ export default function DroneNavigation() {
       >();
     let pinch = 0;
     const down = (e: PointerEvent) => {
-      if (e.button !== 0) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      touching.current = true;
+      lastTouch.current = performance.now();
       contacts.set(e.pointerId, {
         x: e.clientX,
         y: e.clientY,
@@ -32,6 +102,7 @@ export default function DroneNavigation() {
     const move = (e: PointerEvent) => {
       const p = contacts.get(e.pointerId);
       if (!p) return;
+      lastTouch.current = performance.now();
       const dx = e.clientX - p.x,
         dy = e.clientY - p.y;
       p.x = e.clientX;
@@ -57,12 +128,15 @@ export default function DroneNavigation() {
     };
     const up = (e: PointerEvent) => {
       contacts.delete(e.pointerId);
+      touching.current = contacts.size > 0;
+      lastTouch.current = performance.now();
       target.current.boost = false;
       pinch = 0;
     };
     const contextMenu = (e: Event) => e.preventDefault();
     const blur = () => {
       contacts.clear();
+      touching.current = false;
       target.current.boost = false;
       pinch = 0;
     };
@@ -128,7 +202,14 @@ export default function DroneNavigation() {
     const dt = Math.min(delta, 0.1),
       f = 1 - Math.exp(-dt * 4);
     if (state.paused) return;
-    if (state.travel && !state.reduced && camera.position.length() > 15) {
+    if (
+      state.travel &&
+      !state.reduced &&
+      !state.gyro &&
+      !touching.current &&
+      performance.now() - lastTouch.current > 1800 &&
+      camera.position.length() > 15
+    ) {
       inward.current.copy(camera.position).negate().normalize();
       const yaw = Math.atan2(-inward.current.x, -inward.current.z);
       target.current.yaw +=
@@ -146,12 +227,38 @@ export default function DroneNavigation() {
     }
     heading.current.yaw += (target.current.yaw - heading.current.yaw) * f;
     heading.current.pitch += (target.current.pitch - heading.current.pitch) * f;
-    camera.rotation.set(
-      heading.current.pitch,
-      heading.current.yaw,
-      Math.sin(target.current.yaw - heading.current.yaw) * 0.018,
-      "YXZ",
+    desired.current.setFromEuler(
+      rotation.current.set(
+        heading.current.pitch,
+        heading.current.yaw,
+        Math.sin(target.current.yaw - heading.current.yaw) * 0.018,
+        "YXZ",
+      ),
     );
+    if (state.recenter !== lastRecenter.current) {
+      lastRecenter.current = state.recenter;
+      reference.current.copy(device.current).invert();
+      base.current.copy(camera.quaternion);
+      target.current.yaw = 0;
+      target.current.pitch = 0;
+      heading.current.yaw = 0;
+      heading.current.pitch = 0;
+    }
+    if (state.gyro && hasSample.current) {
+      scratch.current.copy(reference.current).multiply(device.current);
+      desired.current.copy(base.current).multiply(scratch.current);
+      // Touch offsets remain available while the sensor controls the view.
+      scratch.current.setFromEuler(
+        rotation.current.set(
+          heading.current.pitch,
+          heading.current.yaw,
+          0,
+          "YXZ",
+        ),
+      );
+      desired.current.premultiply(scratch.current);
+    }
+    camera.quaternion.slerp(desired.current, 1 - Math.exp(-dt * 9));
     const c = camera as THREE.PerspectiveCamera;
     c.fov += (target.current.fov - c.fov) * f;
     c.updateProjectionMatrix();
@@ -165,15 +272,19 @@ export default function DroneNavigation() {
     if (!state.travel || state.reduced) velocity.current.set(0, 0, 0);
     camera.position.addScaledVector(velocity.current, dt);
     // Continuous radial drag: no wrap, teleport or abrupt forced camera cut.
-    if (camera.position.length() > 20)
+    if (state.travel && !state.reduced && camera.position.length() > 23)
       camera.position.multiplyScalar(
-        Math.exp(-dt * (camera.position.length() - 20) * 0.04),
+        Math.exp(-dt * (camera.position.length() - 23) * 0.04),
       );
     gl.domElement.dataset.cameraPosition = camera.position
       .toArray()
       .map((v) => v.toFixed(3))
       .join(",");
     gl.domElement.dataset.cameraFov = c.fov.toFixed(2);
+    gl.domElement.dataset.cameraQuaternion = camera.quaternion
+      .toArray()
+      .map((v) => v.toFixed(4))
+      .join(",");
   });
   return null;
 }

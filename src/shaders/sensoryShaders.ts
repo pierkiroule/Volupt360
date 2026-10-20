@@ -24,15 +24,18 @@ void main(){vLocal=position;vSeed=fract(instanceMatrix[3].x*.137+instanceMatrix[
 export const cloudFragment = /* glsl */ `${field}
 varying vec3 vLocal;varying vec3 vWorld;varying vec3 vNormal;varying float vSeed;
 void main(){
- float n=pigment(vLocal*2.6+vec3(vSeed*12.,uTime*.07,0.));
+ vec3 wet=vLocal+sin(vLocal.zxy*3.+uTime*.13)*.15;
+ float n=pigment(wet*2.6+vec3(vSeed*12.,uTime*.07,0.));
  float facing=abs(dot(normalize(vNormal),normalize(cameraPosition-vWorld)));
  float granule=noise(vLocal*38.+vSeed*7.);
  float wash=smoothstep(.34,.72,n)*(.22+.28*facing);
  float tide=exp(-pow(n-.44,2.)*1100.)*.32;
+ float capillary=pow(1.-abs(sin(n*58.+granule*1.2)),8.)*.1;
  float dry=sin(uTime*.17+vSeed*6.)*.5+.5;
  vec3 color=colors(clamp(vSeed*.6+n*.45,0.,1.));
- color*=1.-tide*.5-granule*.1*dry;
+ color*=1.-tide*.5-granule*.15*dry-capillary;
  float opacity=wash*(.45+uDensity*.4)*smoothstep(.02,.35,facing)*( .82+granule*.18);
+ opacity*=smoothstep(.3,1.5,length(cameraPosition-vWorld));
  gl_FragColor=vec4(color,opacity);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
@@ -65,10 +68,10 @@ void main(){float edge=1.-smoothstep(.3,1.,abs(vUv.y-.5)*2.);float wet=sin(vUv.x
 }`;
 export const pointVertex = /* glsl */ `${field}
 attribute float aSeed;varying float vSeed;
-void main(){vSeed=aSeed;vec3 p=flow(position);p+=vec3(sin(uTime*.7+aSeed*40.),cos(uTime*.5+aSeed*21.),sin(uTime*.6+aSeed*30.))*(.4+aSeed*.45);vec4 mv=viewMatrix*vec4(p,1.);gl_PointSize=min(22.,(1.+aSeed*4.)*65./max(1.,-mv.z));gl_Position=projectionMatrix*mv;}`;
+void main(){vSeed=aSeed;vec3 p=flow(position);p+=vec3(sin(uTime*.7+aSeed*40.),cos(uTime*.5+aSeed*21.),sin(uTime*.6+aSeed*30.))*(.4+aSeed*.45);vec4 mv=viewMatrix*vec4(p,1.);gl_PointSize=min(11.,(.7+aSeed*2.5)*55./max(1.,-mv.z));gl_Position=projectionMatrix*mv;}`;
 export const pointFragment = /* glsl */ `${field}
 varying float vSeed;
-void main(){vec2 q=gl_PointCoord-.5;float n=noise(vec3(q*9.,vSeed*30.));float d=length(q)*2.+(n-.5)*.28;float alpha=(1.-smoothstep(.3,1.,d))*(.12+vSeed*.18);gl_FragColor=vec4(colors(vSeed),alpha);
+void main(){vec2 q=gl_PointCoord-.5;float n=noise(vec3(q*9.,vSeed*30.));float d=length(q)*2.+(n-.5)*.28;float alpha=(1.-smoothstep(.3,1.,d))*(.06+vSeed*.12);gl_FragColor=vec4(colors(vSeed),alpha);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
 }`;

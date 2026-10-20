@@ -10,6 +10,9 @@ interface SkyState {
   phase: "welcome" | "compose" | "sky";
   editing: boolean;
   travel: boolean;
+  gyro: boolean;
+  gyroStatus: "off" | "waiting" | "active" | "unavailable";
+  recenter: number;
   paused: boolean;
   reduced: boolean;
   hidden: boolean;
@@ -31,6 +34,9 @@ interface SkyState {
         | "sound"
         | "volume"
         | "travel"
+        | "gyro"
+        | "gyroStatus"
+        | "recenter"
       >
     >,
   ) => void;
@@ -45,6 +51,9 @@ export const useSensoryStore = create<SkyState>((set, get) => ({
   phase: "welcome",
   editing: false,
   travel: false,
+  gyro: false,
+  gyroStatus: "off",
+  recenter: 0,
   paused: false,
   reduced: matchMedia("(prefers-reduced-motion:reduce)").matches,
   hidden: false,

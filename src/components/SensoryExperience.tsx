@@ -1,3 +1,4 @@
+import { requestGyroscope } from "../scene/gyroOrientation.ts";
 import {
   Component,
   lazy,
@@ -107,6 +108,18 @@ export default function SensoryExperience() {
     },
     [],
   );
+  const gyro = async () => {
+    if (s.gyro) {
+      s.patch({ gyro: false, gyroStatus: "off" });
+      return;
+    }
+    try {
+      await requestGyroscope();
+      s.patch({ gyro: true, gyroStatus: "waiting" });
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
   const sound = async () => {
     try {
       if (!s.sound) {
@@ -285,6 +298,11 @@ export default function SensoryExperience() {
             <>
               <header className="sensory-sky-heading">
                 <p>COSMOMOOD 360•°</p>
+                {s.gyroStatus === "unavailable" && (
+                  <small role="status">
+                    Capteur indisponible : glisse pour regarder autour de toi.
+                  </small>
+                )}
                 <small>
                   Glisser pour piloter · Maintenir pour accélérer · Pincer pour
                   le champ
@@ -300,6 +318,22 @@ export default function SensoryExperience() {
                 >
                   {s.travel ? "◉ Contempler" : "↗ Voyager"}
                 </button>
+                <button
+                  onClick={gyro}
+                  aria-pressed={s.gyro}
+                  aria-label="Gyroscope 360"
+                >
+                  {s.gyro
+                    ? s.gyroStatus === "active"
+                      ? "360° actif"
+                      : "360° en attente…"
+                    : "Gyro 360°"}
+                </button>
+                {s.gyro && (
+                  <button onClick={() => s.patch({ recenter: s.recenter + 1 })}>
+                    Recentrer
+                  </button>
+                )}
                 <button
                   onClick={() => s.patch({ editing: !s.editing })}
                   aria-label="Ouvrir les options"

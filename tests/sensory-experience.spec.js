@@ -290,3 +290,117 @@ test("CosmoMood contemplation stays in place and travelling resumes the same wor
     .not.toBe(position);
   await expect(canvas).toHaveAttribute("data-sky-seed", seed);
 });
+
+test("gyro permission, relative calibration, sensor motion, recenter and tactile fallback", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    DeviceOrientationEvent.requestPermission = async () => "granted";
+  });
+  await birth(page);
+  await page.getByRole("button", { name: "◉ Contempler", exact: true }).click();
+  const canvas = page.locator("canvas"),
+    position = await canvas.getAttribute("data-camera-position");
+  await page
+    .getByRole("button", { name: "Gyroscope 360", exact: true })
+    .click();
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new DeviceOrientationEvent("deviceorientation", {
+        alpha: 0,
+        beta: 90,
+        gamma: 0,
+      }),
+    ),
+  );
+  await expect(
+    page.getByRole("button", { name: "Gyroscope 360", exact: true }),
+  ).toContainText("actif");
+  await page.waitForTimeout(300);
+  const initial = await canvas.getAttribute("data-camera-quaternion");
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new DeviceOrientationEvent("deviceorientation", {
+        alpha: 50,
+        beta: 90,
+        gamma: 0,
+      }),
+    ),
+  );
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-quaternion"))
+    .not.toBe(initial);
+  await expect(canvas).toHaveAttribute("data-camera-position", position);
+  await page.getByRole("button", { name: "Recentrer", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Gyroscope 360", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Gyroscope 360", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await canvas.focus();
+  const before = await canvas.getAttribute("data-camera-quaternion");
+  await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-quaternion"))
+    .not.toBe(before);
+});
+test("gyro refusal keeps tactile navigation available", async ({ page }) => {
+  await page.addInitScript(() => {
+    DeviceOrientationEvent.requestPermission = async () => "denied";
+  });
+  await birth(page);
+  await page
+    .getByRole("button", { name: "Gyroscope 360", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText("refusée");
+  await expect(
+    page.getByRole("button", { name: "Gyroscope 360", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+});
+
+test("generative audio produces a bounded non-silent signal", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const Real = window.AudioContext;
+    window.AudioContext = class extends Real {
+      createGain() {
+        const gain = super.createGain();
+        if (!this.__tap) {
+          this.__tap = this.createAnalyser();
+          gain.connect(this.__tap);
+          window.__musicTap = this.__tap;
+        }
+        return gain;
+      }
+    };
+  });
+  await birth(page);
+  await page
+    .getByRole("button", { name: "Activer le son", exact: true })
+    .click();
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const analyser = window.__musicTap;
+          if (!analyser) return 0;
+          const data = new Float32Array(analyser.fftSize);
+          analyser.getFloatTimeDomainData(data);
+          return Math.sqrt(
+            data.reduce((sum, v) => sum + v * v, 0) / data.length,
+          );
+        }),
+      { timeout: 6000 },
+    )
+    .toBeGreaterThan(0.0001);
+  expect(
+    await page.evaluate(() => {
+      const analyser = window.__musicTap,
+        data = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(data);
+      return Math.max(...data.map(Math.abs));
+    }),
+  ).toBeLessThan(0.9);
+});

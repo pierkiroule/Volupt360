@@ -171,3 +171,32 @@ test("Plutchik families preserve their chromatic voices and non-linear mixed dyn
     ["joie", "peur", "surprise"],
   );
 });
+
+test("generative score has reproducible phrases, evolving harmony and bounded soft registers", async () => {
+  const { GenerativeScore } = await import("../src/audio/generativeScore.ts");
+  const a = new GenerativeScore(123),
+    b = new GenerativeScore(123);
+  const events = Array.from({ length: 256 }, () => a.next(0.5));
+  assert.deepEqual(
+    events,
+    Array.from({ length: 256 }, () => b.next(0.5)),
+  );
+  const flat = events.flat();
+  for (const kind of ["pad", "bass", "melody", "pulse"])
+    assert.ok(flat.some((e) => e.kind === kind));
+  assert.ok(
+    flat.every(
+      (e) => e.midi >= 28 && e.midi <= 76 && e.gain <= 0.12 && e.duration > 0,
+    ),
+  );
+  assert.notDeepEqual(events.slice(0, 32), events.slice(32, 64));
+});
+test("gyro conversion stays normalized across portrait and landscape orientation", async () => {
+  const { deviceQuaternion } = await import("../src/scene/gyroOrientation.ts");
+  const first = deviceQuaternion(0, 90, 0, 0),
+    turned = deviceQuaternion(50, 90, 0, 0),
+    landscape = deviceQuaternion(0, 90, 0, 90);
+  assert.ok(Math.abs(first.length() - 1) < 1e-10);
+  assert.ok(first.angleTo(turned) > 0.5);
+  assert.ok(first.angleTo(landscape) > 1);
+});

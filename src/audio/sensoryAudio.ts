@@ -1,82 +1,66 @@
 import type { SensoryParameters } from "../transduction/types.ts";
 import { seededRandom } from "../transduction/engine.ts";
-/** One bounded graph per sky. No audio is created before an explicit sound gesture. */
+import { GenerativeScore, type MusicalEvent } from "./generativeScore.ts";
+/** Look-ahead scheduling, bounded voices and a single stereo graph, unlocked by a user gesture. */
 export class SensoryAudio {
   context: AudioContext;
   private master: GainNode;
   private filter: BiquadFilterNode;
   private wet: GainNode;
-  private voices: { osc: OscillatorNode; gain: GainNode }[] = [];
   private timer: ReturnType<typeof setInterval>;
   private suspendTimer: ReturnType<typeof setTimeout> | undefined;
-  private random: () => number;
+  private score: GenerativeScore;
+  private nextBeat = 0;
   private params: SensoryParameters;
   private volume = 0.4;
-  private melodyIndex = 2;
   private playing = true;
   private closed = false;
+  private voices = new Set<OscillatorNode>();
   constructor(seed: number, params: SensoryParameters) {
-    this.context = new AudioContext();
-    const c = this.context;
+    const c = (this.context = new AudioContext());
     this.params = params;
-    this.random = seededRandom(seed);
+    this.score = new GenerativeScore(seed);
+    const random = seededRandom(seed);
     this.master = c.createGain();
     this.master.gain.value = 0;
-    const limiter = c.createDynamicsCompressor();
-    limiter.threshold.value = -20;
-    limiter.knee.value = 18;
-    limiter.ratio.value = 5;
-    limiter.attack.value = 0.02;
-    limiter.release.value = 0.4;
-    this.master.connect(limiter).connect(c.destination);
+    const compressor = c.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 18;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.025;
+    compressor.release.value = 0.35;
+    this.master.connect(compressor).connect(c.destination);
     this.filter = c.createBiquadFilter();
     this.filter.type = "lowpass";
-    this.filter.frequency.value = 1200;
+    this.filter.frequency.value = 2300;
     this.filter.Q.value = 0.35;
     this.filter.connect(this.master);
     const reverb = c.createConvolver(),
-      buffer = c.createBuffer(2, c.sampleRate * 3, c.sampleRate);
-    for (let channel = 0; channel < 2; channel++) {
-      const data = buffer.getChannelData(channel);
-      let smooth = 0;
+      impulse = c.createBuffer(2, c.sampleRate * 3.5, c.sampleRate);
+    for (let k = 0; k < 2; k++) {
+      const data = impulse.getChannelData(k);
+      let v = 0;
       for (let i = 0; i < data.length; i++) {
-        smooth = smooth * 0.65 + (this.random() * 2 - 1) * 0.35;
-        data[i] = smooth * Math.pow(1 - i / data.length, 2.6);
+        v = v * 0.6 + (random() * 2 - 1) * 0.4;
+        data[i] = v * Math.pow(1 - i / data.length, 2.4);
       }
     }
-    reverb.buffer = buffer;
+    reverb.buffer = impulse;
     this.wet = c.createGain();
     this.wet.gain.value = 0.3;
     this.filter.connect(reverb).connect(this.wet).connect(this.master);
-    const delay = c.createDelay(2),
+    const delay = c.createDelay(3),
       feedback = c.createGain(),
       damp = c.createBiquadFilter();
-    delay.delayTime.value = 0.73;
-    feedback.gain.value = 0.18;
-    damp.frequency.value = 850;
+    delay.delayTime.value = this.score.beat * 0.75;
+    feedback.gain.value = 0.23;
+    damp.frequency.value = 1500;
     this.filter.connect(delay).connect(damp).connect(feedback).connect(delay);
     feedback.connect(this.master);
-    [1, 1.5, 2, 2.5].forEach((ratio, i) => {
-      const osc = c.createOscillator(),
-        gain = c.createGain(),
-        lfo = c.createOscillator(),
-        depth = c.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 110 * ratio;
-      gain.gain.value = 0.12 / (i + 1);
-      lfo.frequency.value = 0.045 + i * 0.017;
-      depth.gain.value = 0.018 / (i + 1);
-      lfo.connect(depth).connect(gain.gain);
-      const pan = c.createStereoPanner();
-      pan.pan.value = Math.sin(seed * 0.001 + i * 1.7) * 0.55;
-      osc.connect(gain).connect(pan).connect(this.filter);
-      osc.start();
-      lfo.start();
-      this.voices.push({ osc, gain });
-    });
-    this.timer = setInterval(() => this.tick(), 1800);
+    this.nextBeat = c.currentTime + 0.08;
+    this.timer = setInterval(() => this.tick(), 80);
     this.update(params, 0.4);
-    void this.context.resume();
+    void c.resume();
   }
   update(params: SensoryParameters, volume: number) {
     if (this.closed) return;
@@ -84,59 +68,71 @@ export class SensoryAudio {
     this.volume = Math.max(0, Math.min(1, volume));
     const t = this.context.currentTime;
     this.filter.frequency.setTargetAtTime(
-      650 + (params.axes[4] + 1) * 550 - params.axes[6] * 180,
+      1700 + (params.axes[4] + 1) * 650 - params.axes[6] * 250,
       t,
-      1.3,
+      1.5,
     );
-    this.wet.gain.setTargetAtTime(0.2 + (params.axes[6] + 1) * 0.15, t, 1.8);
-    this.voices.forEach(({ osc, gain }, i) => {
-      osc.detune.setTargetAtTime(
-        Math.sin(i * 2) * (Math.max(0, -params.axes[2]) * 5 + 1),
-        t,
-        1.5,
-      );
-      gain.gain.setTargetAtTime(
-        (0.1 + (params.axes[2] + 1) * 0.025) / (i + 1),
-        t,
-        1.5,
-      );
-    });
+    this.wet.gain.setTargetAtTime(0.22 + (params.axes[6] + 1) * 0.12, t, 1.8);
     this.master.gain.setTargetAtTime(
-      this.playing ? this.volume * 0.55 : 0,
+      this.playing ? this.volume * 0.85 : 0,
       t,
-      0.3,
+      0.25,
     );
+  }
+  private note(event: MusicalEvent, time: number) {
+    if (this.voices.size >= 48) return;
+    const c = this.context,
+      osc = c.createOscillator(),
+      envelope = c.createGain(),
+      filter = c.createBiquadFilter(),
+      pan = c.createStereoPanner(),
+      frequency = 440 * Math.pow(2, (event.midi - 69) / 12);
+    osc.type = event.kind === "pad" ? "triangle" : "sine";
+    osc.frequency.value = frequency;
+    const attack =
+        event.kind === "pad" ? 1.4 : event.kind === "melody" ? 0.024 : 0.055,
+      release = event.kind === "pad" ? 2 : 1;
+    filter.type = "lowpass";
+    filter.frequency.value =
+      event.kind === "pad" ? 800 : event.kind === "bass" ? 260 : 2200;
+    filter.Q.value = 0.4;
+    envelope.gain.setValueAtTime(0.00001, time);
+    envelope.gain.exponentialRampToValueAtTime(event.gain, time + attack);
+    envelope.gain.exponentialRampToValueAtTime(
+      0.00001,
+      time + event.duration + release,
+    );
+    if (event.kind === "pulse") {
+      osc.frequency.setValueAtTime(72, time);
+      osc.frequency.exponentialRampToValueAtTime(39, time + 0.18);
+    }
+    if (event.kind === "melody") {
+      filter.frequency.setValueAtTime(2800, time);
+      filter.frequency.exponentialRampToValueAtTime(650, time + event.duration);
+    }
+    pan.pan.value = event.pan;
+    osc.connect(filter).connect(envelope).connect(pan).connect(this.filter);
+    this.voices.add(osc);
+    osc.start(time);
+    osc.stop(time + event.duration + release + 0.05);
+    osc.onended = () => {
+      this.voices.delete(osc);
+      osc.disconnect();
+      filter.disconnect();
+      envelope.disconnect();
+      pan.disconnect();
+    };
   }
   private tick() {
     if (!this.playing || this.closed || this.context.state !== "running")
       return;
-    const agitation = (this.params.axes[3] + 1) / 2;
-    if (this.random() > 0.12 + agitation * 0.35) return;
-    const c = this.context,
-      t = c.currentTime,
-      osc = c.createOscillator(),
-      gain = c.createGain();
-    osc.type = "sine";
-    // A small pentatonic walk shares the harmonic pad's root and major third.
-    this.melodyIndex = Math.max(
-      0,
-      Math.min(5, this.melodyIndex + (this.random() < 0.5 ? -1 : 1)),
-    );
-    osc.frequency.value =
-      220 * Math.pow(2, [0, 2, 4, 7, 9, 12][this.melodyIndex] / 12);
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.035, t + 0.6);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 3);
-    const pan = c.createStereoPanner();
-    pan.pan.value = (this.random() - 0.5) * 1.2;
-    osc.connect(gain).connect(pan).connect(this.filter);
-    osc.start();
-    osc.stop(t + 3.1);
-    osc.onended = () => {
-      osc.disconnect();
-      gain.disconnect();
-      pan.disconnect();
-    };
+    const now = this.context.currentTime;
+    if (this.nextBeat < now - 0.2) this.nextBeat = now + 0.04;
+    while (this.nextBeat < now + 0.25) {
+      for (const event of this.score.next((this.params.axes[3] + 1) / 2))
+        this.note(event, this.nextBeat);
+      this.nextBeat += this.score.beat;
+    }
   }
   async play(active: boolean) {
     if (this.closed) return;
@@ -158,7 +154,7 @@ export class SensoryAudio {
     clearInterval(this.timer);
     clearTimeout(this.suspendTimer);
     this.master.gain.setTargetAtTime(0, this.context.currentTime, 0.05);
-    const context = this.context;
-    setTimeout(() => void context.close(), 250);
+    const c = this.context;
+    setTimeout(() => void c.close(), 250);
   }
 }
