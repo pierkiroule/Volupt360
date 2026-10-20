@@ -1,39 +1,48 @@
-# Mon Ciel Sensoriel •°
+# CosmoMood 360•° — Mon univers émotionnel
 
-**Donne une forme à ce que tu ressens.**
+Une roue, une à trois émotions, un univers aquarellé à contempler ou à parcourir.
+La roue reprend les huit familles du modèle théorique de Robert Plutchik : joie,
+confiance, peur, surprise, tristesse, dégoût, colère et anticipation. Les opposés
+se font face, mais peuvent être sélectionnés ensemble. Les mélanges ne sont pas
+classés comme bons ou mauvais et ne donnent lieu à aucune interprétation automatique.
 
-L’entrée principale propose 12 émoji-tags sensoriels : choisir jusqu’à cinq sensations,
-régler leur intensité, puis entrer dans un univers aquarellé en trois dimensions. Les correspondances sont
-artistiques : aucun diagnostic, score ou profil psychologique n’est calculé.
+Il s’agit d’une adaptation artistique, pas d’un instrument psychométrique validé
+pour tous les publics, ni d’un diagnostic. Source du modèle : Robert Plutchik,
+« The Nature of Emotions », American Scientist, 89(4), 2001, p. 344–350 :
+https://www.americanscientist.org/article/the-nature-of-emotions
 
-## Utilisation
+## Parcours
 
-- Choisir parmi 12 émoji-tags, ajuster leurs intensités, faire naître le ciel.
-  Les symboles restent dans la palette : aucun émoji n’est déposé dans le monde.
-- Le voyage démarre en FPV entre les nuages de pigments, rubans et encres.
-  Glisser dirige le vol avec inertie ; maintenir accélère progressivement ;
-  pincer ouvre ou resserre le champ. Toucher une matière provoque une résonance locale.
-- « Vol actif » arrête l’avancée pour contempler sur place. Le regard reste libre.
-  Un champ de retour doux maintient le vol près de la sculpture, sans téléportation.
-- Au clavier : focus sur le ciel, flèches pour piloter, +/− pour le champ,
-  espace pour pause/reprise, Échap pour retrouver les commandes.
-- Aucune édition de la composition en vol : « Autre ciel » revient à la palette.
-- « Contempler » masque l’interface ; pause et retour aux commandes restent visibles.
-  Les options regroupent le volume, les mouvements réduits et la signature PNG.
-  Les mouvements réduits respectent le système et désactivent l’avancée automatique.
-- Le son est facultatif, activé exclusivement par un geste explicite. La pause et
-  la mise en arrière-plan suspendent le son ; la reprise reste volontaire.
-- Export PNG de la vue sans interface, signature facultative, sauvegarde/chargement
-  JSON et lien compact contenant la composition dans le fragment `#c=…`.
+- Choisir 1 à 3 émoji-tags sur la roue, avec une présence visuelle réglable.
+- Choisir **Contempler** (regard libre sur place) ou **Voyager** (FPV tactile).
+- Entrer dans un univers 3D commun : volumes de pigments, flux de lavis, auréoles,
+  encres et grains. Les émojis restent sur la roue, pas dans le monde.
+- Chaque famille apporte une palette et un vecteur de mouvement. Les couleurs
+  des émotions mêlées restent perceptibles ; leurs propriétés se combinent dans
+  un seul champ non linéaire. Ces correspondances sont des conventions artistiques.
+- En FPV : glisser dirige, maintenir accélère, pincer modifie le champ. Un retour
+  doux maintient le voyage près de la création. Basculer en contemplation garde
+  le même monde et la même position.
+- Pause, interface masquable, mouvements réduits, son facultatif, volume, PNG,
+  sauvegarde JSON et liens de partage sont conservés.
+- « Autre univers » revient à la roue ; aucun panneau de transformation pendant le vol.
 
-Les mots restent en mémoire de l’onglet. Pas d’analytics, de stockage serveur ni
-collecte ajoutés. Un fichier ou un lien partagé contient les mots et intensités :
-le partage est une action explicite. Les fichiers importés sont validés et bornés.
+`src/data/emotionWheel.ts` centralise les huit familles, leurs couleurs, leurs
+opposés et les vecteurs artistiques. `src/components/EmotionWheel.tsx` gère la roue
+accessible au toucher et au clavier. Le moteur reste indépendant du rendu :
+`src/transduction/engine.ts`. Les données sensorielles précédentes et le format
+JSON v1 restent lisibles ; la nouvelle roue limite les compositions à trois choix.
+
+Les anciens ateliers restent disponibles via leurs paramètres d’URL.
+
+---
+
+## Architecture du moteur réutilisé et historique sensoriel
 
 ## Architecture du parcours sensoriel
 
 - `src/data/sensoryWords.ts` : dictionnaire typé conservé pour la compatibilité des projets.
-- `src/data/sensoryTags.ts` : sélection éditoriale des 12 émoji-tags.
+- `src/data/emotionWheel.ts` : les huit familles de la roue émotionnelle.
 - `src/transduction/` : combinaison pondérée indépendante du rendu, interactions
   non linéaires, palette et champs de forces déterministes par graine.
 - `src/store/useSensoryStore.ts` : état Zustand, composition initiale, pause,

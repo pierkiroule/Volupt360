@@ -50,6 +50,7 @@ function Matter({
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
+      uResonance: { value: p.coupling },
       uA: {
         value: new THREE.Vector4(
           ...(p.axes.slice(0, 4) as [number, number, number, number]),
@@ -110,6 +111,7 @@ function Matter({
       f = 1 - Math.exp(-dt * 2);
     time.current += dt * (0.5 + p.speed * 2) * (state.reduced ? 0.07 : 1);
     uniforms.uTime.value = time.current;
+    uniforms.uResonance.value += (p.coupling - uniforms.uResonance.value) * f;
     for (let i = 0; i < 4; i++) {
       uniforms.uA.value.setComponent(
         i,

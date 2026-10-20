@@ -1,12 +1,13 @@
 import { test, expect } from "@playwright/test";
-async function birth(page, words = ["Flottement", "Douceur"]) {
+async function birth(page, words = ["Joie", "Confiance"]) {
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Composer mon ciel", exact: true })
+    .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
   for (const word of words)
     await page.getByRole("button", { name: word, exact: true }).click();
-  await page.getByRole("button", { name: "Faire naître mon ciel" }).click();
+  await page.getByRole("button", { name: "↗ Voyager", exact: true }).click();
+  await page.getByRole("button", { name: "Entrer dans mon univers" }).click();
   await expect(page.locator("canvas")).toBeVisible();
   await expect
     .poll(() => page.locator("canvas").getAttribute("data-sky-time"))
@@ -36,9 +37,9 @@ test("immersive sculpture renders, pauses, exports and preserves composition lin
   await page.waitForTimeout(250);
   await expect(canvas).toHaveAttribute("data-sky-time", paused);
   await expect(canvas).toHaveAttribute("data-camera-position", position);
-  await page.getByRole("button", { name: "Contempler sans interface" }).click();
+  await page.getByRole("button", { name: "Masquer l’interface" }).click();
   await expect(
-    page.getByRole("navigation", { name: "Commandes du ciel" }),
+    page.getByRole("navigation", { name: "Commandes de l’univers" }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Reprendre l’expérience" }),
@@ -46,10 +47,10 @@ test("immersive sculpture renders, pauses, exports and preserves composition lin
   await page.getByRole("button", { name: "Afficher les commandes" }).click();
   let download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Image PNG", exact: true }).click();
-  expect((await download).suggestedFilename()).toBe("mon-ciel-sensoriel.png");
+  expect((await download).suggestedFilename()).toBe("cosmomood-360.png");
   download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
-  expect((await download).suggestedFilename()).toBe("mon-ciel-sensoriel.json");
+  expect((await download).suggestedFilename()).toBe("cosmomood-360.json");
   await page.getByRole("button", { name: "Partager", exact: true }).click();
   const url = await page
     .getByRole("textbox", { name: "Lien de composition" })
@@ -59,23 +60,23 @@ test("immersive sculpture renders, pauses, exports and preserves composition lin
   await expect(page.locator("canvas")).toHaveAttribute("data-sky-seed", seed);
   expect(errors).toEqual([]);
 });
-test("twelve compact emoji tags, intensities and five-sensation limit", async ({
+test("emotion wheel permits three coexisting choices and keeps intensity control", async ({
   page,
 }) => {
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Composer mon ciel", exact: true })
+    .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
-  await expect(page.locator(".sensory-emoji-tags button")).toHaveCount(12);
-  for (const w of ["Légèreté", "Douceur", "Calme", "Tension", "Frisson"])
+  await expect(page.locator(".cosmo-petal")).toHaveCount(8);
+  for (const w of ["Joie", "Tristesse", "Colère"])
     await page.getByRole("button", { name: w, exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Chaleur", exact: true }),
+    page.getByRole("button", { name: "Surprise", exact: true }),
   ).toBeDisabled();
   await page
-    .getByRole("slider", { name: "Intensité Tension", exact: true })
+    .getByRole("slider", { name: "Présence Colère", exact: true })
     .fill("90");
-  await page.getByRole("button", { name: "Faire naître mon ciel" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon univers" }).click();
   await page.locator('input[type="file"]').setInputFiles({
     name: "invalid.json",
     mimeType: "application/json",
@@ -98,7 +99,7 @@ test("actual drone translation, gestures, pause travel and reduced motion", asyn
   await page.mouse.down();
   await page.mouse.move(rect.x + 280, rect.y + 420, { steps: 10 });
   await page.mouse.up();
-  await page.getByRole("button", { name: "Vol actif", exact: true }).click();
+  await page.getByRole("button", { name: "◉ Contempler", exact: true }).click();
   await page.waitForTimeout(100);
   const still = await canvas.getAttribute("data-camera-position");
   await page.waitForTimeout(250);
@@ -110,9 +111,7 @@ test("actual drone translation, gestures, pause travel and reduced motion", asyn
   await page.getByRole("button", { name: "Ouvrir les options" }).click();
   await page.getByRole("checkbox", { name: "Mouvements réduits" }).check();
   await page.getByRole("button", { name: "Fermer les réglages" }).click();
-  await page
-    .getByRole("button", { name: "Reprendre le vol", exact: true })
-    .click();
+  await page.getByRole("button", { name: "↗ Voyager", exact: true }).click();
   await page.waitForTimeout(100);
   const reduced = await canvas.getAttribute("data-camera-position");
   await page.waitForTimeout(200);
@@ -136,7 +135,7 @@ test("sound is opt-in, graph resumes and pause suspends audio", async ({
       }
     };
   });
-  await birth(page, ["Fluidité", "Calme"]);
+  await birth(page, ["Joie", "Confiance"]);
   expect(await page.evaluate(() => window.__audio.length)).toBe(0);
   await page.getByRole("button", { name: "Activer le son" }).click();
   await expect
@@ -167,12 +166,12 @@ test("WebGL unavailable retains simplified sky and PNG export", async ({
   });
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Composer mon ciel", exact: true })
+    .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
-  await page.getByRole("button", { name: "Flottement", exact: true }).click();
-  await page.getByRole("button", { name: "Faire naître mon ciel" }).click();
+  await page.getByRole("button", { name: "Joie", exact: true }).click();
+  await page.getByRole("button", { name: "Entrer dans mon univers" }).click();
   await expect(
-    page.getByRole("img", { name: /Ciel sensoriel simplifié/ }),
+    page.getByRole("img", { name: /Univers émotionnel simplifié/ }),
   ).toBeVisible();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Image PNG", exact: true }).click();
@@ -207,11 +206,11 @@ test("saved compositions keep their seed and survive context loss", async ({
       c.dispatchEvent(new Event("webglcontextlost", { cancelable: true })),
     );
   await expect(
-    page.getByRole("img", { name: /Ciel sensoriel simplifié/ }),
+    page.getByRole("img", { name: /Univers émotionnel simplifié/ }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Autre ciel" }).click();
+  await page.getByRole("button", { name: "Autre univers" }).click();
   await expect(
-    page.getByRole("slider", { name: "Intensité Une marge", exact: true }),
+    page.getByRole("slider", { name: "Présence Une marge", exact: true }),
   ).toHaveValue("82");
 });
 
@@ -222,7 +221,7 @@ test("native mobile pinch changes the camera field and remains controllable", as
   await page.setViewportSize({ width: 390, height: 844 });
   await birth(page);
   const canvas = page.locator("canvas");
-  await page.getByRole("button", { name: "Vol actif", exact: true }).click();
+  await page.getByRole("button", { name: "◉ Contempler", exact: true }).click();
   const fov = Number(await canvas.getAttribute("data-camera-fov"));
   const cdp = await context.newCDPSession(page);
   await cdp.send("Input.dispatchTouchEvent", {
@@ -257,4 +256,37 @@ test("native mobile pinch changes the camera field and remains controllable", as
   await expect(
     page.getByRole("button", { name: "Reprendre l’expérience" }),
   ).toBeVisible();
+});
+
+test("CosmoMood contemplation stays in place and travelling resumes the same world", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /CosmoMood/ })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Composer mon univers", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Joie", exact: true }).click();
+  await page.getByRole("button", { name: "Tristesse", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Joie", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("button", { name: "Tristesse", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "◉ Contempler", exact: true }).click();
+  await page.getByRole("button", { name: "Entrer dans mon univers" }).click();
+  const canvas = page.locator("canvas");
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-position"))
+    .not.toBeNull();
+  const seed = await canvas.getAttribute("data-sky-seed"),
+    position = await canvas.getAttribute("data-camera-position");
+  await page.waitForTimeout(300);
+  await expect(canvas).toHaveAttribute("data-camera-position", position);
+  await page.getByRole("button", { name: "↗ Voyager", exact: true }).click();
+  await expect
+    .poll(() => canvas.getAttribute("data-camera-position"))
+    .not.toBe(position);
+  await expect(canvas).toHaveAttribute("data-sky-seed", seed);
 });

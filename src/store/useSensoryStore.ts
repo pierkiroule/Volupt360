@@ -44,7 +44,7 @@ export const useSensoryStore = create<SkyState>((set, get) => ({
   initial: null,
   phase: "welcome",
   editing: false,
-  travel: true,
+  travel: false,
   paused: false,
   reduced: matchMedia("(prefers-reduced-motion:reduce)").matches,
   hidden: false,
@@ -53,11 +53,17 @@ export const useSensoryStore = create<SkyState>((set, get) => ({
   setPhase: (phase) => set({ phase }),
   setWords: (words) =>
     set((s) => ({
-      composition: { ...s.composition, words: words.slice(0, 5) },
+      composition: { ...s.composition, words: words.slice(0, 3) },
     })),
   birth: () => {
     const initial = parseComposition(serializeComposition(get().composition));
-    set({ initial, phase: "sky", editing: false, paused: false, travel: true });
+    set({
+      initial,
+      phase: "sky",
+      editing: false,
+      paused: false,
+      travel: get().travel,
+    });
   },
   restore: () => {
     const initial = get().initial;

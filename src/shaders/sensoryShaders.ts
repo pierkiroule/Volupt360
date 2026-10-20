@@ -1,5 +1,5 @@
 export const field = /* glsl */ `
-uniform float uTime; uniform vec4 uA; uniform vec4 uB;
+uniform float uTime; uniform float uResonance; uniform vec4 uA; uniform vec4 uB;
 uniform vec3 uColor0; uniform vec3 uColor1; uniform vec3 uColor2;
 uniform float uSoftness; uniform float uStretch; uniform float uDensity;
 uniform vec3 uTouch; uniform float uTouchTime;
@@ -10,7 +10,7 @@ vec3 flow(vec3 p){
  float t=uTime,irregularity=(uB.w+1.)*.5;
  vec3 drift=vec3(sin(p.y*.31+t*.55)+cos(p.z*.24-t*.28),sin(p.z*.28+t*.4),cos(p.x*.3+t*.38)-sin(p.y*.22-t*.32));
  p.x*=1.+uA.y*.17;p.y*=1.+(uStretch-1.)*.36;p.z*=1.+uB.z*.2;
- p+=drift*(.55+(uA.z+1.)*.4);
+ p+=drift*(.55+(uA.z+1.)*.4+uResonance*.45);
  p.y-=uA.x*.35;
  p+=vec3(sin(p.z*.8+t),cos(p.x*.7-t*.8),sin(p.y*.6+t*.7))*irregularity*.22;
  float age=max(0.,t-uTouchTime);float ring=exp(-pow(length(p-uTouch)-age*1.4,2.)*1.2)*exp(-age*.65);

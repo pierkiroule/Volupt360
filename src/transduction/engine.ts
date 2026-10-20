@@ -1,3 +1,4 @@
+import { emotionFor } from "../data/emotionWheel.ts";
 import type {
   SensoryComposition,
   SensoryParameters,
@@ -63,13 +64,32 @@ export function transduce(composition: SensoryComposition): SensoryParameters {
       1) +
       1) %
     1;
+  // Keep each selected family's chromatic voice; opposing feelings do not cancel into grey.
+  const emotional = words.filter((w) => emotionFor(w.id));
+  const palette: [number, number, number][] = emotional.length
+    ? Array.from({ length: 3 }, (_, i) => {
+        const word = emotional[i % emotional.length],
+          emotion = emotionFor(word.id)!;
+        const offset =
+          emotional.length === 1
+            ? (i - 1) * 0.055
+            : i === 2 && emotional.length === 2
+              ? 0.035
+              : 0;
+        return hsl(
+          (emotion.hue + offset + variation * 0.025 + 1) % 1,
+          0.32 + word.intensity * 0.0025,
+          0.59 + i * 0.035,
+        );
+      })
+    : [
+        hsl(hue, 0.4 + clarity * 0.08, 0.62),
+        hsl((hue + 0.12 + expansion * 0.1 + 1) % 1, 0.43, 0.68),
+        hsl((hue - 0.2 + 1) % 1, 0.38, 0.61),
+      ];
   return {
     axes,
-    palette: [
-      hsl(hue, 0.4 + clarity * 0.08, 0.62),
-      hsl((hue + 0.12 + expansion * 0.1 + 1) % 1, 0.43, 0.68),
-      hsl((hue - 0.2 + 1) % 1, 0.38, 0.61),
-    ],
+    palette,
     speed: 0.055 + (agitation + 1) * 0.12,
     stretch: 1 + rigidity * 1.25 + coupling * 0.9,
     spread: 0.85 + expansion * 0.34,

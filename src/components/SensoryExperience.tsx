@@ -10,8 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSensoryStore } from "../store/useSensoryStore.ts";
-import { SENSORY_WORDS as sensoryWords } from "../data/sensoryWords.ts";
-import { SENSORY_TAGS, emojiFor } from "../data/sensoryTags.ts";
+import EmotionWheel from "./EmotionWheel.tsx";
 import { transduce } from "../transduction/engine.ts";
 import {
   decodeComposition,
@@ -37,72 +36,6 @@ class SceneBoundary extends Component<
     return this.state.failed ? this.props.fallback : this.props.children;
   }
 }
-function WordComposer() {
-  const { composition, setWords } = useSensoryStore();
-  const words = composition.words;
-  return (
-    <>
-      <div className="sensory-emoji-tags" aria-label="Sensations à composer">
-        {SENSORY_TAGS.map((tag) => {
-          const word = sensoryWords.find((w) => w.id === tag.id)!;
-          const selected = words.some((w) => w.id === tag.id);
-          return (
-            <button
-              key={tag.id}
-              aria-label={word.label}
-              aria-pressed={selected}
-              disabled={words.length >= 5 && !selected}
-              onClick={() =>
-                setWords(
-                  selected
-                    ? words.filter((w) => w.id !== tag.id)
-                    : [...words, { ...word, intensity: 65 }],
-                )
-              }
-            >
-              <span aria-hidden="true">{tag.emoji}</span>
-              <small>{word.label}</small>
-            </button>
-          );
-        })}
-      </div>
-      <p className="sensory-count">
-        1 à 5 sensations · Des inspirations, aucune mesure de ton état.
-      </p>
-      {words.length > 0 && (
-        <button className="sensory-link" onClick={() => setWords([])}>
-          Effacer la sélection
-        </button>
-      )}
-      <div className="sensory-tag-intensities">
-        {words.map((word) => (
-          <label key={word.id}>
-            <span>
-              {emojiFor(word.id)} {word.label}
-            </span>
-            <input
-              aria-label={`Intensité ${word.label}`}
-              type="range"
-              min="0"
-              max="100"
-              value={word.intensity}
-              onChange={(e) =>
-                setWords(
-                  words.map((w) =>
-                    w.id === word.id
-                      ? { ...w, intensity: Number(e.target.value) }
-                      : w,
-                  ),
-                )
-              }
-            />
-            <output>{word.intensity}%</output>
-          </label>
-        ))}
-      </div>
-    </>
-  );
-}
 export default function SensoryExperience() {
   const s = useSensoryStore(),
     [error, setError] = useState(""),
@@ -119,11 +52,11 @@ export default function SensoryExperience() {
     onFailure = useCallback(() => {
       setSimple(true);
       setError(
-        "WebGL indisponible : le ciel reste accessible en vue simplifiée.",
+        "WebGL indisponible : l’univers reste accessible en vue simplifiée.",
       );
     }, []);
   useEffect(() => {
-    document.title = "Mon Ciel Sensoriel •°";
+    document.title = "CosmoMood 360•°";
     const hash = new URLSearchParams(location.hash.slice(1)).get("c");
     if (hash) {
       try {
@@ -193,7 +126,7 @@ export default function SensoryExperience() {
   };
   const png = async () => {
     try {
-      if (!capture.current) throw Error("Le ciel se prépare encore.");
+      if (!capture.current) throw Error("L’univers se prépare encore.");
       let blob = await capture.current();
       if (signature) {
         const img = await createImageBitmap(blob),
@@ -204,7 +137,7 @@ export default function SensoryExperience() {
         ctx.drawImage(img, 0, 0);
         ctx.font = `${Math.max(14, canvas.width / 65)}px serif`;
         ctx.fillStyle = "#ffffffcc";
-        ctx.fillText("Mon Ciel Sensoriel •°", 24, canvas.height - 24);
+        ctx.fillText("CosmoMood 360•°", 24, canvas.height - 24);
         img.close();
         blob = await new Promise<Blob>((resolve, reject) =>
           canvas.toBlob((b) =>
@@ -212,7 +145,7 @@ export default function SensoryExperience() {
           ),
         );
       }
-      downloadBlob(blob, "mon-ciel-sensoriel.png");
+      downloadBlob(blob, "cosmomood-360.png");
     } catch (err) {
       setError((err as Error).message);
     }
@@ -256,21 +189,19 @@ export default function SensoryExperience() {
           <div className="sensory-ink" aria-hidden="true" />
           <p className="sensory-eyebrow">Une exploration sensorielle</p>
           <h1>
-            MON CIEL
+            CosmoMood
             <br />
-            SENSORIEL <span>•°</span>
+            360<span>•°</span>
           </h1>
-          <p className="sensory-signature">
-            Donne une forme à ce que tu ressens.
-          </p>
+          <p className="sensory-signature">Mon univers émotionnel.</p>
           <p className="sensory-question">
-            Quelles sensations aimerais-tu explorer ?
+            Quelles émotions habitent ton univers aujourd’hui ?
           </p>
           <button
             className="sensory-primary"
             onClick={() => s.setPhase("compose")}
           >
-            Composer mon ciel
+            Composer mon univers
           </button>
           <button
             className="sensory-link"
@@ -293,18 +224,38 @@ export default function SensoryExperience() {
           >
             ← Accueil
           </button>
-          <h1>Composer mon ciel</h1>
+          <h1>Composer mon univers</h1>
           <p>
-            Choisis quelques sensations. Elles se mêlent en un univers à
-            traverser.
+            Choisis 1 à 3 émoji-tags sur la roue. Leurs échos composent un monde
+            vivant, à contempler ou à traverser.
           </p>
-          <WordComposer />
+          <EmotionWheel />
+          <div
+            className="cosmo-entry-mode"
+            role="group"
+            aria-label="Mode d’exploration"
+          >
+            <button
+              aria-pressed={!s.travel}
+              onClick={() => s.patch({ travel: false })}
+            >
+              ◉ Contempler
+            </button>
+            <button
+              aria-pressed={s.travel}
+              onClick={() => s.patch({ travel: true })}
+            >
+              ↗ Voyager
+            </button>
+          </div>
           <button
             className="sensory-primary"
-            disabled={!s.composition.words.length}
+            disabled={
+              !s.composition.words.length || s.composition.words.length > 3
+            }
             onClick={s.birth}
           >
-            Faire naître mon ciel
+            Entrer dans mon univers
           </button>
         </section>
       )}
@@ -323,30 +274,31 @@ export default function SensoryExperience() {
             <button
               onClick={() => s.patch({ hidden: !s.hidden })}
               aria-label={
-                s.hidden
-                  ? "Afficher les commandes"
-                  : "Contempler sans interface"
+                s.hidden ? "Afficher les commandes" : "Masquer l’interface"
               }
             >
               {s.hidden ? "☷" : "◉"}
-              <span>{s.hidden ? "Commandes" : "Contempler"}</span>
+              <span>{s.hidden ? "Commandes" : "Immersion"}</span>
             </button>
           </div>
           {!s.hidden && (
             <>
               <header className="sensory-sky-heading">
-                <p>MON CIEL SENSORIEL •°</p>
+                <p>COSMOMOOD 360•°</p>
                 <small>
                   Glisser pour piloter · Maintenir pour accélérer · Pincer pour
                   le champ
                 </small>
               </header>
-              <nav className="sensory-toolbar" aria-label="Commandes du ciel">
+              <nav
+                className="sensory-toolbar"
+                aria-label="Commandes de l’univers"
+              >
                 <button
                   onClick={() => s.patch({ travel: !s.travel })}
                   aria-pressed={s.travel}
                 >
-                  {s.travel ? "Vol actif" : "Reprendre le vol"}
+                  {s.travel ? "◉ Contempler" : "↗ Voyager"}
                 </button>
                 <button
                   onClick={() => s.patch({ editing: !s.editing })}
@@ -367,7 +319,7 @@ export default function SensoryExperience() {
                     s.setPhase("compose");
                   }}
                 >
-                  Autre ciel
+                  Autre univers
                 </button>
                 <button onClick={sound} aria-pressed={s.sound}>
                   {s.sound ? "Son activé" : "Activer le son"}
@@ -379,7 +331,7 @@ export default function SensoryExperience() {
                       new Blob([serializeComposition(s.composition)], {
                         type: "application/json",
                       }),
-                      "mon-ciel-sensoriel.json",
+                      "cosmomood-360.json",
                     )
                   }
                 >

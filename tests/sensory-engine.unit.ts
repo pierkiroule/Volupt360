@@ -141,3 +141,33 @@ test("spatial sculpture is reproducible and has bounded, continuous 3D buffers",
     }
   }
 });
+
+test("Plutchik families preserve their chromatic voices and non-linear mixed dynamics", async () => {
+  const { EMOTION_WHEEL } = await import("../src/data/emotionWheel.ts");
+  assert.equal(EMOTION_WHEEL.length, 8);
+  const compose = (ids: string[]): SensoryComposition => ({
+    version: 1,
+    seed: 430,
+    words: ids.map((id) => ({
+      ...EMOTION_WHEEL.find((w) => w.id === id)!,
+      intensity: 80,
+    })),
+  });
+  for (let i = 0; i < 8; i++)
+    assert.equal(EMOTION_WHEEL[(i + 4) % 8].id, EMOTION_WHEEL[i].opposite);
+  const joy = transduce(compose(["joie"])),
+    sad = transduce(compose(["tristesse"])),
+    mixed = transduce(compose(["joie", "tristesse"]));
+  assert.notDeepEqual(joy.palette, sad.palette);
+  assert.notEqual(joy.speed, sad.speed);
+  assert.notEqual(joy.axes[0], sad.axes[0]);
+  assert.notDeepEqual(mixed.palette[0], mixed.palette[1]);
+  assert.ok(mixed.coupling > 0);
+  assert.deepEqual(mixed, transduce(compose(["tristesse", "joie"])));
+  assert.deepEqual(
+    decodeComposition(
+      encodeComposition(compose(["joie", "peur", "surprise"])),
+    ).words.map((w) => w.id),
+    ["joie", "peur", "surprise"],
+  );
+});

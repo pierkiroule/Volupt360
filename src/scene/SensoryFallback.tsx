@@ -68,7 +68,7 @@ export default function SensoryFallback({
       preserveAspectRatio="xMidYMid slice"
       className={`sensory-fallback ${state.paused || state.reduced ? "is-still" : ""}`}
       role="img"
-      aria-label="Ciel sensoriel simplifié, voiles de pigments"
+      aria-label="Univers émotionnel simplifié, voiles de pigments"
     >
       <defs>
         <filter id="sky-grain">
