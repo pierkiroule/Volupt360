@@ -1,3 +1,4 @@
+import { createPigmentEnvelope } from "./createPigmentEnvelope.js";
 import { spatialBrushPoint } from "./spatialBrushFrame.js";
 import { createPigmentPlate } from "./createPigmentPlate.js";
 import {
@@ -26,8 +27,8 @@ export function createPictorialLandscape() {
   let mesh = null,
     energy = new Float32Array(6),
     active = false;
-  let accent = 0,
-    previousLevel = 0;
+  const envelope = createPigmentEnvelope();
+  energy = envelope.bands;
   const plates = [];
   const uniforms = {
     time: { value: 0 },
@@ -37,7 +38,7 @@ export function createPictorialLandscape() {
     dryPlate: { value: null },
     pixelRatio: { value: Math.min(globalThis.devicePixelRatio || 1, 2) },
   };
-  function clear() {
+  function clear(resetMotion = true) {
     for (const child of group.children) {
       child.geometry.dispose();
       child.material.dispose();
@@ -46,9 +47,10 @@ export function createPictorialLandscape() {
     group.clear();
     bounds.makeEmpty();
     active = false;
-    energy.fill(0);
-    accent = previousLevel = 0;
-    uniforms.accent.value = 0;
+    if (resetMotion) {
+      envelope.reset();
+      uniforms.accent.value = 0;
+    }
   }
   return {
     group,
@@ -57,7 +59,7 @@ export function createPictorialLandscape() {
       return active;
     },
     setDocument(doc) {
-      clear();
+      clear(false);
       if (doc.kind !== "emoji-painting") return;
       active = true;
       if (!plates.length) {
@@ -77,6 +79,7 @@ export function createPictorialLandscape() {
         data = [],
         motifs = [],
         centers = [],
+        flowCoordinates = [],
         indices = [],
         uv = [];
       const tint = new THREE.Color();
@@ -104,7 +107,8 @@ export function createPictorialLandscape() {
             centers.push(...pictorialPoint(p, path.layer, path.frame));
             bounds.expandByPoint(new THREE.Vector3(...world));
             colors.push(tint.r, tint.g, tint.b);
-            data.push(path.band, path.opacity, path.layer);
+            data.push(path.band, path.opacity, path.phase ?? path.layer);
+            flowCoordinates.push(p.x * 12 + p.y * 7);
             motifs.push(
               Math.max(
                 0,
@@ -128,6 +132,10 @@ export function createPictorialLandscape() {
       g.setAttribute(
         "centerLine",
         new THREE.Float32BufferAttribute(centers, 3),
+      );
+      g.setAttribute(
+        "flowCoordinate",
+        new THREE.Float32BufferAttribute(flowCoordinates, 1),
       );
       g.setAttribute("data", new THREE.Float32BufferAttribute(data, 3));
       g.setAttribute("motif", new THREE.Float32BufferAttribute(motifs, 1));
@@ -176,7 +184,15 @@ export function createPictorialLandscape() {
             Math.min(0.35, Math.max(0.12, dot.size * 140)),
           );
           pm.push(motif);
-          seeds.push((i * 0.618034 + copy * 0.37) % 1);
+          seeds.push(
+            (((dot.x * 19 +
+              dot.y * 13 +
+              (dot.phase ?? dot.layer) * 0.137 +
+              copy * 0.37) %
+              1) +
+              1) %
+              1,
+          );
         }
       }
       dots.setAttribute("position", new THREE.Float32BufferAttribute(dp, 3));
@@ -204,25 +220,10 @@ export function createPictorialLandscape() {
     update(time, audio, dt) {
       if (!active) return;
       uniforms.time.value = time;
-      const delta = THREE.MathUtils.clamp(dt || 0, 0, 0.1);
-      const finite = (value) =>
-        Number.isFinite(value) ? THREE.MathUtils.clamp(value, 0, 1) : 0;
-      const level = finite(audio.energy);
-      const onset = Math.max(
-        finite(audio.flux) * 0.6,
-        Math.max(0, level - previousLevel) * 4,
-      );
-      previousLevel = level;
-      accent +=
-        (onset - accent) * (1 - Math.exp(-delta * (onset > accent ? 12 : 2.4)));
-      uniforms.accent.value = accent;
-      for (let i = 0; i < 6; i++) {
-        const target = Math.pow(finite(audio.bands?.[i] ?? audio.energy), 0.72);
-        energy[i] +=
-          (target - energy[i]) *
-          (1 - Math.exp(-delta * (target > energy[i] ? 5.5 : 1.7)));
-      }
+      envelope.update(audio, dt);
+      uniforms.accent.value = envelope.accent;
     },
+    motion: envelope,
     clear,
     dispose() {
       this.clear();

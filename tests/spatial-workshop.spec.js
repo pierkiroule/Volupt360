@@ -286,3 +286,82 @@ test("the menu is translucent at rest and becomes readable for keyboard interact
     page.getByRole("button", { name: "Sculpter", exact: true }),
   ).toHaveCSS("min-height", "44px");
 });
+
+test("audio envelopes absorb impacts without jumps and survive live geometry reconstruction", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const { createPigmentEnvelope } =
+        await import("/src/chill/createPigmentEnvelope.js"),
+      { createPictorialLandscape } =
+        await import("/src/chill/createPictorialLandscape.js"),
+      { createEmojiPainting } = await import("/src/chill/emojiPainting.js");
+    const env = createPigmentEnvelope();
+    env.update({ bands: [1, 0, 0, 0, 0, 0], flux: 1, energy: 1 }, 1 / 60);
+    const first = env.bands[0];
+    let maxStep = 0,
+      last = first;
+    for (let i = 0; i < 360; i++) {
+      env.update(
+        { bands: [i % 2, 0, 0, 0, 0, 0], flux: i % 2, energy: i % 2 },
+        1 / 60,
+      );
+      maxStep = Math.max(maxStep, Math.abs(env.bands[0] - last));
+      last = env.bands[0];
+    }
+    const stable = env.bands[0],
+      accent = env.accent,
+      local = env.bands[2];
+    for (let i = 0; i < 180; i++) env.update({ energy: 0 }, 1 / 60);
+    const released = env.bands[0];
+    const stroke = {
+      emojiId: "water",
+      size: 0.05,
+      opacity: 0.8,
+      phase: 0.618,
+      points: [
+        { x: 0, y: 0 },
+        { x: 0.2, y: 0 },
+      ],
+    };
+    const landscape = createPictorialLandscape();
+    landscape.setDocument(createEmojiPainting([stroke]));
+    for (let i = 0; i < 180; i++)
+      landscape.update(i / 60, { bands: [0.8, 0, 0, 0, 0, 0] }, 1 / 60);
+    const mesh = landscape.group.children[0],
+      before = landscape.motion.snapshot(),
+      prefix = Array.from(mesh.geometry.attributes.flowCoordinate.array).slice(
+        0,
+        12,
+      );
+    landscape.setDocument(
+      createEmojiPainting([
+        { ...stroke, points: [...stroke.points, { x: 0.4, y: 0 }] },
+      ]),
+    );
+    const after = landscape.motion.snapshot(),
+      newPrefix = Array.from(
+        landscape.group.children[0].geometry.attributes.flowCoordinate.array,
+      ).slice(0, 12);
+    landscape.dispose();
+    return {
+      first,
+      maxStep,
+      stable,
+      accent,
+      local,
+      released,
+      preserved: JSON.stringify(before) === JSON.stringify(after),
+      prefixStable: JSON.stringify(prefix) === JSON.stringify(newPrefix),
+    };
+  });
+  expect(r.first).toBeLessThan(0.005);
+  expect(r.maxStep).toBeLessThan(0.02);
+  expect(r.stable).toBeGreaterThan(0.35);
+  expect(r.accent).toBeLessThan(0.2);
+  expect(r.local).toBe(0);
+  expect(r.released).toBeLessThan(r.stable * 0.2); // Most motion settles over three seconds, without an abrupt cut.
+  expect(r.preserved).toBe(true);
+  expect(r.prefixStable).toBe(true);
+});

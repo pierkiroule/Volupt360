@@ -248,6 +248,10 @@ export function createEmojiPainting(strokes) {
         size: size * 2,
         opacity,
       };
+      for (let i = firstPath; i < paths.length; i++)
+        paths[i].phase = stroke.phase ?? layer;
+      for (let i = firstDot; i < dots.length; i++)
+        dots[i].phase = stroke.phase ?? layer;
       if (stroke.frame) {
         for (let i = firstPath; i < paths.length; i++)
           paths[i].frame = stroke.frame;

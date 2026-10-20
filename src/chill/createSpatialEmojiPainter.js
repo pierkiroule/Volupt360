@@ -65,6 +65,7 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
     active = null;
     dirty = false;
     guideGeometry.setDrawRange(0, 0);
+    paint.motion.copyFrom(preview.motion);
     preview.clear();
     paint.setDocument(getDocument());
     report();
@@ -78,7 +79,8 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
     if (active && tip.distanceTo(last) > tool.depth * 1.5) commit(); // never bridge a camera reset
     if (active?.points.length >= MAX_STROKE_POINTS) commit();
     if (strokes.length >= MAX_PAINT_STROKES) return;
-    up.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    if (active) up.fromArray(active.frame.spine.at(-1).up);
+    else up.set(0, 1, 0).applyQuaternion(camera.quaternion);
     if (active) tangent.subVectors(tip, last).normalize();
     else tangent.copy(forward);
     side.crossVectors(tangent, up);
@@ -96,8 +98,10 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
       direction: tangent.toArray(),
     };
     if (!active) {
+      preview.motion.copyFrom(paint.motion);
       active = {
         ...tool,
+        phase: strokes.length * 0.618,
         points: [{ x: t, y: 0 }],
         frame: { scale: tool.depth * 1.5, spine: [sample] },
       };

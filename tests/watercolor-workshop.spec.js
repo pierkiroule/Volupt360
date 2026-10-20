@@ -1023,7 +1023,7 @@ test("pictorial pigments respond locally, release gently and reuse textures thro
     };
     landscape.update(2, { bands: [0, 0, 0, 0, 0, 0] }, 0.1);
     const silent = hash();
-    for (let i = 0; i < 30; i++)
+    for (let i = 0; i < 180; i++)
       landscape.update(
         2,
         { energy: 0.5, flux: 0.6, bands: [0.9, 0, 0, 0, 0, 0] },

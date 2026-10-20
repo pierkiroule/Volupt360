@@ -92,3 +92,18 @@ avec une souris ou au focus clavier. Un réglage au clavier maintient les outils
 visibles. Les commandes tactiles mesurent au moins 44 px. Les outils masqués sont
 inertes et retirés de la navigation accessible ; Échap les rappelle. Les délais
 sont annulés à la sortie et les transitions respectent le mouvement réduit.
+
+## Résonance fluide
+
+`createPigmentEnvelope` applique deux enveloppes successives à chaque bande
+spectrale : la matière prend progressivement son ampleur puis se relâche plus
+lentement. Les accents restent faibles et lissés. Les ondes utilisent une vitesse
+stable ; la musique agit sur leur ampleur, la diffusion et les pigments plutôt
+que sur une phase multipliée directement par le niveau sonore.
+
+Les coordonnées de matière, la phase du geste et les graines des particules sont
+stables pendant l’allongement du tracé. Les enveloppes survivent aux reconstructions
+et sont transmises de l’aperçu à la matière finalisée. Le repère de la brosse
+transporte son orientation depuis le point précédent pour limiter les retournements.
+Les tests vérifient les impacts alternés rapides, le relâchement progressif,
+l’indépendance des bandes et la continuité des phases/enveloppes à la reconstruction.
