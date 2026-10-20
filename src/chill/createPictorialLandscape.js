@@ -1,3 +1,4 @@
+import { pointToWorld } from "./twinProjection.js";
 import { createPigmentEnvelope } from "./createPigmentEnvelope.js";
 import { spatialBrushPoint } from "./spatialBrushFrame.js";
 import { createPigmentPlate } from "./createPigmentPlate.js";
@@ -9,15 +10,9 @@ import {
 } from "./pictorialShaders.js";
 import * as THREE from "three";
 import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
-import { paintingToWorld } from "./paintingToWorld.js";
 function pictorialPoint(point, layer = 0, frame = null) {
   if (frame) return spatialBrushPoint(point, frame);
-  return paintingToWorld(
-    { u: point.x + 0.5, v: point.y + 0.5 },
-    layer,
-    80,
-    0.04,
-  ).toArray();
+  return pointToWorld(point, layer, 0.04);
 }
 
 /** A single ribbon batch retains every painted gesture; bounded local motion lives on the GPU. */
@@ -97,8 +92,20 @@ export function createPictorialLandscape() {
             const sign = edge ? 1 : -1,
               world = pictorialPoint(
                 {
-                  x: p.x - (dy / len) * path.width * sign * 0.75,
-                  y: p.y + (dx / len) * path.width * sign * 0.75,
+                  x:
+                    p.x -
+                    (dy / len) *
+                      path.width *
+                      (path.radii?.[i] ?? 1) *
+                      sign *
+                      0.75,
+                  y:
+                    p.y +
+                    (dx / len) *
+                      path.width *
+                      (path.radii?.[i] ?? 1) *
+                      sign *
+                      0.75,
                 },
                 path.layer,
                 path.frame,

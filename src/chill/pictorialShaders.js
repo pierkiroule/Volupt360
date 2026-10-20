@@ -61,5 +61,5 @@ C=color;A=particleData.y*envelope*(.3+e*.3);M=motif;}`;
 export const pigmentParticleFragment = `
 varying vec3 C;varying float A,M;
 void main(){float r=length(gl_PointCoord-.5)*2.;float shape=1.-smoothstep(.15,1.,r);
-if(M<.5)shape=exp(-pow((r-.65)*8.,2.));
+shape*=.72+.28*sin(gl_PointCoord.x*37.+sin(gl_PointCoord.y*29.));
 gl_FragColor=vec4(C,A*shape);}`;

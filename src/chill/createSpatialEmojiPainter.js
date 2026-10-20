@@ -57,7 +57,11 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
       enabled && (!tool.touchOnly || contact !== null),
     );
     canvas.dataset.spatialSamples = String(active?.points.length || 0);
-    onChange({ strokes: strokes.length, bounds: paint.bounds });
+    onChange({
+      strokes: strokes.length,
+      bounds: paint.bounds,
+      document: getDocument(),
+    });
   }
   function getDocument() {
     return createEmojiPainting(strokes);
@@ -191,6 +195,18 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
       }
       paint.update(time, audio, dt);
       preview.update(time, audio, dt);
+    },
+    appendPaperStroke(stroke) {
+      commit();
+      if (strokes.length >= MAX_PAINT_STROKES) return false;
+      strokes.push(stroke);
+      paint.setDocument(getDocument());
+      report();
+      return true;
+    },
+    samplePaperResonance(audio, dt) {
+      paint.motion.update(audio, dt);
+      return paint.motion.bands;
     },
     undo() {
       commit();

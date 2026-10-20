@@ -1,3 +1,4 @@
+import { TwinPaper } from "./TwinPaper.jsx";
 import { useSculptTools } from "./useSculptTools.js";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
@@ -16,6 +17,15 @@ export default function WatercolorWorkshop() {
   const twigs = useTwigBank({ poeticVoices: false });
   const [started, setStarted] = useState(false),
     [vr, setVr] = useState(false),
+    [dimension, setDimension] = useState("2d"),
+    [painting, setPainting] = useState({
+      kind: "emoji-painting",
+      strokes: [],
+      paths: [],
+      dots: [],
+      nodes: [],
+      links: [],
+    }),
     [brush, setBrush] = useState("water"),
     [size, setSize] = useState(0.045),
     [opacity, setOpacity] = useState(0.8),
@@ -32,11 +42,14 @@ export default function WatercolorWorkshop() {
     traveling: false,
   });
   useEffect(() => {
-    document.title = "Ciel en résonance •° — Sculpture 360°";
+    document.title = "Aquarelle en résonance •° — 2D ↔ 3D";
     engine.current = createSoundNest(stage.current, {
       onError: setError,
       onVRChange: setVr,
-      onSpatialChange: (stats) => setCount(stats.strokes),
+      onSpatialChange: (stats) => {
+        setCount(stats.strokes);
+        setPainting(stats.document);
+      },
     });
     engine.current.setPaperVisible(true);
     return () => {
@@ -45,14 +58,14 @@ export default function WatercolorWorkshop() {
     };
   }, []);
   useLayoutEffect(() => {
-    engine.current?.setPaperVisible(!started);
+    engine.current?.setPaperVisible(!started || dimension === "2d");
     engine.current?.pauseChillSession(!started);
     engine.current?.setSpatialSculptureTool(
-      started
+      started && dimension === "3d"
         ? { emojiId: brush, size, opacity, depth, touchOnly: true }
         : null,
     );
-  }, [started, brush, size, opacity, depth]);
+  }, [started, dimension, brush, size, opacity, depth]);
   async function playMusic(ticket) {
     try {
       const bank = twigs.bank.current;
@@ -96,14 +109,7 @@ export default function WatercolorWorkshop() {
       initialized.current = true;
     }
     setStarted(true);
-    const permission = engine.current.requestContemplationGyroscope(true);
     void playMusic(ticket);
-    try {
-      const value = await permission;
-      if (ticket === generation.current) setGyro(Boolean(value));
-    } catch (e) {
-      setError(e.message);
-    }
   }
   function exit() {
     generation.current++;
@@ -133,6 +139,17 @@ export default function WatercolorWorkshop() {
       className={`immersive chill-experience watercolor-workshop spatial-workshop ${started ? "is-running" : ""}`}
     >
       <div id="stage" ref={stage} {...tools.stageEvents} />
+      <TwinPaper
+        visible={started && dimension === "2d"}
+        document={painting}
+        tool={{ emojiId: brush, size, opacity }}
+        onStroke={(stroke) => engine.current.appendPaperStroke(stroke)}
+        getResonance={(dt) => engine.current.getPaintingResonance(dt)}
+        onGesture={(type, event) => {
+          if (type === "down") tools.stageEvents.onPointerDown(event);
+          else tools.stageEvents.onPointerUp(event);
+        }}
+      />
       {!started && (
         <section className="chill-welcome">
           <span className="chill-eyebrow">Voler · Sculpter · Résonner</span>
@@ -141,29 +158,30 @@ export default function WatercolorWorkshop() {
             <br />
             360•°
           </h1>
-          <h2>Le voyage devient matière</h2>
+          <h2>Une œuvre, deux dimensions</h2>
           <p>
-            Choisis une brosse émoji et touche le ciel : ton vol dépose des
-            vagues, des flammes, des filaments et des pigments vivants dans
-            l’espace.
+            Des émojis pour choisir des matières abstraites d’aquarelle et
+            d’encre. Dessine sur toute la page, puis entre dans ton paysage à
+            360°.
           </p>
           <p>
-            Glisse pour tourner et dessiner. Maintiens pour accélérer. Relâche
-            pour arrêter le tracé et contempler. La musique anime ton paysage, à
-            360° ou en VR.
+            Les tracés se souviennent de leurs deux dimensions. Ce que tu
+            ajoutes dans l’une se retrouve dans l’autre, animé par la même
+            musique.
           </p>
           <button onClick={start}>
             {initialized.current
               ? "Reprendre mon atelier"
-              : "Entrer dans l’atelier 360°"}
+              : "Entrer dans l’atelier"}
           </button>
         </section>
       )}
       {started && (
         <>
           <p className="fpv-gesture-hint">
-            Toucher pour sculpter · glisser pour tourner · relâcher pour
-            contempler
+            {dimension === "2d"
+              ? "Aquarelle & encre · dessiner librement sur toute la page"
+              : "Toucher pour sculpter · glisser pour tourner · relâcher pour contempler"}
           </p>
           <section
             id="spatial-tools"
@@ -237,6 +255,26 @@ export default function WatercolorWorkshop() {
             )}
             <nav aria-label="Sculpter et naviguer">
               <button
+                className="dimension-switch"
+                aria-label={
+                  dimension === "2d" ? "Passer en 3D" : "Revenir en 2D"
+                }
+                onClick={() => {
+                  engine.current.setSpatialSculptureTool(null);
+                  engine.current.stopPanorama();
+                  setMoving(false);
+                  if (dimension === "2d")
+                    void engine.current
+                      .requestContemplationGyroscope(true)
+                      .then((value) => setGyro(Boolean(value)))
+                      .catch((e) => setError(e.message));
+                  setDimension(dimension === "2d" ? "3d" : "2d");
+                }}
+              >
+                {dimension === "2d" ? "3D" : "2D"}
+              </button>
+              <button
+                disabled={dimension === "2d"}
                 aria-label={moving ? "Suspendre le voyage" : "Voyager"}
                 aria-pressed={moving}
                 onClick={travel}
@@ -261,6 +299,7 @@ export default function WatercolorWorkshop() {
                 aria-label={
                   gyro ? "Désactiver le gyroscope" : "Activer le gyroscope"
                 }
+                disabled={dimension === "2d"}
                 aria-pressed={gyro}
                 onClick={async () => {
                   try {
@@ -280,6 +319,7 @@ export default function WatercolorWorkshop() {
               </button>
               <button
                 aria-label={vr ? "Quitter la VR" : "Entrer en VR"}
+                disabled={dimension === "2d"}
                 title="Casque VR"
                 aria-pressed={vr}
                 onClick={async () => {

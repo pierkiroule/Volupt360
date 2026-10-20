@@ -7,9 +7,8 @@ test("canvas contact paints immediately and release stops deposition while fligh
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-    .click();
+  await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
+  await page.getByRole("button", { name: "Passer en 3D" }).click();
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toBeVisible();
   await expect(
@@ -125,9 +124,8 @@ test.describe("mobile sculpting flight", () => {
     context,
   }) => {
     await page.goto("/");
-    await page
-      .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-      .tap();
+    await page.getByRole("button", { name: "Entrer dans l’atelier" }).tap();
+    await page.getByRole("button", { name: "Passer en 3D" }).click();
     const canvas = page.locator("#stage canvas"),
       r = await canvas.boundingBox(),
       client = await context.newCDPSession(page);
@@ -167,9 +165,8 @@ test("smart tools hide during sculpting, restore after release and preserve fold
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-    .click();
+  await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
+  await page.getByRole("button", { name: "Passer en 3D" }).click();
   await page.getByRole("button", { name: "Plier les outils" }).click();
   const panel = page.getByRole("region", {
       name: "Atelier de sculpture 360°",
@@ -211,9 +208,8 @@ test("travel alone does not paint and keyboard settings remain available", async
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-    .click();
+  await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
+  await page.getByRole("button", { name: "Passer en 3D" }).click();
   await page.getByRole("button", { name: "Voyager", exact: true }).click();
   await page.getByText("Réglages de la matière", { exact: true }).click();
   await page.getByRole("slider", { name: "Taille de la brosse" }).focus();
@@ -237,9 +233,8 @@ test("the menu is translucent at rest and becomes readable for keyboard interact
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-    .click();
+  await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
+  await page.getByRole("button", { name: "Passer en 3D" }).click();
   const menu = page.locator("#spatial-tools");
   await page.mouse.move(20, 20);
   await expect(menu).toHaveCSS("opacity", "0.74");
@@ -345,9 +340,8 @@ test("VR pictogram requests a native immersive session and reports denial withou
     });
   });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-    .click();
+  await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
+  await page.getByRole("button", { name: "Passer en 3D" }).click();
   const button = page.getByRole("button", { name: "Entrer en VR" });
   await expect(button.locator("svg")).toBeVisible();
   await button.click();

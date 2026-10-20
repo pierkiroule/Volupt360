@@ -1293,7 +1293,7 @@ export function createSoundNest(
       if (paintingWorld) {
         pigmentArchive.animate?.(visual, dt, lifeTime);
         sensoryNetwork.update(lifeTime, visual, dt);
-        spatialPainter.update(lifeTime, visual, dt);
+        spatialPainter.update(performance.now() / 1000, visual, dt);
       }
       moodAtmosphere?.update(
         lifeTime,
@@ -1554,6 +1554,19 @@ export function createSoundNest(
       spatialPainter.setTool(tool);
       rig.setPanoramaDrawing(false);
       renderer.domElement.dataset.worldDrawing = String(Boolean(tool));
+    },
+    appendPaperStroke(stroke) {
+      return spatialPainter.appendPaperStroke(stroke);
+    },
+    getSharedPainting() {
+      return spatialPainter.getDocument();
+    },
+    getPaintingResonance(dt) {
+      const audio = padSource?.getVisualFeatures?.() || {};
+      return {
+        time: performance.now() / 1000,
+        bands: spatialPainter.samplePaperResonance(audio, dt),
+      };
     },
     undoSpatialStroke() {
       spatialPainter.undo();

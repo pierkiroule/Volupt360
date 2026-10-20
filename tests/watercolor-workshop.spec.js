@@ -1161,9 +1161,8 @@ test("FPV hold and swipe control translation and release cancels acceleration", 
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-    .click();
+  await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
+  await page.getByRole("button", { name: "Passer en 3D" }).click();
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toBeVisible();
   const r = await canvas.boundingBox(),
@@ -1202,9 +1201,8 @@ test.describe("mobile FPV gestures", () => {
     context,
   }) => {
     await page.goto("/");
-    await page
-      .getByRole("button", { name: "Entrer dans l’atelier 360°" })
-      .tap();
+    await page.getByRole("button", { name: "Entrer dans l’atelier" }).tap();
+    await page.getByRole("button", { name: "Passer en 3D" }).click();
     const canvas = page.locator("#stage canvas");
     await expect(canvas).toBeVisible();
     const initial = await canvas.getAttribute("data-camera-orientation"),
