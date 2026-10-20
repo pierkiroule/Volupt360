@@ -5,7 +5,7 @@ import { createWatercolorField } from "./createWatercolorField.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
 import { createWatercolorMotion } from "./drawAccents.js";
 import { directionToPaper } from "./brushes.js";
-function Painting({ strokes, draft, source, paused, onCapture, photoMatter }) {
+function Painting({ strokes, draft, source, paused, onCapture }) {
   const { gl, scene, camera } = useThree(),
     time = useRef(0);
   const weather = useMemo(
@@ -24,8 +24,8 @@ function Painting({ strokes, draft, source, paused, onCapture, photoMatter }) {
     }, [source.canvas]);
   const accents = useMemo(() => {
     const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 256;
+    canvas.width = 1024;
+    canvas.height = 512;
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.repeat.y = 1 / 0.92;
@@ -45,11 +45,6 @@ function Painting({ strokes, draft, source, paused, onCapture, photoMatter }) {
     },
     [accents],
   );
-  useEffect(() => {
-    accents.motion.setPhotoMatter(photoMatter);
-    weather.setPhotoMatter(photoMatter);
-    accents.last = -1;
-  }, [photoMatter, accents, weather]);
   useEffect(() => {
     accents.last = -1;
     accents.motion.setDocument(draft ? [...strokes, draft] : strokes);
@@ -78,14 +73,16 @@ function Painting({ strokes, draft, source, paused, onCapture, photoMatter }) {
     weather.update(time.current, 1);
     if (accents.last < 0 || time.current - accents.last > 1 / 15) {
       accents.last = time.current;
-      accents.ctx.clearRect(0, 0, 512, 256);
+      accents.ctx.clearRect(0, 0, accents.canvas.width, accents.canvas.height);
       accents.ctx.save();
-      accents.ctx.scale(512 / 768, 256 / 768);
+      accents.ctx.scale(
+        accents.canvas.width / 768,
+        accents.canvas.height / 768,
+      );
       accents.motion.draw(accents.ctx, time.current);
       accents.ctx.restore();
       accents.texture.needsUpdate = true;
     }
-    gl.domElement.dataset.photoMatter = String(Boolean(photoMatter));
     gl.domElement.dataset.materialStyle = "abstract-watercolor";
     gl.domElement.dataset.particles = String(weather.stats.particles);
     gl.domElement.dataset.veils = String(weather.stats.veils);

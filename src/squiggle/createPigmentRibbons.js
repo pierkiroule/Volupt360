@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { PIGMENT_COLUMNS } from "./pigmentAtlas.js";
+import { SQUIGGLE_BRUSHES } from "./brushes.js";
 /** One shared geometry for gently folded, double-sided pigment membranes. */
 export function createPigmentRibbons(texture, { mobile = false } = {}) {
   const maxSegments = mobile ? 700 : 1400,
@@ -27,8 +29,6 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
     vertexColors: true,
     uniforms: {
       pigment: { value: texture },
-      photo: { value: texture },
-      hasPhoto: { value: 0 },
       time: { value: 0 },
     },
     vertexShader: `attribute vec2 fold;uniform float time;varying vec2 U;varying vec3 C;varying vec2 F;
@@ -36,15 +36,14 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
       float w=sin(uv.x*7.+time*.24+fold.x)*sin(uv.y*3.14159);
       p+=normal*(w*.19+sin(uv.x*3.1-time*.17+fold.x)*.1);
       gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-    fragmentShader: `uniform sampler2D pigment,photo;uniform float hasPhoto;uniform float time;varying vec2 U;varying vec3 C;varying vec2 F;
+    fragmentShader: `uniform sampler2D pigment;uniform float time;varying vec2 U;varying vec3 C;varying vec2 F;
     void main(){float drift=sin(U.x*4.+time*.18+F.x)*.035;
       vec2 q=vec2(.16+fract(U.x*.12+F.x*.17)*.65,clamp(U.y+drift,0.,1.));
-      float grain=texture2D(pigment,vec2((mod(F.x,4.)+q.x)*.25,q.y)).a;
+      float grain=texture2D(pigment,vec2((mod(F.x,${PIGMENT_COLUMNS}.)+q.x)/${PIGMENT_COLUMNS}.,q.y)).a;
       float edge=sin(U.y*3.14159);float endFade=smoothstep(0.,.1,U.x)*(1.-smoothstep(.9,1.,U.x));
       float sediment=pow(abs(sin(U.y*18.+sin(U.x*6.+F.x)*2.)),12.);
       float a=grain*edge*endFade*F.y*(.5+sediment*.9);
-      if(a<.003)discard;vec3 photographic=texture2D(photo,vec2((mod(F.x,4.)+q.x)*.25,q.y)).rgb;
-      gl_FragColor=vec4(mix(C*(.8+sediment*.15),photographic*(.82+sediment*.18),hasPhoto*.8),a);
+      if(a<.003)discard;gl_FragColor=vec4(C*(.72+sediment*.2),a);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
     }`,
@@ -70,10 +69,6 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
   };
   return {
     mesh,
-    setPhotoTexture(value) {
-      material.uniforms.photo.value = value || texture;
-      material.uniforms.hasPhoto.value = value ? 1 : 0;
-    },
     setDocument(strokes) {
       let vertices = 0;
       const per = Math.max(
@@ -132,7 +127,16 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
             buffers.normal.set([radial.x, radial.y, radial.z], vertices * 3);
             buffers.color.set([color.r, color.g, color.b], vertices * 3);
             buffers.uv.set([row / count, edge], vertices * 2);
-            buffers.fold.set([s.id % 4, s.opacity], vertices * 2);
+            buffers.fold.set(
+              [
+                Math.max(
+                  0,
+                  SQUIGGLE_BRUSHES.findIndex((b) => b.id === s.emotionId),
+                ),
+                s.opacity,
+              ],
+              vertices * 2,
+            );
             vertices++;
           }
       }

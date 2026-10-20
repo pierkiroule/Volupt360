@@ -28,40 +28,29 @@ Le moteur Canvas des matières et le moteur Three.js des effets sont réutilisé
 L’expérience CosmoMood précédente reste accessible via **`?cosmomood`**, avec sa
 musique et ses univers. Sa documentation historique est conservée ci-dessous.
 
+## Bibliothèque locale d’alphas aquarellés
 
-## Matières aquarellées et photographiques
+L’API photo et son code de chargement ont été retirés de Squiggle, ainsi que les
+crédits et métadonnées photographiques. Aucune connexion réseau, clé, image
+importée ou attribution externe n’est nécessaire pour ces matières.
 
-L’atlas procédural `pigmentAtlas.js` génère quatre masques de granulation,
-auréoles, réserves et bords humides, une seule fois par session. Le moteur Canvas
-prépare ses ancres hors animation. En 360°, `createWatercolorField` associe
-membranes plissées, nappes pigmentaires et poussières volumétriques en trois
-appels de dessin, avec plafonds mobiles (160 nappes, 2 800 particules et
-700 segments de membranes). Les textures et géométries sont libérées à la sortie.
+`pigmentAtlas.js` génère une bibliothèque reproductible de huit textures RGBA :
+auréoles, capillarités, granulation, fibres, craquelures, diffusion, projections
+et encre sèche. Chaque alpha fait 256 × 256 px ; l’atlas partagé de 2048 × 256 px
+est généré une seule fois par session, hors animation. Les bords restent
+transparents et organiques, avec réserves de papier et dépôts contrastés.
 
-`photoMatter.js` demande jusqu’à quatre photographies de textures naturelles à
-Wikimedia Commons, sans clé. Seules CC BY, CC0 et domaine public avec métadonnées
-et liens vérifiables sont retenues ; les licences partage à l’identique sont
-exclues. Les vignettes sont recadrées, leurs couleurs préservées et leur contraste
-légèrement renforcé. Un masque pigmentaire continu révèle la photo dans le tracé,
-avec un léger voile de couleur de brosse. Les shaders 3D conservent également
-les couleurs photographiques au lieu de ne moduler que la luminosité. Aucun chargement réseau n’est effectué par frame.
-Cache de session et cache HTTP du navigateur ; délai global de dix secondes,
-vignettes de 512 px limitées à 3 Mo, quatre images maximum. Jusqu’à trois recherches sont tentées si la sélection ne
-contient aucune image admissible. En cas d’échec réseau,
-CORS ou décodage, le dessin reste procédural et disponible immédiatement.
+Les mêmes alphas servent aux empreintes Canvas 2D, aux voiles et aux membranes
+3D. Les caches de teintes sont limités, les ancres préparées hors animation et
+les mouvements interpolés à partir du temps. Le moteur 3D utilise trois appels
+de dessin pour les membranes, nappes et poussières ; plafonds mobiles : 160
+nappes, 2 800 particules et 700 segments de membranes. Les ressources GPU sont
+libérées à la sortie ; seul l’atlas CPU partagé reste en cache pour la session.
 
-Le chargement, l’indisponibilité des photos et une commande de relance sont
-consultables via **ⓘ** sans interrompre le dessin. Les crédits restent derrière
-ce bouton discret. Auteur, source, licence et
-indication de transformation sont également intégrés au PNG via un bloc UTF-8
-iTXt, sans texte ajouté sur l’image. Les métadonnées peuvent être supprimées par
-des plateformes tierces : conserver les crédits lors d’une redistribution.
-Aucun fichier de photographie n’est ajouté au dépôt.
-
-Les tests vérifient le chargement et les erreurs Commons avec des réponses
-simulées, le mélange en 2D/3D, les bornes GPU, la libération des ressources et le
-CRC des métadonnées PNG. L’accès réel à Commons a échoué par résolution DNS dans
-l’environnement de développement ; sa disponibilité réelle n’a pas été validée.
+Les tests contrôlent la diversité, les détails, la transparence et la
+reproductibilité des huit alphas ; le dessin, le rendu 360° et le PNG fonctionnent
+aussi avec les requêtes externes bloquées. Le pilotage FPV, le gyro, la pause et
+l’historique restent couverts par les tests du parcours Squiggle.
 
 ---
 

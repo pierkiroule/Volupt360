@@ -1,15 +1,11 @@
-import { createPhotoStrokeLayer } from "./photoStrokeLayer.js";
-import { pigmentAtlas, PIGMENT_CELL } from "./pigmentAtlas.js";
+import { pigmentAtlas, PIGMENT_CELL, PIGMENT_COLUMNS } from "./pigmentAtlas.js";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 const families = new Map(SQUIGGLE_BRUSHES.map((b, i) => [b.id, i]));
 /** Precomputed anchors, bounded tinted masks, no figurative marks. */
 export function createWatercolorMotion({ mobile = false } = {}) {
   const atlas = pigmentAtlas(),
-    masks = new Map(),
-    photoLayer = createPhotoStrokeLayer({ mobile });
-  let anchors = [],
-    photos = null,
-    strokesDoc = [];
+    masks = new Map();
+  let anchors = [];
   function tinted(color) {
     if (masks.has(color)) return masks.get(color);
     const c = document.createElement("canvas");
@@ -19,14 +15,6 @@ export function createWatercolorMotion({ mobile = false } = {}) {
 
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, c.width, c.height);
-    if (photos) {
-      ctx.globalCompositeOperation = "soft-light";
-      ctx.globalAlpha = 0.7;
-      ctx.drawImage(photos.canvas, 0, 0, c.width, c.height);
-      ctx.globalCompositeOperation = "multiply";
-      ctx.globalAlpha = 0.2;
-      ctx.drawImage(photos.canvas, 0, 0, c.width, c.height);
-    }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "destination-in";
     ctx.drawImage(atlas, 0, 0);
@@ -39,16 +27,7 @@ export function createWatercolorMotion({ mobile = false } = {}) {
     return c;
   }
   return {
-    setPhotoMatter(value) {
-      photos = value;
-      photoLayer.setPhotoMatter(value);
-      for (const c of masks.values()) c.width = 1;
-      masks.clear();
-      this.setDocument(strokesDoc);
-    },
     setDocument(strokes) {
-      strokesDoc = strokes;
-      photoLayer.setDocument(strokes);
       anchors = [];
       const capacity = mobile ? 600 : 1000;
       const per = Math.max(
@@ -97,13 +76,12 @@ export function createWatercolorMotion({ mobile = false } = {}) {
             opacity: s.opacity,
             mask: tinted(s.color || "#466c86"),
             family,
-            tile: family % 4,
+            tile: family % PIGMENT_COLUMNS,
           });
         }
       }
     },
     draw(ctx, time) {
-      photoLayer.draw(ctx);
       for (const a of anchors) {
         const phase = a.seed + time * (0.16 + a.family * 0.018);
         const drift = a.size * (0.035 + (a.family === 7 ? 0.055 : 0));
@@ -114,8 +92,7 @@ export function createWatercolorMotion({ mobile = false } = {}) {
           a.y + Math.cos(phase * 0.73) * drift,
         );
         ctx.rotate(a.angle + Math.sin(phase * 0.7) * 0.18);
-        ctx.globalAlpha =
-          a.opacity * (photos ? 0.1 : a.family === 7 ? 0.2 : 0.34);
+        ctx.globalAlpha = a.opacity * (a.family === 5 ? 0.34 : 0.64);
         ctx.drawImage(
           a.mask,
           a.tile * PIGMENT_CELL,
@@ -152,7 +129,6 @@ export function createWatercolorMotion({ mobile = false } = {}) {
       return { anchors: anchors.length, masks: masks.size };
     },
     dispose() {
-      photoLayer.dispose();
       for (const c of masks.values()) c.width = 1;
       masks.clear();
       anchors = [];

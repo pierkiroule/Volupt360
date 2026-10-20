@@ -1,9 +1,4 @@
 import { test, expect } from "@playwright/test";
-test.beforeEach(async ({ page }) => {
-  await page.route("https://commons.wikimedia.org/w/api.php?**", (route) =>
-    route.fulfill({ json: { query: { pages: {} } } }),
-  );
-});
 async function stroke(page, selector = ".squiggle-paper", x = 0.3, y = 0.4) {
   const el = page.locator(selector),
     r = await el.boundingBox();

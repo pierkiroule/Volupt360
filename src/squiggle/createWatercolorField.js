@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createPigmentRibbons } from "./createPigmentRibbons.js";
-import { pigmentAtlas } from "./pigmentAtlas.js";
+import { pigmentAtlas, PIGMENT_COLUMNS } from "./pigmentAtlas.js";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 const families = new Map(SQUIGGLE_BRUSHES.map((b, i) => [b.id, i]));
 function world(p, r, out) {
@@ -21,8 +21,6 @@ export function createWatercolorField({ mobile = false } = {}) {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.generateMipmaps = true;
   const uniforms = {
-    photo: { value: texture },
-    hasPhoto: { value: 0 },
     time: { value: 0 },
     pigment: { value: texture },
     pixelRatio: { value: Math.min(devicePixelRatio || 1, 1.5) },
@@ -60,15 +58,14 @@ export function createWatercolorField({ mobile = false } = {}) {
         gl_PointSize=clamp(size*pixelRatio/max(1.,-view.z),${veil ? "12." : "1."},${veil ? "220." : "13."});
         C=color;D=vec4(seed,${veil ? "matter.z*.42" : "matter.z*(.25+.65*sin(age*3.14159))"},matter.w,t);
       }`,
-      fragmentShader: `uniform sampler2D pigment,photo;uniform float hasPhoto;varying vec3 C;varying vec4 D;
+      fragmentShader: `uniform sampler2D pigment;varying vec3 C;varying vec4 D;
       void main(){vec2 q=gl_PointCoord-.5;float angle=D.x*12.+D.w*.11;mat2 rot=mat2(cos(angle),-sin(angle),sin(angle),cos(angle));q=rot*q;
         ${
           veil
             ? `q.x*=.84;q.y*=1.15; if(max(abs(q.x),abs(q.y))>.49)discard;
-          float tile=mod(floor(D.z),4.);float ink=texture2D(pigment,vec2((tile+q.x+.5)*.25,q.y+.5)).a;
+          float tile=mod(floor(D.z),${PIGMENT_COLUMNS}.);float ink=texture2D(pigment,vec2((tile+q.x+.5)/${PIGMENT_COLUMNS}.,q.y+.5)).a;
           float ridge=.68+.32*sin(q.x*13.+q.y*5.+D.w*.4+D.x*17.);
-          vec3 photographic=texture2D(photo,vec2((tile+q.x+.5)*.25,q.y+.5)).rgb;
-          float alpha=ink*D.y;vec3 tint=mix(C*(.72+ridge*.28),photographic*(.78+ridge*.22),hasPhoto*.8);`
+          float alpha=ink*D.y;vec3 tint=C*(.68+ridge*.32);`
             : `float r=length(q);float alpha=(1.-smoothstep(.06,.5,r))*D.y;
           alpha*=.8+.2*sin(q.x*32.+q.y*29.+D.x*173.);vec3 tint=mix(C,C*.48,.3);`
         }
@@ -156,17 +153,8 @@ export function createWatercolorField({ mobile = false } = {}) {
     for (const a of Object.values(target.geometry.attributes))
       a.needsUpdate = true;
   }
-  let photoTexture = null;
   return {
     group,
-    setPhotoMatter(value) {
-      photoTexture?.dispose();
-      photoTexture = value ? new THREE.CanvasTexture(value.canvas) : null;
-      if (photoTexture) photoTexture.colorSpace = THREE.SRGBColorSpace;
-      uniforms.photo.value = photoTexture || texture;
-      uniforms.hasPhoto.value = value ? 1 : 0;
-      ribbons.setPhotoTexture(photoTexture);
-    },
     setDocument(strokes) {
       ribbons.setDocument(strokes);
       fill(veils, strokes, true);
@@ -186,7 +174,6 @@ export function createWatercolorField({ mobile = false } = {}) {
       };
     },
     dispose() {
-      photoTexture?.dispose();
       ribbons.dispose();
       texture.dispose();
       for (const layer of [veils, dust]) {

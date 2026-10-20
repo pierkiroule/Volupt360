@@ -7,8 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { loadPhotoMatter } from "./photoMatter.js";
-import { addPNGCredits } from "./pngCredits.js";
 import SketchSurface from "./SketchSurface.jsx";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 import { requestGyroscope } from "../scene/gyroOrientation.ts";
@@ -31,27 +29,6 @@ class WorldBoundary extends Component {
   }
 }
 export default function SquiggleApp() {
-  const [photoMatter, setPhotoMatter] = useState(null),
-    [creditsOpen, setCreditsOpen] = useState(false),
-    [photosLoading, setPhotosLoading] = useState(true);
-  useEffect(() => {
-    let active = true;
-    loadPhotoMatter().then((matter) => {
-      if (active) {
-        setPhotoMatter(matter);
-        setPhotosLoading(false);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-  const retryPhotos = async () => {
-    setPhotosLoading(true);
-    const matter = await loadPhotoMatter({ retry: true });
-    setPhotoMatter(matter);
-    setPhotosLoading(false);
-  };
   const [erase, setErase] = useState(false),
     [recenter, setRecenter] = useState(0);
   const [strokes, setStrokes] = useState([]),
@@ -171,24 +148,15 @@ export default function SquiggleApp() {
     try {
       const fn = mode === "2d" ? capture2d.current : capture3d.current;
       if (!fn) return;
-      downloadBlob(
-        await addPNGCredits(await fn(), photoMatter?.credits || []),
-        "squiggle-360.png",
-      );
+      downloadBlob(await fn(), "squiggle-360.png");
     } catch (e) {
       setError(e.message);
     }
   };
   return (
-    <main
-      className={`squiggle-app is-${mode}`}
-      data-photo-status={
-        photosLoading ? "loading" : photoMatter ? "ready" : "unavailable"
-      }
-    >
+    <main className={`squiggle-app is-${mode}`}>
       <SketchSurface
         strokes={strokes}
-        photoMatter={photoMatter}
         tool={tool}
         active={mode === "2d"}
         paused={paused}
@@ -206,7 +174,6 @@ export default function SquiggleApp() {
           >
             <World
               strokes={strokes}
-              photoMatter={photoMatter}
               draft={draft}
               source={source}
               paint={paint}
@@ -355,21 +322,6 @@ export default function SquiggleApp() {
             ↶
           </button>
           <button
-            className="squiggle-credit-button"
-            aria-label="Sources des matières"
-            title={
-              photosLoading
-                ? "Chargement des photos…"
-                : photoMatter
-                  ? "Photos chargées"
-                  : "Photos indisponibles · Réessayer"
-            }
-            aria-expanded={creditsOpen}
-            onClick={() => setCreditsOpen(!creditsOpen)}
-          >
-            ⓘ
-          </button>
-          <button
             aria-label="Autres outils"
             aria-expanded={more}
             onClick={() => setMore(!more)}
@@ -377,51 +329,6 @@ export default function SquiggleApp() {
             •••
           </button>
         </div>
-        {creditsOpen && (
-          <aside
-            className="squiggle-credits"
-            aria-label="Crédits photographiques"
-          >
-            <div>
-              <strong>Matières & sources</strong>
-              <button
-                aria-label="Fermer les crédits"
-                onClick={() => setCreditsOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-            <p>
-              Photographies recadrées, colorées et mêlées aux pigments. Les
-              crédits sont aussi intégrés aux métadonnées du PNG.
-            </p>
-            {photoMatter ? (
-              photoMatter.credits.map((c) => (
-                <p key={c.source}>
-                  <a href={c.source} target="_blank" rel="noreferrer">
-                    {c.title}
-                  </a>
-                  <br />
-                  {c.artist} ·{" "}
-                  <a href={c.licenseURL} target="_blank" rel="noreferrer">
-                    {c.license}
-                  </a>
-                </p>
-              ))
-            ) : (
-              <div className="squiggle-photo-status" role="status">
-                <p>
-                  {photosLoading
-                    ? "Chargement des photographies…"
-                    : "Photos indisponibles. Les matières procédurales restent actives."}
-                </p>
-                <button disabled={photosLoading} onClick={retryPhotos}>
-                  Réessayer les photos
-                </button>
-              </div>
-            )}
-          </aside>
-        )}
         {more && (
           <div className="squiggle-more">
             <label>
