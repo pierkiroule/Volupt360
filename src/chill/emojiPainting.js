@@ -1,3 +1,4 @@
+import { selectWatercolorTexture } from "./watercolorTextureLibrary.js";
 import { spatialBrushPoint } from "./spatialBrushFrame.js";
 import { emojiById, SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
 export const MAX_PAINT_STROKES = 80,
@@ -86,6 +87,7 @@ export function createEmojiPainting(strokes) {
         layer,
         phase,
         emojiId: e.id,
+        textureSlot: selectWatercolorTexture(e.id, phase),
         frame: stroke.frame,
         depth: stroke.depth,
         radii,

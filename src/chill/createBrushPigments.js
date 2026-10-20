@@ -1,20 +1,20 @@
-import { createPigmentPlate } from "./createPigmentPlate.js";
+import { createWatercolorTextureLibrary } from "./watercolorTextureLibrary.js";
 import { BRUSH_INKS } from "./emojiBrushMotion.js";
 
 /** Small, tinted pigment stamps; rasterized once per used symbol, never per frame. */
 export function createBrushPigments() {
   const cache = new Map();
+  const library = createWatercolorTextureLibrary();
   return {
-    get(id) {
-      if (cache.has(id)) return cache.get(id);
+    get(id, slot = 0) {
+      const key = `${id}:${slot}`;
+      if (cache.has(key)) return cache.get(key);
       const inks = BRUSH_INKS[id] || BRUSH_INKS.water;
       const maps = ["wash", "dry"].map((kind, index) => {
-        const canvas = createPigmentPlate(
-          kind,
-          8341 + id.length * 137 + index * 953,
-          256,
-          false,
-        );
+        const source = library.get(slot, Boolean(index));
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 256;
+        canvas.getContext("2d").drawImage(source, 0, 0);
         const ctx = canvas.getContext("2d"),
           image = ctx.getImageData(0, 0, 256, 256),
           rgb = inks[index]
@@ -32,7 +32,7 @@ export function createBrushPigments() {
         ctx.putImageData(image, 0, 0);
         return canvas;
       });
-      cache.set(id, maps);
+      cache.set(key, maps);
       return maps;
     },
     get count() {
@@ -42,6 +42,7 @@ export function createBrushPigments() {
       for (const maps of cache.values())
         for (const map of maps) map.width = map.height = 1;
       cache.clear();
+      library.dispose();
     },
   };
 }

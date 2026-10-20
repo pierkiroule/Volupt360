@@ -1,7 +1,7 @@
 import { pointToWorld } from "./twinProjection.js";
 import { createPigmentEnvelope } from "./createPigmentEnvelope.js";
 import { spatialBrushPoint } from "./spatialBrushFrame.js";
-import { createPigmentPlate } from "./createPigmentPlate.js";
+import { createWatercolorAtlas } from "./watercolorTextureLibrary.js";
 import {
   pictorialVertex,
   pictorialFragment,
@@ -60,9 +60,12 @@ export function createPictorialLandscape() {
       if (!plates.length) {
         for (const [i, kind] of ["wash", "dry"].entries()) {
           const map = new THREE.CanvasTexture(
-            createPigmentPlate(kind, 7193 + i * 953, 256, true),
+            createWatercolorAtlas(Boolean(i)),
           );
           map.colorSpace = THREE.NoColorSpace;
+          map.flipY = false;
+          map.generateMipmaps = false;
+          map.minFilter = map.magFilter = THREE.LinearFilter;
           map.wrapT = THREE.RepeatWrapping;
           plates.push(map);
         }
@@ -75,6 +78,7 @@ export function createPictorialLandscape() {
         motifs = [],
         centers = [],
         flowCoordinates = [],
+        textureSlots = [],
         indices = [],
         uv = [];
       const tint = new THREE.Color();
@@ -118,6 +122,7 @@ export function createPictorialLandscape() {
             bounds.expandByPoint(new THREE.Vector3(...world));
             colors.push(tint.r, tint.g, tint.b);
             data.push(path.band, path.opacity, path.phase ?? path.layer);
+            textureSlots.push(path.textureSlot ?? 0);
             flowCoordinates.push(p.x * 12 + p.y * 7);
             motifs.push(
               Math.max(
@@ -149,6 +154,10 @@ export function createPictorialLandscape() {
       );
       g.setAttribute("data", new THREE.Float32BufferAttribute(data, 3));
       g.setAttribute("motif", new THREE.Float32BufferAttribute(motifs, 1));
+      g.setAttribute(
+        "textureSlot",
+        new THREE.Float32BufferAttribute(textureSlots, 1),
+      );
       g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
       g.setIndex(indices);
       mesh = new THREE.Mesh(

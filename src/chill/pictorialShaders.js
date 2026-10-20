@@ -1,7 +1,7 @@
 /** Local fields keep the drawing anchored; the water and pigment move within it. */
 export const pictorialVertex = `
-attribute vec3 data,centerLine;attribute float flowCoordinate; attribute float motif; uniform float time; uniform float bands[6];uniform float accent;
-varying vec3 C;varying vec2 U;varying float A,M,E,P,F;
+attribute float textureSlot;attribute vec3 data,centerLine;attribute float flowCoordinate; attribute float motif; uniform float time; uniform float bands[6];uniform float accent;
+varying vec3 C;varying vec2 U;varying float A,M,E,P,F,T;
 float band(float index){float e=0.;for(int i=0;i<6;i++){if(abs(float(i)-index)<.1)e=bands[i];}return e;}
 void main(){float e=band(data.x);float phase=flowCoordinate+data.z*1.71;vec3 offset=position-centerLine;
 float crest=.5+.5*sin(phase-time*.48);
@@ -23,19 +23,20 @@ else if(motif<10.5){motion=sin(phase+time*.5)*.1;}
 else{motion=sin(phase*.5+time*.6)*.07;}
 // Local eddies travel through the material instead of shaking the whole gesture.
 p+=offset*(sin(phase*2.7-time*.23)*(.025+e*.11));
-p.y+=motion*.85;C=color;U=uv;A=data.y;M=motif;E=e;P=data.z;F=flowCoordinate;
+p.y+=motion*.85;T=textureSlot;C=color;U=uv;A=data.y;M=motif;E=e;P=data.z;F=flowCoordinate;
 gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`;
 
 export const pictorialFragment = `
 uniform sampler2D wetPlate,dryPlate;uniform float time,accent;
-varying vec3 C;varying vec2 U;varying float A,M,E,P,F;
+varying vec3 C;varying vec2 U;varying float A,M,E,P,F,T;
+vec2 atlasUV(vec2 p){return vec2(clamp(p.x,.5/256.,1.-.5/256.),(T+(.5+fract(p.y)*255.)/256.)/12.);}
 void main(){
 float stream=.5+.5*sin(F-time*.36);
 vec2 flow=vec2(U.y,fract(F*.45+P*.173));
 flow.x+=sin(F*.6-time*.12+P)*(.008+E*.012);
-vec4 wet=texture2D(wetPlate,flow),dry=texture2D(dryPlate,flow);
+vec4 wet=texture2D(wetPlate,atlasUV(flow)),dry=texture2D(dryPlate,atlasUV(flow));
 float wetness=.25+E*.4+stream*.15;
-vec4 detail=texture2D(dryPlate,vec2(flow.x,fract(flow.y*2.71+P*.19)));
+vec4 detail=texture2D(dryPlate,atlasUV(vec2(flow.x,fract(flow.y*2.71+P*.19))));
 vec4 pigment=mix(dry,wet,wetness);
 pigment.r=mix(pigment.r,detail.r,.22);
 pigment.g*=.7+detail.g*.3;

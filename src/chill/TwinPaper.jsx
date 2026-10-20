@@ -142,7 +142,7 @@ export function TwinPaper({
         points,
         min: Math.min(...points.map((p) => p.x)),
         max: Math.max(...points.map((p) => p.x)),
-        maps: pigments.get(path.emojiId),
+        maps: pigments.get(path.emojiId, path.textureSlot),
         patterns: pigments
           .get(path.emojiId)
           .map((map) => ctx.createPattern(map, "repeat")),

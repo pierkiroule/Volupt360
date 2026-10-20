@@ -33,6 +33,16 @@ translucide et s’efface pendant le geste ; le rappel conserve la brosse choisi
 Taille, opacité et Z sont accessibles directement au-dessus des commandes. Le retour à l’accueil conserve la session. Aucun backend ni analyse
 psychologique des symboles.
 
+## Bibliothèque de matières procédurales
+
+Six familles (lavis, sec, auréoles, minéral, fibres et éclaboussures), deux variantes
+par famille, avec une version humide et sèche : 24 plaques RGBA de 256 pixels.
+`watercolorTextureLibrary.js` centralise les graines et les préférences des brosses.
+Chaque geste choisit une variante reproductible, partagée par toutes ses couches.
+La page utilise des empreintes teintées mises en cache ; la 3D utilise deux atlas
+partagés, sans multiplier les appels de rendu. Aucun tirage ni texture nouvelle
+pendant l’animation. Les ressources sont libérées à la fermeture du moteur.
+
 ## Architecture et ressources
 
 - `emojiPainting.js` : grammaire abstraite des douze matières, contours et radii.
