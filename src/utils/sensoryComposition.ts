@@ -108,7 +108,7 @@ export function shareLink(c: SensoryComposition) {
     throw Error(
       "Composition trop longue pour un lien ; utilise le fichier JSON.",
     );
-  return `${location.origin}${location.pathname}#c=${code}`;
+  return `${location.origin}${location.pathname}?cosmomood#c=${code}`;
 }
 export function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob),

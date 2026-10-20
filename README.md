@@ -1,3 +1,31 @@
+# Squiggle 360 — Dessiner, puis entrer dans son dessin
+
+La page principale ouvre directement une feuille animée plein écran. Huit brosses
+émoji produisent du feu, de la pluie, des ondes, des rayons, des tourbillons,
+des éclats, de l’énergie et de la brume. Taille et annulation restent accessibles ;
+le bouton « Autres outils » déplie opacité, gomme par tracé, rétablissement,
+pause des animations, export PNG et effacement.
+
+Le bouton **360°** projette le même document sur un panorama intérieur avec
+ses effets animés. **Peindre** ajoute des gestes au document partagé ;
+**Regarder** permet de tourner la vue au doigt, à la souris ou avec le gyroscope.
+Les gestes ajoutés en 360° retrouvent leur place sur la feuille 2D. La couture
+panoramique découpe les gestes qui la traversent. Il s’agit d’une peinture
+panoramique avec effets dans l’espace, pas d’un éditeur de volumes indépendants.
+
+Le document reste en mémoire pendant la session (120 tracés maximum, historique
+limité à 60 actions). Le PNG exporte la vue courante sans interface. Aucune
+dépendance ajoutée. Aucun son automatique. Les préférences de réduction des
+animations sont respectées au démarrage. Gyroscope : contexte sécurisé et
+matériel compatible nécessaires ; le glissement tactile reste disponible.
+
+Le moteur Canvas des matières et le moteur Three.js des effets sont réutilisés.
+`src/squiggle/` isole l’interface, les interactions, la projection et les deux vues.
+L’expérience CosmoMood précédente reste accessible via **`?cosmomood`**, avec sa
+musique et ses univers. Sa documentation historique est conservée ci-dessous.
+
+---
+
 # CosmoMood 360•° — Mon univers émotionnel
 
 Un disque, une à trois émotions, une orb miniature à découvrir puis à traverser.

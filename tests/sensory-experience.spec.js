@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 async function birth(page, words = ["Joie", "Confiance"]) {
-  await page.goto("/");
+  await page.goto("/?cosmomood");
   await page
     .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
@@ -63,7 +63,7 @@ test("immersive sculpture renders, pauses, exports and preserves composition lin
 test("emotional disc permits three coexisting choices and keeps intensity control", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?cosmomood");
   await page
     .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
@@ -164,7 +164,7 @@ test("WebGL unavailable retains simplified sky and PNG export", async ({
       return original.call(this, kind, ...args);
     };
   });
-  await page.goto("/");
+  await page.goto("/?cosmomood");
   await page
     .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
@@ -261,7 +261,7 @@ test("native mobile pinch changes the camera field and remains controllable", as
 test("CosmoMood contemplation stays in place and travelling resumes the same world", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?cosmomood");
   await expect(page.getByRole("heading", { name: /CosmoMood/ })).toBeVisible();
   await page
     .getByRole("button", { name: "Composer mon univers", exact: true })
@@ -474,7 +474,7 @@ test("360 activation stops FPV and supports absolute-only device events", async 
 test("miniature orb previews the selected world and opens it on tap", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?cosmomood");
   await page
     .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
@@ -512,7 +512,7 @@ test("miniature orb previews the selected world and opens it on tap", async ({
 test("24 emoji nuances keep selections across orbit pages and enforce the same three-choice limit", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?cosmomood");
   await page
     .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
