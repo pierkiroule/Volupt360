@@ -101,3 +101,43 @@ test("all dictionary words and bounded mixtures produce finite parameters", () =
     );
   }
 });
+
+test("spatial sculpture is reproducible and has bounded, continuous 3D buffers", async () => {
+  const { createSensoryWorld } = await import("../src/scene/sensoryWorld.ts");
+  const a = createSensoryWorld(730),
+    b = createSensoryWorld(730),
+    other = createSensoryWorld(731);
+  try {
+    assert.deepEqual(
+      a.matrices.map((m) => m.elements),
+      b.matrices.map((m) => m.elements),
+    );
+    assert.notDeepEqual(a.matrices[0].elements, other.matrices[0].elements);
+    for (const geometry of [a.ribbons, a.ink, a.particles]) {
+      const positions = geometry.getAttribute("position");
+      assert.ok([...positions.array].every(Number.isFinite));
+      geometry.computeBoundingBox();
+      const box = geometry.boundingBox!;
+      assert.ok(box.max.x - box.min.x > 15);
+      assert.ok(box.max.y - box.min.y > 8);
+      assert.ok(box.max.z - box.min.z > 15);
+      if (geometry.index)
+        assert.ok([...geometry.index.array].every((i) => i < positions.count));
+    }
+    const positions = a.ribbons.getAttribute("position");
+    for (let i = 0; i < 98; i++) {
+      const d = Math.hypot(
+        positions.getX(i * 2 + 2) - positions.getX(i * 2),
+        positions.getY(i * 2 + 2) - positions.getY(i * 2),
+        positions.getZ(i * 2 + 2) - positions.getZ(i * 2),
+      );
+      assert.ok(d < 1, "the pigment ribbon must remain continuous");
+    }
+  } finally {
+    for (const w of [a, b, other]) {
+      w.ribbons.dispose();
+      w.ink.dispose();
+      w.particles.dispose();
+    }
+  }
+});

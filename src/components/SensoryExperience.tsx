@@ -10,14 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import { useSensoryStore } from "../store/useSensoryStore.ts";
-import {
-  SENSORY_WORDS as sensoryWords,
-  normalizeWord,
-} from "../data/sensoryWords.ts";
-import { AXES, type SensoryVector } from "../transduction/types.ts";
+import { SENSORY_WORDS as sensoryWords } from "../data/sensoryWords.ts";
+import { SENSORY_TAGS, emojiFor } from "../data/sensoryTags.ts";
 import { transduce } from "../transduction/engine.ts";
 import {
-  customWord,
   decodeComposition,
   downloadBlob,
   parseComposition,
@@ -42,142 +38,68 @@ class SceneBoundary extends Component<
   }
 }
 function WordComposer() {
-  const { composition, setWords } = useSensoryStore(),
-    [search, setSearch] = useState(""),
-    [own, setOwn] = useState(""),
-    [error, setError] = useState("");
+  const { composition, setWords } = useSensoryStore();
   const words = composition.words;
-  const add = (word: (typeof words)[number]) => {
-    if (words.length >= 5) {
-      setError(
-        "Cinq mots au maximum : retire un mot pour en accueillir un autre.",
-      );
-      return;
-    }
-    if (words.some((w) => w.id === word.id)) return;
-    setWords([...words, word]);
-    setError("");
-  };
   return (
     <>
-      <label className="sensory-search">
-        Chercher un mot
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Flottement, chaleur…"
-        />
-      </label>
-      <div className="sensory-chips" aria-label="Bibliothèque de mots">
-        {sensoryWords
-          .filter((w) => normalizeWord(w.label).includes(normalizeWord(search)))
-          .map((w) => (
+      <div className="sensory-emoji-tags" aria-label="Sensations à composer">
+        {SENSORY_TAGS.map((tag) => {
+          const word = sensoryWords.find((w) => w.id === tag.id)!;
+          const selected = words.some((w) => w.id === tag.id);
+          return (
             <button
-              key={w.id}
-              aria-pressed={words.some((v) => v.id === w.id)}
-              disabled={words.length >= 5 && !words.some((v) => v.id === w.id)}
+              key={tag.id}
+              aria-label={word.label}
+              aria-pressed={selected}
+              disabled={words.length >= 5 && !selected}
               onClick={() =>
-                words.some((v) => v.id === w.id)
-                  ? setWords(words.filter((v) => v.id !== w.id))
-                  : add({ ...w, intensity: 60 })
+                setWords(
+                  selected
+                    ? words.filter((w) => w.id !== tag.id)
+                    : [...words, { ...word, intensity: 65 }],
+                )
               }
             >
-              {w.label}
+              <span aria-hidden="true">{tag.emoji}</span>
+              <small>{word.label}</small>
             </button>
-          ))}
+          );
+        })}
       </div>
       <p className="sensory-count">
-        {words.length}/5 mots · Des inspirations, aucune mesure de ton état.
+        1 à 5 sensations · Des inspirations, aucune mesure de ton état.
       </p>
-      <div className="sensory-choices">
+      {words.length > 0 && (
+        <button className="sensory-link" onClick={() => setWords([])}>
+          Effacer la sélection
+        </button>
+      )}
+      <div className="sensory-tag-intensities">
         {words.map((word) => (
-          <div className="sensory-choice" key={word.id}>
-            <label>
-              {word.label} <output>{word.intensity} %</output>
-              <input
-                aria-label={`Intensité ${word.label}`}
-                type="range"
-                min="0"
-                max="100"
-                value={word.intensity}
-                onChange={(e) =>
-                  setWords(
-                    words.map((w) =>
-                      w.id === word.id
-                        ? { ...w, intensity: Number(e.target.value) }
-                        : w,
-                    ),
-                  )
-                }
-              />
-            </label>
-            <button
-              aria-label={`Retirer ${word.label}`}
-              onClick={() => setWords(words.filter((w) => w.id !== word.id))}
-            >
-              ×
-            </button>
-            {word.custom && (
-              <details>
-                <summary>Donner une matière à mon mot</summary>
-                <p>
-                  Ton mot n’est pas interprété automatiquement. Choisis
-                  librement ses propriétés ; au départ elles sont neutres.
-                </p>
-                {AXES.map((axis, i) => (
-                  <label key={axis}>
-                    {axis}
-                    <input
-                      aria-label={`${word.label} : ${axis}`}
-                      type="range"
-                      min="-1"
-                      max="1"
-                      step=".05"
-                      value={word.vector[i]}
-                      onChange={(e) =>
-                        setWords(
-                          words.map((w) => {
-                            if (w.id !== word.id) return w;
-                            const vector = [...w.vector] as SensoryVector;
-                            vector[i] = Number(e.target.value);
-                            return { ...w, vector };
-                          }),
-                        )
-                      }
-                    />
-                  </label>
-                ))}
-              </details>
-            )}
-          </div>
+          <label key={word.id}>
+            <span>
+              {emojiFor(word.id)} {word.label}
+            </span>
+            <input
+              aria-label={`Intensité ${word.label}`}
+              type="range"
+              min="0"
+              max="100"
+              value={word.intensity}
+              onChange={(e) =>
+                setWords(
+                  words.map((w) =>
+                    w.id === word.id
+                      ? { ...w, intensity: Number(e.target.value) }
+                      : w,
+                  ),
+                )
+              }
+            />
+            <output>{word.intensity}%</output>
+          </label>
         ))}
       </div>
-      <form
-        className="sensory-custom"
-        onSubmit={(e) => {
-          e.preventDefault();
-          try {
-            add(customWord(own));
-            setOwn("");
-          } catch (err) {
-            setError((err as Error).message);
-          }
-        }}
-      >
-        <label htmlFor="own-word">Ou inventer ton mot</label>
-        <div>
-          <input
-            id="own-word"
-            maxLength={40}
-            value={own}
-            onChange={(e) => setOwn(e.target.value)}
-            placeholder="Mon propre mot"
-          />
-          <button disabled={!own.trim() || words.length >= 5}>Ajouter</button>
-        </div>
-      </form>
-      {error && <p role="alert">{error}</p>}
     </>
   );
 }
@@ -342,7 +264,7 @@ export default function SensoryExperience() {
             Donne une forme à ce que tu ressens.
           </p>
           <p className="sensory-question">
-            Quels mots ressemblent à ce que tu ressens maintenant ?
+            Quelles sensations aimerais-tu explorer ?
           </p>
           <button
             className="sensory-primary"
@@ -357,7 +279,7 @@ export default function SensoryExperience() {
             Ouvrir une composition
           </button>
           <small>
-            Des mots deviennent une matière vivante.
+            Entre au cœur d’un monde peint à l’eau.
             <br />
             Sans diagnostic, sans score, sans données collectées.
           </small>
@@ -373,8 +295,8 @@ export default function SensoryExperience() {
           </button>
           <h1>Composer mon ciel</h1>
           <p>
-            Jusqu’à cinq mots. Une seule matière, qui les fait résonner
-            ensemble.
+            Choisis quelques sensations. Elles se mêlent en un univers à
+            traverser.
           </p>
           <WordComposer />
           <button
@@ -415,13 +337,37 @@ export default function SensoryExperience() {
               <header className="sensory-sky-heading">
                 <p>MON CIEL SENSORIEL •°</p>
                 <small>
-                  Glisser pour regarder · Toucher pour faire résonner · Pincer
-                  pour la profondeur
+                  Glisser pour piloter · Maintenir pour accélérer · Pincer pour
+                  le champ
                 </small>
               </header>
               <nav className="sensory-toolbar" aria-label="Commandes du ciel">
-                <button onClick={() => s.patch({ editing: !s.editing })}>
-                  Faire évoluer mon ciel
+                <button
+                  onClick={() => s.patch({ travel: !s.travel })}
+                  aria-pressed={s.travel}
+                >
+                  {s.travel ? "Vol actif" : "Reprendre le vol"}
+                </button>
+                <button
+                  onClick={() => s.patch({ editing: !s.editing })}
+                  aria-label="Ouvrir les options"
+                >
+                  ⚙
+                </button>
+                <button
+                  onClick={() => {
+                    audio.current?.dispose();
+                    audio.current = null;
+                    s.patch({
+                      sound: false,
+                      paused: false,
+                      editing: false,
+                      hidden: false,
+                    });
+                    s.setPhase("compose");
+                  }}
+                >
+                  Autre ciel
                 </button>
                 <button onClick={sound} aria-pressed={s.sound}>
                   {s.sound ? "Son activé" : "Activer le son"}
@@ -457,7 +403,7 @@ export default function SensoryExperience() {
           {s.editing && !s.hidden && (
             <section
               className="sensory-drawer"
-              aria-label="Faire évoluer mon ciel"
+              aria-label="Options de contemplation"
             >
               <button
                 className="sensory-close"
@@ -466,9 +412,7 @@ export default function SensoryExperience() {
               >
                 ×
               </button>
-              <h2>Faire évoluer mon ciel</h2>
-              <WordComposer />
-              <button onClick={s.restore}>Revenir à mon ciel initial</button>
+              <h2>Contemplation</h2>
               <div className="sensory-options">
                 <label>
                   Volume

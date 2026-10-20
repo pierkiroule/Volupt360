@@ -9,6 +9,7 @@ interface SkyState {
   initial: SensoryComposition | null;
   phase: "welcome" | "compose" | "sky";
   editing: boolean;
+  travel: boolean;
   paused: boolean;
   reduced: boolean;
   hidden: boolean;
@@ -23,7 +24,13 @@ interface SkyState {
     state: Partial<
       Pick<
         SkyState,
-        "editing" | "paused" | "reduced" | "hidden" | "sound" | "volume"
+        | "editing"
+        | "paused"
+        | "reduced"
+        | "hidden"
+        | "sound"
+        | "volume"
+        | "travel"
       >
     >,
   ) => void;
@@ -37,6 +44,7 @@ export const useSensoryStore = create<SkyState>((set, get) => ({
   initial: null,
   phase: "welcome",
   editing: false,
+  travel: true,
   paused: false,
   reduced: matchMedia("(prefers-reduced-motion:reduce)").matches,
   hidden: false,
@@ -49,7 +57,7 @@ export const useSensoryStore = create<SkyState>((set, get) => ({
     })),
   birth: () => {
     const initial = parseComposition(serializeComposition(get().composition));
-    set({ initial, phase: "sky", editing: false, paused: false });
+    set({ initial, phase: "sky", editing: false, paused: false, travel: true });
   },
   restore: () => {
     const initial = get().initial;

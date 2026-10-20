@@ -2,23 +2,25 @@
 
 **Donne une forme à ce que tu ressens.**
 
-L’entrée principale propose de choisir jusqu’à cinq mots sensoriels, de régler leur
-intensité, puis de contempler une matière céleste commune. Les correspondances sont
+L’entrée principale propose 12 émoji-tags sensoriels : choisir jusqu’à cinq sensations,
+régler leur intensité, puis entrer dans un univers aquarellé en trois dimensions. Les correspondances sont
 artistiques : aucun diagnostic, score ou profil psychologique n’est calculé.
 
 ## Utilisation
 
-- Choisir parmi 30 mots, chercher sans tenir compte des accents ou ajouter son mot.
-  Un mot personnel n’est pas interprété automatiquement : ses huit propriétés
-  peuvent être composées librement dans « Donner une matière à mon mot ».
-- Glisser pour regarder, toucher un voile pour le déformer localement et pincer
-  pour ouvrir ou resserrer le champ. La caméra reste au même endroit.
-- Au clavier : focus sur le ciel, flèches pour regarder, +/− pour le champ,
+- Choisir parmi 12 émoji-tags, ajuster leurs intensités, faire naître le ciel.
+  Les symboles restent dans la palette : aucun émoji n’est déposé dans le monde.
+- Le voyage démarre en FPV entre les nuages de pigments, rubans et encres.
+  Glisser dirige le vol avec inertie ; maintenir accélère progressivement ;
+  pincer ouvre ou resserre le champ. Toucher une matière provoque une résonance locale.
+- « Vol actif » arrête l’avancée pour contempler sur place. Le regard reste libre.
+  Un champ de retour doux maintient le vol près de la sculpture, sans téléportation.
+- Au clavier : focus sur le ciel, flèches pour piloter, +/− pour le champ,
   espace pour pause/reprise, Échap pour retrouver les commandes.
-- « Faire évoluer mon ciel » transforme la même scène progressivement. On peut
-  retirer/ajouter des mots et retrouver la composition initiale.
+- Aucune édition de la composition en vol : « Autre ciel » revient à la palette.
 - « Contempler » masque l’interface ; pause et retour aux commandes restent visibles.
-  Le mode mouvements réduits respecte aussi la préférence système.
+  Les options regroupent le volume, les mouvements réduits et la signature PNG.
+  Les mouvements réduits respectent le système et désactivent l’avancée automatique.
 - Le son est facultatif, activé exclusivement par un geste explicite. La pause et
   la mise en arrière-plan suspendent le son ; la reprise reste volontaire.
 - Export PNG de la vue sans interface, signature facultative, sauvegarde/chargement
@@ -30,13 +32,16 @@ le partage est une action explicite. Les fichiers importés sont validés et bor
 
 ## Architecture du parcours sensoriel
 
-- `src/data/sensoryWords.ts` : dictionnaire typé, huit axes, facilement extensible.
+- `src/data/sensoryWords.ts` : dictionnaire typé conservé pour la compatibilité des projets.
+- `src/data/sensoryTags.ts` : sélection éditoriale des 12 émoji-tags.
 - `src/transduction/` : combinaison pondérée indépendante du rendu, interactions
   non linéaires, palette et champs de forces déterministes par graine.
 - `src/store/useSensoryStore.ts` : état Zustand, composition initiale, pause,
   préférences et transformations sans remonter la scène.
-- `src/scene/SensoryScene.tsx` : R3F, voiles instanciés, buffers de pigments et
-  filaments, caméra manuelle et qualité adaptative Drei.
+- `src/scene/SensoryScene.tsx` : R3F, volumes instanciés, flux de pigments,
+  filaments et qualité adaptative Drei.
+- `src/scene/sensoryWorld.ts` : volumes et courants répartis en profondeur selon la graine.
+- `src/scene/DroneNavigation.tsx` : vol tactile, inertie, accélération, arrêt et retour doux.
 - `src/shaders/sensoryShaders.ts` : même déformation GPU pour toutes les matières,
   diffusion, grain, étirement, fragmentation, gravité et résonance locale.
 - `src/audio/sensoryAudio.ts` : Web Audio native, nappes harmoniques, modulations,
@@ -44,13 +49,16 @@ le partage est une action explicite. Les fichiers importés sont validés et bor
 - `src/components/SensoryExperience.tsx` / `src/sensory.css` : interface responsive,
   accessibilité, composition et exports.
 - `src/utils/sensoryComposition.ts` : validation, JSON, UTF-8/base64url et exports.
-- `src/scene/SensoryFallback.tsx` : ciel SVG sans WebGL, modifications et PNG.
+- `src/scene/SensoryFallback.tsx` : ciel SVG de secours sans WebGL et export PNG (sans navigation spatiale).
 
-La scène utilise trois dessins GPU principaux : 24 voiles instanciés, 1 600 grains,
-22 filaments. En qualité réduite : 16 voiles, 800 grains, filaments masqués et DPR 1
-au lieu de 1,5 maximum. Pas de textures externes ni de ray marching. Les buffers
+La scène utilise quatre dessins GPU principaux : 44 volumes organiques instanciés,
+22 rubans de lavis, 28 filaments d’encre et 2 400 grains. En qualité réduite :
+28 volumes, 12 rubans, 12 filaments, 1 000 grains et DPR 1 au lieu de 1,5 maximum. Pas de textures externes ni de ray marching. Les buffers
 sont recréés uniquement quand la graine change ; intensités et couleurs sont
 interpolées. Écouteurs, géométries et contexte audio sont nettoyés.
+
+Les volumes sont des surfaces translucides déformées, pas une simulation physique
+volumétrique des fluides. Leur mélange est un mélange optique par transparence.
 
 La graine reproduit les paramètres, la disposition et les mouvements à un même
 instant d’animation. JSON et lien ne sauvegardent ni le temps écoulé ni le regard :

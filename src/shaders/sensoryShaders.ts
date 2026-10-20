@@ -5,52 +5,70 @@ uniform float uSoftness; uniform float uStretch; uniform float uDensity;
 uniform vec3 uTouch; uniform float uTouchTime;
 float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
 float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float pigment(vec3 p){return noise(p)*.58+noise(p*2.07)*.28+noise(p*4.13)*.14;}
 vec3 flow(vec3 p){
- float t=uTime; float wave=sin(p.x*.6+t)*cos(p.z*.4-t*.7);
- float irregularity=(uB.w+1.)*.5;
- float weave=sin(p.y*.8+t*.31)*cos(p.x*.5-p.z*.2+t*.17);
- float rigidity=max(0.,-uA.z);
- p.x*=1.+uA.y*.22; p.y*=uStretch;
- p+=vec3(sin(p.y*.7+t*.8),wave,cos(p.x*.6-t*.6))*(.22+(uA.z+1.)*.35);
- p.y+=sin(t*.45+p.z*.2)*.25-uA.x*.45;
- p+=vec3(weave,wave,-weave)*irregularity*.32;
- p.x+=sin(p.y*2.+t)*max(0.,-uB.y)*.12;
- p.z*=1.+uB.z*.3;
- p+=vec3(wave,sin(p.z+t*2.),0.)*rigidity*.08;
- float age=max(0.,t-uTouchTime);float ring=exp(-pow(length(p-uTouch)-age*1.2,2.)*2.)*exp(-age*.65);
- p+=normalize(p-uTouch+vec3(.001))*ring*.35;
- return p;
+ float t=uTime,irregularity=(uB.w+1.)*.5;
+ vec3 drift=vec3(sin(p.y*.31+t*.55)+cos(p.z*.24-t*.28),sin(p.z*.28+t*.4),cos(p.x*.3+t*.38)-sin(p.y*.22-t*.32));
+ p.x*=1.+uA.y*.17;p.y*=1.+(uStretch-1.)*.36;p.z*=1.+uB.z*.2;
+ p+=drift*(.55+(uA.z+1.)*.4);
+ p.y-=uA.x*.35;
+ p+=vec3(sin(p.z*.8+t),cos(p.x*.7-t*.8),sin(p.y*.6+t*.7))*irregularity*.22;
+ float age=max(0.,t-uTouchTime);float ring=exp(-pow(length(p-uTouch)-age*1.4,2.)*1.2)*exp(-age*.65);
+ p+=normalize(p-uTouch+vec3(.001))*ring*.65;return p;
 }
+vec3 colors(float x){return mix(mix(uColor0,uColor1,smoothstep(.1,.75,x)),uColor2,smoothstep(.58,1.,x)*.72);}
 `;
-export const veilVertex = /* glsl */ `${field}
-varying vec2 vUv; varying float vLayer;
-void main(){vUv=uv;vec4 p=instanceMatrix*vec4(position,1.);vLayer=fract(instanceMatrix[3].z*.137);p.xyz=flow(p.xyz);gl_Position=projectionMatrix*modelViewMatrix*p;}`;
-export const veilFragment = /* glsl */ `${field}
-varying vec2 vUv;varying float vLayer;
+export const cloudVertex = /* glsl */ `${field}
+varying vec3 vLocal;varying vec3 vWorld;varying vec3 vNormal;varying float vSeed;
+void main(){vLocal=position;vSeed=fract(instanceMatrix[3].x*.137+instanceMatrix[3].z*.271);vec3 p=position*(1.+sin(position.y*4.+uTime*.4+vSeed*8.)*.22+sin(position.x*3.-position.z*4.+uTime*.2)*.16);vec3 world=(instanceMatrix*vec4(p,1.)).xyz;world=flow(world);vWorld=world;vNormal=normalize(mat3(instanceMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);}`;
+export const cloudFragment = /* glsl */ `${field}
+varying vec3 vLocal;varying vec3 vWorld;varying vec3 vNormal;varying float vSeed;
 void main(){
- vec2 q=(vUv-.5)*2.; float n=noise(vec3(q*3.,vLayer*9.+uTime*.06));
- float edge=1.-smoothstep(mix(.6,.12,uSoftness),.97,length(q*vec2(.92,1.05))+(n-.5)*.23);
- edge*=smoothstep(0.,.18,vUv.x)*smoothstep(0.,.18,1.-vUv.x)*smoothstep(0.,.18,vUv.y)*smoothstep(0.,.18,1.-vUv.y);
- float folds=sin(q.x*7.+q.y*2.+n*5.+uTime*.12)*.5+.5;
- float pigment=noise(vec3(q*14.,vLayer*18.));float grain=noise(vec3(gl_FragCoord.xy*.55,vLayer));
- float tide=exp(-pow(length(q)+n*.11-.72,2.)*180.);
- float alpha=edge*(.18+folds*.24+pigment*.14+tide*.09)*( .55+uDensity)*(.8+grain*.2);
- alpha*=mix(.9,1.2,1.-uSoftness);
- alpha*=smoothstep(.15,.65,pigment+(uB.y+1.)*.32);
- vec3 color=mix(uColor0,uColor1,n);color=mix(color,uColor2,folds*.35);
- color*=1.-tide*.13-pigment*.07;
+ float n=pigment(vLocal*2.6+vec3(vSeed*12.,uTime*.07,0.));
+ float facing=abs(dot(normalize(vNormal),normalize(cameraPosition-vWorld)));
+ float granule=noise(vLocal*38.+vSeed*7.);
+ float wash=smoothstep(.34,.72,n)*(.22+.28*facing);
+ float tide=exp(-pow(n-.44,2.)*1100.)*.32;
+ float dry=sin(uTime*.17+vSeed*6.)*.5+.5;
+ vec3 color=colors(clamp(vSeed*.6+n*.45,0.,1.));
+ color*=1.-tide*.5-granule*.1*dry;
+ float opacity=wash*(.45+uDensity*.4)*smoothstep(.02,.35,facing)*( .82+granule*.18);
+ gl_FragColor=vec4(color,opacity);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+}`;
+export const ribbonVertex = /* glsl */ `${field}
+attribute float aSeed;varying vec2 vUv;varying float vSeed;varying vec3 vWorld;
+void main(){vUv=uv;vSeed=aSeed;vWorld=flow(position);gl_Position=projectionMatrix*viewMatrix*vec4(vWorld,1.);}`;
+export const ribbonFragment = /* glsl */ `${field}
+varying vec2 vUv;varying float vSeed;varying vec3 vWorld;
+void main(){
+ float n=pigment(vec3(vUv.x*9.,vUv.y*3.,vSeed*12.+uTime*.06));
+ float edge=abs(vUv.y-.5)*2.;float irregular=edge+(n-.5)*.24;
+ float border=1.-smoothstep(.55,.99,irregular);
+ float age=fract(uTime*.025+vSeed),head=age*1.65;
+ float painting=1.-smoothstep(head-.13,head+.04,vUv.x);
+ float fade=smoothstep(0.,.09,age)*(1.-smoothstep(.83,1.,age));
+ float tide=exp(-pow(irregular-.73,2.)*240.);
+ float granule=noise(vec3(vUv*vec2(180.,26.),vSeed*20.));
+ float alpha=border*(.18+n*.22+tide*.18)*(.5+uDensity)*mix(.2,1.,painting*fade);
+ vec3 color=colors(fract(vSeed*.8+vUv.x*.22+n*.18));color*=1.-tide*.4-granule*.1;
  gl_FragColor=vec4(color,alpha);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
 }`;
+export const inkFragment = /* glsl */ `${field}
+varying vec2 vUv;varying float vSeed;varying vec3 vWorld;
+void main(){float edge=1.-smoothstep(.3,1.,abs(vUv.y-.5)*2.);float wet=sin(vUv.x*22.-uTime*.65+vSeed*8.)*.5+.5;vec3 color=colors(vSeed)*.48;gl_FragColor=vec4(color,edge*(.12+wet*.2));
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+}`;
 export const pointVertex = /* glsl */ `${field}
-attribute float aSeed; varying float vSeed;
-void main(){vSeed=aSeed;vec3 p=flow(position);p+=vec3(sin(uTime+aSeed*40.),cos(uTime*.7+aSeed*21.),sin(uTime*.5+aSeed*30.))*.15;
- vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=min(7.,(.5+aSeed*1.2)*48./max(1.,-mv.z));gl_Position=projectionMatrix*mv;}`;
+attribute float aSeed;varying float vSeed;
+void main(){vSeed=aSeed;vec3 p=flow(position);p+=vec3(sin(uTime*.7+aSeed*40.),cos(uTime*.5+aSeed*21.),sin(uTime*.6+aSeed*30.))*(.4+aSeed*.45);vec4 mv=viewMatrix*vec4(p,1.);gl_PointSize=min(22.,(1.+aSeed*4.)*65./max(1.,-mv.z));gl_Position=projectionMatrix*mv;}`;
 export const pointFragment = /* glsl */ `${field}
 varying float vSeed;
-void main(){float d=length(gl_PointCoord-.5)*2.;float a=(1.-smoothstep(.05,1.,d))*(.12+vSeed*.1);gl_FragColor=vec4(mix(uColor0,uColor2,vSeed),a);}`;
-export const lineVertex = /* glsl */ `${field}
-void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(flow(position),1.);}`;
-export const lineFragment = /* glsl */ `${field}
-void main(){gl_FragColor=vec4(uColor0,.12+uDensity*.1);}`;
+void main(){vec2 q=gl_PointCoord-.5;float n=noise(vec3(q*9.,vSeed*30.));float d=length(q)*2.+(n-.5)*.28;float alpha=(1.-smoothstep(.3,1.,d))*(.12+vSeed*.18);gl_FragColor=vec4(colors(vSeed),alpha);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+}`;

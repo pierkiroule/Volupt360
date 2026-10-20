@@ -12,6 +12,7 @@ export class SensoryAudio {
   private random: () => number;
   private params: SensoryParameters;
   private volume = 0.4;
+  private melodyIndex = 2;
   private playing = true;
   private closed = false;
   constructor(seed: number, params: SensoryParameters) {
@@ -66,7 +67,9 @@ export class SensoryAudio {
       lfo.frequency.value = 0.045 + i * 0.017;
       depth.gain.value = 0.018 / (i + 1);
       lfo.connect(depth).connect(gain.gain);
-      osc.connect(gain).connect(this.filter);
+      const pan = c.createStereoPanner();
+      pan.pan.value = Math.sin(seed * 0.001 + i * 1.7) * 0.55;
+      osc.connect(gain).connect(pan).connect(this.filter);
       osc.start();
       lfo.start();
       this.voices.push({ osc, gain });
@@ -114,17 +117,25 @@ export class SensoryAudio {
       osc = c.createOscillator(),
       gain = c.createGain();
     osc.type = "sine";
+    // A small pentatonic walk shares the harmonic pad's root and major third.
+    this.melodyIndex = Math.max(
+      0,
+      Math.min(5, this.melodyIndex + (this.random() < 0.5 ? -1 : 1)),
+    );
     osc.frequency.value =
-      110 * [1, 1.5, 2, 2.5, 3][Math.floor(this.random() * 5)];
+      220 * Math.pow(2, [0, 2, 4, 7, 9, 12][this.melodyIndex] / 12);
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(0.035, t + 0.6);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + 3);
-    osc.connect(gain).connect(this.filter);
+    const pan = c.createStereoPanner();
+    pan.pan.value = (this.random() - 0.5) * 1.2;
+    osc.connect(gain).connect(pan).connect(this.filter);
     osc.start();
     osc.stop(t + 3.1);
     osc.onended = () => {
       osc.disconnect();
       gain.disconnect();
+      pan.disconnect();
     };
   }
   async play(active: boolean) {
