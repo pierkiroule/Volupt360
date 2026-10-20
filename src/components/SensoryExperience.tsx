@@ -11,7 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import { useSensoryStore } from "../store/useSensoryStore.ts";
-import EmotionWheel from "./EmotionWheel.tsx";
+import EmotionDisc from "./EmotionDisc.tsx";
+import CosmicBackdrop from "./CosmicBackdrop.tsx";
 import { transduce } from "../transduction/engine.ts";
 import {
   decodeComposition,
@@ -178,6 +179,7 @@ export default function SensoryExperience() {
   const fallback = <SensoryFallback onCapture={onCapture} />;
   return (
     <main className={`sensory-app sensory-${s.phase}`}>
+      {s.phase !== "sky" && <CosmicBackdrop />}
       {s.phase === "sky" && (
         <div className="sensory-world">
           {simple ? (
@@ -239,10 +241,10 @@ export default function SensoryExperience() {
           </button>
           <h1>Composer mon univers</h1>
           <p>
-            Choisis 1 à 3 émoji-tags sur la roue. Leurs échos composent un monde
-            vivant, à contempler ou à traverser.
+            Choisis 1 à 3 émojis autour du disque. Observe ton univers
+            miniature, puis touche-le pour y entrer.
           </p>
-          <EmotionWheel />
+          <EmotionDisc />
           <div
             className="cosmo-entry-mode"
             role="group"
@@ -261,15 +263,6 @@ export default function SensoryExperience() {
               ↗ Voyager
             </button>
           </div>
-          <button
-            className="sensory-primary"
-            disabled={
-              !s.composition.words.length || s.composition.words.length > 3
-            }
-            onClick={s.birth}
-          >
-            Entrer dans mon univers
-          </button>
         </section>
       )}
       {s.phase === "sky" && (

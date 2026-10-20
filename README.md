@@ -1,15 +1,28 @@
 # CosmoMood 360•° — Mon univers émotionnel
 
-Une roue, une à trois émotions, un univers aquarellé à contempler ou à parcourir.
-La roue reprend les huit familles du modèle théorique de Robert Plutchik : joie,
-confiance, peur, surprise, tristesse, dégoût, colère et anticipation. Les opposés
-se font face, mais peuvent être sélectionnés ensemble. Les mélanges ne sont pas
-classés comme bons ou mauvais et ne donnent lieu à aucune interprétation automatique.
+Un disque, une à trois émotions, une orb miniature à découvrir puis à traverser.
+Les huit émojis entourent le disque ; leurs sélections modifient immédiatement
+l’aperçu 3D. Toucher l’orb ouvre le même univers en contemplation ou en voyage.
+Un fond noir étoilé accompagne la composition et l’immersion.
 
-Il s’agit d’une adaptation artistique, pas d’un instrument psychométrique validé
-pour tous les publics, ni d’un diagnostic. Source du modèle : Robert Plutchik,
-« The Nature of Emotions », American Scientist, 89(4), 2001, p. 344–350 :
-https://www.americanscientist.org/article/the-nature-of-emotions
+La bibliothèque conserve huit repères émotionnels inspirés du modèle de Plutchik,
+mais l’interface ne représente plus une roue. Les mélanges ne sont ni classés ni
+interprétés automatiquement : c’est une proposition artistique d’externalisation,
+pas un instrument psychométrique validé ou un diagnostic.
+
+## Disque et aperçu immersif
+
+- `src/components/EmotionDisc.tsx` : émojis périphériques, limite de trois choix,
+  présence réglable et entrée par toucher sur l’orb, aussi accessible au clavier.
+- `src/scene/SensoryScene.tsx` en mode `preview` : réutilise les vrais volumes,
+  flux et particules avec la même graine ; une caméra extérieure les révèle en miniature.
+  Aucun audio ne démarre dans l’aperçu. Il est démonté lorsque l’on entre dans le monde.
+- `src/components/CosmicBackdrop.tsx` : fond étoilé Canvas 2D hors de l’orb,
+  sans second contexte WebGL, densité et fréquence d’animation bornées.
+- `src/scene/StellarField.tsx` : étoiles lointaines dans le monde 3D, avec un budget
+  de 1 600 points (800 en qualité réduite) et scintillement très lent, sans flashes.
+- Sans WebGL, la miniature devient une représentation simplifiée ; l’entrée et
+  l’expérience de secours SVG restent accessibles.
 
 ## Pilotage, 360° et composition musicale
 
@@ -69,10 +82,10 @@ Le regard est calibré à la position courante, sans imposer de déplacement.
 
 ## Parcours
 
-- Choisir 1 à 3 émoji-tags sur la roue, avec une présence visuelle réglable.
+- Choisir 1 à 3 émoji-tags autour du disque, avec une présence visuelle réglable.
 - Choisir **Contempler** (regard libre sur place) ou **Voyager** (FPV tactile).
 - Entrer dans un univers 3D commun : volumes de pigments, flux de lavis, auréoles,
-  encres et grains. Les émojis restent sur la roue, pas dans le monde.
+  encres et grains. Les émojis restent autour du disque, pas dans le monde.
 - Chaque famille apporte une palette et un vecteur de mouvement. Les couleurs
   des émotions mêlées restent perceptibles ; leurs propriétés se combinent dans
   un seul champ non linéaire. Ces correspondances sont des conventions artistiques.
@@ -81,13 +94,13 @@ Le regard est calibré à la position courante, sans imposer de déplacement.
   le même monde et la même position.
 - Pause, interface masquable, mouvements réduits, son facultatif, volume, PNG,
   sauvegarde JSON et liens de partage sont conservés.
-- « Autre univers » revient à la roue ; aucun panneau de transformation pendant le vol.
+- « Autre univers » revient au disque ; aucun panneau de transformation pendant le vol.
 
 `src/data/emotionWheel.ts` centralise les huit familles, leurs couleurs, leurs
-opposés et les vecteurs artistiques. `src/components/EmotionWheel.tsx` gère la roue
+opposés et les vecteurs artistiques. `src/components/EmotionDisc.tsx` gère le disque
 accessible au toucher et au clavier. Le moteur reste indépendant du rendu :
 `src/transduction/engine.ts`. Les données sensorielles précédentes et le format
-JSON v1 restent lisibles ; la nouvelle roue limite les compositions à trois choix.
+JSON v1 restent lisibles ; le disque limite les compositions à trois choix.
 
 Les anciens ateliers restent disponibles via leurs paramètres d’URL.
 
@@ -98,7 +111,7 @@ Les anciens ateliers restent disponibles via leurs paramètres d’URL.
 ## Architecture du parcours sensoriel
 
 - `src/data/sensoryWords.ts` : dictionnaire typé conservé pour la compatibilité des projets.
-- `src/data/emotionWheel.ts` : les huit familles de la roue émotionnelle.
+- `src/data/emotionWheel.ts` : la bibliothèque de huit repères émotionnels.
 - `src/transduction/` : combinaison pondérée indépendante du rendu, interactions
   non linéaires, palette et champs de forces déterministes par graine.
 - `src/store/useSensoryStore.ts` : état Zustand, composition initiale, pause,

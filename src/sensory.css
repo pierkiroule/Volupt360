@@ -654,3 +654,190 @@
   font-size: 12px;
   z-index: 4;
 }
+.cosmo-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 70% 30%, #13162d66, transparent 60%), #03050d;
+}
+.sensory-app.sensory-compose,
+.sensory-app.sensory-welcome {
+  --ink: #e4e7ef;
+  --paper: #050813;
+  background: #050813;
+  color: #e4e7ef;
+}
+.sensory-welcome,
+.sensory-composer {
+  position: relative;
+  z-index: 1;
+}
+.sensory-compose .sensory-composer {
+  max-width: 620px;
+  padding-top: 16px;
+}
+.sensory-compose .sensory-composer > p {
+  color: #bfc8db;
+  max-width: 380px;
+}
+.sensory-compose .cosmo-selection {
+  color: #d9dfeb;
+}
+.sensory-compose input[type="range"] {
+  accent-color: #a5acd8;
+}
+.sensory-compose button,
+.sensory-welcome button {
+  color: #e4e7ef;
+  background: #18203599;
+  border-color: #8c9bb866;
+}
+.sensory-compose .cosmo-entry-mode button[aria-pressed="true"] {
+  background: #65739a;
+  color: white;
+}
+.sensory-welcome .sensory-primary {
+  background: #56688d;
+}
+.sensory-welcome small {
+  color: #b5bfd0;
+}
+.sensory-welcome .sensory-ink {
+  opacity: 0.17 !important;
+}
+.cosmo-emotion-disc {
+  position: relative;
+  width: min(470px, 100%);
+  aspect-ratio: 1;
+  margin: 15px auto;
+}
+.cosmo-emotion-disc:before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 1px solid #9bacd126;
+  border-radius: 50%;
+  box-shadow: 0 0 65px #6c7cbd10;
+}
+.sensory-app .cosmo-orb {
+  position: absolute;
+  inset: 21%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #b8caff77;
+  border-radius: 50%;
+  background: #050713;
+  isolation: isolate;
+  box-shadow:
+    inset -18px -20px 32px #0009,
+    0 0 40px #929ad622;
+  min-height: 0;
+}
+.cosmo-orb-scene {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.cosmo-orb-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 29% 19%, #f1f2ff22, transparent 37%),
+    radial-gradient(ellipse at 50% 50%, transparent 50%, #0008 100%);
+  box-shadow: inset 2px 3px 5px #c8d9ff66;
+  pointer-events: none;
+}
+.cosmo-orb-invitation {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20%;
+  font-size: 10px;
+  color: #e9e9ff;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 8px black;
+}
+.cosmo-orb-placeholder {
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 40% 40%, #6c6c9b77, transparent), #040713;
+}
+.sensory-app .cosmo-emoji-orbit {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  width: 17%;
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 4px;
+  border: 1px solid #8292b122;
+  background: #10172888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+}
+.cosmo-emoji-orbit > span {
+  font-size: clamp(24px, 6vw, 33px);
+}
+.cosmo-emoji-orbit small {
+  font-size: clamp(9px, 2.2vw, 11px);
+  color: #d7dfed;
+}
+.sensory-app .cosmo-emoji-orbit[aria-pressed="true"] {
+  border-color: var(--tag-color);
+  background: color-mix(in srgb, var(--tag-color) 24%, #0c1021);
+  box-shadow: 0 0 17px color-mix(in srgb, var(--tag-color) 30%, transparent);
+}
+.cosmo-selection-count {
+  text-align: center;
+  color: #c1cce2;
+  font-size: 12px;
+  min-height: 24px;
+  margin: 8px 0 20px;
+}
+.cosmo-art-note {
+  text-align: center;
+  color: #b1bbcc;
+  font-size: 11px;
+  max-width: 350px;
+  margin: 18px auto;
+}
+.cosmo-entry-mode {
+  position: relative;
+}
+.sensory-composer .cosmo-selection button {
+  background: transparent;
+}
+.sensory-compose .sensory-composer h1 {
+  font-size: 32px;
+}
+.sensory-app .cosmo-orb:disabled {
+  opacity: 0.8;
+}
+.sensory-app .cosmo-orb:hover {
+  background: #050713;
+  box-shadow: 0 0 46px #929ad644;
+}
+.cosmo-orb-scene canvas {
+  display: block;
+}
+@keyframes cosmo-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sensory-world {
+  animation: cosmo-enter 0.6s ease-out both;
+}

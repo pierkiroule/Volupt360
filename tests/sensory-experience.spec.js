@@ -60,14 +60,14 @@ test("immersive sculpture renders, pauses, exports and preserves composition lin
   await expect(page.locator("canvas")).toHaveAttribute("data-sky-seed", seed);
   expect(errors).toEqual([]);
 });
-test("emotion wheel permits three coexisting choices and keeps intensity control", async ({
+test("emotional disc permits three coexisting choices and keeps intensity control", async ({
   page,
 }) => {
   await page.goto("/");
   await page
     .getByRole("button", { name: "Composer mon univers", exact: true })
     .click();
-  await expect(page.locator(".cosmo-petal")).toHaveCount(8);
+  await expect(page.locator(".cosmo-emoji-orbit")).toHaveCount(8);
   for (const w of ["Joie", "Tristesse", "Colère"])
     await page.getByRole("button", { name: w, exact: true }).click();
   await expect(
@@ -469,4 +469,42 @@ test("360 activation stops FPV and supports absolute-only device events", async 
   ).toContainText("actif");
   await page.waitForTimeout(300);
   await expect(canvas).toHaveAttribute("data-camera-position", position);
+});
+
+test("miniature orb previews the selected world and opens it on tap", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Composer mon univers", exact: true })
+    .click();
+  const orb = page.getByRole("button", {
+    name: "Entrer dans mon univers",
+    exact: true,
+  });
+  await expect(orb).toBeDisabled();
+  await expect(page.locator(".cosmo-orb canvas")).toBeVisible();
+  await page.getByRole("button", { name: "Joie", exact: true }).click();
+  await page.getByRole("button", { name: "Tristesse", exact: true }).click();
+  await expect(orb).toBeEnabled();
+  await expect(page.locator(".cosmo-orb canvas")).toHaveAttribute(
+    "data-sky-seed",
+    /\d+/,
+  );
+  const seed = await page
+    .locator(".cosmo-orb canvas")
+    .getAttribute("data-sky-seed");
+  await orb.click();
+  await expect(page.locator(".sensory-world canvas")).toHaveAttribute(
+    "data-sky-seed",
+    seed,
+  );
+  await expect(page.locator(".cosmo-emotion-disc")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Autre univers", exact: true })
+    .click();
+  await expect(page.locator(".cosmo-emotion-disc")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Joie", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });

@@ -1,3 +1,4 @@
+import StellarField from "./StellarField.tsx";
 import { audioVisualResonance } from "../audio/audioVisualResonance.ts";
 import { seededRandom } from "../transduction/engine.ts";
 import OrbitalPoetry from "./OrbitalPoetry.tsx";
@@ -261,9 +262,9 @@ function Matter({
     uniforms.uStretch.value += (p.stretch - uniforms.uStretch.value) * f;
     uniforms.uDensity.value += (p.density - uniforms.uDensity.value) * f;
     const bg = scene.background as THREE.Color;
-    bg.r += (colors[0].r * 0.014 + 0.008 - bg.r) * f;
-    bg.g += (colors[0].g * 0.014 + 0.012 - bg.g) * f;
-    bg.b += (colors[0].b * 0.014 + 0.027 - bg.b) * f;
+    bg.r += (0.0006 - bg.r) * f;
+    bg.g += (0.001 - bg.g) * f;
+    bg.b += (0.003 - bg.b) * f;
     gl.domElement.dataset.skyTime = time.current.toFixed(3);
     gl.domElement.dataset.skySeed = String(composition.seed);
     gl.domElement.dataset.worldClouds = String(low ? 28 : 44);
@@ -338,12 +339,25 @@ function Matter({
     </>
   );
 }
+function PreviewOrbit() {
+  const { camera } = useThree();
+  const t = useRef(0);
+  useFrame((_, dt) => {
+    const state = useSensoryStore.getState();
+    if (!state.paused && !state.reduced) t.current += Math.min(dt, 0.1) * 0.075;
+    camera.position.set(Math.sin(t.current) * 46, 9, Math.cos(t.current) * 46);
+    camera.lookAt(0, 0, 0);
+  });
+  return null;
+}
 export default function SensoryScene({
   onCapture,
   onFailure,
+  preview = false,
 }: {
   onCapture: (capture: Capture) => void;
   onFailure: () => void;
+  preview?: boolean;
 }) {
   const [low, setLow] = useState(false),
     [dpr, setDpr] = useState(1.5);
@@ -356,8 +370,13 @@ export default function SensoryScene({
   return (
     <Canvas
       className="sensory-canvas"
-      dpr={[1, dpr]}
-      camera={{ position: [0, 0, 3], fov: 70, near: 0.15, far: 85 }}
+      dpr={[1, preview ? 1 : dpr]}
+      camera={{
+        position: preview ? [0, 9, 46] : [0, 0, 3],
+        fov: preview ? 55 : 70,
+        near: 0.15,
+        far: 180,
+      }}
       gl={{
         antialias: false,
         alpha: false,
@@ -365,13 +384,20 @@ export default function SensoryScene({
         preserveDrawingBuffer: false,
       }}
     >
-      <color attach="background" args={["#151b31"]} />
+      <color attach="background" args={["#02040b"]} />
+      <StellarField low={low} />
       <PerformanceMonitor onDecline={reduce} onFallback={reduce}>
         <AdaptiveDpr pixelated />
         <Matter onCapture={onCapture} low={low} />
       </PerformanceMonitor>
-      <OrbitalPoetry />
-      <DroneNavigation />
+      {preview ? (
+        <PreviewOrbit />
+      ) : (
+        <>
+          <OrbitalPoetry />
+          <DroneNavigation />
+        </>
+      )}
       <ContextGuard onFailure={onFailure} />
     </Canvas>
   );
