@@ -186,3 +186,59 @@ test.describe("EmoCiel mobile", () => {
     ).toBeVisible();
   });
 });
+
+test("layered watercolor composition preserves transparency, has no seam and survives undo", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createDrawingSurface } =
+      await import("/src/resonant/drawingSurface.js");
+    const d = createDrawingSurface(() => {}, { projective: true });
+    const gesture = (tool, color, size, opacity, points) => {
+      d.begin(points[0], { tool, color, size, opacity });
+      for (const p of points.slice(1)) d.move(p);
+      d.finish();
+    };
+    for (const [tool, color, size, opacity, cy] of [
+      ["watercolor", "#367f96", 120, 0.7, 250],
+      ["watercolor", "#c08071", 105, 0.6, 400],
+      ["dry", "#b79b64", 70, 0.7, 370],
+    ]) {
+      const pts = Array.from({ length: 65 }, (_, i) => ({
+        x: 150 + i * 13,
+        y: cy + Math.sin(i * 0.08) * 65,
+      }));
+      gesture(tool, color, size, opacity, pts);
+    }
+    gesture("splatch", "#526c88", 65, 0.6, [{ x: 800, y: 260 }]);
+    gesture("splatch", "#bb746b", 45, 0.65, [{ x: 340, y: 450 }]);
+    gesture(
+      "ink",
+      "#354858",
+      55,
+      0.85,
+      Array.from({ length: 100 }, (_, i) => ({
+        x: 140 + i * 9,
+        y: 360 + Math.sin(i * 0.075) * 50,
+      })),
+    );
+    const before = d.exportPNG();
+    d.undo();
+    d.redo();
+    const same = before === d.exportPNG();
+    const pixel = d.canvas.getContext("2d").getImageData(420, 290, 1, 1).data;
+    document.body.replaceChildren();
+    const preview = document.createElement("img");
+    preview.src = before;
+    preview.style.cssText =
+      "width:100vw;height:100vh;object-fit:contain;background:#faf8f2";
+    document.body.append(preview);
+    d.dispose();
+    return { same, alpha: pixel[3] };
+  });
+  await page.screenshot({ path: "/tmp/emociel-composition.png" });
+  expect(result.same).toBe(true);
+  expect(result.alpha).toBeLessThan(255);
+  expect(result.alpha).toBeGreaterThan(0);
+});

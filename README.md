@@ -6,7 +6,7 @@ L’atelier propose cinq outils : Lavis, Pigments secs, Encre, Taches et Gomme.
 Couleurs libres, taille et opacité accompagnent des gestes spontanés. Aucun choix
 de couleur ou de forme ne reçoit d’interprétation psychologique automatique.
 
-Les matières sont procédurales et reproductibles : granulation, bords irréguliers,
+Les empreintes pigmentaires sont superposées avec des orientations variées, sans tuile rectangulaire ni silhouette polygonale répétée. Les matières sont procédurales et reproductibles : granulation, bords irréguliers,
 accumulations pigmentaires, réserves de papier, fibres sèches et auréoles. Le lavis
 reste connecté ; les taches produisent des silhouettes organiques abstraites.
 Les outils, annuler/rétablir, l’export PNG et l’effacement annulable sont dans une
@@ -49,7 +49,7 @@ Les anciens parcours restent accessibles : `?resonant` pour Resonant Paint avec 
 
 Le document de référence fait 1200 × 800 pixels. Il est borné à 300 gestes de 2048
 points maximum. Le contour pictural utilise un pas adaptatif pour borner sa complexité.
-Le cache de textures teintées contient au maximum 24 entrées. La page anime à 25
+Le cache contient au maximum 16 jeux de trois empreintes teintées de 192 pixels. La page anime à 25
 images/s maximum au repos, et répond directement aux événements de dessin pendant
 le geste. La boucle se suspend lorsque l’onglet est caché et respecte la préférence
 de réduction des mouvements.

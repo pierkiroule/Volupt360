@@ -26,7 +26,8 @@ export default function ResonantPaint({ projective = false }) {
     drawing = useRef(null),
     pointer = useRef(null),
     mode = useRef("2d"),
-    life = useRef(null);
+    life = useRef(null),
+    exportTouch = useRef(false);
   const twigs = useTwigBank({ poeticVoices: false });
   const [dimension, setDimension] = useState("2d"),
     [tool, setTool] = useState(projective ? "watercolor" : "paint"),
@@ -317,7 +318,23 @@ export default function ResonantPaint({ projective = false }) {
               >
                 ↷
               </button>
-              <button onClick={exportPNG}>PNG</button>
+              <button
+                onPointerDown={() => {
+                  exportTouch.current = false;
+                }}
+                onPointerUp={(e) => {
+                  if (e.pointerType === "touch") {
+                    exportTouch.current = true;
+                    exportPNG();
+                  }
+                }}
+                onClick={(e) => {
+                  if (e.detail === 0 || !exportTouch.current) exportPNG();
+                  exportTouch.current = false;
+                }}
+              >
+                PNG
+              </button>
             </>
           ) : (
             <>
