@@ -42,16 +42,18 @@ transparents et organiques, avec réserves de papier et dépôts contrastés.
 
 Les mêmes alphas servent aux empreintes Canvas 2D, aux voiles et aux corps
 pigmentaires 3D. Les caches de teintes sont limités, les ancres préparées hors animation et
-les mouvements interpolés à partir du temps. En 3D, les tracés possèdent une
-section arrondie fermée, de vraies normales et des extrémités bouchées. Des
-courbes centripètes lissent leurs trajectoires ; les huit profils d’épaisseur
-portent un microrelief issu des alphas, un éclairage mat, une occlusion locale
-et des reflets humides discrets. L’opacité reste liée à celle du tracé.
-Le moteur 3D utilise trois appels de dessin pour les corps, nappes et poussières ;
-plafonds mobiles : 160 nappes, 2 800 particules, 700 segments à huit facettes et
-leurs extrémités, soit 39 360 sommets maximum. Les mises à jour GPU sont limitées
-aux portions actives des buffers. Le point de dessin vise le rayon des corps
-pour conserver l’alignement lors de la peinture en déplacement. Les ressources GPU sont
+les mouvements interpolés à partir du temps. En 3D, les tracés sont des surfaces
+ouvertes, fines et plissées, sans section fermée ni bouchons : ils restent des
+voiles, jamais des corps pleins. Les alphas modulent réellement leur transparence,
+avec réserves de papier, bords diffus et dépôts pigmentaires contrastés.
+Le rendu double face permet de les traverser ; l’écriture de profondeur est
+désactivée pour conserver leurs superpositions translucides. L’éclairage reste
+doux et mat, sans reflet métallique.
+Le moteur 3D utilise trois appels de dessin pour les voiles, nappes et poussières ;
+plafonds mobiles : 160 nappes, 2 800 particules et 700 segments à quatre bandes,
+soit 16 800 sommets maximum. Seules les portions actives des buffers sont mises
+à jour. Le point de dessin vise le rayon des voiles pendant le déplacement.
+Les ressources GPU sont
 libérées à la sortie ; seul l’atlas CPU partagé reste en cache pour la session.
 
 Les tests contrôlent la diversité, les détails, la transparence et la

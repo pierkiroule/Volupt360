@@ -1,12 +1,12 @@
 import * as THREE from "three";
-import { PIGMENT_COLUMNS, PIGMENT_CELL } from "./pigmentAtlas.js";
+import { PIGMENT_COLUMNS } from "./pigmentAtlas.js";
 import { SQUIGGLE_BRUSHES, SCULPT_RADIUS } from "./brushes.js";
 
-/** Closed, softly corrugated pigment bodies. Buffers are allocated once. */
+/** Open, double-sided watercolor sheets; no thickness and no end caps. */
 export function createPigmentRibbons(texture, { mobile = false } = {}) {
   const maxSegments = mobile ? 700 : 1400,
-    sides = mobile ? 8 : 12;
-  const maxVertices = (maxSegments + 120) * sides * 6;
+    sides = mobile ? 4 : 7;
+  const maxVertices = maxSegments * sides * 6;
   const geometry = new THREE.BufferGeometry();
   const buffers = {
     position: new Float32Array(maxVertices * 3),
@@ -26,13 +26,13 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
   geometry.setDrawRange(0, 0);
   const material = new THREE.ShaderMaterial({
     transparent: true,
-    depthWrite: true,
-    side: THREE.FrontSide,
+    depthWrite: false,
+    side: THREE.DoubleSide,
     vertexColors: true,
     uniforms: { pigment: { value: texture }, time: { value: 0 } },
     vertexShader: `attribute vec4 fold;uniform float time;varying vec2 U;varying vec3 C,N,P;varying vec4 F;
     void main(){U=uv;C=color;F=fold;
-      float sway=sin(uv.x*6.+time*.32+fold.z)*.07+sin(uv.x*13.-time*.21+fold.z)*.025;
+      float sway=sin(uv.x*6.+uv.y*3.+time*.32+fold.z)*.13+sin(uv.x*13.-time*.21+fold.z)*.055;
       vec3 p=position+normal*sway*fold.w;
       vec4 view=modelViewMatrix*vec4(p,1.);P=view.xyz;N=normalize(normalMatrix*normal);
       gl_Position=projectionMatrix*view;}`,
@@ -43,26 +43,14 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
     }
     void main(){
       float h=heightAt(U);
-      float du=heightAt(U+vec2(.003,0.))-heightAt(U-vec2(.003,0.));
-      float dv=heightAt(U+vec2(0.,.003))-heightAt(U-vec2(0.,.003));
       vec3 n=normalize(N);
-      vec3 dp1=dFdx(P),dp2=dFdy(P);vec2 st1=dFdx(U),st2=dFdy(U);
-      vec3 tangent=dp1*st2.y-dp2*st1.y,bitangent=-dp1*st2.x+dp2*st1.x;
-      vec3 t=tangent/max(length(tangent),.00001),b=bitangent/max(length(bitangent),.00001);
-      n=normalize(n-t*du*.7-b*dv*.7);
-      vec3 light=normalize(vec3(-.55,.8,.9)), fill=normalize(vec3(.7,-.2,.5));
-      float diffuse=max(0.,dot(n,light)), reflected=max(0.,dot(n,fill));
-      float pockets=smoothstep(.04,.55,h), sediment=pow(h,.65);
-      float occlusion=.7+.3*pockets;
-      vec3 pigmentColor=C*(.7+.4*sediment);
-      vec3 lit=pigmentColor*(.55+diffuse*.75+reflected*.17)*occlusion;
-      float rim=pow(1.-max(0.,dot(n,normalize(-P))),2.5);
-      float wet=pow(max(0.,dot(n,normalize(light+normalize(-P)))),24.)*.035;
-      lit+=mix(C,vec3(.96,.91,.8),.18)*(rim*.09+wet);
-      float grain=fract(sin(dot(floor(U*${PIGMENT_CELL}.),vec2(12.9898,78.233)))*43758.5453);
-      lit*=.92+.12*grain;
-      float alpha=F.y*(.84+.16*pockets);
-      if(alpha<.015)discard;
+      float light=.72+.28*abs(dot(n,normalize(vec3(-.55,.8,.9))));
+      float pigment=.64+.55*h;
+      vec3 lit=C*pigment*light;
+      float edge=smoothstep(0.,.17,U.y)*(1.-smoothstep(.83,1.,U.y));
+      float ends=smoothstep(0.,.07,U.x)*(1.-smoothstep(.93,1.,U.x));
+      float alpha=F.y*edge*ends*(.08+h*.88);
+      if(alpha<.008)discard;
       gl_FragColor=vec4(lit,alpha);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -112,11 +100,17 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
           )
             control.push(point);
         }
-        // A single tap is a compact bead of pigment, not a missing surface.
+        // A tap deposits an open wash with an area, never a solid bead.
         if (control.length === 1) {
           const a = control[0];
-          control.unshift(a.clone().add(new THREE.Vector3(-0.018, 0, 0)));
-          control.push(a.clone().add(new THREE.Vector3(0.018, 0, 0)));
+          radial.copy(a).normalize();
+          tangent.crossVectors(up, radial);
+          if (tangent.lengthSq() < 0.00001) tangent.set(1, 0, 0);
+          tangent
+            .normalize()
+            .multiplyScalar(Math.max(0.04, (s.size / 768) * 5));
+          control.unshift(a.clone().sub(tangent));
+          control.push(a.clone().add(tangent));
         }
         const curve = new THREE.CatmullRomCurve3(control, false, "centripetal");
         const count = Math.min(
@@ -139,20 +133,21 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
             Math.max(0.035, (s.size / 768) * 6.8) *
             taper *
             (0.9 + 0.1 * Math.sin(u * 12 + seed));
-          const height =
-            width * [0.34, 0.52, 0.68, 0.28, 0.75, 0.45, 0.62, 0.25][family];
-          center.addScaledVector(radial, Math.sin(u * 5 + seed) * width * 0.65);
+          center.addScaledVector(radial, Math.sin(u * 5 + seed) * width * 0.35);
           const row = [];
-          for (let j = 0; j < sides; j++) {
-            const angle = (j / sides) * Math.PI * 2,
-              fold = 1 + 0.1 * Math.sin(u * 21 + angle * 3 + seed);
+          for (let j = 0; j <= sides; j++) {
+            const v = (j / sides) * 2 - 1;
+            const phase = u * 8 + v * 2.8 + seed;
+            const fold =
+              Math.sin(phase) * width * 0.38 +
+              Math.sin(v * Math.PI) * width * 0.16;
+            const derivative =
+              Math.cos(phase) * 2.8 * 0.38 +
+              Math.cos(v * Math.PI) * Math.PI * 0.16;
             p.copy(center)
-              .addScaledVector(across, Math.cos(angle) * width * fold)
-              .addScaledVector(radial, Math.sin(angle) * height * fold);
-            n.copy(across)
-              .multiplyScalar(Math.cos(angle) / width)
-              .addScaledVector(radial, Math.sin(angle) / Math.max(0.01, height))
-              .normalize();
+              .addScaledVector(across, v * width)
+              .addScaledVector(radial, fold);
+            n.copy(radial).addScaledVector(across, -derivative).normalize();
             row.push({ p: p.clone(), n: n.clone() });
           }
           rows.push(row);
@@ -169,44 +164,17 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
           vertices++;
         };
         const emit = (row, side, uvSide) => {
-          const sample = rows[row][side % sides];
+          const sample = rows[row][side];
           write(sample.p, sample.n, row / count, uvSide / sides);
         };
         for (let i = 0; i < count && vertices + sides * 6 <= maxVertices; i++)
           for (let j = 0; j < sides; j++) {
             emit(i, j, j);
-            emit(i, j + 1, j + 1);
             emit(i + 1, j, j);
             emit(i, j + 1, j + 1);
+            emit(i, j + 1, j + 1);
+            emit(i + 1, j, j);
             emit(i + 1, j + 1, j + 1);
-            emit(i + 1, j, j);
-          }
-        if (vertices + sides * 6 <= maxVertices)
-          for (const end of [0, count]) {
-            center.set(0, 0, 0);
-            for (const sample of rows[end]) center.add(sample.p);
-            center.multiplyScalar(1 / sides);
-            curve
-              .getTangentAt(end / count, tangent)
-              .normalize()
-              .multiplyScalar(end === 0 ? -1 : 1);
-            for (let j = 0; j < sides; j++) {
-              const first = end === 0 ? j + 1 : j,
-                second = end === 0 ? j : j + 1;
-              write(center, tangent, end / count, 0.5);
-              write(
-                rows[end][first % sides].p,
-                tangent,
-                end / count,
-                first / sides,
-              );
-              write(
-                rows[end][second % sides].p,
-                tangent,
-                end / count,
-                second / sides,
-              );
-            }
           }
       }
       geometry.setDrawRange(0, vertices);

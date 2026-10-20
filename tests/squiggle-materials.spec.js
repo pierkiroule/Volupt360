@@ -156,7 +156,7 @@ test("offline watercolor works in 2D and 360 without external image requests", a
   expect(errors).toEqual([]);
 });
 
-test("pigment relief has real thickness, outward smooth normals, closed caps and a bounded tap deposit", async ({
+test("watercolor veils are open, double-sided and translucent with bounded geometry", async ({
   page,
 }) => {
   await page.goto("/");
@@ -212,6 +212,21 @@ test("pigment relief has real thickness, outward smooth normals, closed caps and
       total++;
     }
     const count = body.vertices;
+    const edges = new Map();
+    const key = (i) => [p.getX(i), p.getY(i), p.getZ(i)].join(",");
+    for (let i = 0; i < count; i += 3)
+      for (const [a, b] of [
+        [i, i + 1],
+        [i + 1, i + 2],
+        [i + 2, i],
+      ]) {
+        const edge = [key(a), key(b)].sort().join("|");
+        edges.set(edge, (edges.get(edge) || 0) + 1);
+      }
+    const openEdges = Array.from(edges.values()).filter((n) => n === 1).length;
+    const doubleSided = body.mesh.material.side === THREE.DoubleSide,
+      depthWrite = body.mesh.material.depthWrite,
+      transparent = body.mesh.material.transparent;
     body.setDocument([{ ...stroke, points: [{ x: 0.3, y: 0.5 }] }]);
     const tap = body.vertices;
     body.setDocument([]);
@@ -219,6 +234,10 @@ test("pigment relief has real thickness, outward smooth normals, closed caps and
     body.dispose();
     texture.dispose();
     return {
+      openEdges,
+      doubleSided,
+      depthWrite,
+      transparent,
       thickness: max - min,
       normError,
       outward: outward / total,
@@ -228,7 +247,11 @@ test("pigment relief has real thickness, outward smooth normals, closed caps and
       capacity: body.capacity,
     };
   });
-  expect(result.thickness).toBeGreaterThan(0.3);
+  expect(result.openEdges).toBeGreaterThan(10);
+  expect(result.doubleSided).toBe(true);
+  expect(result.depthWrite).toBe(false);
+  expect(result.transparent).toBe(true);
+  expect(result.thickness).toBeGreaterThan(0.1);
   expect(result.normError).toBeLessThan(0.00001);
   expect(result.outward).toBeGreaterThan(0.95);
   expect(result.count).toBeGreaterThan(500);
