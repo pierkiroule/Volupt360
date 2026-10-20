@@ -3508,3 +3508,81 @@ label:focus-visible {
   outline: 2px solid #486958;
   outline-offset: 2px;
 }
+/* Gesture-aware controls: translucent at rest, clear while used. */
+.spatial-workshop-tools {
+  opacity: 0.74;
+  transition:
+    opacity 0.22s ease,
+    transform 0.28s ease,
+    visibility 0.28s;
+}
+.spatial-workshop-tools button {
+  min-height: 44px;
+}
+.spatial-workshop-tools.is-concealed {
+  opacity: 0;
+  transform: translate(-50%, calc(100% + 28px));
+  visibility: hidden;
+  pointer-events: none;
+}
+.spatial-workshop-tools:has(:focus-visible),
+.spatial-workshop-tools:active {
+  opacity: 1;
+}
+.spatial-tools-recall {
+  position: fixed;
+  z-index: 13;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  padding: 3px;
+  border-radius: 24px;
+  border: 1px solid #71857530;
+  background: #faf7efbc;
+  backdrop-filter: blur(8px);
+  opacity: 0.78;
+  transition: opacity 0.2s;
+}
+.spatial-tools-recall button {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 22px;
+  color: #40594d;
+  background: transparent;
+  font:
+    11px system-ui,
+    sans-serif;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.spatial-tools-recall button:focus-visible {
+  outline: 2px solid #486958;
+  outline-offset: 2px;
+}
+.spatial-tools-recall:has(:focus-visible) {
+  opacity: 1;
+}
+.spatial-tools-recall .active-brush {
+  font-size: 20px;
+  line-height: 1;
+}
+@media (hover: hover) {
+  .spatial-workshop-tools:hover,
+  .spatial-tools-recall:hover {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spatial-workshop-tools,
+  .spatial-tools-recall {
+    transition: none;
+  }
+}

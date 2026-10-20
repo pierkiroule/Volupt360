@@ -1,3 +1,4 @@
+import { useSculptTools } from "./useSculptTools.js";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
@@ -25,6 +26,11 @@ export default function WatercolorWorkshop() {
     [sound, setSound] = useState(true),
     [folded, setFolded] = useState(false),
     [error, setError] = useState("");
+  const tools = useSculptTools({
+    enabled: started,
+    sculpting: sculpt,
+    traveling: moving,
+  });
   useEffect(() => {
     document.title = "Ciel en résonance •° — Sculpture 360°";
     engine.current = createSoundNest(stage.current, {
@@ -124,7 +130,7 @@ export default function WatercolorWorkshop() {
     <main
       className={`immersive chill-experience watercolor-workshop spatial-workshop ${started ? "is-running" : ""}`}
     >
-      <div id="stage" ref={stage} />
+      <div id="stage" ref={stage} {...tools.stageEvents} />
       {!started && (
         <section className="chill-welcome">
           <span className="chill-eyebrow">Voler · Sculpter · Résonner</span>
@@ -158,7 +164,11 @@ export default function WatercolorWorkshop() {
               : "Maintenir pour accélérer · activer Sculpter pour peindre"}
           </p>
           <section
-            className="spatial-workshop-tools"
+            id="spatial-tools"
+            className={`spatial-workshop-tools ${tools.hidden ? "is-concealed" : ""}`}
+            aria-hidden={tools.hidden}
+            inert={tools.hidden}
+            {...tools.toolEvents}
             aria-label="Atelier de sculpture 360°"
           >
             {!folded && (
@@ -301,6 +311,35 @@ export default function WatercolorWorkshop() {
               </p>
             )}
           </section>
+          {tools.hidden && (
+            <nav
+              className="spatial-tools-recall"
+              aria-label="Accès rapide aux outils"
+            >
+              <button
+                aria-label="Afficher les outils"
+                aria-controls="spatial-tools"
+                aria-expanded="false"
+                onClick={tools.show}
+              >
+                <span className="active-brush" aria-hidden="true">
+                  {SENSORY_EMOJIS.find((e) => e.id === brush)?.emoji}
+                </span>
+                <span>Outils</span>
+              </button>
+              {sculpt && (
+                <button
+                  aria-label="Arrêter la sculpture"
+                  onClick={() => {
+                    setSculpt(false);
+                    tools.show();
+                  }}
+                >
+                  <ToolIcon name="pause" />
+                </button>
+              )}
+            </nav>
+          )}
         </>
       )}
       {(error || twigs.error) && (

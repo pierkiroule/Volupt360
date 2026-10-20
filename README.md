@@ -78,3 +78,17 @@ spatial et la libération des ressources. Les tests réutilisables des anciens
 moteurs et des matières sont conservés. Les anciennes suites de parcours retirés
 ne constituent pas la validation du parcours courant. Le confort et la fluidité
 sur téléphone physique restent à vérifier.
+
+## Une interface qui s’efface pendant le geste
+
+`useSculptTools` masque les outils après 140 ms de geste de sculpture et les
+rappelle 850 ms après le relâchement. En voyage automatique avec sculpture, ils
+s’effacent après 2,8 secondes sans interaction. Le mode plié est conservé.
+Un rappel compact affiche la brosse sélectionnée et permet de rouvrir les outils
+ou de couper immédiatement le dépôt sans interrompre le voyage.
+
+Le menu a une opacité de 0,74 au repos, puis redevient opaque au toucher, au survol
+avec une souris ou au focus clavier. Un réglage au clavier maintient les outils
+visibles. Les commandes tactiles mesurent au moins 44 px. Les outils masqués sont
+inertes et retirés de la navigation accessible ; Échap les rappelle. Les délais
+sont annulés à la sortie et les transitions respectent le mouvement réduit.

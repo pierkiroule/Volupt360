@@ -180,3 +180,109 @@ test.describe("mobile sculpting flight", () => {
       .toBeGreaterThan(0);
   });
 });
+
+test("smart tools hide during sculpting, restore after release and preserve folded state", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+    .click();
+  await page.getByRole("button", { name: "Plier les outils" }).click();
+  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
+  const panel = page.getByRole("region", {
+      name: "Atelier de sculpture 360°",
+      includeHidden: true,
+    }),
+    canvas = page.locator("#stage canvas"),
+    r = await canvas.boundingBox();
+  await page.mouse.move(r.width * 0.5, r.height * 0.35);
+  await page.mouse.down();
+  await expect(panel).toHaveAttribute("aria-hidden", "true");
+  await expect(
+    page.getByRole("button", { name: "Afficher les outils" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Arrêter la sculpture" }),
+  ).toBeVisible();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "true");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-spatial-samples")))
+    .toBeGreaterThan(2);
+  await page.mouse.up();
+  await expect(panel).toHaveAttribute("aria-hidden", "false");
+  await expect(
+    page.getByRole("button", { name: "Déplier les outils" }),
+  ).toBeVisible();
+  await expect(page.getByRole("group", { name: "Brosses émojis" })).toHaveCount(
+    0,
+  );
+  await page.mouse.down();
+  await expect(panel).toHaveAttribute("aria-hidden", "true");
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveAttribute("aria-hidden", "false");
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
+  await page.mouse.move(r.width * 0.5, r.height * 0.35);
+  await page.mouse.down();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "true");
+  await expect(panel).toHaveAttribute("aria-hidden", "false");
+  await page.mouse.up();
+});
+
+test("automatic sculpting yields its tools but the recall and stop controls remain accessible", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+    .click();
+  await page.getByRole("button", { name: "Sculpter", exact: true }).click();
+  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await page.mouse.move(20, 20);
+  const recall = page.getByRole("button", { name: "Afficher les outils" });
+  await expect(recall).toBeVisible({ timeout: 6000 });
+  await recall.click();
+  await expect(
+    page.getByRole("button", { name: "Sculpter", exact: true }),
+  ).toBeVisible();
+  await page.getByText("Réglages de la matière", { exact: true }).click();
+  await page.getByRole("slider", { name: "Taille de la brosse" }).focus();
+  // A keyboard user can keep adjusting a slider while automatic flight paints.
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(3000); // Longer than the idle timeout: keyboard adjustment must remain visible.
+  await expect(
+    page.getByRole("slider", { name: "Taille de la brosse" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Suspendre le voyage" }).click();
+  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await page.mouse.move(20, 20);
+  await expect(recall).toBeVisible({ timeout: 6000 });
+  await page.getByRole("button", { name: "Arrêter la sculpture" }).click();
+  await expect(
+    page.getByRole("button", { name: "Sculpter", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#stage canvas")).toHaveAttribute(
+    "data-journey-moving",
+    "true",
+  );
+});
+
+test("the menu is translucent at rest and becomes readable for keyboard interaction", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+    .click();
+  const menu = page.locator("#spatial-tools");
+  await page.mouse.move(20, 20);
+  await expect(menu).toHaveCSS("opacity", "0.74");
+  await expect(menu).toHaveCSS("transition-duration", "0s");
+  await page.keyboard.press("Tab");
+  await expect(menu).toHaveCSS("opacity", "1");
+  await expect(
+    page.getByRole("button", { name: "Sculpter", exact: true }),
+  ).toHaveCSS("min-height", "44px");
+});
