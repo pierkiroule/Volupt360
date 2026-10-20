@@ -32,16 +32,26 @@ class WorldBoundary extends Component {
 }
 export default function SquiggleApp() {
   const [photoMatter, setPhotoMatter] = useState(null),
-    [creditsOpen, setCreditsOpen] = useState(false);
+    [creditsOpen, setCreditsOpen] = useState(false),
+    [photosLoading, setPhotosLoading] = useState(true);
   useEffect(() => {
     let active = true;
     loadPhotoMatter().then((matter) => {
-      if (active) setPhotoMatter(matter);
+      if (active) {
+        setPhotoMatter(matter);
+        setPhotosLoading(false);
+      }
     });
     return () => {
       active = false;
     };
   }, []);
+  const retryPhotos = async () => {
+    setPhotosLoading(true);
+    const matter = await loadPhotoMatter({ retry: true });
+    setPhotoMatter(matter);
+    setPhotosLoading(false);
+  };
   const [erase, setErase] = useState(false),
     [recenter, setRecenter] = useState(0);
   const [strokes, setStrokes] = useState([]),
@@ -170,7 +180,12 @@ export default function SquiggleApp() {
     }
   };
   return (
-    <main className={`squiggle-app is-${mode}`}>
+    <main
+      className={`squiggle-app is-${mode}`}
+      data-photo-status={
+        photosLoading ? "loading" : photoMatter ? "ready" : "unavailable"
+      }
+    >
       <SketchSurface
         strokes={strokes}
         photoMatter={photoMatter}
@@ -342,6 +357,13 @@ export default function SquiggleApp() {
           <button
             className="squiggle-credit-button"
             aria-label="Sources des matières"
+            title={
+              photosLoading
+                ? "Chargement des photos…"
+                : photoMatter
+                  ? "Photos chargées"
+                  : "Photos indisponibles · Réessayer"
+            }
             aria-expanded={creditsOpen}
             onClick={() => setCreditsOpen(!creditsOpen)}
           >
@@ -370,7 +392,7 @@ export default function SquiggleApp() {
               </button>
             </div>
             <p>
-              Photographies recadrées, désaturées et mêlées aux pigments. Les
+              Photographies recadrées, colorées et mêlées aux pigments. Les
               crédits sont aussi intégrés aux métadonnées du PNG.
             </p>
             {photoMatter ? (
@@ -387,10 +409,16 @@ export default function SquiggleApp() {
                 </p>
               ))
             ) : (
-              <p>
-                Textures procédurales actives. Les photographies libres
-                s’ajoutent lorsque Commons est accessible.
-              </p>
+              <div className="squiggle-photo-status" role="status">
+                <p>
+                  {photosLoading
+                    ? "Chargement des photographies…"
+                    : "Photos indisponibles. Les matières procédurales restent actives."}
+                </p>
+                <button disabled={photosLoading} onClick={retryPhotos}>
+                  Réessayer les photos
+                </button>
+              </div>
             )}
           </aside>
         )}

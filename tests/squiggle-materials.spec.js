@@ -22,7 +22,7 @@ test("Commons textures blend safely in both dimensions and PNG keeps UTF-8 attri
     c.width = c.height = 64;
     const ctx = c.getContext("2d");
     for (let i = 0; i < 64; i++) {
-      ctx.fillStyle = `rgb(${i * 4},${i * 4},${i * 4})`;
+      ctx.fillStyle = `rgb(${i * 4},${200 - i * 2},${255 - i * 3})`;
       ctx.fillRect(i, 0, 1, 64);
     }
     return c.toDataURL().split(",")[1];
@@ -71,6 +71,22 @@ test("Commons textures blend safely in both dimensions and PNG keeps UTF-8 attri
     "true",
   );
   await draw(page);
+  // A blue/green photograph must visibly survive an orange brush in the final canvas.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const canvas = document.querySelector(".squiggle-paper"),
+          data = canvas
+            .getContext("2d")
+            .getImageData(0, 0, canvas.width, canvas.height).data;
+        let visible = 0;
+        for (let i = 0; i < data.length; i += 4)
+          if (data[i + 2] - data[i] > 35 && data[i + 1] > data[i] + 15)
+            visible++;
+        return visible;
+      }),
+    )
+    .toBeGreaterThan(150);
   await expect(page.locator(".squiggle-credits")).toHaveCount(0);
   await page.getByRole("button", { name: "Sources des matières" }).click();
   await expect(
@@ -247,4 +263,31 @@ test("a thumbnail CORS failure leaves the canvas drawable and exportable", async
   await page.getByRole("button", { name: "PNG ↓", exact: true }).click();
   const bytes = await fs.readFile(await (await download).path());
   expect(bytes.length).toBeGreaterThan(500);
+});
+
+test("failed loading is explicit and can be retried without losing drawing", async ({
+  page,
+}) => {
+  let requests = 0;
+  await page.route("https://commons.wikimedia.org/w/api.php?**", (route) => {
+    requests++;
+    return route.fulfill({ status: 503, json: { error: "offline" } });
+  });
+  await page.goto("/");
+  await expect(page.locator(".squiggle-app")).toHaveAttribute(
+    "data-photo-status",
+    "unavailable",
+  );
+  await draw(page);
+  await page.getByRole("button", { name: "Sources des matières" }).click();
+  await expect(page.getByRole("status")).toContainText("Photos indisponibles");
+  await page.getByRole("button", { name: "Réessayer les photos" }).click();
+  await expect(
+    page.getByRole("button", { name: "Réessayer les photos" }),
+  ).toBeEnabled();
+  expect(requests).toBe(2);
+  await expect(page.locator(".squiggle-paper")).toHaveAttribute(
+    "data-strokes",
+    "1",
+  );
 });

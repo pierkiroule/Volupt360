@@ -256,3 +256,9 @@
   color: #315e6b;
   text-underline-offset: 2px;
 }
+.squiggle-credits .squiggle-photo-status {
+  display: block;
+}
+.squiggle-photo-status button {
+  font-size: 12px;
+}

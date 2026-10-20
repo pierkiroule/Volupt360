@@ -1,10 +1,12 @@
+import { createPhotoStrokeLayer } from "./photoStrokeLayer.js";
 import { pigmentAtlas, PIGMENT_CELL } from "./pigmentAtlas.js";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 const families = new Map(SQUIGGLE_BRUSHES.map((b, i) => [b.id, i]));
 /** Precomputed anchors, bounded tinted masks, no figurative marks. */
 export function createWatercolorMotion({ mobile = false } = {}) {
   const atlas = pigmentAtlas(),
-    masks = new Map();
+    masks = new Map(),
+    photoLayer = createPhotoStrokeLayer({ mobile });
   let anchors = [],
     photos = null,
     strokesDoc = [];
@@ -39,12 +41,14 @@ export function createWatercolorMotion({ mobile = false } = {}) {
   return {
     setPhotoMatter(value) {
       photos = value;
+      photoLayer.setPhotoMatter(value);
       for (const c of masks.values()) c.width = 1;
       masks.clear();
       this.setDocument(strokesDoc);
     },
     setDocument(strokes) {
       strokesDoc = strokes;
+      photoLayer.setDocument(strokes);
       anchors = [];
       const capacity = mobile ? 600 : 1000;
       const per = Math.max(
@@ -99,6 +103,7 @@ export function createWatercolorMotion({ mobile = false } = {}) {
       }
     },
     draw(ctx, time) {
+      photoLayer.draw(ctx);
       for (const a of anchors) {
         const phase = a.seed + time * (0.16 + a.family * 0.018);
         const drift = a.size * (0.035 + (a.family === 7 ? 0.055 : 0));
@@ -109,7 +114,8 @@ export function createWatercolorMotion({ mobile = false } = {}) {
           a.y + Math.cos(phase * 0.73) * drift,
         );
         ctx.rotate(a.angle + Math.sin(phase * 0.7) * 0.18);
-        ctx.globalAlpha = a.opacity * (a.family === 7 ? 0.2 : 0.34);
+        ctx.globalAlpha =
+          a.opacity * (photos ? 0.1 : a.family === 7 ? 0.2 : 0.34);
         ctx.drawImage(
           a.mask,
           a.tile * PIGMENT_CELL,
@@ -146,6 +152,7 @@ export function createWatercolorMotion({ mobile = false } = {}) {
       return { anchors: anchors.length, masks: masks.size };
     },
     dispose() {
+      photoLayer.dispose();
       for (const c of masks.values()) c.width = 1;
       masks.clear();
       anchors = [];

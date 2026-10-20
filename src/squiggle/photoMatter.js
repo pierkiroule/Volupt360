@@ -14,7 +14,11 @@ const plain = (value) =>
     .slice(0, 300);
 const safeURL = (value, hosts) => {
   try {
-    const u = new URL(value);
+    const u = new URL(
+      String(value).startsWith("//") ? `https:${value}` : value,
+    );
+    if (u.protocol === "http:" && u.hostname === "creativecommons.org")
+      u.protocol = "https:";
     return u.protocol === "https:" && hosts.includes(u.hostname)
       ? u.href
       : null;
@@ -27,7 +31,15 @@ export function allowedPhoto(page) {
     meta = info?.extmetadata;
   if (!info || !meta) return null;
   const name = plain(meta.LicenseShortName?.value),
-    licenseURL = safeURL(meta.LicenseUrl?.value, ["creativecommons.org"]);
+    licenseURL = safeURL(
+      meta.LicenseUrl?.value ||
+        (/^CC0/i.test(name)
+          ? "https://creativecommons.org/publicdomain/zero/1.0/"
+          : name === "Public domain"
+            ? "https://creativecommons.org/publicdomain/mark/1.0/"
+            : ""),
+      ["creativecommons.org"],
+    );
   if (!/^(CC BY(?: [1-4]\.\d)?|CC0(?: 1\.0)?|Public domain)$/i.test(name))
     return null;
   if (
@@ -37,7 +49,7 @@ export function allowedPhoto(page) {
     )
   )
     return null;
-  const url = safeURL(info.thumburl, ["upload.wikimedia.org"]);
+  const url = safeURL(info.thumburl || info.url, ["upload.wikimedia.org"]);
   const source = safeURL(info.descriptionurl, ["commons.wikimedia.org"]);
   if (!url || !source) return null;
   return {
@@ -50,7 +62,8 @@ export function allowedPhoto(page) {
   };
 }
 /** One request per session, four bounded thumbnails, HTTP cache and safe canvas reads. */
-export function loadPhotoMatter() {
+export function loadPhotoMatter({ retry = false } = {}) {
+  if (retry) session = null;
   if (session) return session;
   session = (async () => {
     const signal = AbortSignal.timeout(10000);
@@ -68,18 +81,26 @@ export function loadPhotoMatter() {
       iiurlwidth: "512",
       iiextmetadatafilter: "Artist|LicenseShortName|LicenseUrl",
     });
-    const response = await fetch(url, {
-      signal,
-      mode: "cors",
-      cache: "force-cache",
-    });
-    if (!response.ok) throw Error("Commons indisponible");
-    const json = await response.json();
-    const candidates = Object.values(json.query?.pages || {})
-      .map(allowedPhoto)
-      .filter(Boolean)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 4);
+    let candidates = [];
+    const start = Math.floor(Math.random() * QUERIES.length);
+    for (let attempt = 0; attempt < 3 && !candidates.length; attempt++) {
+      url.searchParams.set(
+        "gsrsearch",
+        `${QUERIES[(start + attempt) % QUERIES.length]} filetype:bitmap`,
+      );
+      const response = await fetch(url, {
+        signal,
+        mode: "cors",
+        cache: "force-cache",
+      });
+      if (!response.ok) throw Error("Commons indisponible");
+      const json = await response.json();
+      candidates = Object.values(json.query?.pages || {})
+        .map(allowedPhoto)
+        .filter(Boolean)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 4);
+    }
     if (!candidates.length) throw Error("Aucune matière libre disponible");
     const decoded = await Promise.all(
       candidates.map(async (credit) => {
@@ -141,11 +162,15 @@ export function loadPhotoMatter() {
         const contour = Math.abs(
           l - luminance[y * 1024 + Math.max(Math.floor(x / 256) * 256, x - 2)],
         );
-        const value = Math.max(
-          0,
-          Math.min(255, 128 + (l - 0.5) * 190 - contour * 130),
-        );
-        data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = value;
+        // Preserve the photograph: restrained colour grading, not a luminance mask.
+        for (let channel = 0; channel < 3; channel++) {
+          const original = data[i * 4 + channel];
+          const graded = original * 0.78 + l * 255 * 0.22;
+          data[i * 4 + channel] = Math.max(
+            0,
+            Math.min(255, 128 + (graded - 128) * 1.12 - contour * 35),
+          );
+        }
         data[i * 4 + 3] = 255;
       }
     ctx.putImageData(pixels, 0, 0);

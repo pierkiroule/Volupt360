@@ -11,7 +11,7 @@ export async function addPNGCredits(blob, credits) {
     )
     .join("\n\n");
   const payload = new TextEncoder().encode(
-    `Attribution\0\0\0\0\0Photographies recadrées, désaturées et mélangées aux pigments procéduraux.\n${text}`,
+    `Attribution\0\0\0\0\0Photographies recadrées, colorées et mélangées aux pigments procéduraux.\n${text}`,
   );
   const chunk = new Uint8Array(payload.length + 12),
     view = new DataView(chunk.buffer);

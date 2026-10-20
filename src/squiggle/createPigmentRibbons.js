@@ -43,8 +43,8 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
       float edge=sin(U.y*3.14159);float endFade=smoothstep(0.,.1,U.x)*(1.-smoothstep(.9,1.,U.x));
       float sediment=pow(abs(sin(U.y*18.+sin(U.x*6.+F.x)*2.)),12.);
       float a=grain*edge*endFade*F.y*(.5+sediment*.9);
-      if(a<.003)discard;float photographic=texture2D(photo,vec2((mod(F.x,4.)+q.x)*.25,q.y)).r;
-      gl_FragColor=vec4(C*(.8+sediment*.15)*mix(1.,.55+photographic*.7,hasPhoto*.7),a);
+      if(a<.003)discard;vec3 photographic=texture2D(photo,vec2((mod(F.x,4.)+q.x)*.25,q.y)).rgb;
+      gl_FragColor=vec4(mix(C*(.8+sediment*.15),photographic*(.82+sediment*.18),hasPhoto*.8),a);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
     }`,

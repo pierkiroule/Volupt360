@@ -67,8 +67,8 @@ export function createWatercolorField({ mobile = false } = {}) {
             ? `q.x*=.84;q.y*=1.15; if(max(abs(q.x),abs(q.y))>.49)discard;
           float tile=mod(floor(D.z),4.);float ink=texture2D(pigment,vec2((tile+q.x+.5)*.25,q.y+.5)).a;
           float ridge=.68+.32*sin(q.x*13.+q.y*5.+D.w*.4+D.x*17.);
-          float photographic=texture2D(photo,vec2((tile+q.x+.5)*.25,q.y+.5)).r;
-          float alpha=ink*D.y;vec3 tint=C*(.72+ridge*.28)*mix(1.,.6+photographic*.65,hasPhoto*.65);`
+          vec3 photographic=texture2D(photo,vec2((tile+q.x+.5)*.25,q.y+.5)).rgb;
+          float alpha=ink*D.y;vec3 tint=mix(C*(.72+ridge*.28),photographic*(.78+ridge*.22),hasPhoto*.8);`
             : `float r=length(q);float alpha=(1.-smoothstep(.06,.5,r))*D.y;
           alpha*=.8+.2*sin(q.x*32.+q.y*29.+D.x*173.);vec3 tint=mix(C,C*.48,.3);`
         }
@@ -162,6 +162,7 @@ export function createWatercolorField({ mobile = false } = {}) {
     setPhotoMatter(value) {
       photoTexture?.dispose();
       photoTexture = value ? new THREE.CanvasTexture(value.canvas) : null;
+      if (photoTexture) photoTexture.colorSpace = THREE.SRGBColorSpace;
       uniforms.photo.value = photoTexture || texture;
       uniforms.hasPhoto.value = value ? 1 : 0;
       ribbons.setPhotoTexture(photoTexture);

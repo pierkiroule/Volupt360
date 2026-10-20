@@ -41,14 +41,18 @@ appels de dessin, avec plafonds mobiles (160 nappes, 2 800 particules et
 `photoMatter.js` demande jusqu’à quatre photographies de textures naturelles à
 Wikimedia Commons, sans clé. Seules CC BY, CC0 et domaine public avec métadonnées
 et liens vérifiables sont retenues ; les licences partage à l’identique sont
-exclues. Les vignettes sont recadrées, désaturées et leurs contrastes accentués.
-La photo se mélange en lumière douce/produit à la matière Canvas et module les
-pigments des shaders 3D. Aucun chargement réseau n’est effectué par frame.
+exclues. Les vignettes sont recadrées, leurs couleurs préservées et leur contraste
+légèrement renforcé. Un masque pigmentaire continu révèle la photo dans le tracé,
+avec un léger voile de couleur de brosse. Les shaders 3D conservent également
+les couleurs photographiques au lieu de ne moduler que la luminosité. Aucun chargement réseau n’est effectué par frame.
 Cache de session et cache HTTP du navigateur ; délai global de dix secondes,
-vignettes de 512 px limitées à 3 Mo, quatre images maximum. En cas d’échec réseau,
+vignettes de 512 px limitées à 3 Mo, quatre images maximum. Jusqu’à trois recherches sont tentées si la sélection ne
+contient aucune image admissible. En cas d’échec réseau,
 CORS ou décodage, le dessin reste procédural et disponible immédiatement.
 
-Les crédits restent derrière le bouton discret **ⓘ**. Auteur, source, licence et
+Le chargement, l’indisponibilité des photos et une commande de relance sont
+consultables via **ⓘ** sans interrompre le dessin. Les crédits restent derrière
+ce bouton discret. Auteur, source, licence et
 indication de transformation sont également intégrés au PNG via un bloc UTF-8
 iTXt, sans texte ajouté sur l’image. Les métadonnées peuvent être supprimées par
 des plateformes tierces : conserver les crédits lors d’une redistribution.
