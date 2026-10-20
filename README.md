@@ -8,11 +8,25 @@ Taille, opacité et annuler/rétablir sont directement accessibles.
 
 ## Des émotions comme matières métaphoriques
 
-- Colère et frustration : lavis chauds, flammes courbes et braises ascendantes.
-- Tristesse et inquiétude : pigments bleu nuit/violet, nappes de nuages et pluie.
-- Joie, émerveillement, espoir et affection : couleurs propres, grains et petites
-  émergences animées autour du tracé.
-- Apaisement, fatigue, confusion et indéfinissable : lavis, voiles et ondulations.
+| Brosse | Couleur | Particules symboliques |
+| --- | --- | --- |
+| Joie | Ambre | Soleils et rayons |
+| Tristesse | Bleu nuit | Gouttes de pluie |
+| Colère | Vermillon | Flammes et braises |
+| Inquiétude | Violet | Nœuds et boucles serrées |
+| Apaisement | Turquoise | Ondes concentriques |
+| Confusion | Mauve | Points d’interrogation |
+| Affection | Rose | Petits cœurs |
+| Fatigue | Bleu ardoise | Croissants de lune |
+| Frustration | Brun ocré | Fragments de grillage |
+| Émerveillement | Pervenche | Étoiles et éclats |
+| Espoir | Vert | Petites pousses |
+| Indéfinissable | Gris sauge | Voiles entrecoupés |
+
+Les marques sont dessinées en Canvas dans un atlas partagé de 512 pixels, utilisé
+par la page 2D et les particules WebGL. Aucun chargement de police ou de sprite
+externe. Les mouvements sont propres à chaque famille (ascension, pluie, dérive,
+ondes, hésitation, croissance). L’atlas GPU est libéré avec le moteur météo.
 
 Entre des tracés de feu et de pluie, jusqu’à trois arcs d’orage se dessinent. Leur
 intensité varie lentement, sans flash stroboscopique. Ce sont des conventions

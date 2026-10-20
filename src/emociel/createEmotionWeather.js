@@ -1,11 +1,22 @@
 import * as THREE from "three";
-import { brushFor, diskWorld, emotionalBridges } from "./emotionPainting.js";
+import {
+  brushFor,
+  diskWorld,
+  emotionalBridges,
+  symbolAtlas,
+} from "./emotionPainting.js";
 /** Fixed GPU budgets. Weather is emitted only along painted strokes. */
 export function createEmotionWeather() {
   const group = new THREE.Group(),
     mobile = innerWidth < 600 || matchMedia("(pointer:coarse)").matches,
     capacity = mobile ? 1600 : 3200;
+  const atlas = new THREE.CanvasTexture(symbolAtlas());
+  atlas.colorSpace = THREE.SRGBColorSpace;
+  atlas.flipY = false;
+  atlas.generateMipmaps = false;
+  atlas.minFilter = atlas.magFilter = THREE.LinearFilter;
   const uniforms = {
+    symbols: { value: atlas },
     time: { value: 0 },
     pixelRatio: { value: Math.min(devicePixelRatio || 1, 1.7) },
   };
@@ -31,22 +42,30 @@ export function createEmotionWeather() {
     transparent: true,
     depthWrite: false,
     vertexShader: `attribute vec4 weather;uniform float time,pixelRatio;varying vec3 C;varying float K,A,S;
-  void main(){float kind=weather.x,seed=weather.y,age=fract(time*(kind<.5?.24:.32)+seed);vec3 p=position;float life=sin(age*3.14159);
-    if(kind<.5){p.y+=age*(.8+weather.z*2.);p.x+=sin(seed*41.+time*.8)*weather.z*.25;}
-    else if(kind<1.5){p.y-=age*(1.1+weather.z*2.5);p.x-=age*.22;}
-    else{p+=vec3(sin(seed*31.+time*.25),cos(seed*19.+time*.2),sin(seed*43.+time*.18))*weather.z*.35;}
-    vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
-    float size=kind<.5?46.:kind<1.5?32.:68.;gl_PointSize=clamp(size*pixelRatio*(.5+weather.z)*5./max(2.,-view.z),2.,100.);
-    C=color;K=kind;A=life*(kind<1.5?.64:.24)*weather.w;S=seed;
-  }`,
-    fragmentShader: `varying vec3 C;varying float K,A,S;void main(){vec2 q=gl_PointCoord;float alpha=0.;vec3 tint=C;
-    if(K<.5){float y=1.-q.y;float center=.5+sin(y*5.+S*17.)*.1*y;float width=(1.-y)*.38;alpha=(1.-smoothstep(width*.35,width+.025,abs(q.x-center)))*sin(y*3.14159);tint=mix(C,vec3(1.,.77,.32),smoothstep(.2,.85,1.-length((q-vec2(.5,.7))*vec2(2.,1.))));}
-    else if(K<1.5){float d=abs(q.x-(.48+(q.y-.5)*.12));alpha=(1.-smoothstep(.012,.065,d))*sin(q.y*3.14159);}
-    else{float r=length(q-.5)*2.;alpha=(1.-smoothstep(.05,1.,r))*(.7+.3*sin(q.x*31.+sin(q.y*29.)));}
-    if(alpha*A<.003)discard;gl_FragColor=vec4(tint,alpha*A);
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-  }`,
+    void main(){float k=weather.x,seed=weather.y,age=fract(time*(k==1.? .3:.18)+seed);vec3 p=position;float life=sin(age*3.14159);float w=weather.z;
+      if(k==2.){p.y+=age*(.8+w*2.);p.x+=sin(seed*41.+time*.8)*w*.25;}
+      else if(k==1.){p.y-=age*(1.1+w*2.5);p.x-=age*.22;}
+      else if(k==5.){p.x+=sin(seed*31.+time*.42)*w*.6;p.y+=cos(seed*17.+time*.27)*w*.4;}
+      else if(k==8.){p.x+=sin(seed*21.+time*.7)*w*.2;p.y+=sin(seed*13.+time*.5)*w*.08;}
+      else if(k==6.||k==10.){p.y+=age*w*.9;p.x+=sin(seed*13.+time*.3)*w*.2;}
+      else if(k==7.){p.y-=age*w*.35;p.x+=sin(seed*23.+time*.2)*w*.13;}
+      else if(k==4.||k==9.){p+=normalize(position-vec3(0.,0.,20.))*age*w*.55;}
+      else if(k==3.){p+=vec3(sin(seed*19.+time*.6),cos(seed*17.+time*.5),sin(seed*13.+time*.4))*w*.12;}
+      else{p+=vec3(sin(seed*31.+time*.25),cos(seed*19.+time*.2),sin(seed*43.+time*.18))*w*.35;}
+      vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
+      float size=k==1.?34.:k==12.?80.:58.;if(k==10.)size*=.55+age*.7;
+      gl_PointSize=clamp(size*pixelRatio*(.5+w)*5./max(2.,-view.z),3.,100.);
+      C=color;K=k;A=life*(k==12.?.26:.8)*weather.w;S=seed;
+    }`,
+    fragmentShader: `uniform sampler2D symbols;varying vec3 C;varying float K,A,S;
+    void main(){vec2 q=vec2(gl_PointCoord.x,1.-gl_PointCoord.y);
+      vec2 tile=vec2(mod(K,4.),floor(K/4.));vec2 uv=(tile+(q*127.+.5)/128.)/4.;
+      vec4 ink=texture2D(symbols,uv);if(ink.a*A<.004)discard;
+      vec3 tint=K>11.5?mix(ink.rgb,C,.8):ink.rgb;
+      gl_FragColor=vec4(tint,ink.a*A);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
   });
   const points = new THREE.Points(geometry, material);
   points.frustumCulled = false;
@@ -95,11 +114,7 @@ export function createEmotionWeather() {
       );
       for (const s of strokes) {
         const b = brushFor(s.emotionId),
-          kind = ["anger", "frustration"].includes(s.emotionId)
-            ? 0
-            : ["sadness", "worry"].includes(s.emotionId)
-              ? 1
-              : 2;
+          kind = b.index;
         color.set(b.color);
         for (let i = 0; i < per && count < capacity; i++) {
           const p =
@@ -119,7 +134,7 @@ export function createEmotionWeather() {
           colors.set([color.r, color.g, color.b], count * 3);
           data.set(
             [
-              kind === 1 && i % 4 === 0 ? 2 : kind,
+              kind === 1 && i % 4 === 0 ? 12 : kind,
               random(),
               Math.max(0.14, spread),
               s.opacity,
@@ -163,6 +178,7 @@ export function createEmotionWeather() {
       uniforms.time.value = reduced.matches ? 0 : time;
     },
     dispose() {
+      atlas.dispose();
       geometry.dispose();
       material.dispose();
       lineGeometry.dispose();

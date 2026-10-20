@@ -1,3 +1,8 @@
+import {
+  EMOTION_LANGUAGE,
+  createEmotionSymbols,
+  SYMBOL_CELL,
+} from "./emotionLanguage.js";
 import { EMOTIONS } from "./skyModel.js";
 import { createProjectivePigment } from "../resonant/projectivePigment.js";
 export const DISK_SIZE = 768,
@@ -5,21 +10,15 @@ export const DISK_SIZE = 768,
 export const EMOTION_BRUSHES = EMOTIONS.map((e, index) => ({
   ...e,
   index,
-  color: {
-    anger: "#ce6236",
-    sadness: "#253b69",
-    joy: "#d4ae5b",
-    worry: "#76678e",
-    peace: "#619caa",
-    confusion: "#9786aa",
-    affection: "#bb789b",
-    tiredness: "#7e8b9c",
-    frustration: "#a87151",
-    wonder: "#84a3b4",
-    hope: "#74966f",
-    uncertainty: "#a1adb0",
-  }[e.id],
+  color: EMOTION_LANGUAGE[e.id].color,
+  symbol: EMOTION_LANGUAGE[e.id].symbol,
 }));
+let atlas = null;
+export function symbolAtlas() {
+  return (
+    atlas || (atlas = createEmotionSymbols(EMOTION_BRUSHES.map((b) => b.id)))
+  );
+}
 export const brushFor = (id) =>
   EMOTION_BRUSHES.find((e) => e.id === id) || EMOTION_BRUSHES[0];
 /** A disk is an azimuthal map: center zenith, rim nadir, every azimuth retained. */
@@ -161,93 +160,52 @@ export function drawEmotionLife(ctx, strokes, time, reduced = false) {
         w = s.size,
         phase = s.id * 0.97 + i * 0.73,
         t = reduced ? 0 : time;
-      if (["anger", "frustration"].includes(s.emotionId)) {
-        const sway = Math.sin(t * 1.5 + phase) * w * 0.12,
-          h = w * (0.45 + 0.17 * Math.sin(t * 1.2 + phase));
-        ctx.globalAlpha = s.opacity * 0.65;
-        ctx.fillStyle = "#d56836";
-        ctx.beginPath();
-        ctx.moveTo(x - w * 0.15, y + w * 0.08);
-        ctx.quadraticCurveTo(x - w * 0.22, y - h * 0.35, x + sway, y - h);
-        ctx.quadraticCurveTo(
-          x + w * 0.3,
-          y - h * 0.25,
-          x + w * 0.15,
-          y + w * 0.08,
-        );
-        ctx.closePath();
-        ctx.fill();
-        ctx.globalAlpha *= 0.8;
-        ctx.fillStyle = "#f3c276";
-        ctx.beginPath();
-        ctx.ellipse(
-          x + sway * 0.3,
-          y - h * 0.2,
-          w * 0.06,
-          h * 0.25,
-          -0.2,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-        const age = (((t * 0.25 + phase) % 1) + 1) % 1;
-        ctx.globalAlpha = Math.sin(age * Math.PI) * 0.65;
-        ctx.fillStyle = "#c88a43";
-        ctx.beginPath();
-        ctx.arc(
-          x + Math.sin(phase * 3) * w * 0.45,
-          y - age * w * 1.4,
-          1.1,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-      } else if (["sadness", "worry"].includes(s.emotionId)) {
-        const age = (((t * 0.4 + phase) % 1) + 1) % 1;
-        ctx.globalAlpha = Math.sin(age * Math.PI) * s.opacity * 0.6;
-        ctx.strokeStyle = "#4b719c";
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(
-          x + Math.sin(phase) * w * 0.4 - age * w * 0.12,
-          y + age * w * 1.5,
-        );
-        ctx.lineTo(
-          x + Math.sin(phase) * w * 0.4 - age * w * 0.12 - w * 0.06,
-          y + age * w * 1.5 + w * 0.2,
-        );
-        ctx.stroke();
-      } else if (["joy", "wonder", "hope", "affection"].includes(s.emotionId)) {
-        const a = phase + t * 0.2,
-          r = w * (0.2 + 0.15 * Math.sin(t * 0.4 + phase));
-        ctx.globalAlpha = (0.25 + 0.2 * Math.sin(t * 0.6 + phase)) * s.opacity;
-        ctx.fillStyle = b.color;
-        ctx.beginPath();
-        ctx.ellipse(
-          x + Math.cos(a) * r,
-          y + Math.sin(a) * r,
-          2.1,
-          1.3,
-          a,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-      } else {
-        ctx.globalAlpha = s.opacity * 0.13;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.ellipse(
-          x,
-          y,
-          w * (0.3 + 0.05 * Math.sin(t * 0.4 + phase)),
-          w * 0.15,
-          phase + t * 0.04,
-          0.3,
-          Math.PI * 1.6,
-        );
-        ctx.stroke();
+      const age = (((t * 0.19 + phase) % 1) + 1) % 1;
+      let dx = Math.sin(t * 0.3 + phase) * w * 0.14,
+        dy = Math.cos(t * 0.23 + phase) * w * 0.1,
+        angle = Math.sin(t * 0.22 + phase) * 0.15;
+      if (s.emotionId === "anger") {
+        dy = -age * w * 0.9;
+        dx = Math.sin(t * 0.7 + phase) * w * 0.12;
       }
+      if (s.emotionId === "sadness") {
+        dy = age * w * 1.35;
+        dx = -age * w * 0.1;
+        angle = -0.12;
+      }
+      if (s.emotionId === "confusion") {
+        dx = Math.sin(t * 0.42 + phase) * w * 0.3;
+        dy = Math.cos(t * 0.27 + phase) * w * 0.22;
+        angle = Math.sin(t * 0.3 + phase) * 0.35;
+      }
+      if (s.emotionId === "frustration") {
+        dx = Math.sin(t * 0.8 + phase) * w * 0.09;
+        angle = Math.sin(t * 0.5 + phase) * 0.15;
+      }
+      if (s.emotionId === "affection" || s.emotionId === "hope")
+        dy = -age * w * 0.65;
+      if (s.emotionId === "tiredness") dy = age * w * 0.35;
+      const scale =
+        s.emotionId === "sadness" ? 0.29 : s.emotionId === "peace" ? 0.7 : 0.48;
+      const size =
+        Math.max(10, w * scale) *
+        (s.emotionId === "hope" ? 0.6 + age * 0.5 : 1);
+      ctx.save();
+      ctx.translate(x + dx, y + dy);
+      ctx.rotate(angle);
+      ctx.globalAlpha = s.opacity * (0.4 + 0.35 * Math.sin(age * Math.PI));
+      ctx.drawImage(
+        symbolAtlas(),
+        (b.index % 4) * SYMBOL_CELL,
+        Math.floor(b.index / 4) * SYMBOL_CELL,
+        SYMBOL_CELL,
+        SYMBOL_CELL,
+        -size / 2,
+        -size / 2,
+        size,
+        size,
+      );
+      ctx.restore();
     }
     ctx.restore();
   }

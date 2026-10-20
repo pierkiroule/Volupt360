@@ -183,7 +183,7 @@ export default function DiskExperience() {
                 <Button
                   key={b.id}
                   aria-label={b.label}
-                  title={b.label}
+                  title={`${b.label} · ${b.symbol}`}
                   aria-pressed={emotion === b.id}
                   onClick={() => setEmotion(b.id)}
                 >
@@ -192,6 +192,9 @@ export default function DiskExperience() {
                 </Button>
               ))}
             </div>
+            <p className="emotion-language" aria-live="polite">
+              {EMOTION_BRUSHES.find((b) => b.id === emotion)?.symbol}
+            </p>
             <div className="disk-controls">
               <label>
                 Taille
