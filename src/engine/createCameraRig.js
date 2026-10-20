@@ -16,6 +16,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
     lookEuler = new THREE.Euler(0, 0, 0, "YXZ");
   let homeYaw = Math.PI,
     homePitch = 0;
+  let panoramaTranslation = true;
   let panoramaExploreOnly = false,
     panoramaDrawing = false;
   let panoramaDial = 0;
@@ -110,7 +111,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       );
       gyroReference = null;
       gyroRelative.identity();
-      journey.setTouchControl(true, direction);
+      if (panoramaTranslation) journey.setTouchControl(true, direction);
     }
     if (mode === "photo" || mode === "global")
       localPivot.copy(getFlight().bounds.center);
@@ -349,7 +350,7 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
           journey.setTouchControl(true, direction);
         } else journey.steer(direction, dt);
       }
-      journey.update(dt);
+      if (panoramaTranslation) journey.update(dt);
       camera.position.copy(journey.position);
       target
         .copy(journey.position)
@@ -577,6 +578,10 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
       journey.setTouchControl(false);
       dragging = null;
     },
+    setPanoramaTranslation(value) {
+      panoramaTranslation = Boolean(value);
+      if (!panoramaTranslation) journey.stop();
+    },
     setPanoramaExploreOnly(value) {
       panoramaExploreOnly = value;
     },
@@ -596,6 +601,18 @@ export function createCameraRig(camera, canvas, landscape, getFlight, onHint) {
         gyroReference = null;
         gyroRelative.identity();
       }
+    },
+    setPanoramaLook(viewDirection) {
+      panoramaYaw = homeYaw =
+        Math.atan2(viewDirection.x, viewDirection.z) - panoramaDial;
+      panoramaPitch = homePitch = Math.atan2(
+        viewDirection.y,
+        Math.hypot(viewDirection.x, viewDirection.z),
+      );
+      gyroReference = null;
+      gyroRelative.identity();
+      target.copy(camera.position).add(viewDirection);
+      camera.lookAt(target);
     },
     setPanoramaDial(degrees) {
       if (Number.isFinite(Number(degrees)))

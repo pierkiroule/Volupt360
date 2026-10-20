@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("brush tip follows the rig through turns and parent transforms", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createOizo } = await import("/src/sonoizo/createOizo.js");
@@ -61,7 +61,7 @@ test("brush tip follows the rig through turns and parent transforms", async ({
 test("manual steering holds a stable heading despite camera feedback; release restores the orbit", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { createPointFlight } =
@@ -126,7 +126,7 @@ test("manual steering holds a stable heading despite camera feedback; release re
 test("twelve brush families have distinct engines, colors and responsive pigment or particle materials", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
@@ -190,7 +190,7 @@ test("gold particles archive into a shared frozen batch and release their resour
     if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/.vite/deps/three.js");
     const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
@@ -257,7 +257,7 @@ test("gold particles archive into a shared frozen batch and release their resour
 test("detailed watercolor plates keep seeded grain, tide data and seamless continuous coverage", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const { createPigmentPlate } =
       await import("/src/chill/createPigmentPlate.js");
@@ -328,7 +328,7 @@ test("detailed watercolor plates keep seeded grain, tide data and seamless conti
 test("panorama journey latches its heading and decelerates without stopping drawing or audio", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js");
     const { createPanoramaJourney } =
@@ -362,7 +362,7 @@ test("panorama journey latches its heading and decelerates without stopping draw
 test("paper-to-world projection wraps the same composition deterministically with depth by layer", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const { paintingToWorld } = await import("/src/chill/paintingToWorld.js");
     const front = paintingToWorld({ u: 0.5, v: 0.5 }, 0, 3, 0.04),
@@ -387,7 +387,7 @@ test("paper-to-world projection wraps the same composition deterministically wit
 test("archived pigments keep a local audio envelope in the audiovisual world", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js");
     const { createBrushStroke } = await import("/src/engine/brushes.js");
@@ -440,7 +440,7 @@ test("archived pigments keep a local audio envelope in the audiovisual world", a
 test("sensory signatures have distinct smooth spectral responses and preserve legacy defaults", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const { SENSORY_QUALITIES } =
       await import("/src/chill/sensoryQualities.js");
@@ -487,7 +487,7 @@ test("sensory signatures have distinct smooth spectral responses and preserve le
 test("guided FPV stays near the sculpture under sustained outward steering and pauses smoothly", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js");
     const { createPanoramaJourney } =
@@ -550,7 +550,7 @@ test("guided FPV stays near the sculpture under sustained outward steering and p
 test("sky brush follows a moving aim with continuous finite-speed flight", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js");
     const { createSkyNozzle } = await import("/src/chill/createSkyNozzle.js");
@@ -585,7 +585,7 @@ test("sky brush follows a moving aim with continuous finite-speed flight", async
 test("graph contacts are one toggle per drag and preserve disc bounds and valid edges", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const {
       emptySensoryGraph,
@@ -640,7 +640,7 @@ test("graph contacts are one toggle per drag and preserve disc bounds and valid 
 test("3D node and connection flows react locally to audio and dispose their resources", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const { createSensoryNetwork } =
       await import("/src/chill/createSensoryNetwork.js");
@@ -694,7 +694,7 @@ test("3D node and connection flows react locally to audio and dispose their reso
 test("sensory words fade, drift and include occasional metaphors without rasterizing in the render loop", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js");
     const { createSensoryAtmosphere } =
@@ -781,7 +781,7 @@ test("sensory words fade, drift and include occasional metaphors without rasteri
 test("sensory currents compile, react locally and reuse bounded GPU buffers", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -847,7 +847,7 @@ test("sensory currents compile, react locally and reuse bounded GPU buffers", as
 test("all twelve emoji brushes have different signatures and reusable 3D resources", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const { createEmojiPainting } = await import("/src/chill/emojiPainting.js"),
       { SENSORY_EMOJIS } = await import("/src/chill/sensoryEmojiCatalog.js"),
@@ -908,7 +908,7 @@ test("all twelve emoji brushes have different signatures and reusable 3D resourc
 test("all twelve brush animations change actual pixels and release their animation loop", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const result = await page.evaluate(async () => {
     const { createEmojiAnimation } =
       await import("/src/chill/createEmojiAnimation.js");
@@ -971,7 +971,7 @@ test("all twelve brush animations change actual pixels and release their animati
 test("pictorial pigments respond locally, release gently and reuse textures through long playback", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const errors = [];
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -1091,7 +1091,7 @@ test("pictorial pigments respond locally, release gently and reuse textures thro
 test("touch flight accelerates smoothly, steers through opposing headings and remains near the painting", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js"),
       { createPanoramaJourney } =
@@ -1160,9 +1160,12 @@ test("touch flight accelerates smoothly, steers through opposing headings and re
 test("FPV hold and swipe control translation and release cancels acceleration", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
+  await page
+    .getByRole("button", { name: "Suspendre le voyage", exact: true })
+    .click();
   const canvas = page.locator("#stage canvas");
   await expect(canvas).toBeVisible();
   const r = await canvas.boundingBox(),
@@ -1200,11 +1203,15 @@ test.describe("mobile FPV gestures", () => {
     page,
     context,
   }) => {
-    await page.goto("/");
+    await page.goto("/?atelier");
     await page.getByRole("button", { name: "Entrer dans l’atelier" }).tap();
     await page.getByRole("button", { name: "Passer en 3D" }).click();
     const canvas = page.locator("#stage canvas");
     await expect(canvas).toBeVisible();
+    await page
+      .getByRole("button", { name: "Suspendre le voyage", exact: true })
+      .click();
+    await expect(canvas).toHaveAttribute("data-camera-orientation", /.+/);
     const initial = await canvas.getAttribute("data-camera-orientation"),
       r = await canvas.boundingBox(),
       client = await context.newCDPSession(page);

@@ -3625,3 +3625,752 @@ label:focus-visible {
 .spatial-workshop-tools button[hidden] {
   display: none;
 }
+
+/* Resonant Paint: a quiet drawing desk, one source image, a spatial playback. */
+.resonant-app {
+  position: fixed;
+  inset: 0;
+  background: #ebe9e3;
+  color: #273744;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+}
+.resonant-header {
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: #faf8f2ed;
+  border-bottom: 1px solid #27374414;
+}
+.resonant-header h1 {
+  font:
+    600 clamp(17px, 3.8vw, 24px)/1.2 system-ui,
+    sans-serif;
+  letter-spacing: -0.6px;
+  margin: 0;
+}
+.resonant-header h1 span {
+  color: #429b91;
+  font-weight: 400;
+}
+.resonant-header p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.65;
+}
+.resonant-app button {
+  border: 1px solid #27374420;
+  border-radius: 10px;
+  background: #faf8f2;
+  color: inherit;
+  min-height: 40px;
+  padding: 6px 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+  font: inherit;
+}
+.resonant-app button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.resonant-app button:focus-visible,
+.resonant-app input:focus-visible,
+.resonant-app select:focus-visible {
+  outline: 2px solid #429b91;
+  outline-offset: 3px;
+}
+.resonant-app .resonant-primary {
+  background: #273744;
+  color: white;
+  border: 0;
+  white-space: nowrap;
+}
+.resonant-paper-area {
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  overflow: hidden;
+}
+.resonant-paper-area canvas {
+  display: block;
+  width: min(100%, 1200px, calc((100dvh - 360px) * 1.5));
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 3/2;
+  background: #faf8f2;
+  box-shadow: 0 5px 25px #27374418;
+  touch-action: none;
+  cursor: crosshair;
+}
+.resonant-toolbar {
+  z-index: 4;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  background: #faf8f2f2;
+  border: 1px solid #27374418;
+  border-radius: 18px 18px 0 0;
+  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.resonant-toolbar-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.resonant-toolbar-top button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.resonant-toolbar .resonant-fold {
+  margin-left: auto;
+}
+.resonant-drawing-tools {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+.resonant-drawing-tools button {
+  min-width: 57px;
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  padding: 3px 5px;
+}
+.resonant-drawing-tools button span {
+  font-size: 20px;
+}
+.resonant-drawing-tools small {
+  font-size: 9px;
+}
+.resonant-app button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px #429b91;
+  background-color: #dfebe7;
+}
+.resonant-swatches {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 3px 0 8px;
+}
+.resonant-swatches button {
+  min-height: 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.resonant-swatches input {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.resonant-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.resonant-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.resonant-controls input {
+  min-width: 0;
+  width: 100%;
+  accent-color: #429b91;
+}
+.resonant-controls output {
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.resonant-options {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.resonant-options button {
+  min-height: 28px;
+  font-size: 11px;
+}
+.resonant-options span {
+  margin-left: auto;
+  opacity: 0.6;
+}
+.resonant-app select {
+  border: 1px solid #27374430;
+  border-radius: 8px;
+  padding: 6px;
+  background: #faf8f2;
+  color: #273744;
+  max-width: 100%;
+}
+.resonant-world .resonant-toolbar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.resonant-world .resonant-header {
+  background: #faf8f2b8;
+  backdrop-filter: blur(8px);
+}
+.resonant-toolbar-top label {
+  font-size: 11px;
+}
+.resonant-toolbar-top select {
+  display: block;
+  width: 100%;
+}
+.resonant-audio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding-top: 12px;
+  font-size: 11px;
+}
+.resonant-import {
+  border: 1px solid #27374440;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.resonant-import input {
+  display: block;
+  max-width: 220px;
+  font-size: 11px;
+  margin-top: 5px;
+}
+.resonant-audio > span {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resonant-audio label:last-child {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.resonant-audio input[type="range"] {
+  width: 100px;
+  accent-color: #429b91;
+}
+.resonant-error {
+  position: absolute;
+  z-index: 8;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(90%, 480px);
+  background: #fff4e9;
+  color: #702f29;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-sizing: border-box;
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .resonant-header {
+    padding: 5px 12px;
+  }
+  .resonant-header p {
+    display: none;
+  }
+  .resonant-paper-area canvas {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+  }
+  .resonant-toolbar {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 340px;
+    border-radius: 16px;
+    opacity: 0.95;
+  }
+  .resonant-world .resonant-toolbar {
+    left: auto;
+    transform: none;
+  }
+  .resonant-drawing-tools button {
+    min-width: 48px;
+  }
+  .resonant-paper-area {
+    padding-right: 360px;
+  }
+}
+
+/* EmoCiel: pigment, paper and a small accessible atelier. */
+.emociel-app {
+  background: #eee9df;
+  color: #33434a;
+}
+.emociel-app .resonant-header {
+  background: #f8f4eaf2;
+}
+.emociel-app .resonant-header h1 {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.8px;
+  font-size: 26px;
+}
+.emociel-app .resonant-header h1 span {
+  color: #836d79;
+}
+.emociel-app .resonant-primary {
+  background: #536f72;
+}
+.emociel-app .resonant-paper-area canvas {
+  background-color: #faf8f2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23897763' opacity='.07' filter='url(%23p)' d='M0 0h160v160H0z'/%3E%3C/svg%3E");
+}
+.emociel-app .resonant-drawing-tools button {
+  min-width: 50px;
+}
+.emociel-app .resonant-toolbar {
+  background: #faf7f0f0;
+}
+.emociel-app .resonant-drawing-tools button span {
+  font-family: Georgia, serif;
+}
+.emociel-contemplation {
+  font:
+    12px/1.5 Georgia,
+    serif;
+  color: #647475;
+  margin: 9px 0 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .emociel-app * {
+    scroll-behavior: auto;
+  }
+}
+
+.orb-experience {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 42%, #fdfbf8, #e6e2e5);
+  color: #36454d;
+  font:
+    13px/1.45 system-ui,
+    sans-serif;
+  isolation: isolate;
+}
+.orb-experience button,
+.orb-experience select,
+.orb-experience input {
+  font: inherit;
+}
+.orb-experience button {
+  min-height: 40px;
+  border: 1px solid #647c8528;
+  border-radius: 12px;
+  background: #faf8f1ef;
+  color: inherit;
+  padding: 7px 11px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.orb-experience button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.orb-experience button[aria-pressed="true"],
+.orb-experience button.is-selected {
+  background: #dce8e6;
+  box-shadow: inset 0 0 0 1px #668e92;
+}
+.orb-experience :focus-visible {
+  outline: 2px solid #547e87;
+  outline-offset: 3px;
+}
+.orb-header {
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: #fbf8f1cb;
+}
+.orb-header h1 {
+  font:
+    27px/1.2 Georgia,
+    serif;
+  margin: 0;
+  letter-spacing: -1px;
+}
+.orb-header h1 span {
+  color: #958091;
+}
+.orb-header p {
+  font-size: 11px;
+  margin: 5px 0 0;
+  max-width: 260px;
+  opacity: 0.76;
+}
+.orb-header .orb-primary {
+  background: #536f78;
+  color: #fff;
+  border: 0;
+  max-width: 155px;
+}
+.orb-editor {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 180px;
+  touch-action: none;
+}
+.orb-editor[hidden] {
+  display: none;
+}
+.orb-editor canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.orb-hint {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  font:
+    12px/1.5 Georgia,
+    serif;
+  margin: 0 18px 10px;
+  color: #6a747d;
+}
+.orb-tools {
+  position: relative;
+  z-index: 4;
+  box-sizing: border-box;
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  border: 1px solid #7b859528;
+  background: #faf7f0ef;
+  border-radius: 22px 22px 0 0;
+}
+.orb-palette {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+.orb-palette button {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  min-width: 0;
+  padding: 4px 1px;
+  border-color: transparent;
+}
+.orb-palette span {
+  font-size: 23px;
+}
+.orb-palette small {
+  font-size: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.orb-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+.orb-row label {
+  font-size: 10px;
+  display: grid;
+  min-width: 90px;
+  flex: 1;
+}
+.orb-row input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #688c96;
+}
+.orb-row .tool-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.orb-meaning {
+  font-size: 10px;
+  padding-top: 8px;
+}
+.orb-meaning summary {
+  cursor: pointer;
+  text-align: center;
+  opacity: 0.75;
+}
+.orb-meaning label {
+  display: grid;
+  gap: 5px;
+  margin-top: 6px;
+}
+.orb-meaning input {
+  padding: 8px;
+  border: 1px solid #a6b2b8;
+  border-radius: 9px;
+}
+.orb-about {
+  z-index: 4;
+  font-size: 10px;
+  padding: 4px 12px;
+  background: #faf7f0;
+  text-align: center;
+}
+.orb-about summary {
+  cursor: pointer;
+}
+.orb-about p {
+  max-width: 550px;
+  margin: 8px auto;
+}
+.orb-inside .orb-tools {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.orb-evolution {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  margin-top: 9px;
+}
+.orb-experience select {
+  max-width: 100%;
+  border: 1px solid #7a8f9a55;
+  border-radius: 9px;
+  padding: 8px;
+  background: #fffdf8;
+  color: inherit;
+}
+.orb-question {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 175px;
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 28px));
+  box-sizing: border-box;
+  background: #fffaf0ef;
+  border: 1px solid #a3a2a23a;
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 8px 40px #3b4d5b17;
+}
+.orb-question > span {
+  font-size: 10px;
+  opacity: 0.65;
+}
+.orb-question p {
+  font:
+    21px/1.5 Georgia,
+    serif;
+  margin: 14px 0;
+}
+.orb-question small {
+  display: block;
+  margin-top: 10px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+.orb-close {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  font-size: 20px !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.orb-question-recall {
+  display: block;
+  margin: 8px auto 0;
+  min-height: 28px !important;
+  font-size: 11px !important;
+}
+.orb-reflection {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 100px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 28px));
+  max-height: calc(100dvh - 270px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 22px;
+  background: #fffaf3f7;
+  border-radius: 22px;
+  box-shadow: 0 10px 40px #34495722;
+}
+.orb-reflection h2 {
+  font:
+    23px Georgia,
+    serif;
+  margin: 0 0 12px;
+}
+.orb-reflection ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+}
+.orb-reflection li {
+  background: #e5e9ed;
+  padding: 5px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+.orb-reflection label {
+  display: grid;
+  gap: 5px;
+  margin: 12px 0;
+  font-size: 11px;
+}
+.orb-note {
+  font-size: 10px;
+  opacity: 0.75;
+}
+.orb-error {
+  position: absolute;
+  z-index: 8;
+  top: 95px;
+  left: 5%;
+  right: 5%;
+  padding: 12px;
+  background: #fff4de;
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .orb-tools {
+    width: 330px;
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    border-radius: 18px;
+  }
+  .orb-editor {
+    margin-right: 340px;
+  }
+  .orb-header {
+    padding: 5px 12px;
+  }
+  .orb-palette span {
+    font-size: 19px;
+  }
+  .orb-hint {
+    margin-right: 350px;
+    font-size: 10px;
+  }
+  .orb-inside .orb-tools {
+    left: auto;
+    transform: none;
+  }
+  .orb-question {
+    bottom: 20px;
+    left: 12px;
+    transform: none;
+    width: calc(100% - 365px);
+    max-height: 70dvh;
+    overflow: auto;
+  }
+}
+
+.emotion-disk-wrap {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+.emotion-disk-wrap[hidden] {
+  display: none;
+}
+.emotion-disk-wrap canvas {
+  width: min(calc(100vw - 36px), calc(100dvh - 385px), 560px);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid #b6a9a440;
+  background: #f8f5ed;
+  box-shadow: 0 8px 45px #736c7320;
+  touch-action: none;
+  cursor: crosshair;
+}
+.disk-controls {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+}
+.disk-controls label {
+  display: grid;
+  font-size: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.disk-controls input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #668d97;
+}
+.disk-controls .tool-icon {
+  width: 22px;
+  height: 22px;
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .emotion-disk-wrap {
+    margin-right: 340px;
+    padding: 0;
+  }
+  .emotion-disk-wrap canvas {
+    width: min(calc(100dvh - 120px), calc(100vw - 370px));
+  }
+  .disk-experience .orb-hint {
+    margin-right: 340px;
+  }
+}
+.emotion-language {margin:5px 0 0;text-align:center;font:11px/1.4 Georgia,serif;color:#67717c;}

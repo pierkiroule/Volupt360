@@ -1,97 +1,97 @@
-# Aquarelle en résonance •° — 2D ↔ 3D
+# EmoCiel360 — Peindre et traverser ses ressentis
 
-**Une même œuvre, deux dimensions : dessiner sur la page et sculpter dans le paysage.**
+**Un disque de peinture animé, puis un monde 360° à contempler ou à explorer en FPV.**
 
-L’atelier démarre sur un canevas 2D plein écran. Quatre émojis sélectionnent des
-matières abstraites : lavis irréguliers, réserves, pigments secs, granulations,
-encres fines, filaments, éclaboussures et auréoles capillaires. Aucune flamme,
-feuille, vague figurative ou image d’émoji n’est déposée dans l’œuvre.
+Les émojis sont uniquement des sélecteurs de brosses : aucun glyphe n’est imprimé
+dans l’œuvre. Toucher et glisser sur le disque peint immédiatement un geste continu.
+Taille, opacité et annuler/rétablir sont directement accessibles.
 
-Le bouton 3D ouvre la même peinture en panorama spatial ; 2D revient à la page.
-Les ajouts des deux côtés se cumulent dans un document commun. L’annulation et
-l’effacement portent sur cet historique commun. Les textures, palettes et tracés
-sont partagés. La 2D reste statique ; seule la 3D anime les pigments et réagit au son.
-La bascule en 3D démarre directement le voyage FPV. La musique existante Gravity continue pendant les changements de dimension.
+## Des émotions comme matières métaphoriques
 
-## Correspondance des deux vues
+| Brosse | Couleur | Particules symboliques |
+| --- | --- | --- |
+| Joie | Ambre | Soleils et rayons |
+| Tristesse | Bleu nuit | Gouttes de pluie |
+| Colère | Vermillon | Flammes et braises |
+| Inquiétude | Violet | Nœuds et boucles serrées |
+| Apaisement | Turquoise | Ondes concentriques |
+| Confusion | Mauve | Points d’interrogation |
+| Affection | Rose | Petits cœurs |
+| Fatigue | Bleu ardoise | Croissants de lune |
+| Frustration | Brun ocré | Fragments de grillage |
+| Émerveillement | Pervenche | Étoiles et éclats |
+| Espoir | Vert | Petites pousses |
+| Indéfinissable | Gris sauge | Voiles entrecoupés |
 
-La page est une carte panoramique de la scène : horizontalement, elle couvre 360° ;
-verticalement, du zénith au nadir. Les tracés 2D sont déployés sur la sphère, avec une
-profondeur réglable avec le curseur Z, en plus du décalage de couche. Les trajectoires réalisées en 3D sont projetées sur
-cette carte mais conservent intégralement leur trajectoire et leur profondeur dans
-le document. Les bascules ne reprojettent donc pas définitivement les données et
-n’aplatissent pas la sculpture. Une carte peut superposer des tracés situés à des
-profondeurs différentes ; les déformations panoramiques sont visibles près des pôles.
-La couture horizontale est traitée en dessinant les passages sur les deux bords.
+Les marques sont dessinées en Canvas dans un atlas partagé de 512 pixels, utilisé
+par la page 2D et les particules WebGL. Aucun chargement de police ou de sprite
+externe. Les mouvements sont propres à chaque famille (ascension, pluie, dérive,
+ondes, hésitation, croissance). L’atlas GPU est libéré avec le moteur météo.
 
-## Interaction
+Entre des tracés de feu et de pluie, jusqu’à trois arcs d’orage se dessinent. Leur
+intensité varie lentement, sans flash stroboscopique. Ce sont des conventions
+artistiques prédéfinies, pas une analyse psychologique ou une causalité émotionnelle.
 
-En 2D, toucher et glisser dessine immédiatement sur toute la page. En 3D, le contact
-sculpte devant la caméra et les gestes pilotent le vol ; relâcher arrête le dépôt.
-Voyage, gyro et casque VR sont disponibles en 3D. La barre inférieure reste pliable,
-translucide et s’efface pendant le geste ; le rappel conserve la brosse choisie.
-Taille, opacité et Z sont accessibles directement au-dessus des commandes. Le retour à l’accueil conserve la session. Aucun backend ni analyse
-psychologique des symboles.
+## Transposition en 360°
 
-## Bibliothèque de matières procédurales
+Le disque est une carte azimutale : le centre devient le haut du ciel, le bord son
+bas, et tous les angles sont conservés autour de soi. Les pixels peints sont
+projetés en panorama et les trajectoires servent de sources spatiales aux matières.
+Feu, pluie et nuages sont émis uniquement le long des tracés concernés. Les liens
+orageux utilisent des positions 3D réelles.
 
-Six familles (lavis, sec, auréoles, minéral, fibres et éclaboussures), deux variantes
-par famille, avec une version humide et sèche : 24 plaques RGBA de 256 pixels.
-`watercolorTextureLibrary.js` centralise les graines et les préférences des brosses.
-Chaque geste choisit une variante reproductible, partagée par toutes ses couches.
-La page utilise des empreintes teintées mises en cache ; la 3D utilise deux atlas
-partagés, sans multiplier les appels de rendu. Aucun tirage ni texture nouvelle
-pendant l’animation. Les ressources sont libérées à la fermeture du moteur.
+La contemplation garde la caméra immobile et laisse orienter le regard au doigt
+ou au gyroscope. Le vol FPV réactive le déplacement : glisser dirige, maintenir
+accélère progressivement. Le vol accompagné reste à proximité de l’œuvre.
+Revenir peindre restitue le disque, ses tracés et son historique.
 
-## Architecture et ressources
+Les pistes réversibles et les questions métaphoriques sont conservées. Elles restent
+facultatives. La lecture du ciel compte seulement les ressentis explicitement
+choisis. L’ambivalence et les besoins peuvent être nommés par la personne ; aucun
+diagnostic ni score psychologique n’est calculé. Les animations sont silencieuses
+et autonomes, sans audioreactivité.
 
-- `emojiPainting.js` : grammaire abstraite des douze matières, contours et radii.
-- `TwinPaper.jsx` : rendu Canvas 2D statique, saisie plein écran et couture panoramique.
-- `twinProjection.js` : projection sphérique et projection inverse.
-- `createSpatialEmojiPainter.js` : propriétaire du document partagé et dépôt spatial.
-- `spatialBrushFrame.js` : trajectoires 3D conservées dans leur repère d’origine.
-- `createPictorialLandscape.js` / `pictorialShaders.js` : mêmes tracés, pigments et
-  épaisseurs en géométrie 3D, avec diffusion et gonflements locaux lissés.
-- `createPigmentEnvelope.js` : réponse musicale partagée, transmise entre les modes.
-- `WatercolorWorkshop.jsx` : bascule, outils, musique, gyro et VR.
+## Architecture et budgets
 
-Le document reste borné à 80 portions de 256 points source. Les chemins génératifs
-et les empreintes sont mis en cache ; les textures ne sont pas créées à chaque
-image. La 2D ne redessine qu’en cas de modification ou de redimensionnement, avec un canevas
-de 1 600 pixels maximum et un budget de points/détails. Le rendu WebGL est suspendu pendant la
-peinture 2D. Les matières GPU sont partagées et libérées à la destruction. Les anciens
-composants figuratifs ne sont plus montés dans le parcours.
+- `src/emociel/DiskExperience.jsx` : parcours, palette et historique.
+- `EmotionDisk.jsx` : gestes et animation Canvas 2D sur disque.
+- `emotionPainting.js` : brosses, effets 2D, projection disque/panorama et sources.
+- `createEmotionWeather.js` : flammes, pluie, nuages et arcs sur le GPU.
+- `src/resonant/createResonantWorld.js` : matière panoramique et variations visuelles.
+- `src/engine/createSoundNest.js` et `createCameraRig.js` : moteur et navigation réutilisés.
 
-La session VR native et les contrôleurs nécessitent un navigateur, un casque et un
-contexte HTTPS compatibles. Le matériel physique reste à tester. La page ne comporte aucun mouvement automatique.
+Le disque mesure 768 pixels ; le panorama 1536 × 768 pixels. Les textures ne sont
+mises à jour qu’à l’entrée en 3D. Les dépôts 2D sont incrémentaux ; les reconstructions
+complètes sont réservées aux opérations d’historique. Les effets 2D ont un budget
+adaptatif par tracé et la 3D utilise des buffers fixes : 1600 particules mobiles,
+3200 sur ordinateur et trois arcs maximum. Le document est borné à 120 gestes de
+512 points. Les écouteurs, textures, géométries et boucles sont nettoyés.
+
+Les effets respectent la réduction des mouvements. Le gyroscope reste optionnel,
+avec une alternative tactile. Aucun backend, aucune donnée émotionnelle envoyée.
+La création reste dans la mémoire de l’onglet : sauvegarde et export de projet ne
+sont pas encore proposés dans ce nouveau parcours.
+
+## Limites
+
+Les matières utilisent une projection panoramique en relief et des particules,
+pas une simulation volumétrique physique des fluides. Des étirements sont possibles
+au centre et au bord de la projection. Les performances prolongées sur téléphones
+physiques et les capteurs Android/iOS restent à vérifier. Aucune efficacité
+thérapeutique validée n’est revendiquée.
+
+Les anciens parcours sont conservés : `?bulle`, `?peinture`, `?resonant`, `?atelier`,
+`?legacy`, `?classic`, `?conte` et `?original`.
 
 ## Développement
 
-Node.js 22.12 ou supérieur (Node 24 recommandé) et npm.
+Node.js 22.12 minimum, Node 24 recommandé.
 
 ```sh
 npm ci
 npm run dev
 npm run build
-npm run preview
-npm run format:check
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/emotion-disk.spec.js tests/orb-experience.spec.js tests/resonant-paint.spec.js tests/spatial-workshop.spec.js
 ```
 
-WebGL et Web Audio sont nécessaires. L’orientation mobile nécessite HTTPS (ou localhost), un capteur compatible et, selon l’appareil, l’autorisation native du navigateur.
-
-## Déploiement
-
-Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend ni secret nécessaire. Le MP3 Gravity existant est servi depuis `public/ambiances` ; aucun fichier n’est téléversé.
-
-## Tests
-
-```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/watercolor-workshop.spec.js tests/spatial-workshop.spec.js tests/twin-painting.spec.js
-```
-
-Les tests couvrent les bascules répétées 2D → 3D → 2D, les ajouts depuis les deux
-vues, l’historique partagé, la conservation de profondeur, les projections aux pôles,
-les douze signatures abstraites, la continuité d’analyse d’un MP3 et les contrôles
-réutilisés de navigation, d’audio et de ressources. Les suites historiques des
-parcours retirés ne constituent pas la validation du parcours courant. Le confort,
-la fluidité longue durée et la VR sur appareils physiques restent à valider.
+Vercel : `npm run build`, sortie `dist`. Aucune dépendance lourde, clé API ou backend ajouté.

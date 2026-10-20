@@ -1,3 +1,5 @@
+import { createEmotionWeather } from "../emociel/createEmotionWeather.js";
+import { createResonantWorld } from "../resonant/createResonantWorld.js";
 import { createSpatialEmojiPainter } from "../chill/createSpatialEmojiPainter.js";
 import { createSensoryNetwork } from "../chill/createSensoryNetwork.js";
 import { createSkyNozzle } from "../chill/createSkyNozzle.js";
@@ -226,6 +228,8 @@ export function createSoundNest(
     },
   );
   landscape.add(spatialPainter.group);
+  let resonantWorld = null,
+    emotionWeather = null;
 
   const marks = [],
     totalBounds = new THREE.Box3(),
@@ -1290,6 +1294,8 @@ export function createSoundNest(
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
+      resonantWorld?.update(lifeTime, visual, dt);
+      emotionWeather?.update(lifeTime);
       if (paintingWorld) {
         pigmentArchive.animate?.(visual, dt, lifeTime);
         sensoryNetwork.update(lifeTime, visual, dt);
@@ -1532,6 +1538,33 @@ export function createSoundNest(
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   renderer.setAnimationLoop(frame);
   return {
+    setEmotionPainting(canvas, strokes) {
+      this.setResonantDrawing(canvas, { autonomous: true, semantic: true });
+      if (!emotionWeather) {
+        emotionWeather = createEmotionWeather();
+        landscape.add(emotionWeather.group);
+      }
+      emotionWeather.setDocument(strokes);
+    },
+    setResonantDrawing(canvas, options) {
+      if (!resonantWorld) {
+        resonantWorld = createResonantWorld(options);
+        landscape.add(resonantWorld.group);
+      }
+      resonantWorld.setCanvas(canvas);
+    },
+    lookPanorama(direction) {
+      rig.setPanoramaLook(new THREE.Vector3(...direction));
+    },
+    setPanoramaTranslation(value) {
+      rig.setPanoramaTranslation(value);
+    },
+    setSkyEvolution(id) {
+      resonantWorld?.setEvolution(id);
+    },
+    setResonantAnimation(style) {
+      resonantWorld?.setStyle(style);
+    },
     setPaperVisible(visible) {
       paperMode = visible;
       renderer.domElement.style.visibility = visible ? "hidden" : "visible";
@@ -2121,6 +2154,8 @@ export function createSoundNest(
       tip.material.dispose();
       sensoryNetwork.dispose();
       spatialPainter.dispose();
+      resonantWorld?.dispose();
+      emotionWeather?.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

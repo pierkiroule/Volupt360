@@ -19,7 +19,7 @@ test("full-screen paper and sculpture share all additions through repeated rever
     if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   const paper = page.getByRole("img", {
     name: "Canevas aquarelle 2D plein écran",
@@ -64,7 +64,7 @@ test("full-screen paper and sculpture share all additions through repeated rever
 test("all abstract materials share their geometry across dimensions and preserve spatial depth", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const { createEmojiPainting } = await import("/src/chill/emojiPainting.js"),
       { SENSORY_EMOJIS } = await import("/src/chill/sensoryEmojiCatalog.js"),
@@ -151,7 +151,7 @@ test("the paper stays static while MP3 animates the FPV sculpture", async ({
       contentType: "audio/mpeg",
     }),
   );
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await stroke(page);
   const paper = page.getByRole("img", {
@@ -196,7 +196,7 @@ test.describe("mobile twin paper", () => {
     page,
     context,
   }) => {
-    await page.goto("/");
+    await page.goto("/?atelier");
     await page.getByRole("button", { name: "Entrer dans l’atelier" }).tap();
     const paper = page.getByRole("img", {
         name: "Canevas aquarelle 2D plein écran",

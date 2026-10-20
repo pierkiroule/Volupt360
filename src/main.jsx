@@ -1,3 +1,6 @@
+import DiskExperience from "./emociel/DiskExperience.jsx";
+import OrbExperience from "./emociel/OrbExperience.jsx";
+import ResonantPaint from "./resonant/ResonantPaint.jsx";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import ChillExperience from "./chill/ChillExperience.jsx";
@@ -13,8 +16,17 @@ createRoot(document.getElementById("root")).render(
     ) : new URLSearchParams(location.search).has("conte") ||
       new URLSearchParams(location.search).has("original") ? (
       <ChillExperience />
-    ) : (
+    ) : new URLSearchParams(location.search).has("atelier") ? (
       <WatercolorWorkshop />
+    ) : new URLSearchParams(location.search).has("resonant") ||
+      new URLSearchParams(location.search).has("peinture") ? (
+      <ResonantPaint
+        projective={!new URLSearchParams(location.search).has("resonant")}
+      />
+    ) : new URLSearchParams(location.search).has("bulle") ? (
+      <OrbExperience />
+    ) : (
+      <DiskExperience />
     )}
   </React.StrictMode>,
 );
