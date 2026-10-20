@@ -1,5 +1,7 @@
+import { pointToWorld } from "./twinProjection.js";
+import { createPigmentEnvelope } from "./createPigmentEnvelope.js";
 import { spatialBrushPoint } from "./spatialBrushFrame.js";
-import { createPigmentPlate } from "./createPigmentPlate.js";
+import { createWatercolorAtlas } from "./watercolorTextureLibrary.js";
 import {
   pictorialVertex,
   pictorialFragment,
@@ -8,15 +10,9 @@ import {
 } from "./pictorialShaders.js";
 import * as THREE from "three";
 import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
-import { paintingToWorld } from "./paintingToWorld.js";
-function pictorialPoint(point, layer = 0, frame = null) {
+function pictorialPoint(point, layer = 0, frame = null, depth) {
   if (frame) return spatialBrushPoint(point, frame);
-  return paintingToWorld(
-    { u: point.x + 0.5, v: point.y + 0.5 },
-    layer,
-    80,
-    0.04,
-  ).toArray();
+  return pointToWorld(point, layer, 0.04, depth);
 }
 
 /** A single ribbon batch retains every painted gesture; bounded local motion lives on the GPU. */
@@ -26,8 +22,8 @@ export function createPictorialLandscape() {
   let mesh = null,
     energy = new Float32Array(6),
     active = false;
-  let accent = 0,
-    previousLevel = 0;
+  const envelope = createPigmentEnvelope();
+  energy = envelope.bands;
   const plates = [];
   const uniforms = {
     time: { value: 0 },
@@ -37,7 +33,7 @@ export function createPictorialLandscape() {
     dryPlate: { value: null },
     pixelRatio: { value: Math.min(globalThis.devicePixelRatio || 1, 2) },
   };
-  function clear() {
+  function clear(resetMotion = true) {
     for (const child of group.children) {
       child.geometry.dispose();
       child.material.dispose();
@@ -46,9 +42,10 @@ export function createPictorialLandscape() {
     group.clear();
     bounds.makeEmpty();
     active = false;
-    energy.fill(0);
-    accent = previousLevel = 0;
-    uniforms.accent.value = 0;
+    if (resetMotion) {
+      envelope.reset();
+      uniforms.accent.value = 0;
+    }
   }
   return {
     group,
@@ -57,15 +54,18 @@ export function createPictorialLandscape() {
       return active;
     },
     setDocument(doc) {
-      clear();
+      clear(false);
       if (doc.kind !== "emoji-painting") return;
       active = true;
       if (!plates.length) {
         for (const [i, kind] of ["wash", "dry"].entries()) {
           const map = new THREE.CanvasTexture(
-            createPigmentPlate(kind, 7193 + i * 953, 256, true),
+            createWatercolorAtlas(Boolean(i)),
           );
           map.colorSpace = THREE.NoColorSpace;
+          map.flipY = false;
+          map.generateMipmaps = false;
+          map.minFilter = map.magFilter = THREE.LinearFilter;
           map.wrapT = THREE.RepeatWrapping;
           plates.push(map);
         }
@@ -77,6 +77,8 @@ export function createPictorialLandscape() {
         data = [],
         motifs = [],
         centers = [],
+        flowCoordinates = [],
+        textureSlots = [],
         indices = [],
         uv = [];
       const tint = new THREE.Color();
@@ -94,17 +96,34 @@ export function createPictorialLandscape() {
             const sign = edge ? 1 : -1,
               world = pictorialPoint(
                 {
-                  x: p.x - (dy / len) * path.width * sign * 0.75,
-                  y: p.y + (dx / len) * path.width * sign * 0.75,
+                  x:
+                    p.x -
+                    (dy / len) *
+                      path.width *
+                      (path.radii?.[i] ?? 1) *
+                      sign *
+                      0.75,
+                  y:
+                    p.y +
+                    (dx / len) *
+                      path.width *
+                      (path.radii?.[i] ?? 1) *
+                      sign *
+                      0.75,
                 },
                 path.layer,
                 path.frame,
+                path.depth,
               );
             positions.push(...world);
-            centers.push(...pictorialPoint(p, path.layer, path.frame));
+            centers.push(
+              ...pictorialPoint(p, path.layer, path.frame, path.depth),
+            );
             bounds.expandByPoint(new THREE.Vector3(...world));
             colors.push(tint.r, tint.g, tint.b);
-            data.push(path.band, path.opacity, path.layer);
+            data.push(path.band, path.opacity, path.phase ?? path.layer);
+            textureSlots.push(path.textureSlot ?? 0);
+            flowCoordinates.push(p.x * 12 + p.y * 7);
             motifs.push(
               Math.max(
                 0,
@@ -129,8 +148,16 @@ export function createPictorialLandscape() {
         "centerLine",
         new THREE.Float32BufferAttribute(centers, 3),
       );
+      g.setAttribute(
+        "flowCoordinate",
+        new THREE.Float32BufferAttribute(flowCoordinates, 1),
+      );
       g.setAttribute("data", new THREE.Float32BufferAttribute(data, 3));
       g.setAttribute("motif", new THREE.Float32BufferAttribute(motifs, 1));
+      g.setAttribute(
+        "textureSlot",
+        new THREE.Float32BufferAttribute(textureSlots, 1),
+      );
       g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
       g.setIndex(indices);
       mesh = new THREE.Mesh(
@@ -165,7 +192,7 @@ export function createPictorialLandscape() {
             ),
           );
         for (let copy = 0; copy < 2; copy++) {
-          dp.push(...pictorialPoint(dot, dot.layer || 0, dot.frame));
+          dp.push(...pictorialPoint(dot, dot.layer || 0, dot.frame, dot.depth));
           tint.set(dot.color);
           if (motif === 2 && copy === 1)
             tint.lerp(new THREE.Color("#ed893d"), 0.65);
@@ -176,7 +203,15 @@ export function createPictorialLandscape() {
             Math.min(0.35, Math.max(0.12, dot.size * 140)),
           );
           pm.push(motif);
-          seeds.push((i * 0.618034 + copy * 0.37) % 1);
+          seeds.push(
+            (((dot.x * 19 +
+              dot.y * 13 +
+              (dot.phase ?? dot.layer) * 0.137 +
+              copy * 0.37) %
+              1) +
+              1) %
+              1,
+          );
         }
       }
       dots.setAttribute("position", new THREE.Float32BufferAttribute(dp, 3));
@@ -204,25 +239,10 @@ export function createPictorialLandscape() {
     update(time, audio, dt) {
       if (!active) return;
       uniforms.time.value = time;
-      const delta = THREE.MathUtils.clamp(dt || 0, 0, 0.1);
-      const finite = (value) =>
-        Number.isFinite(value) ? THREE.MathUtils.clamp(value, 0, 1) : 0;
-      const level = finite(audio.energy);
-      const onset = Math.max(
-        finite(audio.flux) * 0.6,
-        Math.max(0, level - previousLevel) * 4,
-      );
-      previousLevel = level;
-      accent +=
-        (onset - accent) * (1 - Math.exp(-delta * (onset > accent ? 12 : 2.4)));
-      uniforms.accent.value = accent;
-      for (let i = 0; i < 6; i++) {
-        const target = Math.pow(finite(audio.bands?.[i] ?? audio.energy), 0.72);
-        energy[i] +=
-          (target - energy[i]) *
-          (1 - Math.exp(-delta * (target > energy[i] ? 5.5 : 1.7)));
-      }
+      envelope.update(audio, dt);
+      uniforms.accent.value = envelope.accent;
     },
+    motion: envelope,
     clear,
     dispose() {
       this.clear();

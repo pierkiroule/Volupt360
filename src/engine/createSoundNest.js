@@ -54,6 +54,7 @@ export function createSoundNest(
     onAcrobaticChange,
     onSculptureDepthChange,
     onSpatialChange,
+    onVRChange,
   } = {},
 ) {
   const mobile =
@@ -1292,7 +1293,7 @@ export function createSoundNest(
       if (paintingWorld) {
         pigmentArchive.animate?.(visual, dt, lifeTime);
         sensoryNetwork.update(lifeTime, visual, dt);
-        spatialPainter.update(lifeTime, visual, dt);
+        spatialPainter.update(performance.now() / 1000, visual, dt);
       }
       moodAtmosphere?.update(
         lifeTime,
@@ -1554,6 +1555,19 @@ export function createSoundNest(
       rig.setPanoramaDrawing(false);
       renderer.domElement.dataset.worldDrawing = String(Boolean(tool));
     },
+    appendPaperStroke(stroke) {
+      return spatialPainter.appendPaperStroke(stroke);
+    },
+    getSharedPainting() {
+      return spatialPainter.getDocument();
+    },
+    getPaintingResonance(dt) {
+      const audio = padSource?.getVisualFeatures?.() || {};
+      return {
+        time: performance.now() / 1000,
+        bands: spatialPainter.samplePaperResonance(audio, dt),
+      };
+    },
     undoSpatialStroke() {
       spatialPainter.undo();
     },
@@ -1668,6 +1682,9 @@ export function createSoundNest(
       }
       updateBounds();
     },
+    async exitVR() {
+      await xrSession?.end();
+    },
     async enterVR() {
       if (xrSession) return;
       if (!navigator.xr)
@@ -1680,6 +1697,16 @@ export function createSoundNest(
         return;
       }
       xrSession = session;
+      session.addEventListener("selectstart", () =>
+        spatialPainter.setContact("xr"),
+      );
+      session.addEventListener("selectend", () =>
+        spatialPainter.setContact(null),
+      );
+      session.addEventListener("visibilitychange", () => {
+        if (session.visibilityState !== "visible")
+          spatialPainter.setContact(null);
+      });
       rig.stopPanorama();
       xrTravel = true;
       xrJourney.position.copy(camera.position);
@@ -1689,6 +1716,8 @@ export function createSoundNest(
       session.addEventListener(
         "end",
         () => {
+          spatialPainter.setContact(null);
+          onVRChange?.(false);
           xrSession = null;
           xrOrigin.remove(camera);
           if (!disposed) void rig.setMode("panorama");
@@ -1697,6 +1726,7 @@ export function createSoundNest(
       );
       try {
         await renderer.xr.setSession(session);
+        if (xrSession === session) onVRChange?.(true);
       } catch (e) {
         await session.end();
         throw e;

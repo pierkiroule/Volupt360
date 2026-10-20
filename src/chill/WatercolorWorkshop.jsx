@@ -1,3 +1,5 @@
+import { TwinPaper } from "./TwinPaper.jsx";
+import { useSculptTools } from "./useSculptTools.js";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
@@ -5,6 +7,10 @@ import musicCatalog from "virtual:echo-music";
 import { CHILL_UNIVERSE } from "./chillConfig.js";
 import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
 import { ToolIcon } from "./ToolIcon.jsx";
+
+const WORKSHOP_BRUSHES = SENSORY_EMOJIS.filter((e) =>
+  ["water", "warm", "stone", "thread"].includes(e.id),
+);
 
 export default function WatercolorWorkshop() {
   const stage = useRef(null),
@@ -14,7 +20,16 @@ export default function WatercolorWorkshop() {
     soundWanted = useRef(true);
   const twigs = useTwigBank({ poeticVoices: false });
   const [started, setStarted] = useState(false),
-    [sculpt, setSculpt] = useState(false),
+    [vr, setVr] = useState(false),
+    [dimension, setDimension] = useState("2d"),
+    [painting, setPainting] = useState({
+      kind: "emoji-painting",
+      strokes: [],
+      paths: [],
+      dots: [],
+      nodes: [],
+      links: [],
+    }),
     [brush, setBrush] = useState("water"),
     [size, setSize] = useState(0.045),
     [opacity, setOpacity] = useState(0.8),
@@ -25,11 +40,20 @@ export default function WatercolorWorkshop() {
     [sound, setSound] = useState(true),
     [folded, setFolded] = useState(false),
     [error, setError] = useState("");
+  const tools = useSculptTools({
+    enabled: started,
+    sculpting: started,
+    traveling: false,
+  });
   useEffect(() => {
-    document.title = "Ciel en résonance •° — Sculpture 360°";
+    document.title = "Aquarelle en résonance •° — 2D ↔ 3D";
     engine.current = createSoundNest(stage.current, {
       onError: setError,
-      onSpatialChange: (stats) => setCount(stats.strokes),
+      onVRChange: setVr,
+      onSpatialChange: (stats) => {
+        setCount(stats.strokes);
+        setPainting(stats.document);
+      },
     });
     engine.current.setPaperVisible(true);
     return () => {
@@ -38,12 +62,14 @@ export default function WatercolorWorkshop() {
     };
   }, []);
   useLayoutEffect(() => {
-    engine.current?.setPaperVisible(!started);
+    engine.current?.setPaperVisible(!started || dimension === "2d");
     engine.current?.pauseChillSession(!started);
     engine.current?.setSpatialSculptureTool(
-      started && sculpt ? { emojiId: brush, size, opacity, depth } : null,
+      started && dimension === "3d"
+        ? { emojiId: brush, size, opacity, depth, touchOnly: true }
+        : null,
     );
-  }, [started, sculpt, brush, size, opacity, depth]);
+  }, [started, dimension, brush, size, opacity, depth]);
   async function playMusic(ticket) {
     try {
       const bank = twigs.bank.current;
@@ -87,14 +113,7 @@ export default function WatercolorWorkshop() {
       initialized.current = true;
     }
     setStarted(true);
-    const permission = engine.current.requestContemplationGyroscope(true);
     void playMusic(ticket);
-    try {
-      const value = await permission;
-      if (ticket === generation.current) setGyro(Boolean(value));
-    } catch (e) {
-      setError(e.message);
-    }
   }
   function exit() {
     generation.current++;
@@ -105,7 +124,6 @@ export default function WatercolorWorkshop() {
     void engine.current.requestContemplationGyroscope(false);
     setGyro(false);
     setMoving(false);
-    setSculpt(false);
     setStarted(false);
   }
   function travel() {
@@ -124,7 +142,17 @@ export default function WatercolorWorkshop() {
     <main
       className={`immersive chill-experience watercolor-workshop spatial-workshop ${started ? "is-running" : ""}`}
     >
-      <div id="stage" ref={stage} />
+      <div id="stage" ref={stage} {...tools.stageEvents} />
+      <TwinPaper
+        visible={started && dimension === "2d"}
+        document={painting}
+        tool={{ emojiId: brush, size, opacity, depth }}
+        onStroke={(stroke) => engine.current.appendPaperStroke(stroke)}
+        onGesture={(type, event) => {
+          if (type === "down") tools.stageEvents.onPointerDown(event);
+          else tools.stageEvents.onPointerUp(event);
+        }}
+      />
       {!started && (
         <section className="chill-welcome">
           <span className="chill-eyebrow">Voler · Sculpter · Résonner</span>
@@ -133,32 +161,37 @@ export default function WatercolorWorkshop() {
             <br />
             360•°
           </h1>
-          <h2>Le voyage devient matière</h2>
+          <h2>Une œuvre, deux dimensions</h2>
           <p>
-            Choisis une brosse émoji et active « Sculpter ». En naviguant, tu
-            déposes des vagues, des flammes, des filaments et des pigments
-            vivants dans l’espace.
+            Des émojis pour choisir des matières abstraites d’aquarelle et
+            d’encre. Dessine sur toute la page, puis entre dans ton paysage à
+            360°.
           </p>
           <p>
-            Glisse pour tourner. Maintiens pour accélérer. Relâche pour ralentir
-            ou laisse le voyage te porter. La musique anime ton paysage.
+            Les tracés se souviennent de leurs deux dimensions. Ce que tu
+            ajoutes dans l’une se retrouve dans l’autre. La page reste immobile
+            ; en 3D, la musique éveille la matière et le voyage commence.
           </p>
           <button onClick={start}>
             {initialized.current
               ? "Reprendre mon atelier"
-              : "Entrer dans l’atelier 360°"}
+              : "Entrer dans l’atelier"}
           </button>
         </section>
       )}
       {started && (
         <>
           <p className="fpv-gesture-hint">
-            {sculpt
-              ? "La brosse suit ton vol · glisser pour tourner"
-              : "Maintenir pour accélérer · activer Sculpter pour peindre"}
+            {dimension === "2d"
+              ? "Aquarelle & encre · dessiner librement sur toute la page"
+              : "Toucher pour sculpter · glisser pour tourner · relâcher pour contempler"}
           </p>
           <section
-            className="spatial-workshop-tools"
+            id="spatial-tools"
+            className={`spatial-workshop-tools ${tools.hidden ? "is-concealed" : ""}`}
+            aria-hidden={tools.hidden}
+            inert={tools.hidden}
+            {...tools.toolEvents}
             aria-label="Atelier de sculpture 360°"
           >
             {!folded && (
@@ -168,7 +201,7 @@ export default function WatercolorWorkshop() {
                   role="group"
                   aria-label="Brosses émojis"
                 >
-                  {SENSORY_EMOJIS.map((e) => (
+                  {WORKSHOP_BRUSHES.map((e) => (
                     <button
                       key={e.id}
                       aria-label={e.name}
@@ -180,8 +213,7 @@ export default function WatercolorWorkshop() {
                     </button>
                   ))}
                 </div>
-                <details className="spatial-settings">
-                  <summary>Réglages de la matière</summary>
+                <div className="spatial-settings">
                   <div>
                     <label>
                       Taille
@@ -208,7 +240,7 @@ export default function WatercolorWorkshop() {
                       />
                     </label>
                     <label>
-                      Distance
+                      Z
                       <input
                         type="range"
                         aria-label="Distance de dépôt"
@@ -220,20 +252,33 @@ export default function WatercolorWorkshop() {
                       />
                     </label>
                   </div>
-                </details>
+                </div>
               </>
             )}
             <nav aria-label="Sculpter et naviguer">
               <button
-                className="sculpt-switch"
-                aria-label="Sculpter"
-                aria-pressed={sculpt}
-                onClick={() => setSculpt(!sculpt)}
+                className="dimension-switch"
+                aria-label={
+                  dimension === "2d" ? "Passer en 3D" : "Revenir en 2D"
+                }
+                onClick={() => {
+                  engine.current.setSpatialSculptureTool(null);
+                  engine.current.stopPanorama();
+                  setMoving(false);
+                  if (dimension === "2d") {
+                    engine.current.travelPanorama();
+                    setMoving(true);
+                  } else {
+                    void engine.current.requestContemplationGyroscope(false);
+                    setGyro(false);
+                  }
+                  setDimension(dimension === "2d" ? "3d" : "2d");
+                }}
               >
-                <ToolIcon name="wave" />
-                <span>Sculpter</span>
+                {dimension === "2d" ? "3D" : "2D"}
               </button>
               <button
+                hidden={dimension === "2d"}
                 aria-label={moving ? "Suspendre le voyage" : "Voyager"}
                 aria-pressed={moving}
                 onClick={travel}
@@ -242,7 +287,7 @@ export default function WatercolorWorkshop() {
               </button>
               <button
                 aria-label="Annuler le dernier tracé"
-                disabled={!count && !sculpt}
+                disabled={!count}
                 onClick={() => engine.current.undoSpatialStroke()}
               >
                 <ToolIcon name="undo" />
@@ -258,6 +303,7 @@ export default function WatercolorWorkshop() {
                 aria-label={
                   gyro ? "Désactiver le gyroscope" : "Activer le gyroscope"
                 }
+                hidden={dimension === "2d"}
                 aria-pressed={gyro}
                 onClick={async () => {
                   try {
@@ -276,6 +322,23 @@ export default function WatercolorWorkshop() {
                 <ToolIcon name="view" />
               </button>
               <button
+                aria-label={vr ? "Quitter la VR" : "Entrer en VR"}
+                hidden={dimension === "2d"}
+                title="Casque VR"
+                aria-pressed={vr}
+                onClick={async () => {
+                  setError("");
+                  try {
+                    if (vr) await engine.current.exitVR();
+                    else await engine.current.enterVR();
+                  } catch (e) {
+                    setError(e.message);
+                  }
+                }}
+              >
+                <ToolIcon name="vr" />
+              </button>
+              <button
                 aria-label={folded ? "Déplier les outils" : "Plier les outils"}
                 aria-expanded={!folded}
                 onClick={() => setFolded(!folded)}
@@ -286,7 +349,7 @@ export default function WatercolorWorkshop() {
             {!folded && (
               <div className="spatial-secondary">
                 <button
-                  disabled={!count && !sculpt}
+                  disabled={!count}
                   onClick={() => engine.current.clearSpatialSculpture()}
                 >
                   Effacer l’œuvre
@@ -301,6 +364,24 @@ export default function WatercolorWorkshop() {
               </p>
             )}
           </section>
+          {tools.hidden && (
+            <nav
+              className="spatial-tools-recall"
+              aria-label="Accès rapide aux outils"
+            >
+              <button
+                aria-label="Afficher les outils"
+                aria-controls="spatial-tools"
+                aria-expanded="false"
+                onClick={tools.show}
+              >
+                <span className="active-brush" aria-hidden="true">
+                  {SENSORY_EMOJIS.find((e) => e.id === brush)?.emoji}
+                </span>
+                <span>Outils</span>
+              </button>
+            </nav>
+          )}
         </>
       )}
       {(error || twigs.error) && (

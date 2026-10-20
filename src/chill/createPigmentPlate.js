@@ -1,7 +1,7 @@
 /** RGBA data plate: pigment load, paper tooth, tide deposits, coverage.
  * Generated once per palette entry. Periodic Y fields join along a continuous stroke.
  */
-export function createPigmentPlate(kind, seed, size, continuous) {
+export function createPigmentPlate(kind, seed, size, continuous, dry = false) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d"),
@@ -40,7 +40,10 @@ export function createPigmentPlate(kind, seed, size, continuous) {
         fine = noise(u, v, 71, 101);
       const tooth = noise(u, v, 193, 251),
         fibre = noise(u, v, 113, 17);
-      const field = broad * 0.6 + middle * 0.3 + fine * 0.1;
+      // Nested blooms, mineral sediment and paper fibres at independent scales.
+      const bloom = noise(u + (middle - 0.5) * 0.08, v, 11, 13);
+      const sediment = smooth(0.38, 0.68, fine * 0.6 + tooth * 0.4);
+      const field = broad * 0.46 + middle * 0.29 + bloom * 0.17 + fine * 0.08;
       const edge = 0.83 + (broad - 0.5) * 0.3 + (middle - 0.5) * 0.12;
       const distance = continuous
         ? Math.abs(u * 2 - 1)
@@ -50,21 +53,37 @@ export function createPigmentPlate(kind, seed, size, continuous) {
       const inner =
         Math.exp(-Math.pow((field - 0.49) / 0.022, 2)) *
         smooth(0.2, 0.7, middle);
-      const load = clamp(
-        0.22 + field * 0.6 + fine * 0.12 + rim * 0.36 + inner * 0.2,
+      let load = clamp(
+        0.08 + field * 0.67 + sediment * 0.24 + rim * 0.46 + inner * 0.32,
       );
-      const tide = clamp(rim * 0.85 + inner * 0.55);
+      let tide = clamp(rim * 0.85 + inner * 0.7 + sediment * 0.12);
       let coverage = body * (0.73 + field * 0.27);
       // Broken dry pigment follows paper fibres; wet washes preserve connected pools.
-      if (kind === "dry")
+      if (kind === "dry" || dry)
         coverage *= 0.16 + 0.84 * smooth(0.23, 0.66, tooth * 0.5 + fibre * 0.5);
+      if (dry) coverage *= 0.45 + 0.55 * smooth(0.25, 0.75, sediment);
       if (kind === "fiber") coverage *= 0.35 + 0.65 * smooth(0.18, 0.7, fibre);
       if (kind === "splatter" || kind === "stamp")
         coverage *= 0.45 + 0.55 * smooth(0.2, 0.65, fine);
+      // Each family changes pigment deposition, not just the seed or tint.
+      if (kind === "bloom") {
+        const backrun = Math.exp(-Math.pow((bloom - 0.52) / 0.035, 2));
+        tide = clamp(tide + backrun * 0.7);
+        load = clamp(load * 0.7 + backrun * 0.48);
+        coverage *= 0.45 + bloom * 0.55;
+      }
+      if (kind === "mineral") {
+        load = clamp(load * 0.55 + sediment * 0.65);
+        coverage *= 0.25 + smooth(0.3, 0.7, fine) * 0.75;
+      }
+      if (kind === "splatter") {
+        coverage *= smooth(0.4, 0.61, middle) * 0.9 + 0.1;
+        load = clamp(load + smooth(0.55, 0.7, fine) * 0.3);
+      }
       const salt =
         Math.exp(-Math.pow((fine - 0.76) / 0.025, 2)) *
         smooth(0.65, 0.85, tooth);
-      coverage *= 1 - salt * 0.75;
+      coverage *= (1 - salt * 0.85) * (0.72 + sediment * 0.28);
       const k = (y * size + x) * 4;
       pixels.data[k] = Math.round(load * 255);
       pixels.data[k + 1] = Math.round((tooth * 0.65 + fine * 0.35) * 255);

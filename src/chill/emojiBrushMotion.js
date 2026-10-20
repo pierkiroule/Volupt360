@@ -1,7 +1,7 @@
 /** Symbolic motion, deterministic in space and smooth in time. No emotional inference. */
 export const BRUSH_INKS = {
-  warm: ["#bc3d35", "#ed893d", "#f1b65b"],
-  water: ["#286caa", "#48a5c3", "#b2dce5"],
+  warm: ["#b16650", "#bf9573", "#e4c9a7"],
+  water: ["#376e88", "#7fa4ae", "#c4d6d5"],
   bubbles: ["#388e9c", "#86c5cd", "#d1e9e7"],
   cold: ["#569dc0", "#a4d1de", "#dfebec"],
   stone: ["#596477", "#8b8a9a", "#b4aa9c"],

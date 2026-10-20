@@ -40,6 +40,7 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
   let strokes = [],
     active = null,
     enabled = false,
+    contact = null,
     dirty = false,
     lastBuild = -Infinity,
     time = 0,
@@ -52,9 +53,15 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
   }
   function report() {
     canvas.dataset.spatialStrokes = String(strokes.length);
-    canvas.dataset.spatialDrawing = String(enabled);
+    canvas.dataset.spatialDrawing = String(
+      enabled && (!tool.touchOnly || contact !== null),
+    );
     canvas.dataset.spatialSamples = String(active?.points.length || 0);
-    onChange({ strokes: strokes.length, bounds: paint.bounds });
+    onChange({
+      strokes: strokes.length,
+      bounds: paint.bounds,
+      document: getDocument(),
+    });
   }
   function getDocument() {
     return createEmojiPainting(strokes);
@@ -65,6 +72,7 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
     active = null;
     dirty = false;
     guideGeometry.setDrawRange(0, 0);
+    paint.motion.copyFrom(preview.motion);
     preview.clear();
     paint.setDocument(getDocument());
     report();
@@ -73,12 +81,14 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
     if (strokes.length >= MAX_PAINT_STROKES) return;
     camera.updateMatrixWorld();
     camera.getWorldDirection(forward);
-    tip.copy(camera.position).addScaledVector(forward, tool.depth);
+    camera.getWorldPosition(tip);
+    tip.addScaledVector(forward, tool.depth);
     if (active && tip.distanceToSquared(last) < 0.0064) return;
     if (active && tip.distanceTo(last) > tool.depth * 1.5) commit(); // never bridge a camera reset
     if (active?.points.length >= MAX_STROKE_POINTS) commit();
     if (strokes.length >= MAX_PAINT_STROKES) return;
-    up.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    if (active) up.fromArray(active.frame.spine.at(-1).up);
+    else up.set(0, 1, 0).applyQuaternion(camera.quaternion);
     if (active) tangent.subVectors(tip, last).normalize();
     else tangent.copy(forward);
     side.crossVectors(tangent, up);
@@ -96,8 +106,10 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
       direction: tangent.toArray(),
     };
     if (!active) {
+      preview.motion.copyFrom(paint.motion);
       active = {
         ...tool,
+        phase: strokes.length * 0.618,
         points: [{ x: t, y: 0 }],
         frame: { scale: tool.depth * 1.5, spine: [sample] },
       };
@@ -116,15 +128,41 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
     dirty = true;
     canvas.dataset.spatialSamples = String(active.points.length);
   }
+  function setContact(value) {
+    if (value === null) {
+      contact = null;
+      commit();
+      report();
+      return;
+    }
+    if (contact !== null || !enabled || !tool.touchOnly) return;
+    contact = value;
+    if (value === "xr") focused = true;
+    deposit();
+    if (active) {
+      preview.setDocument(createEmojiPainting([active]));
+      dirty = false;
+      lastBuild = time;
+    }
+    report();
+  }
+  listen(canvas, "pointerdown", (e) => {
+    if (e.isPrimary && e.button <= 0) setContact(e.pointerId);
+  });
+  const release = (e) => {
+    if (contact === e.pointerId) setContact(null);
+  };
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
+    listen(canvas, type, release);
   listen(window, "blur", () => {
     focused = false;
-    commit();
+    setContact(null);
   });
   listen(window, "focus", () => {
     focused = true;
   });
   listen(document, "visibilitychange", () => {
-    if (document.hidden) commit();
+    if (document.hidden) setContact(null);
   });
   return {
     group,
@@ -135,13 +173,21 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
     setTool(value) {
       commit();
       enabled = Boolean(value);
+      if (!enabled) contact = null;
       if (value) tool = { ...tool, ...value };
       canvas.dataset.spatialTool = enabled ? tool.emojiId : "navigate";
       report();
     },
     update(clock, audio, dt) {
       time = clock;
-      if (enabled && focused && !documentHidden() && dt > 0) deposit();
+      if (
+        enabled &&
+        (!tool.touchOnly || contact !== null) &&
+        focused &&
+        (!documentHidden() || contact === "xr") &&
+        dt > 0
+      )
+        deposit();
       if (dirty && time - lastBuild >= 1 / 20) {
         preview.setDocument(createEmojiPainting([active]));
         dirty = false;
@@ -149,6 +195,18 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
       }
       paint.update(time, audio, dt);
       preview.update(time, audio, dt);
+    },
+    appendPaperStroke(stroke) {
+      commit();
+      if (strokes.length >= MAX_PAINT_STROKES) return false;
+      strokes.push(stroke);
+      paint.setDocument(getDocument());
+      report();
+      return true;
+    },
+    samplePaperResonance(audio, dt) {
+      paint.motion.update(audio, dt);
+      return paint.motion.bands;
     },
     undo() {
       commit();
@@ -165,6 +223,7 @@ export function createSpatialEmojiPainter(canvas, camera, onChange = () => {}) {
       guideGeometry.setDrawRange(0, 0);
       report();
     },
+    setContact,
     getDocument,
     dispose() {
       active = null;
