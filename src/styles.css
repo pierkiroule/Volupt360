@@ -3605,3 +3605,23 @@ label:focus-visible {
   background: #405f51 !important;
   color: #faf7ef !important;
 }
+
+/* Four materials and the three primary controls remain in immediate reach. */
+.spatial-workshop .spatial-brushes {
+  grid-template-columns: repeat(4, 1fr);
+}
+.spatial-workshop .spatial-settings > div {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.spatial-workshop .spatial-settings label {
+  flex-direction: column;
+  align-items: stretch;
+  color: #294538;
+}
+.spatial-workshop .spatial-settings input {
+  min-height: 28px;
+}
+.spatial-workshop-tools button[hidden] {
+  display: none;
+}

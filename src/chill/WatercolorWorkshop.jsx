@@ -8,6 +8,10 @@ import { CHILL_UNIVERSE } from "./chillConfig.js";
 import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
 import { ToolIcon } from "./ToolIcon.jsx";
 
+const WORKSHOP_BRUSHES = SENSORY_EMOJIS.filter((e) =>
+  ["water", "warm", "stone", "thread"].includes(e.id),
+);
+
 export default function WatercolorWorkshop() {
   const stage = useRef(null),
     engine = useRef(null),
@@ -142,9 +146,8 @@ export default function WatercolorWorkshop() {
       <TwinPaper
         visible={started && dimension === "2d"}
         document={painting}
-        tool={{ emojiId: brush, size, opacity }}
+        tool={{ emojiId: brush, size, opacity, depth }}
         onStroke={(stroke) => engine.current.appendPaperStroke(stroke)}
-        getResonance={(dt) => engine.current.getPaintingResonance(dt)}
         onGesture={(type, event) => {
           if (type === "down") tools.stageEvents.onPointerDown(event);
           else tools.stageEvents.onPointerUp(event);
@@ -166,8 +169,8 @@ export default function WatercolorWorkshop() {
           </p>
           <p>
             Les tracés se souviennent de leurs deux dimensions. Ce que tu
-            ajoutes dans l’une se retrouve dans l’autre, animé par la même
-            musique.
+            ajoutes dans l’une se retrouve dans l’autre. La page reste immobile
+            ; en 3D, la musique éveille la matière et le voyage commence.
           </p>
           <button onClick={start}>
             {initialized.current
@@ -198,7 +201,7 @@ export default function WatercolorWorkshop() {
                   role="group"
                   aria-label="Brosses émojis"
                 >
-                  {SENSORY_EMOJIS.map((e) => (
+                  {WORKSHOP_BRUSHES.map((e) => (
                     <button
                       key={e.id}
                       aria-label={e.name}
@@ -210,8 +213,7 @@ export default function WatercolorWorkshop() {
                     </button>
                   ))}
                 </div>
-                <details className="spatial-settings">
-                  <summary>Réglages de la matière</summary>
+                <div className="spatial-settings">
                   <div>
                     <label>
                       Taille
@@ -238,7 +240,7 @@ export default function WatercolorWorkshop() {
                       />
                     </label>
                     <label>
-                      Distance
+                      Z
                       <input
                         type="range"
                         aria-label="Distance de dépôt"
@@ -250,7 +252,7 @@ export default function WatercolorWorkshop() {
                       />
                     </label>
                   </div>
-                </details>
+                </div>
               </>
             )}
             <nav aria-label="Sculpter et naviguer">
@@ -263,18 +265,20 @@ export default function WatercolorWorkshop() {
                   engine.current.setSpatialSculptureTool(null);
                   engine.current.stopPanorama();
                   setMoving(false);
-                  if (dimension === "2d")
-                    void engine.current
-                      .requestContemplationGyroscope(true)
-                      .then((value) => setGyro(Boolean(value)))
-                      .catch((e) => setError(e.message));
+                  if (dimension === "2d") {
+                    engine.current.travelPanorama();
+                    setMoving(true);
+                  } else {
+                    void engine.current.requestContemplationGyroscope(false);
+                    setGyro(false);
+                  }
                   setDimension(dimension === "2d" ? "3d" : "2d");
                 }}
               >
                 {dimension === "2d" ? "3D" : "2D"}
               </button>
               <button
-                disabled={dimension === "2d"}
+                hidden={dimension === "2d"}
                 aria-label={moving ? "Suspendre le voyage" : "Voyager"}
                 aria-pressed={moving}
                 onClick={travel}
@@ -299,7 +303,7 @@ export default function WatercolorWorkshop() {
                 aria-label={
                   gyro ? "Désactiver le gyroscope" : "Activer le gyroscope"
                 }
-                disabled={dimension === "2d"}
+                hidden={dimension === "2d"}
                 aria-pressed={gyro}
                 onClick={async () => {
                   try {
@@ -319,7 +323,7 @@ export default function WatercolorWorkshop() {
               </button>
               <button
                 aria-label={vr ? "Quitter la VR" : "Entrer en VR"}
-                disabled={dimension === "2d"}
+                hidden={dimension === "2d"}
                 title="Casque VR"
                 aria-pressed={vr}
                 onClick={async () => {

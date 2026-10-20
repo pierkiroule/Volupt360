@@ -10,9 +10,9 @@ import {
 } from "./pictorialShaders.js";
 import * as THREE from "three";
 import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
-function pictorialPoint(point, layer = 0, frame = null) {
+function pictorialPoint(point, layer = 0, frame = null, depth) {
   if (frame) return spatialBrushPoint(point, frame);
-  return pointToWorld(point, layer, 0.04);
+  return pointToWorld(point, layer, 0.04, depth);
 }
 
 /** A single ribbon batch retains every painted gesture; bounded local motion lives on the GPU. */
@@ -109,9 +109,12 @@ export function createPictorialLandscape() {
                 },
                 path.layer,
                 path.frame,
+                path.depth,
               );
             positions.push(...world);
-            centers.push(...pictorialPoint(p, path.layer, path.frame));
+            centers.push(
+              ...pictorialPoint(p, path.layer, path.frame, path.depth),
+            );
             bounds.expandByPoint(new THREE.Vector3(...world));
             colors.push(tint.r, tint.g, tint.b);
             data.push(path.band, path.opacity, path.phase ?? path.layer);
@@ -180,7 +183,7 @@ export function createPictorialLandscape() {
             ),
           );
         for (let copy = 0; copy < 2; copy++) {
-          dp.push(...pictorialPoint(dot, dot.layer || 0, dot.frame));
+          dp.push(...pictorialPoint(dot, dot.layer || 0, dot.frame, dot.depth));
           tint.set(dot.color);
           if (motif === 2 && copy === 1)
             tint.lerp(new THREE.Color("#ed893d"), 0.65);

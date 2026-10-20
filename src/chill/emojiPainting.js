@@ -87,6 +87,7 @@ export function createEmojiPainting(strokes) {
         phase,
         emojiId: e.id,
         frame: stroke.frame,
+        depth: stroke.depth,
         radii,
         material: profile,
       });
@@ -136,6 +137,7 @@ export function createEmojiPainting(strokes) {
         layer,
         phase,
         frame: stroke.frame,
+        depth: stroke.depth,
       });
       // Capillary stain: an incomplete, asymmetrical tide mark, not a repeating symbol.
       if (i % 3 === 0) {

@@ -13,10 +13,13 @@ export function worldToPaper(point) {
 export function pointToPaper(point, frame) {
   return frame ? worldToPaper(spatialBrushPoint(point, frame)) : point;
 }
-export function pointToWorld(point, layer, size) {
+export function pointToWorld(point, layer, size, depth) {
   const theta = point.x * Math.PI * 2,
     phi = point.y * Math.PI,
-    radius = 11 + (layer / 79) * 3 + Math.min(1, size * 8);
+    radius =
+      (Number.isFinite(depth) ? 7 + depth : 11) +
+      (layer / 79) * 3 +
+      Math.min(1, size * 8);
   return [
     Math.sin(theta) * Math.cos(phi) * radius,
     -Math.sin(phi) * radius,

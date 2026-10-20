@@ -33,7 +33,9 @@ test("canvas contact paints immediately and release stops deposition while fligh
   await expect(canvas).toHaveAttribute("data-spatial-drawing", "false");
   await expect(canvas).toHaveAttribute("data-spatial-strokes", "1");
   await page.getByRole("button", { name: "Chaleur", exact: true }).click();
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Suspendre le voyage", exact: true }),
+  ).toBeVisible();
   await expect(canvas).toHaveAttribute("data-journey-moving", "true");
   await expect(canvas).toHaveAttribute("data-spatial-strokes", "1");
   await page.mouse.move(box.width * 0.5, box.height * 0.35);
@@ -210,8 +212,9 @@ test("travel alone does not paint and keyboard settings remain available", async
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
-  await page.getByText("Réglages de la matière", { exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Suspendre le voyage", exact: true }),
+  ).toBeVisible();
   await page.getByRole("slider", { name: "Taille de la brosse" }).focus();
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(3000);
@@ -242,7 +245,7 @@ test("the menu is translucent at rest and becomes readable for keyboard interact
   await page.keyboard.press("Tab");
   await expect(menu).toHaveCSS("opacity", "1");
   await expect(
-    page.getByRole("button", { name: "Voyager", exact: true }),
+    page.getByRole("button", { name: "Suspendre le voyage", exact: true }),
   ).toHaveCSS("min-height", "44px");
 });
 

@@ -29,9 +29,10 @@ test("full-screen paper and sculpture share all additions through repeated rever
   await stroke(page);
   await expect(paper).toHaveAttribute("data-stroke-count", "1");
   const a = await paper.getAttribute("data-animation-time");
-  await expect
-    .poll(() => paper.getAttribute("data-animation-time"))
-    .not.toBe(a);
+  const pixels = await paper.evaluate((el) => el.toDataURL());
+  await page.waitForTimeout(450);
+  expect(await paper.getAttribute("data-animation-time")).toBe(a);
+  expect(await paper.evaluate((el) => el.toDataURL())).toBe(pixels);
   await page.screenshot({ path: "/tmp/projective-paper.png" });
   await page.getByRole("button", { name: "Passer en 3D" }).click();
   const world = page.locator("#stage canvas");
@@ -123,6 +124,8 @@ test("all abstract materials share their geometry across dimensions and preserve
     painter.dispose();
     return {
       errors,
+      near: pointToWorld({ x: 0, y: 0 }, 0, 0.04, 2)[2],
+      far: pointToWorld({ x: 0, y: 0 }, 0, 0.04, 9)[2],
       count: doc.strokes.length,
       flatUnchanged: doc.strokes[0] === flat,
       depth,
@@ -131,6 +134,7 @@ test("all abstract materials share their geometry across dimensions and preserve
     };
   });
   expect(Math.max(...r.errors)).toBeLessThan(1e-8);
+  expect(r.near - r.far).toBeCloseTo(7);
   expect(r.count).toBe(2);
   expect(r.flatUnchanged).toBe(true);
   expect(r.depth).toBeCloseTo(16);
@@ -138,7 +142,7 @@ test("all abstract materials share their geometry across dimensions and preserve
   expect(r.signatures).toBe(12);
 });
 
-test("the MP3 drives the paper as well as the spatial painting without a playback break", async ({
+test("the paper stays static while MP3 animates the FPV sculpture", async ({
   page,
 }) => {
   await page.route("**/gravity.mp3", (route) =>
@@ -153,12 +157,24 @@ test("the MP3 drives the paper as well as the spatial painting without a playbac
   const paper = page.getByRole("img", {
     name: "Canevas aquarelle 2D plein écran",
   });
-  await expect
-    .poll(async () => Number(await paper.getAttribute("data-paper-energy")), {
-      timeout: 12000,
-    })
-    .toBeGreaterThan(0.01);
+  await expect(paper).toHaveAttribute("data-paper-energy", "0.0000");
+  await expect(
+    page.getByRole("group", { name: "Brosses émojis" }).getByRole("button"),
+  ).toHaveCount(4);
+  for (const name of [
+    "Taille de la brosse",
+    "Opacité de la brosse",
+    "Distance de dépôt",
+  ])
+    await expect(page.getByRole("slider", { name })).toBeVisible();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
+  await expect(page.locator("#stage canvas")).toHaveAttribute(
+    "data-journey-moving",
+    "true",
+  );
+  await expect(
+    page.getByRole("button", { name: "Suspendre le voyage" }),
+  ).toBeVisible();
   await expect
     .poll(async () =>
       Number(
@@ -167,9 +183,7 @@ test("the MP3 drives the paper as well as the spatial painting without a playbac
     )
     .toBeGreaterThan(0.01);
   await page.getByRole("button", { name: "Revenir en 2D" }).click();
-  await expect
-    .poll(async () => Number(await paper.getAttribute("data-paper-energy")))
-    .toBeGreaterThan(0.01);
+  await expect(paper).toHaveAttribute("data-paper-energy", "0.0000");
 });
 
 test.describe("mobile twin paper", () => {

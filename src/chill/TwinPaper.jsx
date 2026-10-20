@@ -13,13 +13,12 @@ export function TwinPaper({
   document: painting,
   tool,
   onStroke,
-  getResonance,
   onGesture,
 }) {
   const canvas = useRef(null),
     pigmentCache = useRef(null),
-    state = useRef({ painting, tool, onStroke, getResonance, onGesture });
-  state.current = { painting, tool, onStroke, getResonance, onGesture };
+    state = useRef({ painting, tool, onStroke, onGesture });
+  state.current = { painting, tool, onStroke, onGesture };
   useEffect(
     () => () => {
       pigmentCache.current?.dispose();
@@ -35,18 +34,17 @@ export function TwinPaper({
         pigmentCache.current || (pigmentCache.current = createBrushPigments()),
       prepared = new WeakMap();
     let frame = 0,
-      previous = 0,
-      lastDraw = 0,
+      dirty = true,
       active = null,
       lastDocument = null,
       doc = null;
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     function resize() {
       const r = el.getBoundingClientRect(),
         dpr = Math.min(devicePixelRatio || 1, 2),
         scale = Math.min(1, 1600 / Math.max(r.width * dpr, r.height * dpr));
       el.width = Math.round(r.width * dpr * scale);
       el.height = Math.round(r.height * dpr * scale);
+      dirty = true;
     }
     const observer = new ResizeObserver(resize);
     observer.observe(el);
@@ -153,11 +151,8 @@ export function TwinPaper({
       return value;
     }
     function draw(now) {
-      const dt = previous ? Math.min(0.1, (now - previous) / 1000) : 0;
-      previous = now;
-      const resonance = state.current.getResonance(dt),
-        time = reduced.matches ? 0 : resonance.time,
-        bands = reduced.matches ? [0, 0, 0, 0, 0, 0] : resonance.bands;
+      const time = 0,
+        bands = [0, 0, 0, 0, 0, 0];
       if (lastDocument !== state.current.painting || active) {
         doc = createEmojiPainting(
           active
@@ -189,7 +184,7 @@ export function TwinPaper({
         ) {
           if (data.max + copy < -0.5 || data.min + copy > 0.5) continue;
           ctx.fillStyle = ctx.strokeStyle = path.color;
-          ctx.globalAlpha = path.opacity * 0.7;
+          ctx.globalAlpha = Math.min(1, path.opacity * 1.12);
           const inflate = (p) =>
             1 +
             (0.025 + e * 0.19) *
@@ -223,7 +218,7 @@ export function TwinPaper({
                   .scale(scale * (plate ? 0.63 : 1)),
               );
               ctx.fillStyle = pattern;
-              ctx.globalAlpha = path.opacity * (plate ? 0.72 : 0.85);
+              ctx.globalAlpha = path.opacity * (plate ? 0.9 : 1);
               ctx.fillRect(-0.5, -0.5, 1, 1);
             }
             ctx.restore();
@@ -296,9 +291,12 @@ export function TwinPaper({
       el.dataset.paperEnergy = Math.max(...bands).toFixed(4);
     }
     function tick(now) {
-      if (!document.hidden && now - lastDraw >= 32) {
+      if (
+        !document.hidden &&
+        (dirty || lastDocument !== state.current.painting || active)
+      ) {
         draw(now);
-        lastDraw = now;
+        dirty = false;
       }
       frame = requestAnimationFrame(tick);
     }

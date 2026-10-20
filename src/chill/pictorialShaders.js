@@ -6,7 +6,7 @@ float band(float index){float e=0.;for(int i=0;i<6;i++){if(abs(float(i)-index)<.
 void main(){float e=band(data.x);float phase=flowCoordinate+data.z*1.71;vec3 offset=position-centerLine;
 float crest=.5+.5*sin(phase-time*.48);
 float breath=sin(phase-time*.36)*.65+sin(phase*2.1+time*.21+data.z*.7)*.35;
-float swell=1.+(.025+e*.19)*breath;
+float swell=1.+(.045+e*.32)*breath;
 vec3 p=centerLine+offset*swell;
 float motion=sin(phase-time*.8)*.06;
 if(motif<.5){motion=sin(phase+time*.6)*.12;}
@@ -22,8 +22,8 @@ else if(motif<9.5){motion=sin(phase*2.-time*1.5)*(.04+e*.12);}
 else if(motif<10.5){motion=sin(phase+time*.5)*.1;}
 else{motion=sin(phase*.5+time*.6)*.07;}
 // Local eddies travel through the material instead of shaking the whole gesture.
-p+=offset*(sin(phase*2.7-time*.23)*(.015+e*.065));
-p.y+=motion*.55;C=color;U=uv;A=data.y;M=motif;E=e;P=data.z;F=flowCoordinate;
+p+=offset*(sin(phase*2.7-time*.23)*(.025+e*.11));
+p.y+=motion*.85;C=color;U=uv;A=data.y;M=motif;E=e;P=data.z;F=flowCoordinate;
 gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`;
 
 export const pictorialFragment = `
@@ -42,13 +42,13 @@ pigment.g*=.7+detail.g*.3;
 float edge=1.-abs(U.y*2.-1.);
 float tooth=.6+.4*pigment.g;
 float rim=pow(1.-edge,3.)*pigment.b;
-vec3 tint=C*mix(1.16,.34,clamp(pigment.r*.72+rim*.45,0.,1.));
+vec3 tint=C*mix(1.08,.23,clamp(pigment.r*.72+rim*.45,0.,1.));
 if(M>1.5&&M<2.5){float heat=.5+.5*sin(F-time*.8);tint=mix(tint,vec3(.88,.29,.055),heat*.65);}
 if(M>.5&&M<1.5){tint=mix(tint,vec3(.26,.59,.72),stream*.3);}
 float capillary=1.-smoothstep(.015,.065,abs(pigment.r-(.43+sin(time*.16+P)*.04)));
 float granules=smoothstep(.25,.75,detail.g);
 float coverage=pigment.a*(.65+.35*edge)*tooth*(.76+granules*.24);
-float alpha=A*coverage*(1.18+E*.16+stream*.08)+capillary*A*.055;
+float alpha=A*coverage*(1.6+E*.22+stream*.12)+capillary*A*.055;
 gl_FragColor=vec4(tint,clamp(alpha,0.,.9));}`;
 
 export const pigmentParticleVertex = `
