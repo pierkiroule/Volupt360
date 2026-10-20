@@ -1,32 +1,39 @@
-import DiskExperience from "./emociel/DiskExperience.jsx";
-import OrbExperience from "./emociel/OrbExperience.jsx";
-import ResonantPaint from "./resonant/ResonantPaint.jsx";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import ChillExperience from "./chill/ChillExperience.jsx";
-import WatercolorWorkshop from "./chill/WatercolorWorkshop.jsx";
-import App from "./App.jsx";
+const DiskExperience = lazy(() => import("./emociel/DiskExperience.jsx"));
+const OrbExperience = lazy(() => import("./emociel/OrbExperience.jsx"));
+const ResonantPaint = lazy(() => import("./resonant/ResonantPaint.jsx"));
+const ChillExperience = lazy(() => import("./chill/ChillExperience.jsx"));
+const WatercolorWorkshop = lazy(() => import("./chill/WatercolorWorkshop.jsx"));
+const App = lazy(() => import("./App.jsx"));
+const SensoryExperience = lazy(
+  () => import("./components/SensoryExperience.tsx"),
+);
 import "./styles.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {new URLSearchParams(location.search).has("legacy") ||
-    new URLSearchParams(location.search).has("classic") ? (
-      <App />
-    ) : new URLSearchParams(location.search).has("conte") ||
-      new URLSearchParams(location.search).has("original") ? (
-      <ChillExperience />
-    ) : new URLSearchParams(location.search).has("atelier") ? (
-      <WatercolorWorkshop />
-    ) : new URLSearchParams(location.search).has("resonant") ||
-      new URLSearchParams(location.search).has("peinture") ? (
-      <ResonantPaint
-        projective={!new URLSearchParams(location.search).has("resonant")}
-      />
-    ) : new URLSearchParams(location.search).has("bulle") ? (
-      <OrbExperience />
-    ) : (
-      <DiskExperience />
-    )}
+    <Suspense fallback={<div role="status">Ouverture de l’atelier…</div>}>
+      {new URLSearchParams(location.search).has("legacy") ||
+      new URLSearchParams(location.search).has("classic") ? (
+        <App />
+      ) : new URLSearchParams(location.search).has("conte") ||
+        new URLSearchParams(location.search).has("original") ? (
+        <ChillExperience />
+      ) : new URLSearchParams(location.search).has("atelier") ? (
+        <WatercolorWorkshop />
+      ) : new URLSearchParams(location.search).has("resonant") ||
+        new URLSearchParams(location.search).has("peinture") ? (
+        <ResonantPaint
+          projective={!new URLSearchParams(location.search).has("resonant")}
+        />
+      ) : new URLSearchParams(location.search).has("bulle") ? (
+        <OrbExperience />
+      ) : new URLSearchParams(location.search).has("emociel") ? (
+        <DiskExperience />
+      ) : (
+        <SensoryExperience />
+      )}
+    </Suspense>
   </React.StrictMode>,
 );

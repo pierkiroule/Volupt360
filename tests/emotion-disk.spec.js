@@ -22,7 +22,7 @@ test("emoji brushes paint an animated disk and become fire, rain and bridges in 
     if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?emociel");
   const c = await paint(page, "Colère", 0.32);
   await expect(c).toHaveAttribute("data-strokes", "1");
   await paint(page, "Tristesse", 0.59);
@@ -58,7 +58,7 @@ test("emoji brushes paint an animated disk and become fire, rain and bridges in 
 test("paint source has no emoji glyphs; weather uses bounded semantic buffers and true spatial bridges", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?emociel");
   const r = await page.evaluate(async () => {
     const { createDiskPainter, projectDiskToSky, emotionalBridges } =
       await import("/src/emociel/emotionPainting.js");
@@ -149,7 +149,7 @@ test.describe("mobile emotional painting", () => {
   test("native touch is a continuous painted gesture, not a deposited emoji", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/?emociel");
     const c = page.getByRole("img", {
         name: "Disque de peinture émotionnelle",
       }),
@@ -184,7 +184,7 @@ test.describe("mobile emotional painting", () => {
 test("all twelve brushes have unique colors, visible symbolic marks and matching GPU identities", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?emociel");
   const r = await page.evaluate(async () => {
     const { EMOTION_BRUSHES, symbolAtlas, drawEmotionLife } =
       await import("/src/emociel/emotionPainting.js");

@@ -1,0 +1,863 @@
+.sensory-app {
+  --ink: #293e50;
+  --paper: #f6f3ec;
+  --accent: #375b68;
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color-scheme: light;
+}
+.sensory-app * {
+  box-sizing: border-box;
+}
+.sensory-app button,
+.sensory-app input {
+  font: inherit;
+}
+.sensory-app button {
+  min-height: 44px;
+  padding: 10px 17px;
+  border: 1px solid #72858c66;
+  border-radius: 24px;
+  background: #fff9;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+.sensory-app button:hover {
+  background: #fff;
+  box-shadow: 0 3px 18px #23374912;
+}
+.sensory-app button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.sensory-app :focus-visible {
+  outline: 3px solid #789aaf;
+  outline-offset: 3px;
+}
+.sensory-app h1,
+.sensory-app h2 {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.sensory-app input:not([type="range"]):not([type="checkbox"]) {
+  min-height: 44px;
+  border: 1px solid #72858c77;
+  border-radius: 12px;
+  background: #fffc;
+  padding: 10px 14px;
+  color: var(--ink);
+  width: 100%;
+}
+.sensory-app input[type="range"] {
+  accent-color: #436d79;
+  width: 100%;
+  min-height: 30px;
+  touch-action: pan-y;
+}
+.sensory-app input[type="checkbox"] {
+  accent-color: #436d79;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+.sensory-app label {
+  display: block;
+}
+.sensory-app .sensory-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  padding: 15px 24px;
+}
+.sensory-app .sensory-link {
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.sensory-welcome {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  position: relative;
+  isolation: isolate;
+  padding: 50px 24px;
+}
+.sensory-welcome h1 {
+  font-size: clamp(2.8rem, 9vw, 6rem);
+  margin: 20px 0;
+  letter-spacing: 0.025em;
+}
+.sensory-welcome h1 span {
+  font-size: 0.5em;
+  color: #6a8d99;
+}
+.sensory-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+.sensory-signature {
+  font-family: Georgia, serif;
+  font-size: clamp(18px, 4vw, 25px);
+  font-style: italic;
+  margin: 0;
+}
+.sensory-question {
+  max-width: 340px;
+  margin: 32px auto 22px;
+}
+.sensory-welcome small {
+  font-size: 11px;
+  line-height: 1.9;
+  max-width: 350px;
+  margin-top: 25px;
+  color: #50636b;
+}
+.sensory-ink {
+  position: absolute;
+  z-index: -1;
+  inset: 8% 5%;
+  opacity: 0.47;
+  filter: blur(20px);
+  background:
+    radial-gradient(ellipse at 25% 35%, #a4bac699, transparent 48%),
+    radial-gradient(ellipse at 75% 65%, #c5b1b599, transparent 50%),
+    radial-gradient(ellipse at 60% 20%, #c0ccbc77, transparent 50%);
+  border-radius: 40% 60% 52% 48%;
+  animation: welcome-drift 16s ease-in-out infinite alternate;
+}
+.sensory-composer {
+  width: min(760px, 100%);
+  margin: auto;
+  padding: 25px 24px 70px;
+}
+.sensory-composer h1 {
+  font-size: 42px;
+  margin: 20px 0 12px;
+}
+.sensory-search {
+  margin: 25px 0 15px;
+}
+.sensory-search input {
+  margin-top: 7px;
+}
+.sensory-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sensory-chips button {
+  font-size: 14px;
+  padding: 8px 14px;
+  min-height: 40px;
+}
+.sensory-chips button[aria-pressed="true"] {
+  background: #375b68;
+  color: #fff;
+  border-color: #375b68;
+}
+.sensory-count,
+.sensory-note {
+  font-size: 12px;
+  color: #53616a;
+}
+.sensory-choices {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+.sensory-choice {
+  position: relative;
+  padding: 14px 58px 12px 16px;
+  border-radius: 16px;
+  background: #dfe6e366;
+  border: 1px solid #69808d33;
+}
+.sensory-choice > button {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  padding: 0;
+  width: 40px;
+  font-size: 24px;
+  background: transparent;
+  border: 0;
+}
+.sensory-choice output {
+  float: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.sensory-choice details {
+  grid-column: 1/-1;
+  font-size: 12px;
+}
+.sensory-choice summary {
+  cursor: pointer;
+  padding: 10px 0;
+}
+.sensory-choice details label {
+  margin: 10px 0;
+}
+.sensory-custom {
+  margin: 24px 0;
+}
+.sensory-custom > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 7px;
+}
+.sensory-custom button {
+  flex-shrink: 0;
+}
+.sensory-composer > .sensory-primary {
+  width: 100%;
+  margin-top: 12px;
+}
+.sensory-world {
+  position: absolute;
+  inset: 0;
+  background: #101b2c;
+  touch-action: none;
+}
+.sensory-canvas {
+  touch-action: none;
+}
+.sensory-fallback {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.sensory-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #d4dedc;
+  font-family: Georgia, serif;
+}
+.sensory-essential {
+  position: absolute;
+  top: max(15px, env(safe-area-inset-top));
+  right: max(15px, env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+  z-index: 6;
+}
+.sensory-essential button {
+  background: #f6f3ecd9;
+  backdrop-filter: blur(12px);
+  font-size: 17px;
+}
+.sensory-essential span {
+  font-size: 11px;
+  margin-left: 8px;
+}
+.sensory-sky-heading {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  color: #e1e7e9;
+  pointer-events: none;
+  max-width: calc(100% - 300px);
+}
+.sensory-sky-heading p {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  margin: 0 0 8px;
+}
+.sensory-sky-heading small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.sensory-toolbar {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  overflow: auto;
+  padding: 7px;
+  border-radius: 30px;
+  background: #f4f3ede8;
+  backdrop-filter: blur(18px);
+  z-index: 3;
+}
+.sensory-toolbar button {
+  white-space: nowrap;
+  font-size: 12px;
+  border: 0;
+  background: transparent;
+  padding: 9px 13px;
+}
+.sensory-toolbar button:first-child {
+  background: #dce6e4;
+}
+.sensory-drawer {
+  position: absolute;
+  right: 14px;
+  top: 84px;
+  bottom: 100px;
+  width: min(430px, calc(100% - 28px));
+  padding: 24px;
+  overflow-y: auto;
+  border-radius: 22px;
+  background: #f6f3ecf5;
+  backdrop-filter: blur(22px);
+  z-index: 5;
+  box-shadow: 0 20px 80px #0004;
+  overscroll-behavior: contain;
+}
+.sensory-drawer h2 {
+  font-size: 31px;
+  max-width: 85%;
+  margin: 0 0 20px;
+}
+.sensory-close {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  font-size: 24px;
+  padding: 0 !important;
+  width: 44px;
+}
+.sensory-options {
+  margin: 24px 0;
+  display: grid;
+  gap: 14px;
+}
+.sensory-share {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(470px, calc(100% - 28px));
+  padding: 24px;
+  background: #f6f3ecf5;
+  border-radius: 22px;
+  z-index: 7;
+}
+.sensory-share > button:first-child {
+  float: right;
+}
+.sensory-share p {
+  font-size: 13px;
+}
+.sensory-share input {
+  margin-bottom: 12px;
+}
+.sensory-error {
+  position: fixed;
+  bottom: 100px;
+  left: 14px;
+  max-width: calc(100% - 28px);
+  background: #fff3df;
+  color: #513d28;
+  border: 1px solid #b48b61;
+  border-radius: 16px;
+  padding: 14px 55px 14px 18px;
+  z-index: 20;
+  font-size: 13px;
+}
+.sensory-error button {
+  position: absolute;
+  right: 6px;
+  top: 4px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  padding: 0;
+  width: 40px;
+}
+@keyframes welcome-drift {
+  to {
+    transform: rotate(8deg) scale(1.06);
+  }
+}
+@media (max-width: 650px) {
+  .sensory-sky-heading {
+    top: 86px;
+    left: 18px;
+    max-width: calc(100% - 36px);
+  }
+  .sensory-sky-heading small {
+    display: none;
+  }
+  .sensory-essential {
+    left: 15px;
+    right: auto;
+  }
+  .sensory-drawer {
+    top: 140px;
+    bottom: 100px;
+    padding: 20px;
+  }
+  .sensory-toolbar {
+    justify-content: flex-start;
+    border-radius: 22px;
+  }
+  .sensory-welcome h1 {
+    font-size: 14vw;
+  }
+  .sensory-composer {
+    padding: 20px 18px 55px;
+  }
+  .sensory-essential span {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sensory-app * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* A compact sensory palette, kept outside the abstract world. */
+.sensory-emoji-tags {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 28px 0 18px;
+}
+.sensory-emoji-tags button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-height: 90px;
+  border-radius: 22px;
+  background: #fff8;
+  border: 1px solid #879ba044;
+}
+.sensory-emoji-tags button > span {
+  font-size: 30px;
+  line-height: 1.3;
+}
+.sensory-emoji-tags small {
+  font-size: 12px;
+}
+.sensory-emoji-tags button[aria-pressed="true"] {
+  background: #d7e5e5;
+  box-shadow: inset 0 0 0 1px #547c88;
+  border-color: #547c88;
+}
+.sensory-tag-intensities {
+  display: grid;
+  gap: 13px;
+  margin: 25px 0;
+}
+.sensory-tag-intensities label {
+  display: grid;
+  grid-template-columns: 125px 1fr 38px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.sensory-tag-intensities output {
+  font-size: 11px;
+}
+.sensory-toolbar {
+  max-width: min(760px, calc(100% - 24px));
+}
+.sensory-toolbar button:first-child[aria-pressed="true"] {
+  background: #dce6e4;
+}
+.sensory-options {
+  margin: 16px 0;
+}
+@media (max-width: 480px) {
+  .sensory-emoji-tags {
+    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .sensory-emoji-tags button {
+    min-height: 83px;
+  }
+  .sensory-tag-intensities label {
+    grid-template-columns: 103px 1fr 35px;
+    gap: 8px;
+  }
+}
+.sensory-world {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+/* CosmoMood: an instrument with eight opposing emotional families. */
+.cosmo-wheel {
+  position: relative;
+  width: min(430px, 100%);
+  aspect-ratio: 1;
+  margin: 22px auto 18px;
+}
+.cosmo-wheel > svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  filter: drop-shadow(0 8px 18px #62797813);
+}
+.cosmo-wheel .cosmo-petal {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 23%;
+  padding: 8px 1px;
+  min-height: 64px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+.cosmo-petal > span {
+  font-size: clamp(24px, 6vw, 34px);
+  line-height: 1.25;
+}
+.cosmo-petal small {
+  font-size: clamp(10px, 2.5vw, 12px);
+  font-weight: 600;
+  color: #263e49;
+}
+.cosmo-wheel .cosmo-petal:hover {
+  background: #ffffff44;
+}
+.cosmo-wheel .cosmo-petal[aria-pressed="true"] {
+  background: #fff9;
+  box-shadow: 0 0 0 1px #fff;
+  border-radius: 18px;
+}
+.cosmo-wheel-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 35%;
+  height: 35%;
+  border-radius: 50%;
+  background: #faf8f1;
+  box-shadow: 0 0 28px #f6f3ec;
+  pointer-events: none;
+}
+.cosmo-wheel-center > span {
+  font-size: 24px;
+  line-height: 1.8;
+}
+.cosmo-wheel-center small {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+.cosmo-selection {
+  max-width: 430px;
+  margin: 0 auto 20px;
+  display: grid;
+  gap: 9px;
+}
+.cosmo-selection > div {
+  display: grid;
+  grid-template-columns: 125px 1fr 40px;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+.cosmo-selection button {
+  padding: 0 !important;
+  min-height: 40px;
+  font-size: 21px;
+  border: 0;
+  background: transparent;
+}
+.cosmo-wheel-note {
+  max-width: 500px;
+  margin: 20px auto;
+  font-size: 12px;
+  color: #4f646c;
+}
+.cosmo-wheel-note summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.cosmo-wheel-note a {
+  color: #345d6b;
+}
+.cosmo-entry-mode {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 24px 0 14px;
+}
+.cosmo-entry-mode button[aria-pressed="true"] {
+  color: #fff;
+  background: #375b68;
+  border-color: #375b68;
+}
+.sensory-composer:has(.cosmo-wheel) {
+  max-width: 660px;
+}
+.sensory-welcome:has(h1) .sensory-ink {
+  opacity: 0.65;
+}
+.sensory-composer h1 {
+  text-align: center;
+}
+.sensory-composer h1 + p {
+  text-align: center;
+  max-width: 430px;
+  margin: 14px auto;
+}
+@media (max-width: 400px) {
+  .cosmo-wheel {
+    margin-top: 12px;
+  }
+  .cosmo-selection > div {
+    grid-template-columns: 110px 1fr 34px;
+    gap: 8px;
+  }
+}
+.cosmo-gyro-status {
+  position: absolute;
+  top: 135px;
+  left: 18px;
+  max-width: calc(100% - 36px);
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: #f6f3ecee;
+  color: #293e50;
+  font-size: 12px;
+  z-index: 4;
+}
+.cosmo-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 70% 30%, #13162d66, transparent 60%), #03050d;
+}
+.sensory-app.sensory-compose,
+.sensory-app.sensory-welcome {
+  --ink: #e4e7ef;
+  --paper: #050813;
+  background: #050813;
+  color: #e4e7ef;
+}
+.sensory-welcome,
+.sensory-composer {
+  position: relative;
+  z-index: 1;
+}
+.sensory-compose .sensory-composer {
+  max-width: 620px;
+  padding-top: 16px;
+}
+.sensory-compose .sensory-composer > p {
+  color: #bfc8db;
+  max-width: 380px;
+}
+.sensory-compose .cosmo-selection {
+  color: #d9dfeb;
+}
+.sensory-compose input[type="range"] {
+  accent-color: #a5acd8;
+}
+.sensory-compose button,
+.sensory-welcome button {
+  color: #e4e7ef;
+  background: #18203599;
+  border-color: #8c9bb866;
+}
+.sensory-compose .cosmo-entry-mode button[aria-pressed="true"] {
+  background: #65739a;
+  color: white;
+}
+.sensory-welcome .sensory-primary {
+  background: #56688d;
+}
+.sensory-welcome small {
+  color: #b5bfd0;
+}
+.sensory-welcome .sensory-ink {
+  opacity: 0.17 !important;
+}
+.cosmo-emotion-disc {
+  position: relative;
+  width: min(470px, 100%);
+  aspect-ratio: 1;
+  margin: 15px auto;
+}
+.cosmo-emotion-disc:before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 1px solid #9bacd126;
+  border-radius: 50%;
+  box-shadow: 0 0 65px #6c7cbd10;
+}
+.sensory-app .cosmo-orb {
+  position: absolute;
+  inset: 21%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #b8caff77;
+  border-radius: 50%;
+  background: #050713;
+  isolation: isolate;
+  box-shadow:
+    inset -18px -20px 32px #0009,
+    0 0 40px #929ad622;
+  min-height: 0;
+}
+.cosmo-orb-scene {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.cosmo-orb-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 29% 19%, #f1f2ff22, transparent 37%),
+    radial-gradient(ellipse at 50% 50%, transparent 50%, #0008 100%);
+  box-shadow: inset 2px 3px 5px #c8d9ff66;
+  pointer-events: none;
+}
+.cosmo-orb-invitation {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20%;
+  font-size: 10px;
+  color: #e9e9ff;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 8px black;
+}
+.cosmo-orb-placeholder {
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 40% 40%, #6c6c9b77, transparent), #040713;
+}
+.sensory-app .cosmo-emoji-orbit {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  width: 17%;
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 4px;
+  border: 1px solid #8292b122;
+  background: #10172888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+}
+.cosmo-emoji-orbit > span {
+  font-size: clamp(24px, 6vw, 33px);
+}
+.cosmo-emoji-orbit small {
+  font-size: clamp(9px, 2.2vw, 11px);
+  color: #d7dfed;
+}
+.sensory-app .cosmo-emoji-orbit[aria-pressed="true"] {
+  border-color: var(--tag-color);
+  background: color-mix(in srgb, var(--tag-color) 24%, #0c1021);
+  box-shadow: 0 0 17px color-mix(in srgb, var(--tag-color) 30%, transparent);
+}
+.cosmo-selection-count {
+  text-align: center;
+  color: #c1cce2;
+  font-size: 12px;
+  min-height: 24px;
+  margin: 8px 0 20px;
+}
+.cosmo-art-note {
+  text-align: center;
+  color: #b1bbcc;
+  font-size: 11px;
+  max-width: 350px;
+  margin: 18px auto;
+}
+.cosmo-entry-mode {
+  position: relative;
+}
+.sensory-composer .cosmo-selection button {
+  background: transparent;
+}
+.sensory-compose .sensory-composer h1 {
+  font-size: 32px;
+}
+.sensory-app .cosmo-orb:disabled {
+  opacity: 0.8;
+}
+.sensory-app .cosmo-orb:hover {
+  background: #050713;
+  box-shadow: 0 0 46px #929ad644;
+}
+.cosmo-orb-scene canvas {
+  display: block;
+}
+@keyframes cosmo-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sensory-world {
+  animation: cosmo-enter 0.6s ease-out both;
+}
+.cosmo-emoji-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 4px auto 14px;
+}
+.cosmo-emoji-pages span {
+  color: #c7d0e2;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.sensory-app .cosmo-emoji-pages button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 27px;
+  border-radius: 50%;
+  background: #17213a66;
+}
