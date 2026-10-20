@@ -1,3 +1,4 @@
+import { createEmotionWeather } from "../emociel/createEmotionWeather.js";
 import { createResonantWorld } from "../resonant/createResonantWorld.js";
 import { createSpatialEmojiPainter } from "../chill/createSpatialEmojiPainter.js";
 import { createSensoryNetwork } from "../chill/createSensoryNetwork.js";
@@ -227,7 +228,8 @@ export function createSoundNest(
     },
   );
   landscape.add(spatialPainter.group);
-  let resonantWorld = null;
+  let resonantWorld = null,
+    emotionWeather = null;
 
   const marks = [],
     totalBounds = new THREE.Box3(),
@@ -1293,6 +1295,7 @@ export function createSoundNest(
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
       resonantWorld?.update(lifeTime, visual, dt);
+      emotionWeather?.update(lifeTime);
       if (paintingWorld) {
         pigmentArchive.animate?.(visual, dt, lifeTime);
         sensoryNetwork.update(lifeTime, visual, dt);
@@ -1535,6 +1538,14 @@ export function createSoundNest(
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   renderer.setAnimationLoop(frame);
   return {
+    setEmotionPainting(canvas, strokes) {
+      this.setResonantDrawing(canvas, { autonomous: true, semantic: true });
+      if (!emotionWeather) {
+        emotionWeather = createEmotionWeather();
+        landscape.add(emotionWeather.group);
+      }
+      emotionWeather.setDocument(strokes);
+    },
     setResonantDrawing(canvas, options) {
       if (!resonantWorld) {
         resonantWorld = createResonantWorld(options);
@@ -2144,6 +2155,7 @@ export function createSoundNest(
       sensoryNetwork.dispose();
       spatialPainter.dispose();
       resonantWorld?.dispose();
+      emotionWeather?.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

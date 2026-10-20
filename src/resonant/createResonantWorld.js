@@ -6,7 +6,10 @@ export const ANIMATION_STYLES = [
   ["breath", "Respiration · ample"],
   ["ripple", "Résonances · ondulantes"],
 ];
-export function createResonantWorld({ autonomous = false } = {}) {
+export function createResonantWorld({
+  autonomous = false,
+  semantic = false,
+} = {}) {
   const group = new THREE.Group(),
     envelope = createPigmentEnvelope();
   const uniforms = {
@@ -65,6 +68,7 @@ export function createResonantWorld({ autonomous = false } = {}) {
   mesh.position.z = 20;
   mesh.frustumCulled = false;
   group.add(mesh, effects.group);
+  effects.group.visible = !semantic;
   group.visible = false;
   return {
     group,
@@ -75,7 +79,7 @@ export function createResonantWorld({ autonomous = false } = {}) {
         uniforms.drawing.value = texture;
       } else texture.image = canvas;
       texture.needsUpdate = true;
-      effects.setCanvas(canvas);
+      if (!semantic) effects.setCanvas(canvas);
       group.visible = true;
     },
     setStyle(id) {

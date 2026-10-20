@@ -4315,3 +4315,61 @@ label:focus-visible {
     overflow: auto;
   }
 }
+
+.emotion-disk-wrap {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+.emotion-disk-wrap[hidden] {
+  display: none;
+}
+.emotion-disk-wrap canvas {
+  width: min(calc(100vw - 36px), calc(100dvh - 385px), 560px);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid #b6a9a440;
+  background: #f8f5ed;
+  box-shadow: 0 8px 45px #736c7320;
+  touch-action: none;
+  cursor: crosshair;
+}
+.disk-controls {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+}
+.disk-controls label {
+  display: grid;
+  font-size: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.disk-controls input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #668d97;
+}
+.disk-controls .tool-icon {
+  width: 22px;
+  height: 22px;
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .emotion-disk-wrap {
+    margin-right: 340px;
+    padding: 0;
+  }
+  .emotion-disk-wrap canvas {
+    width: min(calc(100dvh - 120px), calc(100vw - 370px));
+  }
+  .disk-experience .orb-hint {
+    margin-right: 340px;
+  }
+}

@@ -20,7 +20,7 @@ test("compose on a rotated sphere, enter a fixed POV and choose reversible invit
     if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?bulle");
   await expect(page.getByRole("heading", { name: "EmoCiel360" })).toBeVisible();
   const c = await orb(page);
   await expect(
@@ -88,7 +88,7 @@ test("compose on a rotated sphere, enter a fixed POV and choose reversible invit
 test("descriptive analysis counts declared emotions and spatial neighbours without deriving mental state", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?bulle");
   const r = await page.evaluate(async () => {
     const { describeSky, createSkyTexture } =
       await import("/src/emociel/skyModel.js");
@@ -127,7 +127,7 @@ test.describe("mobile orb", () => {
   test("native drag rotates without painting and a tap deposits one tag", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/?bulle");
     const c = await orb(page),
       r = await c.boundingBox(),
       client = await page.context().newCDPSession(page);

@@ -1,3 +1,4 @@
+import DiskExperience from "./emociel/DiskExperience.jsx";
 import OrbExperience from "./emociel/OrbExperience.jsx";
 import ResonantPaint from "./resonant/ResonantPaint.jsx";
 import React from "react";
@@ -22,8 +23,10 @@ createRoot(document.getElementById("root")).render(
       <ResonantPaint
         projective={!new URLSearchParams(location.search).has("resonant")}
       />
-    ) : (
+    ) : new URLSearchParams(location.search).has("bulle") ? (
       <OrbExperience />
+    ) : (
+      <DiskExperience />
     )}
   </React.StrictMode>,
 );
