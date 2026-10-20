@@ -1,3 +1,4 @@
+import { createResonantWorld } from "../resonant/createResonantWorld.js";
 import { createSpatialEmojiPainter } from "../chill/createSpatialEmojiPainter.js";
 import { createSensoryNetwork } from "../chill/createSensoryNetwork.js";
 import { createSkyNozzle } from "../chill/createSkyNozzle.js";
@@ -226,6 +227,7 @@ export function createSoundNest(
     },
   );
   landscape.add(spatialPainter.group);
+  let resonantWorld = null;
 
   const marks = [],
     totalBounds = new THREE.Box3(),
@@ -1290,6 +1292,7 @@ export function createSoundNest(
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
+      resonantWorld?.update(lifeTime, visual, dt);
       if (paintingWorld) {
         pigmentArchive.animate?.(visual, dt, lifeTime);
         sensoryNetwork.update(lifeTime, visual, dt);
@@ -1532,6 +1535,16 @@ export function createSoundNest(
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   renderer.setAnimationLoop(frame);
   return {
+    setResonantDrawing(canvas) {
+      if (!resonantWorld) {
+        resonantWorld = createResonantWorld();
+        landscape.add(resonantWorld.group);
+      }
+      resonantWorld.setCanvas(canvas);
+    },
+    setResonantAnimation(style) {
+      resonantWorld?.setStyle(style);
+    },
     setPaperVisible(visible) {
       paperMode = visible;
       renderer.domElement.style.visibility = visible ? "hidden" : "visible";
@@ -2121,6 +2134,7 @@ export function createSoundNest(
       tip.material.dispose();
       sensoryNetwork.dispose();
       spatialPainter.dispose();
+      resonantWorld?.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

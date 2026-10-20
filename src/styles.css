@@ -3625,3 +3625,302 @@ label:focus-visible {
 .spatial-workshop-tools button[hidden] {
   display: none;
 }
+
+/* Resonant Paint: a quiet drawing desk, one source image, a spatial playback. */
+.resonant-app {
+  position: fixed;
+  inset: 0;
+  background: #ebe9e3;
+  color: #273744;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+}
+.resonant-header {
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: #faf8f2ed;
+  border-bottom: 1px solid #27374414;
+}
+.resonant-header h1 {
+  font:
+    600 clamp(17px, 3.8vw, 24px)/1.2 system-ui,
+    sans-serif;
+  letter-spacing: -0.6px;
+  margin: 0;
+}
+.resonant-header h1 span {
+  color: #429b91;
+  font-weight: 400;
+}
+.resonant-header p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.65;
+}
+.resonant-app button {
+  border: 1px solid #27374420;
+  border-radius: 10px;
+  background: #faf8f2;
+  color: inherit;
+  min-height: 40px;
+  padding: 6px 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+  font: inherit;
+}
+.resonant-app button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.resonant-app button:focus-visible,
+.resonant-app input:focus-visible,
+.resonant-app select:focus-visible {
+  outline: 2px solid #429b91;
+  outline-offset: 3px;
+}
+.resonant-app .resonant-primary {
+  background: #273744;
+  color: white;
+  border: 0;
+  white-space: nowrap;
+}
+.resonant-paper-area {
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  overflow: hidden;
+}
+.resonant-paper-area canvas {
+  display: block;
+  width: min(100%, 1200px, calc((100dvh - 360px) * 1.5));
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 3/2;
+  background: #faf8f2;
+  box-shadow: 0 5px 25px #27374418;
+  touch-action: none;
+  cursor: crosshair;
+}
+.resonant-toolbar {
+  z-index: 4;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  background: #faf8f2f2;
+  border: 1px solid #27374418;
+  border-radius: 18px 18px 0 0;
+  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.resonant-toolbar-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.resonant-toolbar-top button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.resonant-toolbar .resonant-fold {
+  margin-left: auto;
+}
+.resonant-drawing-tools {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+.resonant-drawing-tools button {
+  min-width: 57px;
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  padding: 3px 5px;
+}
+.resonant-drawing-tools button span {
+  font-size: 20px;
+}
+.resonant-drawing-tools small {
+  font-size: 9px;
+}
+.resonant-app button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px #429b91;
+  background-color: #dfebe7;
+}
+.resonant-swatches {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 3px 0 8px;
+}
+.resonant-swatches button {
+  min-height: 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.resonant-swatches input {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.resonant-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.resonant-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.resonant-controls input {
+  min-width: 0;
+  width: 100%;
+  accent-color: #429b91;
+}
+.resonant-controls output {
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.resonant-options {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.resonant-options button {
+  min-height: 28px;
+  font-size: 11px;
+}
+.resonant-options span {
+  margin-left: auto;
+  opacity: 0.6;
+}
+.resonant-app select {
+  border: 1px solid #27374430;
+  border-radius: 8px;
+  padding: 6px;
+  background: #faf8f2;
+  color: #273744;
+  max-width: 100%;
+}
+.resonant-world .resonant-toolbar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.resonant-world .resonant-header {
+  background: #faf8f2b8;
+  backdrop-filter: blur(8px);
+}
+.resonant-toolbar-top label {
+  font-size: 11px;
+}
+.resonant-toolbar-top select {
+  display: block;
+  width: 100%;
+}
+.resonant-audio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding-top: 12px;
+  font-size: 11px;
+}
+.resonant-import {
+  border: 1px solid #27374440;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.resonant-import input {
+  display: block;
+  max-width: 220px;
+  font-size: 11px;
+  margin-top: 5px;
+}
+.resonant-audio > span {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resonant-audio label:last-child {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.resonant-audio input[type="range"] {
+  width: 100px;
+  accent-color: #429b91;
+}
+.resonant-error {
+  position: absolute;
+  z-index: 8;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(90%, 480px);
+  background: #fff4e9;
+  color: #702f29;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-sizing: border-box;
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .resonant-header {
+    padding: 5px 12px;
+  }
+  .resonant-header p {
+    display: none;
+  }
+  .resonant-paper-area canvas {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+  }
+  .resonant-toolbar {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 340px;
+    border-radius: 16px;
+    opacity: 0.95;
+  }
+  .resonant-world .resonant-toolbar {
+    left: auto;
+    transform: none;
+  }
+  .resonant-drawing-tools button {
+    min-width: 48px;
+  }
+  .resonant-paper-area {
+    padding-right: 360px;
+  }
+}

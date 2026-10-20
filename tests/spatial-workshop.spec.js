@@ -6,7 +6,7 @@ test("canvas contact paints immediately and release stops deposition while fligh
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
   const canvas = page.locator("#stage canvas");
@@ -58,7 +58,7 @@ test("canvas contact paints immediately and release stops deposition while fligh
 test("spatial brush paths stay anchored in world space, retain all twelve signatures and dispose", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js"),
       { createSpatialEmojiPainter } =
@@ -125,7 +125,7 @@ test.describe("mobile sculpting flight", () => {
     page,
     context,
   }) => {
-    await page.goto("/");
+    await page.goto("/?atelier");
     await page.getByRole("button", { name: "Entrer dans l’atelier" }).tap();
     await page.getByRole("button", { name: "Passer en 3D" }).click();
     const canvas = page.locator("#stage canvas"),
@@ -166,7 +166,7 @@ test.describe("mobile sculpting flight", () => {
 test("smart tools hide during sculpting, restore after release and preserve folded state", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
   await page.getByRole("button", { name: "Plier les outils" }).click();
@@ -209,7 +209,7 @@ test("smart tools hide during sculpting, restore after release and preserve fold
 test("travel alone does not paint and keyboard settings remain available", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
   await expect(
@@ -235,7 +235,7 @@ test("the menu is translucent at rest and becomes readable for keyboard interact
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
   const menu = page.locator("#spatial-tools");
@@ -252,7 +252,7 @@ test("the menu is translucent at rest and becomes readable for keyboard interact
 test("audio envelopes absorb impacts without jumps and survive live geometry reconstruction", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?atelier");
   const r = await page.evaluate(async () => {
     const { createPigmentEnvelope } =
         await import("/src/chill/createPigmentEnvelope.js"),
@@ -342,7 +342,7 @@ test("VR pictogram requests a native immersive session and reports denial withou
       },
     });
   });
-  await page.goto("/");
+  await page.goto("/?atelier");
   await page.getByRole("button", { name: "Entrer dans l’atelier" }).click();
   await page.getByRole("button", { name: "Passer en 3D" }).click();
   const button = page.getByRole("button", { name: "Entrer en VR" });

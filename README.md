@@ -1,97 +1,80 @@
-# Aquarelle en résonance •° — 2D ↔ 3D
+# Resonant Paint 360
 
-**Une même œuvre, deux dimensions : dessiner sur la page et sculpter dans le paysage.**
+**Le dessin résonant : un atelier 2D, puis son animation immersive à 360°.**
 
-L’atelier démarre sur un canevas 2D plein écran. Quatre émojis sélectionnent des
-matières abstraites : lavis irréguliers, réserves, pigments secs, granulations,
-encres fines, filaments, éclaboussures et auréoles capillaires. Aucune flamme,
-feuille, vague figurative ou image d’émoji n’est déposée dans l’œuvre.
+L’application s’ouvre directement sur un éditeur traditionnel : crayon, peinture,
+aquarelle texturée, gomme, remplissage par zone, lignes, rectangles, ellipses et
+tampons (étoile, cercle, carré, triangle). Couleurs libres, taille, opacité et formes
+pleines ou contours complètent les outils. La page reste statique.
 
-Le bouton 3D ouvre la même peinture en panorama spatial ; 2D revient à la page.
-Les ajouts des deux côtés se cumulent dans un document commun. L’annulation et
-l’effacement portent sur cet historique commun. Les textures, palettes et tracés
-sont partagés. La 2D reste statique ; seule la 3D anime les pigments et réagit au son.
-La bascule en 3D démarre directement le voyage FPV. La musique existante Gravity continue pendant les changements de dimension.
+Annuler/rétablir fonctionne par boutons et raccourcis Ctrl/Cmd Z, Maj Z ou Y.
+L’effacement complet est lui aussi annulable. L’export PNG de 1200 × 800 pixels
+contient uniquement le dessin sur papier clair. Les outils se replient.
 
-## Correspondance des deux vues
+## Animer son dessin
 
-La page est une carte panoramique de la scène : horizontalement, elle couvre 360° ;
-verticalement, du zénith au nadir. Les tracés 2D sont déployés sur la sphère, avec une
-profondeur réglable avec le curseur Z, en plus du décalage de couche. Les trajectoires réalisées en 3D sont projetées sur
-cette carte mais conservent intégralement leur trajectoire et leur profondeur dans
-le document. Les bascules ne reprojettent donc pas définitivement les données et
-n’aplatissent pas la sculpture. Une carte peut superposer des tracés situés à des
-profondeurs différentes ; les déformations panoramiques sont visibles près des pôles.
-La couture horizontale est traitée en dessinant les passages sur les deux bords.
+« Animer en 360° » transpose la page sur une surface panoramique en relief :
+les couleurs et la transparence viennent du dessin exact, y compris les zones
+effacées. La densité du dessin donne une profondeur au paysage. Trois animations
+sont disponibles : Courants, Respiration et Résonances. Les mouvements sont locaux,
+lents et adoucis par les enveloppes audio du moteur existant.
 
-## Interaction
+Importer son MP3 (20 Mo maximum) active la lecture et l’analyse Web Audio native.
+Aucun morceau n’est chargé automatiquement. Sans fichier, l’animation fonctionne
+silencieusement. Lecture/pause et volume restent accessibles. Retourner au dessin
+suspend l’audio et retrouve les pixels d’origine : la 3D ne modifie pas la page.
 
-En 2D, toucher et glisser dessine immédiatement sur toute la page. En 3D, le contact
-sculpte devant la caméra et les gestes pilotent le vol ; relâcher arrête le dépôt.
-Voyage, gyro et casque VR sont disponibles en 3D. La barre inférieure reste pliable,
-translucide et s’efface pendant le geste ; le rappel conserve la brosse choisie.
-Taille, opacité et Z sont accessibles directement au-dessus des commandes. Le retour à l’accueil conserve la session. Aucun backend ni analyse
-psychologique des symboles.
+Le voyage commence automatiquement ; il peut être suspendu. Gyroscope, navigation
+tactile et casque WebXR réutilisent le moteur existant. Le gyroscope et WebXR
+nécessitent un navigateur, des capteurs et un contexte HTTPS compatibles.
 
-## Bibliothèque de matières procédurales
+## Architecture
 
-Six familles (lavis, sec, auréoles, minéral, fibres et éclaboussures), deux variantes
-par famille, avec une version humide et sèche : 24 plaques RGBA de 256 pixels.
-`watercolorTextureLibrary.js` centralise les graines et les préférences des brosses.
-Chaque geste choisit une variante reproductible, partagée par toutes ses couches.
-La page utilise des empreintes teintées mises en cache ; la 3D utilise deux atlas
-partagés, sans multiplier les appels de rendu. Aucun tirage ni texture nouvelle
-pendant l’animation. Les ressources sont libérées à la fermeture du moteur.
+- `src/resonant/drawingSurface.js` : document de commandes, raster Canvas 2D,
+  remplissage, historique et export.
+- `src/resonant/ResonantPaint.jsx` : éditeur, outils, MP3 et transitions de vue.
+- `src/resonant/createResonantWorld.js` : surface panoramique et trois champs
+  d’animation GPU, avec une texture partagée et une géométrie réutilisée.
+- `src/engine/createSoundNest.js` : points d’intégration minimaux au moteur Three.js,
+  à la caméra et au signal audio existants.
+- `src/chill/createPigmentPlate.js` : textures aquarellées procédurales réutilisées.
 
-## Architecture et ressources
+Le parcours précédent reste accessible avec `?atelier`. Les parcours historiques
+`?legacy`, `?classic`, `?conte` et `?original` restent disponibles.
 
-- `emojiPainting.js` : grammaire abstraite des douze matières, contours et radii.
-- `TwinPaper.jsx` : rendu Canvas 2D statique, saisie plein écran et couture panoramique.
-- `twinProjection.js` : projection sphérique et projection inverse.
-- `createSpatialEmojiPainter.js` : propriétaire du document partagé et dépôt spatial.
-- `spatialBrushFrame.js` : trajectoires 3D conservées dans leur repère d’origine.
-- `createPictorialLandscape.js` / `pictorialShaders.js` : mêmes tracés, pigments et
-  épaisseurs en géométrie 3D, avec diffusion et gonflements locaux lissés.
-- `createPigmentEnvelope.js` : réponse musicale partagée, transmise entre les modes.
-- `WatercolorWorkshop.jsx` : bascule, outils, musique, gyro et VR.
+## Performances et limites
 
-Le document reste borné à 80 portions de 256 points source. Les chemins génératifs
-et les empreintes sont mis en cache ; les textures ne sont pas créées à chaque
-image. La 2D ne redessine qu’en cas de modification ou de redimensionnement, avec un canevas
-de 1 600 pixels maximum et un budget de points/détails. Le rendu WebGL est suspendu pendant la
-peinture 2D. Les matières GPU sont partagées et libérées à la destruction. Les anciens
-composants figuratifs ne sont plus montés dans le parcours.
+Une seule image de référence de 1200 × 800 pixels est envoyée au GPU à l’entrée en
+3D. Les animations ne génèrent aucune nouvelle texture par frame. La surface 3D
+et sa texture sont réutilisées et libérées à la fermeture. Les commandes sont
+bornées à 300 gestes, avec 2048 points maximum par geste et 24 textures aquarelles
+teintées dans le cache. Le remplissage est calculé uniquement à la validation et à
+la reconstruction de l’historique.
 
-La session VR native et les contrôleurs nécessitent un navigateur, un casque et un
-contexte HTTPS compatibles. Le matériel physique reste à tester. La page ne comporte aucun mouvement automatique.
+Le panorama peut étirer les dessins près des pôles et raccorder leurs deux bords.
+Il s’agit d’une transduction animée de l’image, pas d’une reconstruction volumétrique
+physique. La session reste en mémoire ; exporter le PNG avant de fermer la page.
+Il n’y a pas encore de calques, de sélection ou de sauvegarde de projet éditable.
+Les performances prolongées sur téléphone physique et les casques restent à vérifier.
+Aucune donnée ni fichier audio n’est envoyé à un serveur.
 
-## Développement
+## Développement et déploiement
 
-Node.js 22.12 ou supérieur (Node 24 recommandé) et npm.
+Node.js 22.12 minimum, Node 24 recommandé.
 
 ```sh
 npm ci
 npm run dev
 npm run build
-npm run preview
-npm run format:check
 ```
 
-WebGL et Web Audio sont nécessaires. L’orientation mobile nécessite HTTPS (ou localhost), un capteur compatible et, selon l’appareil, l’autorisation native du navigateur.
-
-## Déploiement
-
-Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend ni secret nécessaire. Le MP3 Gravity existant est servi depuis `public/ambiances` ; aucun fichier n’est téléversé.
-
-## Tests
+Vercel : commande `npm run build`, sortie `dist`. Aucun backend, aucune clé API.
 
 ```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/watercolor-workshop.spec.js tests/spatial-workshop.spec.js tests/twin-painting.spec.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/resonant-paint.spec.js tests/twin-painting.spec.js tests/spatial-workshop.spec.js tests/watercolor-workshop.spec.js tests/watercolor-library.spec.js
 ```
 
-Les tests couvrent les bascules répétées 2D → 3D → 2D, les ajouts depuis les deux
-vues, l’historique partagé, la conservation de profondeur, les projections aux pôles,
-les douze signatures abstraites, la continuité d’analyse d’un MP3 et les contrôles
-réutilisés de navigation, d’audio et de ressources. Les suites historiques des
-parcours retirés ne constituent pas la validation du parcours courant. Le confort,
-la fluidité longue durée et la VR sur appareils physiques restent à valider.
+Les tests couvrent le remplissage réel, l’opacité, la gomme, l’historique, le tactile,
+l’export PNG, les transitions 2D/3D, l’import d’un véritable fichier audio de test,
+les shaders et la libération des ressources. Les tests des anciens parcours utilisent
+`?atelier` pour contrôler leurs régressions sans changer l’entrée principale.
