@@ -1,5 +1,7 @@
+import { createSpatialEmojiPainter } from "../chill/createSpatialEmojiPainter.js";
+import { createSensoryNetwork } from "../chill/createSensoryNetwork.js";
+import { createSkyNozzle } from "../chill/createSkyNozzle.js";
 import { createPanoramaJourney } from "./createPanoramaJourney.js";
-import { createEmojiStickers } from "../chill/createEmojiStickers.js";
 import { createContemplationState } from "../chill/createContemplationState.js";
 import { createSculptureGesture } from "./createSculptureGesture.js";
 import { paintingToWorld } from "../chill/paintingToWorld.js";
@@ -51,6 +53,7 @@ export function createSoundNest(
     onContemplationChange,
     onAcrobaticChange,
     onSculptureDepthChange,
+    onSpatialChange,
   } = {},
 ) {
   const mobile =
@@ -80,6 +83,7 @@ export function createSoundNest(
   const nearestBubble = new THREE.Vector3();
   const sculptureCenter = new THREE.Vector3();
   const scene = new THREE.Scene();
+  const paintingFocus = new THREE.Vector3(0, 0, 8);
   const xrOrigin = new THREE.Group();
   const xrJourney = createPanoramaJourney();
   const xrForward = new THREE.Vector3();
@@ -89,6 +93,7 @@ export function createSoundNest(
   let xrSession = null,
     paperMode = false,
     paintingWorld = false,
+    worldDrawing = false,
     paintOverride = null;
   scene.background = new THREE.Color("#f4f0e8");
   renderer.domElement.dataset.skydome = "off-white-paper";
@@ -205,8 +210,22 @@ export function createSoundNest(
   const bridge = createBrushBridge({ paint: feedPad, finish: finishPad });
   const pigmentArchive = createPigmentArchive();
   landscape.add(pigmentArchive.group);
-  const emojiStickers = createEmojiStickers();
-  landscape.add(emojiStickers.group);
+  const sensoryNetwork = createSensoryNetwork();
+  landscape.add(sensoryNetwork.group);
+  const spatialPainter = createSpatialEmojiPainter(
+    renderer.domElement,
+    camera,
+    (stats) => {
+      onSpatialChange?.(stats);
+      if (!stats.bounds.isEmpty()) {
+        const center = stats.bounds.getCenter(new THREE.Vector3()),
+          radius = stats.bounds.getSize(new THREE.Vector3()).length() * 0.5;
+        rig.updatePanoramaSculptureBounds(center, Math.max(3, radius));
+      }
+    },
+  );
+  landscape.add(spatialPainter.group);
+
   const marks = [],
     totalBounds = new THREE.Box3(),
     extent = new THREE.Vector3();
@@ -470,7 +489,8 @@ export function createSoundNest(
     marks.forEach(destroyStroke);
     marks.length = 0;
     pigmentArchive.clear();
-    emojiStickers.clear();
+    sensoryNetwork.clear();
+    spatialPainter.clear();
     retiredTextures.forEach((binding) => binding.texture.dispose());
     retiredTextures.clear();
     traceMemory.clear();
@@ -566,6 +586,7 @@ export function createSoundNest(
     directRay = new THREE.Vector3(),
     viewNormal = new THREE.Vector3(),
     directVelocity = new THREE.Vector3();
+  const skyNozzle = createSkyNozzle();
   function updateDirect(dt, features) {
     if (
       !directGesture ||
@@ -601,7 +622,12 @@ export function createSoundNest(
     if (!g.samples) {
       directPoint.copy(directTarget);
       directLast.copy(directPoint);
-    } else if (workshopMode) directPoint.copy(directTarget);
+      skyNozzle.reset(directTarget);
+    } else if (paintingWorld && worldDrawing)
+      directPoint.copy(
+        skyNozzle.update(directTarget, Math.min(g.clock, 1 / 30)),
+      );
+    else if (workshopMode) directPoint.copy(directTarget);
     else directPoint.lerp(directTarget, 1 - Math.exp(-dt * 24));
     const distance = directPoint.distanceTo(directLast);
     if (g.samples > 1 && distance < 0.045) return;
@@ -640,7 +666,9 @@ export function createSoundNest(
     g.clock = 0;
     renderer.domElement.dataset.directSamples = String(g.samples);
     renderer.domElement.dataset.directPoint = directPoint.toArray().join(",");
-    renderer.domElement.dataset.paintEmitter = "finger";
+    renderer.domElement.dataset.paintEmitter = paintingWorld
+      ? "sky-nozzle"
+      : "finger";
     renderer.domElement.dataset.paintedSamples = String(paintedSamples);
   }
   function endDirect() {
@@ -675,7 +703,13 @@ export function createSoundNest(
         travel: 0,
         depth:
           cameraMode === "panorama"
-            ? 12 + sculptureDepth
+            ? (paintingWorld
+                ? THREE.MathUtils.clamp(
+                    camera.position.distanceTo(paintingFocus),
+                    2,
+                    8,
+                  )
+                : 12) + sculptureDepth
             : camera.position.length() + sculptureDepth,
       };
       renderer.domElement.dataset.directDrawing = "true";
@@ -716,7 +750,7 @@ export function createSoundNest(
     renderer.domElement.dataset.nozzlePaint = "false";
   }
   function onSteeringDown(event) {
-    if (paintingWorld && cameraMode === "panorama") return;
+    if (paintingWorld && cameraMode === "panorama" && !worldDrawing) return;
     if (
       workshopMode &&
       ["sculpt", "panorama"].includes(cameraMode) &&
@@ -797,7 +831,7 @@ export function createSoundNest(
     );
   }
   function onSteeringMove(event) {
-    if (paintingWorld && cameraMode === "panorama") return;
+    if (paintingWorld && cameraMode === "panorama" && !worldDrawing) return;
     if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       sculptureGesture.move(event);
       return;
@@ -845,7 +879,7 @@ export function createSoundNest(
     }
   }
   function onSteeringEnd(event) {
-    if (paintingWorld && cameraMode === "panorama") return;
+    if (paintingWorld && cameraMode === "panorama" && !worldDrawing) return;
     if (workshopMode && ["sculpt", "panorama"].includes(cameraMode)) {
       if (event.type === "pointercancel") sculptureGesture.clear();
       else sculptureGesture.up(event);
@@ -1255,7 +1289,11 @@ export function createSoundNest(
         renderer.domElement.dataset.markCount = String(marks.length);
       }
       const visual = padSource?.getVisualFeatures?.() || f || {};
-      if (paintingWorld) pigmentArchive.animate?.(visual, dt, lifeTime);
+      if (paintingWorld) {
+        pigmentArchive.animate?.(visual, dt, lifeTime);
+        sensoryNetwork.update(lifeTime, visual, dt);
+        spatialPainter.update(lifeTime, visual, dt);
+      }
       moodAtmosphere?.update(
         lifeTime,
         visual,
@@ -1351,7 +1389,9 @@ export function createSoundNest(
       );
     renderer.domElement.dataset.lifeTime = lifeTime.toFixed(3);
     renderer.domElement.dataset.materialTime = (
-      marks[0]?.uniforms[0]?.uTime?.value ?? 0
+      sensoryNetwork.count || spatialPainter.count
+        ? lifeTime
+        : (marks[0]?.uniforms[0]?.uTime?.value ?? 0)
     ).toFixed(3);
     if (!renderer.xr.isPresenting)
       rig.update(
@@ -1373,11 +1413,6 @@ export function createSoundNest(
       .toArray()
       .map((n) => n.toFixed(5))
       .join(",");
-    if (paintingWorld)
-      emojiStickers.update(
-        lifeTime,
-        padSource?.getVisualFeatures?.().energy || 0,
-      );
     if (chillMode && moodAtmosphere)
       moodAtmosphere.object.position.copy(camera.position);
 
@@ -1502,8 +1537,51 @@ export function createSoundNest(
       if (visible) {
         void xrSession?.end().catch(() => {});
         rig.stopPanorama();
+        spatialPainter.setTool(null);
         cancelSteering();
       }
+    },
+    startSpatialSculpture() {
+      reset();
+      paintingWorld = true;
+      worldDrawing = false;
+      rig.setPanoramaExploreOnly(true);
+      this.setCameraMode("panorama");
+      rig.updatePanoramaSculptureBounds(new THREE.Vector3(0, 0, 20), 8);
+    },
+    setSpatialSculptureTool(tool) {
+      spatialPainter.setTool(tool);
+      rig.setPanoramaDrawing(false);
+      renderer.domElement.dataset.worldDrawing = String(Boolean(tool));
+    },
+    undoSpatialStroke() {
+      spatialPainter.undo();
+    },
+    clearSpatialSculpture() {
+      spatialPainter.clear();
+    },
+    loadSensoryWorld(document) {
+      reset();
+      paintingWorld = true;
+      rig.setPanoramaExploreOnly(true);
+      sensoryNetwork.setDocument(document);
+      this.setCameraMode("panorama");
+      if (!sensoryNetwork.bounds.isEmpty()) {
+        const focus = sensoryNetwork.bounds.getCenter(new THREE.Vector3());
+        const radius =
+          sensoryNetwork.bounds.getSize(new THREE.Vector3()).length() * 0.5;
+        paintingFocus.copy(focus);
+        rig.setPanoramaSculpture(
+          focus,
+          Math.max(3, radius),
+          document.kind === "emoji-painting",
+        );
+        xrJourney.reset();
+        xrJourney.setSculpture(focus, Math.max(3, radius));
+      }
+      renderer.domElement.dataset.sensoryNetwork = JSON.stringify(
+        sensoryNetwork.stats,
+      );
     },
     loadPaintingWorld(document) {
       reset();
@@ -1511,15 +1589,6 @@ export function createSoundNest(
       rig.setPanoramaExploreOnly(true);
       for (let layer = 0; layer < document.strokes.length; layer++) {
         const s = document.strokes[layer];
-        if (s.type === "sticker") {
-          emojiStickers.add(
-            s,
-            layer,
-            document.strokes.length,
-            document.width / document.height,
-          );
-          continue;
-        }
         const base = generatedBrushes.get(s.brush);
         if (!base) continue;
         paintOverride = {
@@ -1575,7 +1644,6 @@ export function createSoundNest(
         }
         finishPad(s.brush);
       }
-      renderer.domElement.dataset.stickerCount = String(emojiStickers.count);
       paintOverride = null;
       renderer.domElement.dataset.sourceStrokes = String(
         document.strokes.length,
@@ -1592,6 +1660,7 @@ export function createSoundNest(
       }
       if (!sourceBounds.isEmpty()) {
         const focus = sourceBounds.getCenter(new THREE.Vector3());
+        paintingFocus.copy(focus);
         const radius = sourceBounds.getSize(new THREE.Vector3()).length() * 0.5;
         rig.setPanoramaSculpture(focus, Math.max(2.2, radius));
         xrJourney.reset();
@@ -1727,6 +1796,24 @@ export function createSoundNest(
       if (binding !== previous)
         this.setBrushTexture(profile.id, binding, { preserveExisting: true });
       return next;
+    },
+    setWorldPainting(enabled, tool) {
+      sculptureGesture.clear();
+      worldDrawing = Boolean(enabled && paintingWorld);
+      rig.setPanoramaDrawing(worldDrawing);
+      renderer.domElement.dataset.worldDrawing = String(worldDrawing);
+      if (tool) {
+        this.setBrush(tool.brush);
+        const profile = generatedBrushes.get(tool.brush);
+        paintOverride = profile
+          ? {
+              ...profile,
+              color: tool.color,
+              opacity: tool.opacity,
+              width: (tool.size / Math.min(innerWidth, innerHeight)) * 28,
+            }
+          : null;
+      } else paintOverride = null;
     },
     setBrush(id) {
       if (BRUSHES.some((item) => item.id === id) && id !== brush) {
@@ -2002,7 +2089,8 @@ export function createSoundNest(
       imageBrushes.clear();
       tip.geometry.dispose();
       tip.material.dispose();
-      emojiStickers.dispose();
+      sensoryNetwork.dispose();
+      spatialPainter.dispose();
       effects.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

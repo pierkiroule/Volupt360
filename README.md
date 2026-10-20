@@ -1,26 +1,51 @@
-# Senso360•° — Mon paysage sensoriel
+# Ciel en résonance •° — Sculpture 360°
 
-Un atelier de squiggles (opacité appliquée au trait complet, et non à chaque tampon superposé) : dessiner sur un papier 2D, puis entrer dans une interprétation 3D et musicale du même tableau.
+**Entrer dans l’atelier 3D → choisir une brosse → activer Sculpter → naviguer.**
 
-Le papier propose dix matières symboliques, avec émojis et noms visibles : **Fil, Vague, Roche, Étincelles, Empreinte, Soie, Nuage, Givre, Braise et Spirale**. Leur signification reste libre ; aucune émotion ni interprétation psychologique n’est déduite du choix. La palette défile horizontalement et toute la barre se replie. Couleur, taille et opacité sont regroupées dans « Réglages », fermé par défaut ; annuler reste directement accessible.
+Le disque 2D et la révélation ne font plus partie du parcours. La caméra est en
+retrait du point de sculpture : la brosse dépose devant elle, à une distance
+réglable. Les gestes pilotent toujours le vol, même pendant la sculpture.
+« Sculpter » active ou coupe seulement le dépôt. Le voyage automatique peut
+également déposer la matière. Les traces restent ancrées dans le monde lorsqu’on
+regarde ailleurs ou qu’on s’éloigne.
 
-Les émojis sont des invitations ouvertes : 🧵 tension/lien, 🌊 ondulation/flux, 🪨 densité/appui, ⚡ picotement/vibration, 🫧 expansion/pulsation, 🪶 légèreté/effleurement, 🌫️ diffusion/enveloppement, ❄️ fraîcheur/grain, 🔥 chaleur/rayonnement, 🌀 rotation/circulation. Ces mots ne constituent ni une liste exhaustive des sensations ni une interprétation clinique. Leur sens appartient à la personne.
+Douze brosses émojis conservent leurs signatures : vagues bleues, flammes et braises,
+bulles, cristaux, matières minérales, plumes, brumes, vibrations, spirales, fibres,
+pousses et rayons. Les textures pigmentaires et la réponse spectrale locale sont
+conservées. La musique Gravity commence à l’entrée, si disponible. Aucun synthétiseur
+ni backend ajouté.
 
-Le parcours éducatif propose d’évoquer librement une situation, de dessiner ses sensations puis d’explorer le paysage sous une autre perspective. Aucun récit personnel n’est demandé ni enregistré. Le dessin reste local à la session. Il n’y a ni diagnostic ni revendication d’efficacité hypnothérapeutique démontrée.
+## Navigation et outils
 
-Les signatures sensorielles sont modifiables dans `src/chill/sensoryQualities.js`. Chaque matière possède une bande spectrale, une inertie, une réponse aux transitoires, une humidité et une vitesse propres. Les mêmes enveloppes accompagnent les dépôts actifs et archivés ; les anciens modes conservent leur réponse par défaut.
+Glisser tourne le vol ; maintenir plus de 280 ms accélère progressivement. Relâcher
+ralentit ou reprend le voyage automatique s’il était actif. Le gyro oriente le
+regard, avec alternative tactile. Une attraction douce conserve la proximité de
+l’œuvre. Le bouton Sculpter ne bloque ni le pilotage tactile ni le gyro.
 
-Le mode **Stickers** pose l’émoji sélectionné d’un seul contact, avec taille et opacité indépendantes des brosses. Peinture et stickers partagent le même historique d’annulation. En 3D, les stickers sont des plans transparents orientés vers le regard, placés en profondeur dans le paysage et animés d’une légère dérive. Ce ne sont pas des modèles volumétriques. Une texture est partagée par symbole, avec un plafond de 256 stickers ; les matériaux et textures sont libérés lors du nettoyage. L’apparence des émojis dépend des polices de l’appareil.
+La palette et les contrôles sont placés dans une barre inférieure pliable :
+Sculpter, voyage, annulation, musique, gyro. Les réglages de taille, opacité et
+distance de dépôt se déplient séparément. L’accueil conserve la session ; effacer
+retire explicitement l’œuvre. Les captures et le parcours 2D ne sont pas proposés.
 
-Les traits, leurs points et leurs réglages sont la source du document. La version 3D déploie cette composition autour du spectateur sur des surfaces courbes, avec une séparation progressive des couches. L’opacité conserve son rôle de transparence. Le retour en 2D retrouve le tableau intact ; les modifications suivantes alimentent la prochaine construction 3D.
+## Architecture et performance
 
-Le monde devient un audiovisualiseur à 360° : Gravity anime les pigments et les particules, y compris les dépôts archivés. Gyroscope, gestes et molette orientent le regard. Le gyroscope est demandé dès l’entrée en 3D (glissement tactile en secours). Pendant le voyage, un parcours fermé en huit alterne orbites et traversées autour du volume réel du tableau, avec accélération et arrêt amortis. Le regard permet de contempler, sans commander une translation illimitée vers le blanc. Le cadrage FPV conserve un ancrage vers l’œuvre. Le relief du vol vient de variations lentes de vitesse, de hauteur et de champ, sans roulis. Pause du voyage arrête progressivement la translation sans arrêter la musique.
+- `WatercolorWorkshop.jsx` : atelier 3D, palette, bascule de dépôt et musique.
+- `createSpatialEmojiPainter.js` : échantillonnage du point devant la caméra, aperçu
+  immédiat, matière en cours et matière finalisée.
+- `spatialBrushFrame.js` : projection sur la trajectoire 3D réellement parcourue.
+- `emojiPainting.js` : les douze signatures procédurales réutilisées.
+- `createPictorialLandscape.js` / `pictorialShaders.js` : pigments, diffusion,
+  gonflement local et particules audioréactives dans des lots GPU partagés.
+- `createPanoramaJourney.js` / `createCameraRig.js` : vol, accélération, retour et regard.
 
-Un bouton VR apparaît si WebXR annonce une session immersive disponible. L’entrée utilise le renderer XR natif de Three.js et présente le monde depuis son centre ; le casque contrôle le regard. Le casque oriente également le voyage FPV, avec rappel de trajectoire vers l’œuvre sans rotation imposée de la tête ; aucune peinture aux contrôleurs. L’exécution sur casque physique reste à valider.
-
-Les textures détaillées sont générées une fois par brosse et réutilisées. Le rendu GPU est suspendu pendant le dessin 2D ; la source raster et les données des traits restent en mémoire dans la session. Aucun backend ni traitement de données émotionnelles. L’application est une médiation artistique, sans revendication d’efficacité thérapeutique.
-
-Les anciens parcours restent accessibles via `?conte=1` et `?original=1`.
+Le dépôt est échantillonné par distance. Chaque portion conserve au maximum 256
+points, puis démarre une nouvelle portion continue, dans la limite de 80 portions.
+Le guide immédiat réutilise un buffer ; les détails de la matière en cours sont
+reconstruits au plus à 20 Hz. La matière validée est regroupée dans deux lots, la
+matière en cours dans deux autres. Les textures restent partagées et sont libérées
+à la destruction. Aucun dépôt ne relie un saut de caméra ou deux sessions séparées.
+Les anciens modules de dessin restent dans le dépôt sans être montés dans l’interface.
+Aucune analyse émotionnelle ni transmission des œuvres.
 
 ## Développement
 
@@ -38,13 +63,18 @@ WebGL et Web Audio sont nécessaires. L’orientation mobile nécessite HTTPS (o
 
 ## Déploiement
 
-Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend ni secret nécessaire. Le MP3 importé est lu localement ; aucun fichier n’est téléversé.
+Vercel : commande `npm run build`, répertoire de sortie `dist`. Aucun backend ni secret nécessaire. Le MP3 Gravity existant est servi depuis `public/ambiances` ; aucun fichier n’est téléversé.
 
 ## Tests
 
 ```sh
-npx playwright install chromium
-npm test -- tests/oizo-bulle.spec.js tests/oizo-chill.spec.js tests/six-minute-experience.spec.js tests/point-flight.spec.js tests/haikuarelle.spec.js tests/living-pigments.spec.js tests/watercolor-alpha.spec.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/watercolor-workshop.spec.js tests/spatial-workshop.spec.js
 ```
 
-L’ancien atelier MP3 reste disponible à `/?atelier=mp3`. Ses fonctions et les modules musicaux historiques ne définissent pas le parcours principal.
+Les contrôles couvrent l’entrée directe en 3D, l’absence d’éditeur 2D, le dépôt
+pendant le vol tactile et automatique, l’arrêt indépendant de la sculpture,
+l’annulation, la conservation de la session, les douze signatures, l’ancrage
+spatial et la libération des ressources. Les tests réutilisables des anciens
+moteurs et des matières sont conservés. Les anciennes suites de parcours retirés
+ne constituent pas la validation du parcours courant. Le confort et la fluidité
+sur téléphone physique restent à vérifier.

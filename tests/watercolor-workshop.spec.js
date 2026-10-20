@@ -1,82 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-test("2D squiggle source survives a reactive 360 world round trip and supports undo", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => {
-    if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
-      errors.push(m.text());
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const paper = page.locator(".painting-paper"),
-    world = page.locator("#stage canvas:not(.painting-paper)");
-  await expect(paper).toBeVisible();
-  const labels = await page.locator(".brush-name").evaluateAll((nodes) =>
-    nodes.map((n) => {
-      const a = n.getBoundingClientRect(),
-        b = n.closest("button").getBoundingClientRect();
-      return {
-        font: parseFloat(getComputedStyle(n).fontSize),
-        inside: a.left >= b.left && a.right <= b.right,
-      };
-    }),
-  );
-  expect(labels.every((l) => l.font <= 12 && l.inside)).toBe(true);
-
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
-  ).toHaveCount(10);
-  await page.getByLabel("Réglages de la brosse", { exact: true }).click();
-  await page.getByRole("slider", { name: "Taille de la brosse" }).fill("25");
-  await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.65");
-  await page.mouse.move(70, 280);
-  await page.mouse.down();
-  await page.mouse.move(300, 380, { steps: 30 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "1");
-  const source = await paper.evaluate((c) => c.toDataURL());
-  await page.getByRole("button", { name: "Roche", exact: true }).click();
-  await page.mouse.move(100, 400);
-  await page.mouse.down();
-  await page.mouse.move(280, 300, { steps: 25 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "2");
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(paper).toBeHidden();
-  await expect(world).toHaveAttribute("data-source-strokes", "1");
-  await expect(world).toHaveAttribute("data-camera-mode", "panorama");
-  await expect(world).toHaveAttribute("data-journey-guided", "true");
-  await expect
-    .poll(async () => Number(await world.getAttribute("data-painted-samples")))
-    .toBeGreaterThan(2);
-  const painted = await world.getAttribute("data-painted-samples");
-  await page.mouse.move(140, 300);
-  await page.mouse.down();
-  await page.mouse.move(260, 350, { steps: 15 });
-  await page.mouse.up();
-  await expect(world).toHaveAttribute("data-painted-samples", painted);
-  await page
-    .getByRole("button", { name: "Voyager dans la direction du regard" })
-    .click();
-  await expect(world).toHaveAttribute("data-journey-moving", "true");
-  await page.getByRole("button", { name: "Pause du voyage" }).click();
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  await expect(paper).toBeVisible();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(source);
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  await expect(paper).toHaveAttribute("data-stroke-count", "0");
-  await expect(
-    page.getByRole("button", { name: "Entrer dans le tableau 3D" }),
-  ).toBeDisabled();
-  expect(errors).toEqual([]);
-});
-
 test("brush tip follows the rig through turns and parent transforms", async ({
   page,
 }) => {
@@ -200,7 +123,7 @@ test("manual steering holds a stable heading despite camera feedback; release re
   expect(Math.abs(r.right.heading[0] - r.slow.heading[0])).toBeLessThan(0.001);
 });
 
-test("ten brush families have distinct engines, colors and responsive pigment or particle materials", async ({
+test("twelve brush families have distinct engines, colors and responsive pigment or particle materials", async ({
   page,
 }) => {
   await page.goto("/");
@@ -249,9 +172,9 @@ test("ten brush families have distinct engines, colors and responsive pigment or
       return result;
     });
   });
-  expect(r).toHaveLength(10);
-  expect(new Set(r.map((p) => p.engine)).size).toBe(10);
-  expect(new Set(r.map((p) => p.color)).size).toBe(10);
+  expect(r).toHaveLength(12);
+  expect(new Set(r.map((p) => p.engine)).size).toBe(12);
+  expect(new Set(r.map((p) => p.color)).size).toBe(12);
   for (const brush of r) {
     expect(brush.count).toBeGreaterThan(0);
     expect(brush.gain).toBeGreaterThan(2);
@@ -436,53 +359,6 @@ test("panorama journey latches its heading and decelerates without stopping draw
   expect(r.moving).toBe(false);
 });
 
-test("gyro activates on entry and steers the flying panorama", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    window.DeviceOrientationEvent = class extends Event {
-      static requestPermission() {
-        return Promise.resolve("granted");
-      }
-    };
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await page.getByRole("button", { name: "Vague", exact: true }).click();
-  await page.mouse.move(150, 250);
-  await page.mouse.down();
-  await page.mouse.move(300, 350, { steps: 15 });
-  await page.mouse.up();
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(
-    page.getByRole("button", { name: "Désactiver le gyroscope" }),
-  ).toBeVisible();
-  const canvas = page.locator("#stage canvas:not(.painting-paper)");
-  const sensor = (alpha) =>
-    page.evaluate((alpha) => {
-      const e = new Event("deviceorientation");
-      Object.assign(e, { alpha, beta: 80, gamma: 0 });
-      window.dispatchEvent(e);
-    }, alpha);
-  await sensor(0);
-  await expect(canvas).toHaveAttribute("data-gyroscope-status", "active");
-  await page
-    .getByRole("button", { name: "Voyager dans la direction du regard" })
-    .click();
-  await expect(canvas).toHaveAttribute("data-journey-moving", "true");
-  const heading = await canvas.getAttribute("data-journey-heading"),
-    orientation = await canvas.getAttribute("data-camera-orientation");
-  await sensor(70);
-  await expect
-    .poll(() => canvas.getAttribute("data-camera-orientation"))
-    .not.toBe(orientation);
-  await expect
-    .poll(() => canvas.getAttribute("data-journey-heading"))
-    .not.toBe(heading);
-  await page.getByRole("button", { name: "Désactiver le gyroscope" }).click();
-  await expect(canvas).toHaveAttribute("data-gyroscope-status", "disabled");
-});
-
 test("paper-to-world projection wraps the same composition deterministically with depth by layer", async ({
   page,
 }) => {
@@ -561,161 +437,6 @@ test("archived pigments keep a local audio envelope in the audiovisual world", a
   expect(r.time).toBeGreaterThan(0);
 });
 
-test("VR entry is offered only by capability and a rejected session leaves the artwork usable", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "xr", {
-      configurable: true,
-      value: {
-        isSessionSupported: async () => true,
-        requestSession: async () => {
-          throw new Error("Casque indisponible pour ce test");
-        },
-      },
-    });
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await page.getByRole("button", { name: "Vague", exact: true }).click();
-  await page.mouse.move(100, 250);
-  await page.mouse.down();
-  await page.mouse.move(250, 350, { steps: 10 });
-  await page.mouse.up();
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await page.getByRole("button", { name: "Entrer en VR" }).click();
-  await expect(page.locator(".ambience-error")).toContainText(
-    "Casque indisponible",
-  );
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  await expect(page.locator(".painting-paper")).toBeVisible();
-});
-
-test("2D opacity caps the whole stroke even where the gesture overlaps", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { createPaintingCanvas } =
-      await import("/src/chill/createPaintingCanvas.js");
-    const host = document.createElement("div");
-    document.body.append(host);
-    const paper = createPaintingCanvas(host);
-    paper.setConfig({ opacity: 0.2, size: 70 });
-    const send = (type, x) =>
-      paper.canvas.dispatchEvent(
-        new PointerEvent(type, {
-          pointerId: 1,
-          isPrimary: true,
-          button: 0,
-          clientX: x,
-          clientY: 180,
-        }),
-      );
-    // Synthetic capture needs no browser-owned pointer for this unit exercise.
-    paper.canvas.setPointerCapture = () => {};
-    send("pointerdown", 180);
-    for (let i = 0; i < 40; i++) send("pointermove", 180 + (i % 2) * 12);
-    send("pointerup", 180);
-    const pixels = paper.canvas
-      .getContext("2d")
-      .getImageData(0, 0, paper.canvas.width, paper.canvas.height).data;
-    let max = 0;
-    for (let i = 3; i < pixels.length; i += 4) max = Math.max(max, pixels[i]);
-    paper.dispose();
-    host.remove();
-    return max;
-  });
-  expect(result).toBeGreaterThan(0);
-  expect(result).toBeLessThanOrEqual(52);
-});
-
-test("ten materials paint distinct seeded marks and the compact tray folds completely", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  await expect(
-    page.getByRole("slider", { name: "Opacité de la brosse" }),
-  ).toBeHidden();
-  await page.getByRole("button", { name: "Replier les outils" }).click();
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: "Déplier les outils" }).click();
-  await expect(
-    page.getByRole("group", { name: "Choisir une brosse" }).getByRole("button"),
-  ).toHaveCount(10);
-  const results = await page.evaluate(async () => {
-    const { createPaintingCanvas } =
-      await import("/src/chill/createPaintingCanvas.js");
-    const { WORKSHOP_BRUSHES } = await import("/src/chill/workshopBrushes.js");
-    const host = document.createElement("div");
-    document.body.append(host);
-    const paper = createPaintingCanvas(host);
-    paper.canvas.setPointerCapture = () => {};
-    const send = (type, x) =>
-      paper.canvas.dispatchEvent(
-        new PointerEvent(type, {
-          pointerId: 1,
-          isPrimary: true,
-          button: 0,
-          clientX: x,
-          clientY: 170,
-        }),
-      );
-    const signatures = [];
-    for (const brush of WORKSHOP_BRUSHES) {
-      paper.clear();
-      paper.setConfig({
-        brush: brush.id,
-        color: "#285678",
-        size: 55,
-        opacity: 0.7,
-      });
-      send("pointerdown", 70);
-      for (let x = 75; x < 260; x += 5) send("pointermove", x);
-      send("pointerup", 260);
-      const pixels = paper.canvas
-        .getContext("2d")
-        .getImageData(0, 0, paper.canvas.width, paper.canvas.height).data;
-      let coverage = 0,
-        hash = 0;
-      for (let i = 3; i < pixels.length; i += 4) {
-        coverage += pixels[i];
-        hash = (Math.imul(hash, 31) + pixels[i]) | 0;
-      }
-      signatures.push({ coverage, hash });
-    }
-    paper.dispose();
-    host.remove();
-    return signatures;
-  });
-  expect(results.every((r) => r.coverage > 0)).toBe(true);
-  expect(new Set(results.map((r) => r.hash)).size).toBe(10);
-});
-
-test("Senso360 presents ten open sensory invitations without collecting a situation", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await expect(page).toHaveTitle("Senso360•° — Mon paysage sensoriel");
-  await expect(page.getByRole("heading", { name: "Senso360•°" })).toBeVisible();
-  await expect(page.getByText(/sans analyse de vos choix/)).toBeVisible();
-  await expect(page.getByRole("textbox")).toHaveCount(0);
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const emojis = page.locator(".sensory-emoji");
-  await expect(emojis).toHaveCount(10);
-  expect(new Set(await emojis.allTextContents()).size).toBe(10);
-  await page.getByRole("button", { name: "Givre", exact: true }).click();
-  await expect(page.locator(".sensory-hint")).toContainText(
-    "Fraîcheur, grain, frisson",
-  );
-  await expect(page.locator(".sensory-hint")).toContainText("à votre façon");
-  await page.getByRole("button", { name: "Replier les outils" }).click();
-  await expect(page.locator(".sensory-emoji")).toHaveCount(0);
-});
-
 test("sensory signatures have distinct smooth spectral responses and preserve legacy defaults", async ({
   page,
 }) => {
@@ -761,95 +482,6 @@ test("sensory signatures have distinct smooth spectral responses and preserve le
       expect(v).toBeLessThanOrEqual(1);
     }
   }
-});
-
-test("emoji stickers keep size and opacity, float in 3D and survive undo and round trips", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Ouvrir l’atelier" }).click();
-  const paper = page.locator(".painting-paper");
-  const world = page.locator("#stage canvas:not(.painting-paper)");
-  await page.getByRole("button", { name: "Stickers", exact: true }).click();
-  await page.getByRole("button", { name: "Vague", exact: true }).click();
-  await page.getByRole("slider", { name: "Taille du sticker" }).fill("90");
-  await page.getByRole("slider", { name: "Opacité du sticker" }).fill("0.3");
-  await page.mouse.move(100, 200);
-  await page.mouse.down();
-  await page.mouse.move(240, 280, { steps: 10 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "1");
-  const pixels = await paper.evaluate((c) => {
-    const p = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
-    let max = 0;
-    for (let i = 3; i < p.length; i += 4) max = Math.max(max, p[i]);
-    return { max, source: c.toDataURL() };
-  });
-  expect(pixels.max).toBeGreaterThan(0);
-  expect(pixels.max).toBeLessThanOrEqual(77);
-  await page.getByRole("button", { name: "Entrer dans le tableau 3D" }).click();
-  await expect(world).toHaveAttribute("data-sticker-count", "1");
-  await expect(world).toHaveAttribute("data-source-strokes", "1");
-  await page.getByRole("button", { name: "Revenir au tableau 2D" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(pixels.source);
-  await page.getByRole("button", { name: "Peindre", exact: true }).click();
-  await page.mouse.move(130, 260);
-  await page.mouse.down();
-  await page.mouse.move(260, 300, { steps: 10 });
-  await page.mouse.up();
-  await expect(paper).toHaveAttribute("data-stroke-count", "2");
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  expect(await paper.evaluate((c) => c.toDataURL())).toBe(pixels.source);
-  await page.getByRole("button", { name: "Annuler le dernier trait" }).click();
-  await expect(paper).toHaveAttribute("data-stroke-count", "0");
-});
-
-test("floating emoji sprites preserve transparency, move softly and release textures", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { createEmojiStickers } =
-      await import("/src/chill/createEmojiStickers.js");
-    const stickers = createEmojiStickers();
-    const source = {
-      emoji: "🌊",
-      points: [{ u: 0.5, v: 0.5 }],
-      size: 0.15,
-      opacity: 0.35,
-    };
-    stickers.add(source, 0, 1, 1);
-    stickers.add(source, 1, 2, 1);
-    const sprite = stickers.group.children[0],
-      second = stickers.group.children[1];
-    const shared = sprite.material.map === second.material.map;
-    let textures = 0,
-      materials = 0;
-    sprite.material.map.addEventListener("dispose", () => textures++);
-    for (const s of stickers.group.children)
-      s.material.addEventListener("dispose", () => materials++);
-    const before = sprite.position.clone();
-    stickers.update(2, 0.7);
-    const moved = sprite.position.distanceTo(before),
-      opacity = sprite.material.opacity;
-    stickers.dispose();
-    return {
-      shared,
-      moved,
-      opacity,
-      textures,
-      materials,
-      count: stickers.count,
-    };
-  });
-  expect(result.shared).toBe(true);
-  expect(result.moved).toBeGreaterThan(0);
-  expect(result.moved).toBeLessThan(0.2);
-  expect(result.opacity).toBe(0.35);
-  expect(result.textures).toBe(1);
-  expect(result.materials).toBe(2);
-  expect(result.count).toBe(0);
 });
 
 test("guided FPV stays near the sculpture under sustained outward steering and pauses smoothly", async ({
@@ -913,4 +545,712 @@ test("guided FPV stays near the sculpture under sustained outward steering and p
   expect(result.crossings).toBeGreaterThan(10);
   expect(result.maxStep).toBeLessThan(0.025);
   expect(result.tail).toBeLessThan(0.001);
+});
+
+test("sky brush follows a moving aim with continuous finite-speed flight", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createSkyNozzle } = await import("/src/chill/createSkyNozzle.js");
+    const flight = createSkyNozzle(),
+      target = new T.Vector3(20, 0, 0);
+    flight.reset(new T.Vector3());
+    let maxStep = 0;
+    const first = flight.update(target, 1 / 30).x;
+    for (let i = 0; i < 300; i++) {
+      const before = flight.position.clone();
+      flight.update(target, 1 / 30);
+      maxStep = Math.max(maxStep, before.distanceTo(flight.position));
+    }
+    const settled = flight.position.distanceTo(target);
+    target.set(-20, 12, -6);
+    const before = flight.position.clone();
+    flight.update(target, 0.3);
+    return {
+      first,
+      maxStep,
+      settled,
+      jump: before.distanceTo(flight.position),
+    };
+  });
+  expect(result.first).toBeGreaterThan(0);
+  expect(result.first).toBeLessThan(0.1);
+  expect(result.maxStep).toBeLessThanOrEqual(0.201);
+  expect(result.settled).toBeLessThan(0.01);
+  expect(result.jump).toBeLessThanOrEqual(0.201);
+});
+
+test("graph contacts are one toggle per drag and preserve disc bounds and valid edges", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const {
+      emptySensoryGraph,
+      addSensoryNode,
+      moveSensoryNode,
+      removeSensoryNode,
+    } = await import("/src/chill/sensoryGraph.js");
+    let g = emptySensoryGraph();
+    g = addSensoryNode(g, {
+      id: "a",
+      emojiId: "water",
+      u: 0.3,
+      v: 0.5,
+      size: 0.2,
+      opacity: 0.8,
+    });
+    g = addSensoryNode(g, {
+      id: "b",
+      emojiId: "warm",
+      u: 0.7,
+      v: 0.5,
+      size: 0.2,
+      opacity: 0.5,
+    });
+    const contacts = new Set();
+    g = moveSensoryNode(g, "b", { u: 0.4, v: 0.5 }, contacts);
+    const linked = g.links.length;
+    for (let i = 0; i < 20; i++)
+      g = moveSensoryNode(g, "b", { u: 0.4 + i * 0.0001, v: 0.5 }, contacts);
+    const jitter = g.links.length;
+    g = moveSensoryNode(g, "b", { u: 0.8, v: 0.5 }, new Set());
+    g = moveSensoryNode(g, "b", { u: 0.4, v: 0.5 }, new Set());
+    const unlinked = g.links.length;
+    g = moveSensoryNode(g, "b", { u: 8, v: 8 });
+    const n = g.nodes.find((n) => n.id === "b");
+    g = removeSensoryNode(g, "a");
+    return {
+      linked,
+      jitter,
+      unlinked,
+      radius: Math.hypot(n.u - 0.5, n.v - 0.5),
+      dangling: g.links.some((l) => l.a === "a" || l.b === "a"),
+    };
+  });
+  expect(result.linked).toBe(1);
+  expect(result.jitter).toBe(1);
+  expect(result.unlinked).toBe(0);
+  expect(result.radius).toBeLessThanOrEqual(0.40001);
+  expect(result.dangling).toBe(false);
+});
+
+test("3D node and connection flows react locally to audio and dispose their resources", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const { createSensoryNetwork } =
+      await import("/src/chill/createSensoryNetwork.js");
+    const n = createSensoryNetwork();
+    n.setDocument({
+      nodes: [
+        { id: "a", emojiId: "water", u: 0.4, v: 0.5, size: 0.2, opacity: 0.5 },
+        { id: "b", emojiId: "warm", u: 0.6, v: 0.5, size: 0.2, opacity: 0.8 },
+      ],
+      links: [{ a: "a", b: "b" }],
+    });
+    const points = n.group.children.find((m) => m.isPoints),
+      line = n.group.children.find((m) => m.isLineSegments),
+      before = Array.from(points.geometry.attributes.position.array),
+      colors = Array.from(line.geometry.attributes.color.array);
+    for (let i = 0; i < 60; i++)
+      n.update(
+        0,
+        { bands: [0.9, 0.1, 0.7, 0.2, 0.1, 0.3], energy: 0.8 },
+        1 / 60,
+      );
+    const changed = before.some(
+        (x, i) =>
+          Math.abs(x - points.geometry.attributes.position.array[i]) > 0.001,
+      ),
+      flow = colors.some(
+        (x, i) => Math.abs(x - line.geometry.attributes.color.array[i]) > 0.001,
+      );
+    let disposed = 0;
+    n.group.traverse((o) => {
+      if (o.material) o.material.addEventListener("dispose", () => disposed++);
+    });
+    const stats = n.stats;
+    n.dispose();
+    return {
+      changed,
+      flow,
+      disposed,
+      stats,
+      remaining: n.group.children.length,
+    };
+  });
+  expect(r.changed).toBe(true);
+  expect(r.flow).toBe(true);
+  expect(r.stats.nodes).toBe(2);
+  expect(r.stats.links).toBe(1);
+  expect(r.disposed).toBeGreaterThanOrEqual(7);
+  expect(r.remaining).toBe(0);
+});
+
+test("sensory words fade, drift and include occasional metaphors without rasterizing in the render loop", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createSensoryAtmosphere } =
+      await import("/src/chill/createSensoryAtmosphere.js");
+    const { emojiById } = await import("/src/chill/sensoryEmojiCatalog.js");
+    const atmosphere = createSensoryAtmosphere();
+    const nodes = [
+      {
+        entry: emojiById("water"),
+        size: 1,
+        energy: 0.2,
+        object: { position: new T.Vector3(0, 0, 0) },
+      },
+      {
+        entry: emojiById("warm"),
+        size: 1.2,
+        energy: 0.7,
+        object: { position: new T.Vector3(3, 0, 1) },
+      },
+    ];
+    atmosphere.setNodes(nodes, [{ a: nodes[0], b: nodes[1] }]);
+    const sprites = atmosphere.group.children.filter((n) => n.isSprite),
+      cloud = atmosphere.group.children.find((n) => n.isMesh && !n.isSprite),
+      buffer = cloud.geometry.attributes.aCenter.array;
+    atmosphere.update(0);
+    const initial = sprites[0].visible;
+    atmosphere.update(4.3);
+    const emerged = sprites[0].material.opacity,
+      position = sprites[0].position.clone();
+    atmosphere.update(7);
+    const moved = sprites[0].position.distanceTo(position);
+    atmosphere.update(12.5);
+    const vanished = !sprites[0].visible;
+    atmosphere.update(18.5);
+    const metaphor = sprites.some(
+      (s) => s.visible && s.userData.sensoryText?.startsWith("c’est comme"),
+    );
+    let canvases = 0;
+    const create = document.createElement;
+    document.createElement = function (name, ...args) {
+      if (name === "canvas") canvases++;
+      return create.call(this, name, ...args);
+    };
+    try {
+      for (let i = 0; i < 300; i++) atmosphere.update(20 + i / 60);
+    } finally {
+      document.createElement = create;
+    }
+    const sameBuffer = buffer === cloud.geometry.attributes.aCenter.array,
+      stats = atmosphere.stats;
+    let released = 0;
+    for (const s of sprites) {
+      s.material.addEventListener("dispose", () => released++);
+    }
+    cloud.geometry.addEventListener("dispose", () => released++);
+    atmosphere.dispose();
+    return {
+      initial,
+      emerged,
+      moved,
+      vanished,
+      metaphor,
+      canvases,
+      sameBuffer,
+      stats,
+      released,
+      remaining: atmosphere.group.children.length,
+    };
+  });
+  expect(r.initial).toBe(false);
+  expect(r.emerged).toBeGreaterThan(0.7);
+  expect(r.moved).toBeGreaterThan(0.05);
+  expect(r.vanished).toBe(true);
+  expect(r.metaphor).toBe(true);
+  expect(r.canvases).toBe(0);
+  expect(r.sameBuffer).toBe(true);
+  expect(r.stats.clouds).toBe(3);
+  expect(r.stats.textTextures).toBe(4);
+  expect(r.stats.visibleTexts).toBeLessThanOrEqual(3);
+  expect(r.released).toBe(4);
+  expect(r.remaining).toBe(0);
+});
+
+test("sensory currents compile, react locally and reuse bounded GPU buffers", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const errors = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  const result = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createSensoryCurrents } =
+      await import("/src/chill/createSensoryCurrents.js");
+    const field = createSensoryCurrents();
+    const nodes = Array.from({ length: 48 }, (_, i) => ({
+      entry: { color: "#729e9c" },
+      energy: 0,
+      object: { position: new T.Vector3(i % 6, 0, 0) },
+    }));
+    field.setNodes(nodes);
+    const mesh = field.group.children[0],
+      buffer = mesh.geometry.attributes.anchor.array;
+    field.update(0);
+    nodes[0].energy = 0.8;
+    nodes[0].object.position.y = 2;
+    for (let i = 0; i < 360; i++) field.update(i / 60);
+    const renderer = new T.WebGLRenderer(),
+      scene = new T.Scene(),
+      camera = new T.PerspectiveCamera(60, 1, 0.1, 100);
+    renderer.setSize(256, 256);
+    camera.position.z = 12;
+    scene.add(field.group);
+    renderer.render(scene, camera);
+    const stats = field.stats,
+      local = mesh.geometry.attributes.energy.getX(0),
+      other = mesh.geometry.attributes.energy.getX(144);
+    const same = buffer === mesh.geometry.attributes.anchor.array;
+    let disposed = 0;
+    for (const m of field.group.children) {
+      m.geometry.addEventListener("dispose", () => disposed++);
+      m.material.addEventListener("dispose", () => disposed++);
+    }
+    field.dispose();
+    renderer.dispose();
+    return {
+      stats,
+      local,
+      other,
+      same,
+      disposed,
+      remaining: field.group.children.length,
+    };
+  });
+  expect(result.stats).toEqual({
+    hosts: 24,
+    particles: 3456,
+    filaments: 144,
+    drawCalls: 2,
+  });
+  expect(result.local).toBeCloseTo(0.8);
+  expect(result.other).toBe(0);
+  expect(result.same).toBe(true);
+  expect(result.disposed).toBe(4);
+  expect(result.remaining).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test("all twelve emoji brushes have different signatures and reusable 3D resources", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const { createEmojiPainting } = await import("/src/chill/emojiPainting.js"),
+      { SENSORY_EMOJIS } = await import("/src/chill/sensoryEmojiCatalog.js"),
+      { createPictorialLandscape } =
+        await import("/src/chill/createPictorialLandscape.js");
+    const make = (id) => ({
+      emojiId: id,
+      size: 0.04,
+      opacity: 0.6,
+      points: [
+        { x: -0.3, y: 0 },
+        { x: 0.3, y: 0 },
+      ],
+    });
+    const docs = SENSORY_EMOJIS.map((e) => createEmojiPainting([make(e.id)]));
+    const signatures = new Set(
+      docs.map((d) =>
+        JSON.stringify(d.paths.map((p) => [p.points, p.width, p.color])),
+      ),
+    ).size;
+    const stroke = make("water"),
+      doc = createEmojiPainting([stroke]);
+    const cache = doc.paths[0] === createEmojiPainting([stroke]).paths[0];
+    const landscape = createPictorialLandscape();
+    landscape.setDocument(doc);
+    const mesh = landscape.group.children[0],
+      buffer = mesh.geometry.attributes.position.array;
+    for (let i = 0; i < 180; i++)
+      landscape.update(i / 60, { bands: [0.8, 0, 0, 0, 0, 0] }, 1 / 60);
+    const energy = mesh.material.uniforms.bands.value[0],
+      reused = buffer === mesh.geometry.attributes.position.array;
+    let disposed = 0;
+    for (const m of landscape.group.children) {
+      m.geometry.addEventListener("dispose", () => disposed++);
+      m.material.addEventListener("dispose", () => disposed++);
+    }
+    landscape.setDocument(docs[1]);
+    landscape.dispose();
+    return {
+      signatures,
+      cache,
+      energy,
+      reused,
+      disposed,
+      remaining: landscape.group.children.length,
+      empty: createEmojiPainting([]).paths.length,
+    };
+  });
+  expect(r.signatures).toBe(12);
+  expect(r.cache).toBe(true);
+  expect(r.energy).toBeGreaterThan(0.7);
+  expect(r.reused).toBe(true);
+  expect(r.disposed).toBe(4);
+  expect(r.remaining).toBe(0);
+  expect(r.empty).toBe(0);
+});
+
+test("all twelve brush animations change actual pixels and release their animation loop", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { createEmojiAnimation } =
+      await import("/src/chill/createEmojiAnimation.js");
+    const { createEmojiPainting } = await import("/src/chill/emojiPainting.js");
+    const { SENSORY_EMOJIS } =
+      await import("/src/chill/sensoryEmojiCatalog.js");
+    const { brushMotion } = await import("/src/chill/emojiBrushMotion.js");
+    const canvas = document.createElement("canvas");
+    const a = createEmojiAnimation(canvas);
+    a.resize(350);
+    const hash = () => {
+      const pixels = canvas
+        .getContext("2d")
+        .getImageData(0, 0, canvas.width, canvas.height).data;
+      let h = 2166136261;
+      for (let i = 0; i < pixels.length; i += 7)
+        h = Math.imul(h ^ pixels[i], 16777619);
+      return h;
+    };
+    const changed = [];
+    for (const e of SENSORY_EMOJIS) {
+      a.setDocument(
+        createEmojiPainting([
+          {
+            emojiId: e.id,
+            size: 0.065,
+            opacity: 0.8,
+            points: [
+              { x: -0.3, y: 0 },
+              { x: 0, y: 0.03 },
+              { x: 0.3, y: 0 },
+            ],
+          },
+        ]),
+      );
+      const before = hash();
+      a.start();
+      await new Promise((r) => setTimeout(r, 150));
+      a.stop();
+      changed.push({ id: e.id, moved: before !== hash() });
+    }
+    const stats = a.stats,
+      time = canvas.dataset.animationTime;
+    await new Promise((r) => setTimeout(r, 70));
+    const stopped = time === canvas.dataset.animationTime;
+    const signatures = new Set(
+      SENSORY_EMOJIS.map((e) => JSON.stringify(brushMotion(e.id, 0.32, 1.1))),
+    ).size;
+    a.dispose();
+    return { changed, stopped, signatures, stats, disposed: a.stats };
+  });
+  expect(result.changed.filter((x) => !x.moved)).toEqual([]);
+  expect(result.signatures).toBe(12);
+  expect(result.stopped).toBe(true);
+  expect(result.stats.details).toBeLessThanOrEqual(18);
+  expect(result.disposed.strokes).toBe(0);
+  expect(result.disposed.running).toBe(false);
+});
+
+test("pictorial pigments respond locally, release gently and reuse textures through long playback", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const errors = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createEmojiPainting } = await import("/src/chill/emojiPainting.js"),
+      { createPictorialLandscape } =
+        await import("/src/chill/createPictorialLandscape.js");
+    const doc = createEmojiPainting(
+      ["water", "warm", "bubbles"].map((id, i) => ({
+        emojiId: id,
+        size: 0.06,
+        opacity: 0.9,
+        points: [
+          { x: -0.25, y: (i - 1) * 0.16 },
+          { x: 0, y: (i - 1) * 0.16 + 0.05 },
+          { x: 0.25, y: (i - 1) * 0.16 },
+        ],
+      })),
+    );
+    const landscape = createPictorialLandscape();
+    landscape.setDocument(doc);
+    const [ribbon, particles] = landscape.group.children,
+      buffer = ribbon.geometry.attributes.position.array,
+      particleBuffer = particles.geometry.attributes.position.array,
+      u = ribbon.material.uniforms;
+    let released = 0;
+    for (const name of ["wetPlate", "dryPlate"])
+      u[name].value.addEventListener("dispose", () => released++);
+    const renderer = new T.WebGLRenderer({ preserveDrawingBuffer: true });
+    renderer.setSize(256, 256);
+    const scene = new T.Scene(),
+      camera = new T.PerspectiveCamera(65, 1, 0.1, 100);
+    scene.background = new T.Color("#faf7ef");
+    scene.add(landscape.group);
+    const center = landscape.bounds.getCenter(new T.Vector3());
+    camera.position.copy(center).add(new T.Vector3(0, 4, -13));
+    camera.lookAt(center);
+    const hash = () => {
+      renderer.render(scene, camera);
+      const gl = renderer.getContext(),
+        pixels = new Uint8Array(256 * 256 * 4);
+      gl.readPixels(0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      let h = 0;
+      for (let i = 0; i < pixels.length; i += 11)
+        h = (Math.imul(h, 31) + pixels[i]) | 0;
+      return h;
+    };
+    landscape.update(2, { bands: [0, 0, 0, 0, 0, 0] }, 0.1);
+    const silent = hash();
+    for (let i = 0; i < 30; i++)
+      landscape.update(
+        2,
+        { energy: 0.5, flux: 0.6, bands: [0.9, 0, 0, 0, 0, 0] },
+        1 / 60,
+      );
+    const sounding = hash(),
+      local = Array.from(u.bands.value),
+      accent = u.accent.value;
+    landscape.update(2, { energy: 0, bands: [0, 0, 0, 0, 0, 0] }, 1 / 60);
+    const release = u.bands.value[0];
+    let canvases = 0;
+    const create = document.createElement;
+    document.createElement = function (name, ...args) {
+      if (name === "canvas") canvases++;
+      return create.call(this, name, ...args);
+    };
+    try {
+      for (let i = 0; i < 21600; i++)
+        landscape.update(
+          i / 60,
+          { energy: 0.2, bands: [0.2, 0.1, 0.3, 0.1, 0.2, 0.1] },
+          1 / 60,
+        );
+    } finally {
+      document.createElement = create;
+    }
+    const bounded = particles.geometry.attributes.position.count <= 4096,
+      reused =
+        buffer === ribbon.geometry.attributes.position.array &&
+        particleBuffer === particles.geometry.attributes.position.array;
+    landscape.update(
+      362,
+      { energy: NaN, flux: Infinity, bands: [NaN, Infinity, -5] },
+      1 / 60,
+    );
+    const finite = Array.from(u.bands.value).every(Number.isFinite);
+    landscape.dispose();
+    renderer.dispose();
+    return {
+      changed: silent !== sounding,
+      local,
+      accent,
+      release,
+      canvases,
+      bounded,
+      reused,
+      finite,
+      released,
+    };
+  });
+  expect(r.changed).toBe(true);
+  expect(r.local[0]).toBeGreaterThan(0.7);
+  expect(r.local[2]).toBe(0);
+  expect(r.accent).toBeGreaterThan(0);
+  expect(r.release).toBeGreaterThan(r.local[0] * 0.9);
+  expect(r.release).toBeLessThan(r.local[0]);
+  expect(r.canvases).toBe(0);
+  expect(r.bounded).toBe(true);
+  expect(r.reused).toBe(true);
+  expect(r.finite).toBe(true);
+  expect(r.released).toBe(2);
+  expect(errors).toEqual([]);
+});
+
+test("touch flight accelerates smoothly, steers through opposing headings and remains near the painting", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const r = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js"),
+      { createPanoramaJourney } =
+        await import("/src/engine/createPanoramaJourney.js");
+    const j = createPanoramaJourney(),
+      center = new T.Vector3(0, 0, 20),
+      heading = new T.Vector3(1, 0, 0);
+    j.setSculpture(center, 8);
+    j.setTouchControl(true, heading);
+    j.update(0.1);
+    const early = j.speed;
+    for (let i = 0; i < 240; i++) j.update(1 / 60);
+    const fast = j.speed,
+      throttle = j.throttle;
+    let maxDistance = 0,
+      maxStep = 0;
+    for (let i = 0; i < 60 * 120; i++) {
+      heading.subVectors(j.position, center);
+      if (heading.lengthSq() < 0.01) heading.set(1, 0, 0);
+      heading.normalize();
+      j.setTouchControl(true, heading);
+      const before = j.position.clone();
+      j.update(1 / 60);
+      maxDistance = Math.max(maxDistance, j.position.distanceTo(center));
+      maxStep = Math.max(maxStep, j.position.distanceTo(before));
+    }
+    j.setTouchControl(false);
+    for (let i = 0; i < 180; i++) j.update(1 / 60);
+    const slow = j.speed;
+    const stopped = j.position.clone();
+    for (let i = 0; i < 60; i++) j.update(1 / 60);
+    const tail = stopped.distanceTo(j.position);
+    j.travel(new T.Vector3(0, 0, 1));
+    j.setTouchControl(true, new T.Vector3(0, 0, -1));
+    for (let i = 0; i < 60; i++) j.update(1 / 60);
+    j.setTouchControl(false);
+    for (let i = 0; i < 180; i++) j.update(1 / 60);
+    const resumed = j.moving && j.returnWeight > 0.9;
+    j.setTouchControl(true, heading);
+    j.update(0.1);
+    j.stop();
+    for (let i = 0; i < 120; i++) j.update(1 / 60);
+    return {
+      early,
+      fast,
+      throttle,
+      maxDistance,
+      maxStep,
+      slow,
+      tail,
+      resumed,
+      cancelled: !j.touching && j.throttle === 0,
+    };
+  });
+  expect(r.early).toBeLessThan(0.01);
+  expect(r.fast).toBeGreaterThan(3);
+  expect(r.throttle).toBeGreaterThan(0.99);
+  expect(r.maxDistance).toBeLessThan(12);
+  expect(r.maxStep).toBeLessThan(0.071);
+  expect(r.slow).toBeLessThan(0.001);
+  expect(r.tail).toBeLessThan(0.001);
+  expect(r.resumed).toBe(true);
+  expect(r.cancelled).toBe(true);
+});
+
+test("FPV hold and swipe control translation and release cancels acceleration", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+    .click();
+  const canvas = page.locator("#stage canvas");
+  await expect(canvas).toBeVisible();
+  const r = await canvas.boundingBox(),
+    start = await canvas.getAttribute("data-camera-position");
+  await page.mouse.move(r.x + r.width * 0.5, r.y + r.height * 0.4);
+  await page.mouse.down();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "true");
+  await page.mouse.move(r.x + r.width * 0.7, r.y + r.height * 0.25, {
+    steps: 8,
+  });
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+    .toBeGreaterThan(0.7);
+  expect(await canvas.getAttribute("data-camera-position")).not.toBe(start);
+  await page.mouse.up();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "false");
+  await expect(canvas).toHaveAttribute("data-journey-throttle", "0.000");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+    .toBeLessThan(0.05);
+  await page.mouse.down();
+  await expect(canvas).toHaveAttribute("data-journey-touching", "true");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(canvas).toHaveAttribute("data-journey-touching", "false");
+  await page.mouse.up();
+});
+
+test.describe("mobile FPV gestures", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  test("right and upward swipes turn the camera in the same direction and cancellation releases thrust", async ({
+    page,
+    context,
+  }) => {
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: "Entrer dans l’atelier 360°" })
+      .tap();
+    const canvas = page.locator("#stage canvas");
+    await expect(canvas).toBeVisible();
+    const initial = await canvas.getAttribute("data-camera-orientation"),
+      r = await canvas.boundingBox(),
+      client = await context.newCDPSession(page);
+    const start = { x: r.x + r.width * 0.35, y: r.y + r.height * 0.45 };
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [start],
+    });
+    for (let i = 1; i <= 12; i++)
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: start.x + i * 9, y: start.y - i * 5 }],
+      });
+    await expect
+      .poll(async () =>
+        page.evaluate(async (initial) => {
+          const T = await import("/node_modules/.vite/deps/three.js"),
+            before = new T.Quaternion().fromArray(
+              initial.split(",").map(Number),
+            ),
+            after = new T.Quaternion().fromArray(
+              document
+                .querySelector("#stage canvas")
+                .dataset.cameraOrientation.split(",")
+                .map(Number),
+            );
+          const forward = new T.Vector3(0, 0, -1).applyQuaternion(after),
+            right = new T.Vector3(1, 0, 0).applyQuaternion(before),
+            up = new T.Vector3(0, 1, 0).applyQuaternion(before);
+          return Math.min(forward.dot(right), forward.dot(up));
+        }, initial),
+      )
+      .toBeGreaterThan(0.04);
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+      .toBeGreaterThan(0.5);
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+    await expect(canvas).toHaveAttribute("data-journey-touching", "false");
+    await expect(canvas).toHaveAttribute("data-journey-throttle", "0.000");
+    await expect
+      .poll(async () => Number(await canvas.getAttribute("data-journey-speed")))
+      .toBeLessThan(0.05);
+  });
 });

@@ -1,473 +1,307 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSoundNest } from "../engine/createSoundNest.js";
 import { useTwigBank } from "../sonoizo/useTwigBank.js";
 import musicCatalog from "virtual:echo-music";
 import { CHILL_UNIVERSE } from "./chillConfig.js";
+import { SENSORY_EMOJIS } from "./sensoryEmojiCatalog.js";
 import { ToolIcon } from "./ToolIcon.jsx";
-import { WORKSHOP_BRUSHES, DEFAULT_WORKSHOP_BRUSH } from "./workshopBrushes.js";
-import { createPaintingCanvas } from "./createPaintingCanvas.js";
 
 export default function WatercolorWorkshop() {
   const stage = useRef(null),
     engine = useRef(null),
-    paper = useRef(null),
-    generation = useRef(0);
-  const twigs = useTwigBank();
+    initialized = useRef(false),
+    generation = useRef(0),
+    soundWanted = useRef(true);
+  const twigs = useTwigBank({ poeticVoices: false });
   const [started, setStarted] = useState(false),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const [world, setWorld] = useState(false),
-    [worldBusy, setWorldBusy] = useState(false),
-    [count, setCount] = useState(0);
-  const [stickerMode, setStickerMode] = useState(false);
-  const [stickerSize, setStickerSize] = useState(64);
-  const [stickerOpacity, setStickerOpacity] = useState(0.9);
-  const [brush, setBrush] = useState(DEFAULT_WORKSHOP_BRUSH.id),
-    [color, setColor] = useState(DEFAULT_WORKSHOP_BRUSH.color),
-    [size, setSize] = useState(18),
-    [opacity, setOpacity] = useState(0.9);
-  const [gyro, setGyro] = useState(false),
+    [sculpt, setSculpt] = useState(false),
+    [brush, setBrush] = useState("water"),
+    [size, setSize] = useState(0.045),
+    [opacity, setOpacity] = useState(0.8),
+    [depth, setDepth] = useState(4.5),
+    [count, setCount] = useState(0),
     [moving, setMoving] = useState(false),
-    [dial, setDial] = useState(0),
-    [paused, setPaused] = useState(false),
-    [open, setOpen] = useState(true),
-    [audioOpen, setAudioOpen] = useState(false),
-    [vr, setVR] = useState(false);
+    [gyro, setGyro] = useState(false),
+    [sound, setSound] = useState(true),
+    [folded, setFolded] = useState(false),
+    [error, setError] = useState("");
   useEffect(() => {
-    document.title = "Senso360•° — Mon paysage sensoriel";
-    engine.current = createSoundNest(stage.current, { onError: setError });
+    document.title = "Ciel en résonance •° — Sculpture 360°";
+    engine.current = createSoundNest(stage.current, {
+      onError: setError,
+      onSpatialChange: (stats) => setCount(stats.strokes),
+    });
     engine.current.setPaperVisible(true);
-    paper.current = createPaintingCanvas(stage.current, setCount);
-    paper.current.setVisible(false);
-    let disposed = false;
-    navigator.xr
-      ?.isSessionSupported("immersive-vr")
-      .then((v) => {
-        if (!disposed) setVR(v);
-      })
-      .catch(() => {});
     return () => {
-      disposed = true;
       generation.current++;
-      paper.current?.dispose();
-      paper.current = null;
       engine.current?.dispose();
-      engine.current = null;
     };
   }, []);
-  useEffect(() => {
-    paper.current?.setConfig({
-      mode: stickerMode ? "sticker" : "paint",
-      emoji: WORKSHOP_BRUSHES.find((b) => b.id === brush).sensory.emoji,
-      brush,
-      color,
-      size: stickerMode ? stickerSize : size,
-      opacity: stickerMode ? stickerOpacity : opacity,
-    });
-  }, [brush, color, size, opacity, stickerMode, stickerSize, stickerOpacity]);
-  useEffect(() => {
-    paper.current?.setVisible(started && !world);
-    paper.current?.setEnabled(started && !paused && !world);
-    engine.current?.setPaperVisible(!started || !world);
-  }, [started, world, paused]);
-  async function start() {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    const ticket = ++generation.current;
+  useLayoutEffect(() => {
+    engine.current?.setPaperVisible(!started);
+    engine.current?.pauseChillSession(!started);
+    engine.current?.setSpatialSculptureTool(
+      started && sculpt ? { emojiId: brush, size, opacity, depth } : null,
+    );
+  }, [started, sculpt, brush, size, opacity, depth]);
+  async function playMusic(ticket) {
     try {
       const bank = twigs.bank.current;
       await bank.preparePlayback();
-      if (ticket !== generation.current) return;
+      if (!soundWanted.current || ticket !== generation.current) return;
+      if (!bank.getSnapshot().ambience.loaded) {
+        const track =
+          musicCatalog.find((t) => /(?:^|\/)gravity\.mp3$/i.test(t)) ??
+          musicCatalog[0];
+        if (track)
+          await bank.loadMoodAmbience(`${import.meta.env.BASE_URL}${track}`);
+      }
+      if (
+        ticket === generation.current &&
+        soundWanted.current &&
+        bank.getSnapshot().ambience.loaded &&
+        !bank.getSnapshot().ambience.playing
+      )
+        await bank.toggleAmbience();
+    } catch (e) {
+      if (ticket === generation.current) setError(e.message);
+    }
+  }
+  async function start() {
+    const ticket = ++generation.current;
+    setError("");
+    if (!initialized.current) {
       engine.current.setMood(
         {
           ...CHILL_UNIVERSE,
-          background: "#ffffff",
+          background: "#f7f4eb",
           workshop: true,
           resonanceBubbles: false,
           constellation: false,
         },
-        WORKSHOP_BRUSHES,
+        [],
       );
       engine.current.setPoeticFragments([]);
-      engine.current.setPadSource(bank);
-      engine.current.pauseChillSession(false);
-      paper.current.clear();
-      setWorld(false);
-      setMoving(false);
-      setGyro(false);
-      setDial(0);
-      setPaused(false);
-      const track =
-        musicCatalog.find((t) => /(?:^|\/)gravity\.mp3$/i.test(t)) ??
-        musicCatalog[0];
-      if (track) {
-        const loaded = await bank.loadMoodAmbience(
-          `${import.meta.env.BASE_URL}${track}`,
-        );
-        if (ticket !== generation.current) return;
-        if (loaded) await bank.toggleAmbience();
-      }
-      if (ticket === generation.current) setStarted(true);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      if (ticket === generation.current) setBusy(false);
+      engine.current.setPadSource(twigs.bank.current);
+      engine.current.startSpatialSculpture();
+      initialized.current = true;
     }
-  }
-  async function switchDimension() {
-    if (worldBusy) return;
-    setWorldBusy(true);
-    setError("");
-    const ticket = generation.current;
+    setStarted(true);
+    const permission = engine.current.requestContemplationGyroscope(true);
+    void playMusic(ticket);
     try {
-      engine.current.stopPanorama();
-      setMoving(false);
-      if (world) {
-        await engine.current.requestContemplationGyroscope(false);
-        setGyro(false);
-        setWorld(false);
-      } else {
-        // Request sensor access inside the trusted click, before yielding a frame.
-        const gyroRequest = engine.current.requestContemplationGyroscope(true);
-        const doc = paper.current.getDocument();
-        await new Promise((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(resolve)),
-        );
-        if (ticket !== generation.current) return;
-        engine.current.loadPaintingWorld(doc);
-        setDial(0);
-        setWorld(true);
-        setGyro(Boolean(await gyroRequest));
-      }
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      if (ticket === generation.current) setWorldBusy(false);
-    }
-  }
-  async function toggleGyro() {
-    try {
-      setGyro(
-        Boolean(await engine.current.requestContemplationGyroscope(!gyro)),
-      );
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-  function toggleTravel() {
-    if (moving) engine.current.stopPanorama();
-    else engine.current.travelPanorama();
-    setMoving(!moving);
-  }
-  async function togglePause() {
-    try {
-      if (paused) {
-        await twigs.bank.current.preparePlayback();
-        const a = twigs.bank.current.getSnapshot().ambience;
-        if (a.loaded && !a.playing) await twigs.bank.current.toggleAmbience();
-      } else twigs.bank.current.pauseAmbience();
-      engine.current.pauseChillSession(!paused);
-      setPaused(!paused);
+      const value = await permission;
+      if (ticket === generation.current) setGyro(Boolean(value));
     } catch (e) {
       setError(e.message);
     }
   }
   function exit() {
     generation.current++;
-    twigs.bank.current?.cancelAmbienceLoad();
-    twigs.bank.current?.pauseAmbience();
-    twigs.bank.current?.stopAll();
-    engine.current.pauseChillSession(true);
-    engine.current.setPadSource(null);
-    engine.current.reset();
+    twigs.bank.current.cancelAmbienceLoad();
+    twigs.bank.current.pauseAmbience();
+    engine.current.stopPanorama();
+    engine.current.setSpatialSculptureTool(null);
+    void engine.current.requestContemplationGyroscope(false);
+    setGyro(false);
+    setMoving(false);
+    setSculpt(false);
     setStarted(false);
-    setBusy(false);
-    setWorldBusy(false);
-    setWorld(false);
+  }
+  function travel() {
+    if (moving) engine.current.stopPanorama();
+    else engine.current.travelPanorama();
+    setMoving(!moving);
+  }
+  function toggleSound() {
+    const enable = !soundWanted.current;
+    soundWanted.current = enable;
+    setSound(enable);
+    if (!enable) twigs.bank.current.pauseAmbience();
+    else void playMusic(generation.current);
   }
   return (
     <main
-      className={`immersive chill-experience watercolor-workshop ${started ? "is-running" : ""}`}
-      style={{ "--journey-ink": "#334452" }}
+      className={`immersive chill-experience watercolor-workshop spatial-workshop ${started ? "is-running" : ""}`}
     >
       <div id="stage" ref={stage} />
       {!started && (
         <section className="chill-welcome">
-          <span className="chill-eyebrow">Dessiner · Explorer · Ressentir</span>
-          <h1>Senso360•°</h1>
-          <h2>Mon paysage sensoriel</h2>
+          <span className="chill-eyebrow">Voler · Sculpter · Résonner</span>
+          <h1>
+            Ciel en résonance
+            <br />
+            360•°
+          </h1>
+          <h2>Le voyage devient matière</h2>
           <p>
-            Une pression, un frisson, un souffle… Évoquez une situation, si vous
-            le souhaitez, et donnez forme à ce que vous ressentez. Chaque émoji
-            ouvre une matière : sa signification vous appartient.
+            Choisis une brosse émoji et active « Sculpter ». En naviguant, tu
+            déposes des vagues, des flammes, des filaments et des pigments
+            vivants dans l’espace.
           </p>
           <p>
-            Entrez ensuite dans votre paysage à 360°. La musique fait vibrer,
-            onduler et diffuser vos traces. Revenez au dessin à tout moment.
+            Glisse pour tourner. Maintiens pour accélérer. Relâche pour ralentir
+            ou laisse le voyage te porter. La musique anime ton paysage.
           </p>
-          <p className="sensory-note">
-            Une exploration artistique et éducative de la sensorialité, sans
-            analyse de vos choix ni interprétation psychologique automatique.
-          </p>
-          <button disabled={busy} onClick={start}>
-            {busy ? "Le papier s’éveille…" : "Ouvrir l’atelier"}
+          <button onClick={start}>
+            {initialized.current
+              ? "Reprendre mon atelier"
+              : "Entrer dans l’atelier 360°"}
           </button>
         </section>
       )}
       {started && (
-        <nav
-          className={`pictorial-tools ${open ? "is-open" : "is-folded"}`}
-          aria-label="Outils de peinture"
-        >
-          {open && (
-            <div id="pictorial-tool-panel">
-              <div className="dimension-switch">
-                <button
-                  onClick={switchDimension}
-                  disabled={worldBusy || (!world && !count)}
-                  aria-label={
-                    world
-                      ? "Revenir au tableau 2D"
-                      : "Entrer dans le tableau 3D"
-                  }
-                >
-                  {worldBusy
-                    ? "Ouverture…"
-                    : world
-                      ? "← Tableau 2D"
-                      : "Explorer en 3D →"}
-                </button>
-              </div>
-              {!world && (
-                <>
-                  <div
-                    className="paper-mode"
-                    role="group"
-                    aria-label="Mode de création"
-                  >
-                    <button
-                      aria-pressed={!stickerMode}
-                      onClick={() => setStickerMode(false)}
-                    >
-                      Peindre
-                    </button>
-                    <button
-                      aria-pressed={stickerMode}
-                      onClick={() => setStickerMode(true)}
-                    >
-                      Stickers
-                    </button>
-                  </div>
-                  <section
-                    className="landscape-palette symbolic-palette"
-                    aria-label="Matières symboliques"
-                  >
-                    <div role="group" aria-label="Choisir une brosse">
-                      {WORKSHOP_BRUSHES.map((b) => (
-                        <button
-                          key={b.id}
-                          aria-label={b.name}
-                          title={`${b.sensory.emoji} ${b.name} · ${b.sensory.quality}`}
-                          aria-pressed={brush === b.id}
-                          disabled={paused}
-                          style={{ "--brush-color": b.color }}
-                          onClick={() => {
-                            setBrush(b.id);
-                            setColor(b.color);
-                          }}
-                        >
-                          <span className="sensory-emoji" aria-hidden="true">
-                            {b.sensory.emoji}
-                          </span>
-                          <span className="brush-name">{b.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="sensory-hint" aria-live="polite">
-                      {
-                        WORKSHOP_BRUSHES.find((b) => b.id === brush)?.sensory
-                          .quality
-                      }{" "}
-                      · à votre façon
-                    </p>
-                  </section>
-                  <details
-                    key={stickerMode ? "sticker" : "paint"}
-                    className="paper-adjustments"
-                    open={stickerMode || undefined}
-                  >
-                    <summary aria-label="Réglages de la brosse">
-                      Réglages
-                    </summary>
-                    <div className="paper-settings">
-                      {!stickerMode && (
-                        <label>
-                          Couleur
-                          <input
-                            type="color"
-                            aria-label="Couleur de la brosse"
-                            value={color}
-                            onChange={(e) => setColor(e.target.value)}
-                          />
-                        </label>
-                      )}
-                      <label>
-                        Taille
-                        <input
-                          type="range"
-                          aria-label={
-                            stickerMode
-                              ? "Taille du sticker"
-                              : "Taille de la brosse"
-                          }
-                          min="2"
-                          max={stickerMode ? "160" : "80"}
-                          value={stickerMode ? stickerSize : size}
-                          onChange={(e) =>
-                            (stickerMode ? setStickerSize : setSize)(
-                              Number(e.target.value),
-                            )
-                          }
-                        />
-                      </label>
-                      <label>
-                        Opacité
-                        <input
-                          type="range"
-                          aria-label={
-                            stickerMode
-                              ? "Opacité du sticker"
-                              : "Opacité de la brosse"
-                          }
-                          min=".1"
-                          max="1"
-                          step=".05"
-                          value={stickerMode ? stickerOpacity : opacity}
-                          onChange={(e) =>
-                            (stickerMode ? setStickerOpacity : setOpacity)(
-                              Number(e.target.value),
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-                  </details>
-                </>
-              )}
-              {world && (
-                <label className="sculpture-depth">
-                  Panorama
-                  <input
-                    aria-label="Molette panorama"
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={dial}
-                    onChange={(e) => {
-                      setDial(Number(e.target.value));
-                      engine.current.setPanoramaDial(e.target.value);
-                    }}
-                  />
-                  <output>{dial}°</output>
-                </label>
-              )}
-              <div className="pictorial-commands">
-                {!world && (
-                  <button
-                    aria-label="Annuler le dernier trait"
-                    title="Annuler le dernier trait"
-                    disabled={!count || paused}
-                    onClick={() => paper.current.undo()}
-                  >
-                    <ToolIcon name="undo" />
-                  </button>
-                )}
-
-                {world && (
-                  <>
-                    <button
-                      disabled={paused}
-                      onClick={toggleTravel}
-                      aria-label={
-                        moving
-                          ? "Pause du voyage"
-                          : "Voyager dans la direction du regard"
-                      }
-                      title={moving ? "Pause du voyage" : "Voyager"}
-                    >
-                      <ToolIcon name={moving ? "pause" : "play"} />
-                    </button>
-                    <button
-                      onClick={toggleGyro}
-                      aria-label={
-                        gyro
-                          ? "Désactiver le gyroscope"
-                          : "Activer le gyroscope"
-                      }
-                      aria-pressed={gyro}
-                    >
-                      <ToolIcon name="view" />
-                    </button>
-                    {vr && (
-                      <button
-                        aria-label="Entrer en VR"
-                        title="Entrer en VR"
-                        onClick={() =>
-                          engine.current
-                            .enterVR()
-                            .catch((e) => setError(e.message))
-                        }
-                      >
-                        <ToolIcon name="vr" />
-                      </button>
-                    )}
-                  </>
-                )}
-                <button
-                  onClick={togglePause}
-                  aria-label={paused ? "Reprendre" : "Faire une pause"}
-                >
-                  <ToolIcon name={paused ? "play" : "pause"} />
-                </button>
-                <button
-                  onClick={() => setAudioOpen(!audioOpen)}
-                  aria-label="Réglage du son"
-                  aria-expanded={audioOpen}
-                >
-                  <ToolIcon name="sound" />
-                </button>
-                <button onClick={exit} aria-label="Sortir">
-                  <ToolIcon name="exit" />
-                </button>
-              </div>
-              {audioOpen && (
-                <div id="pictorial-volume">
-                  <input
-                    aria-label="Volume musical"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step=".01"
-                    value={twigs.snapshot.ambience?.volume ?? 0.45}
-                    onChange={(e) =>
-                      twigs.bank.current.setAmbienceVolume(e.target.value)
-                    }
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          <button
-            className="tools-toggle"
-            aria-label={open ? "Replier les outils" : "Déplier les outils"}
-            aria-expanded={open}
-            aria-controls="pictorial-tool-panel"
-            onClick={() => setOpen(!open)}
+        <>
+          <p className="fpv-gesture-hint">
+            {sculpt
+              ? "La brosse suit ton vol · glisser pour tourner"
+              : "Maintenir pour accélérer · activer Sculpter pour peindre"}
+          </p>
+          <section
+            className="spatial-workshop-tools"
+            aria-label="Atelier de sculpture 360°"
           >
-            <ToolIcon name={open ? "fold" : "expand"} />
-          </button>
-        </nav>
+            {!folded && (
+              <>
+                <div
+                  className="spatial-brushes"
+                  role="group"
+                  aria-label="Brosses émojis"
+                >
+                  {SENSORY_EMOJIS.map((e) => (
+                    <button
+                      key={e.id}
+                      aria-label={e.name}
+                      title={e.name}
+                      aria-pressed={brush === e.id}
+                      onClick={() => setBrush(e.id)}
+                    >
+                      {e.emoji}
+                    </button>
+                  ))}
+                </div>
+                <details className="spatial-settings">
+                  <summary>Réglages de la matière</summary>
+                  <div>
+                    <label>
+                      Taille
+                      <input
+                        type="range"
+                        aria-label="Taille de la brosse"
+                        min=".015"
+                        max=".09"
+                        step=".005"
+                        value={size}
+                        onChange={(e) => setSize(Number(e.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Opacité
+                      <input
+                        type="range"
+                        aria-label="Opacité de la brosse"
+                        min=".15"
+                        max="1"
+                        step=".05"
+                        value={opacity}
+                        onChange={(e) => setOpacity(Number(e.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Distance
+                      <input
+                        type="range"
+                        aria-label="Distance de dépôt"
+                        min="2"
+                        max="9"
+                        step=".5"
+                        value={depth}
+                        onChange={(e) => setDepth(Number(e.target.value))}
+                      />
+                    </label>
+                  </div>
+                </details>
+              </>
+            )}
+            <nav aria-label="Sculpter et naviguer">
+              <button
+                className="sculpt-switch"
+                aria-label="Sculpter"
+                aria-pressed={sculpt}
+                onClick={() => setSculpt(!sculpt)}
+              >
+                <ToolIcon name="wave" />
+                <span>Sculpter</span>
+              </button>
+              <button
+                aria-label={moving ? "Suspendre le voyage" : "Voyager"}
+                aria-pressed={moving}
+                onClick={travel}
+              >
+                <ToolIcon name={moving ? "pause" : "play"} />
+              </button>
+              <button
+                aria-label="Annuler le dernier tracé"
+                disabled={!count && !sculpt}
+                onClick={() => engine.current.undoSpatialStroke()}
+              >
+                <ToolIcon name="undo" />
+              </button>
+              <button
+                aria-label={sound ? "Couper la musique" : "Écouter la musique"}
+                aria-pressed={sound}
+                onClick={toggleSound}
+              >
+                <ToolIcon name="sound" />
+              </button>
+              <button
+                aria-label={
+                  gyro ? "Désactiver le gyroscope" : "Activer le gyroscope"
+                }
+                aria-pressed={gyro}
+                onClick={async () => {
+                  try {
+                    setGyro(
+                      Boolean(
+                        await engine.current.requestContemplationGyroscope(
+                          !gyro,
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    setError(e.message);
+                  }
+                }}
+              >
+                <ToolIcon name="view" />
+              </button>
+              <button
+                aria-label={folded ? "Déplier les outils" : "Plier les outils"}
+                aria-expanded={!folded}
+                onClick={() => setFolded(!folded)}
+              >
+                <ToolIcon name={folded ? "expand" : "fold"} />
+              </button>
+            </nav>
+            {!folded && (
+              <div className="spatial-secondary">
+                <button
+                  disabled={!count && !sculpt}
+                  onClick={() => engine.current.clearSpatialSculpture()}
+                >
+                  Effacer l’œuvre
+                </button>
+                <button onClick={exit}>Accueil</button>
+              </div>
+            )}
+            {count >= 80 && (
+              <p role="status">
+                L’atelier est rempli : annule un tracé ou efface l’œuvre pour
+                poursuivre.
+              </p>
+            )}
+          </section>
+        </>
       )}
       {(error || twigs.error) && (
         <p className="ambience-error" role="status">

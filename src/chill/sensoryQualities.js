@@ -1,5 +1,21 @@
 /** Artistic invitations, never an assessment or a prescribed bodily meaning. */
 export const SENSORY_QUALITIES = {
+  corolles: {
+    quality: "Éclosion, ouverture",
+    band: 3,
+    smoothing: 1.6,
+    pulse: 0.3,
+    moisture: 0.8,
+    tempo: 0.45,
+  },
+  racines: {
+    quality: "Tension, ramifications",
+    band: 2,
+    smoothing: 2.5,
+    pulse: 0.4,
+    moisture: 0.3,
+    tempo: 0.5,
+  },
   calligraphie: {
     emoji: "🧵",
     quality: "Tension, lien, étirement",

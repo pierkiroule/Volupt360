@@ -2737,3 +2737,774 @@ label:focus-visible {
     11px/1.2 system-ui,
     sans-serif;
 }
+
+/* Mineral ink, breathing paper and a restrained instrument tray. */
+.watercolor-workshop {
+  --journey-ink: #495550;
+}
+.watercolor-workshop .material-glyph {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+}
+.chill-experience.watercolor-workshop .pictorial-tools {
+  background: #f9f7f0ed;
+  border: 1px solid #74796d26;
+  box-shadow: 0 8px 32px #35443d0e;
+  border-radius: 18px;
+}
+.chill-experience.watercolor-workshop .symbolic-palette button {
+  color: var(--brush-color);
+  border-radius: 10px;
+}
+.chill-experience.watercolor-workshop
+  .pictorial-tools
+  button[aria-pressed="true"] {
+  background: #75847714;
+  box-shadow: inset 0 0 0 1px #74816c44;
+}
+.watercolor-workshop .chill-welcome::before {
+  background: #9eafa0;
+  opacity: 0.2;
+}
+.watercolor-workshop .chill-welcome::after {
+  background: #bfa699;
+  opacity: 0.2;
+}
+.watercolor-workshop .chill-welcome h1 {
+  letter-spacing: -0.05em;
+  color: #43534e;
+}
+.watercolor-workshop .chill-welcome h2 {
+  color: #6d7f75;
+}
+.chill-experience.watercolor-workshop .paper-mode button {
+  width: auto;
+  min-width: 76px;
+  flex: 0 0 auto;
+  height: 32px;
+  min-height: 32px;
+}
+.chill-experience.watercolor-workshop .pictorial-tools .tools-toggle {
+  min-height: 30px;
+  height: 30px;
+}
+.watercolor-workshop .chill-welcome::before,
+.watercolor-workshop .chill-welcome::after {
+  mask-image: radial-gradient(ellipse, #000 12%, #0009 35%, transparent 68%);
+  -webkit-mask-image: radial-gradient(
+    ellipse,
+    #000 12%,
+    #0009 35%,
+    transparent 68%
+  );
+}
+.watercolor-workshop .chill-welcome h1 {
+  font-size: clamp(2rem, 9vw, 3.5rem);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.sky-disc-workshop #stage {
+  background: #e9e7df;
+}
+.sky-disc-workshop #stage canvas.painting-paper {
+  width: min(calc(100vw - 24px), calc(100dvh - 190px));
+  height: min(calc(100vw - 24px), calc(100dvh - 190px));
+  min-width: 160px;
+  min-height: 160px;
+  inset: auto;
+  left: 50%;
+  top: calc((100dvh - 190px) / 2 + 6px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #faf7ee;
+  box-shadow:
+    0 12px 60px #4c554511,
+    inset 0 0 0 1px #e0ddcf;
+}
+.sky-disc-tools,
+.sky-world-tools {
+  position: fixed;
+  z-index: 20;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(350px, calc(100vw - 24px));
+  background: #faf8f0ed;
+  border: 1px solid #a6ae9c44;
+  border-radius: 22px;
+  padding: 8px;
+  box-sizing: border-box;
+  color: #4d5d53;
+}
+.sky-brushes {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+.sky-disc-tools button,
+.sky-world-tools button {
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+.sky-brushes button {
+  display: grid;
+  place-items: center;
+  color: var(--brush-color);
+}
+.sky-brushes button[aria-pressed="true"] {
+  background: #84977f1c;
+  border-color: var(--brush-color);
+}
+.sky-selected {
+  font:
+    10px/1.3 system-ui,
+    sans-serif;
+  text-align: center;
+  margin: 2px 0 4px;
+}
+.sky-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.sky-actions button:first-child {
+  width: 44px;
+  display: grid;
+  place-items: center;
+}
+.sky-actions .sky-validate {
+  flex: 1;
+  background: #536f63;
+  color: #faf8ee;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+  border-radius: 25px;
+}
+.sky-disc-tools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.sky-world-tools {
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sky-world-tools button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font:
+    12px/1.3 system-ui,
+    sans-serif;
+}
+.sky-world-tools button[aria-pressed="true"] {
+  background: #84977f20;
+}
+@media (max-height: 520px) {
+  .sky-disc-workshop #stage canvas.painting-paper {
+    top: 42%;
+  }
+  .sky-disc-tools {
+    width: min(310px, 45vw);
+    left: auto;
+    right: 10px;
+    transform: none;
+  }
+  .sky-disc-workshop #stage canvas.painting-paper {
+    left: 27%;
+  }
+}
+.sensory-editor {
+  --sensory-disc-size: max(
+    160px,
+    min(calc(100vw - 112px), calc(100dvh - 360px), 500px)
+  );
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  touch-action: none;
+  user-select: none;
+}
+.sensory-editor[hidden] {
+  display: none;
+}
+.sensory-orbit {
+  position: absolute;
+  width: var(--sensory-disc-size);
+  height: var(--sensory-disc-size);
+  top: calc((100dvh - 40px) / 2);
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.sensory-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #faf7ee;
+  box-shadow:
+    0 10px 60px #44574412,
+    inset 0 0 0 1px #d7d9cc;
+  outline-offset: 5px;
+}
+.sensory-disc-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.sensory-disc-links line {
+  stroke-width: 0.45;
+  opacity: 0.55;
+  stroke-linecap: round;
+}
+.sensory-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+  font-family:
+    "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+.sensory-node[aria-pressed="true"] {
+  border-color: #819a8a80;
+  box-shadow: 0 0 0 3px #9ba79813;
+}
+.sensory-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sensory-ring button {
+  position: absolute;
+  left: calc(50% + var(--orbit-x) * (var(--sensory-disc-size) / 2 + 30px));
+  top: calc(50% + var(--orbit-y) * (var(--sensory-disc-size) / 2 + 30px));
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: #faf8f066;
+  font-size: 26px;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+.sensory-ring button[aria-pressed="true"] {
+  border-color: #819a8a80;
+  background: #f9f7ef;
+}
+.sensory-drag-ghost {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.sensory-instruction {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 20px;
+  right: 20px;
+  max-width: 550px;
+  margin: auto;
+  color: #52665b;
+  font:
+    13px/1.5 system-ui,
+    sans-serif;
+  text-align: center;
+  z-index: 15;
+}
+.sensory-instruction summary {
+  cursor: pointer;
+}
+.sensory-instruction span {
+  font-style: italic;
+}
+.sensory-instruction label,
+.welcome-instruction label {
+  display: block;
+  padding: 10px;
+  border-radius: 14px;
+  background: #faf8ef;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+}
+.sensory-instruction textarea,
+.welcome-instruction textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 60px;
+  margin-top: 8px;
+  border: 1px solid #bac6b7;
+  border-radius: 10px;
+  padding: 8px;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+  color: #42584b;
+  background: #fffdf7;
+  user-select: text;
+  touch-action: auto;
+}
+.welcome-instruction {
+  max-width: 350px;
+  width: 100%;
+  font:
+    12px/1.5 system-ui,
+    sans-serif;
+}
+.welcome-instruction summary {
+  cursor: pointer;
+}
+.sensory-compose-tools {
+  position: absolute;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(370px, calc(100vw - 24px));
+  padding: 10px;
+  border-radius: 22px;
+  box-sizing: border-box;
+  background: #faf8f0ed;
+  border: 1px solid #a6ae9c44;
+  color: #4d5d53;
+}
+.sensory-compose-tools p {
+  font:
+    10px/1.5 system-ui,
+    sans-serif;
+  text-align: center;
+  margin: 0 0 5px;
+}
+.sensory-settings {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sensory-settings label {
+  flex: 1;
+  min-width: 0;
+  font:
+    10px/1.3 system-ui,
+    sans-serif;
+}
+.sensory-settings input {
+  display: block;
+  width: 100%;
+  accent-color: #6f8e79;
+}
+.sensory-settings button {
+  flex: 0 0 36px;
+  width: 36px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: #52685a;
+  padding: 4px;
+  font-size: 24px;
+}
+.sensory-reveal {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  background: #536f63;
+  color: #faf8ee;
+  border: 0;
+  border-radius: 24px;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+}
+.sensory-compose-tools button:disabled {
+  opacity: 0.35;
+}
+@media (max-height: 520px) {
+  .sensory-orbit {
+    left: 29%;
+    top: 54%;
+  }
+  .sensory-compose-tools {
+    left: auto;
+    right: 12px;
+    transform: none;
+    width: 220px;
+    bottom: 20px;
+  }
+  .sensory-instruction {
+    left: 10px;
+    right: 10px;
+    font-size: 11px;
+  }
+}
+
+/* Emoji painting: one drawing, one quiet mobile-first workspace. */
+.emoji-painter {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  background: #f4f0e7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 16px max(18px, env(safe-area-inset-bottom));
+  overflow: auto;
+  color: #384b49;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, #dbe7df70, transparent 65%),
+    radial-gradient(ellipse at 80% 80%, #e2d6c350, transparent 60%);
+}
+.emoji-painter[hidden] {
+  display: none;
+}
+.emoji-painter header {
+  text-align: center;
+  max-width: 480px;
+}
+.emoji-painter h1 {
+  font-family: Caveat, cursive;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 500;
+  margin: 5px 0;
+}
+.emoji-painter header p {
+  font:
+    13px/1.5 system-ui,
+    sans-serif;
+  margin: 4px 0;
+  color: #61716a;
+}
+.emoji-paper {
+  position: relative;
+  flex-shrink: 0;
+  width: min(55vh, 86vw, 510px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow:
+    0 12px 60px #6c6e5f12,
+    0 0 0 1px #8d988526;
+  background: #faf7ef;
+}
+.emoji-paper {
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+}
+.emoji-paper svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.emoji-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  font:
+    24px/1.3 Caveat,
+    cursive;
+  color: #78887c;
+  pointer-events: none;
+}
+.emoji-controls {
+  width: min(420px, 100%);
+  text-align: center;
+}
+.emoji-palette {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.emoji-palette button {
+  font-size: 25px;
+  line-height: 1;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: #ffffff66;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.emoji-palette button[aria-pressed="true"] {
+  background: #dce7df;
+  border-color: #7e9d8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px #637d641a;
+}
+.emoji-palette button:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.emoji-palette button:focus-visible,
+.emoji-actions button:focus-visible {
+  outline: 2px solid #4c7463;
+  outline-offset: 3px;
+}
+.emoji-selection {
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+  color: #758176;
+  min-height: 24px;
+  margin: 8px 0;
+}
+.emoji-selection span {
+  font-size: 20px;
+  margin-left: 10px;
+}
+.emoji-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.emoji-actions button {
+  min-height: 44px;
+  border: 1px solid #8c9c8840;
+  border-radius: 24px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #526a5c;
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.emoji-actions .emoji-reveal {
+  background: #486958;
+  color: #fff;
+  border: 0;
+}
+.emoji-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+@media (max-height: 650px) {
+  .emoji-painter {
+    gap: 7px;
+    justify-content: flex-start;
+  }
+  .emoji-paper {
+    width: min(46vh, 70vw);
+  }
+  .emoji-painter .chill-eyebrow {
+    display: none;
+  }
+  .emoji-painter h1 {
+    font-size: 26px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .emoji-palette button {
+    transition: none;
+  }
+}
+
+.emoji-settings {
+  display: flex;
+  gap: 18px;
+  margin: 10px 0;
+  font:
+    12px system-ui,
+    sans-serif;
+  color: #526a5c;
+}
+.emoji-settings label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.emoji-settings input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #486958;
+}
+.emoji-controls > p {
+  font:
+    12px system-ui,
+    sans-serif;
+}
+.emoji-painter button,
+.emoji-painter input {
+  touch-action: manipulation;
+}
+.emoji-live-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.fpv-gesture-hint {
+  position: fixed;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 90vw;
+  text-align: center;
+  pointer-events: none;
+  font:
+    11px/1.4 system-ui,
+    sans-serif;
+  color: #4b625b;
+  opacity: 0.65;
+  background: #faf7efaa;
+  border-radius: 15px;
+  padding: 5px 10px;
+  animation: fpv-hint-fade 9s forwards;
+}
+@keyframes fpv-hint-fade {
+  0%,
+  65% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.spatial-workshop-tools {
+  position: fixed;
+  z-index: 12;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(390px, calc(100vw - 20px));
+  padding: 10px;
+  border: 1px solid #71857526;
+  border-radius: 24px;
+  background: #faf7efdf;
+  backdrop-filter: blur(12px);
+  color: #40594d;
+  box-shadow: 0 4px 30px #344e3d12;
+}
+.spatial-brushes {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.spatial-workshop-tools button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: inherit;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.spatial-brushes button {
+  font-size: 25px;
+}
+.spatial-workshop-tools button[aria-pressed="true"] {
+  background: #d7e6dc;
+  box-shadow: inset 0 0 0 1px #718f7e55;
+}
+.spatial-workshop-tools button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.spatial-workshop-tools nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.spatial-workshop-tools nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+.spatial-workshop-tools .sculpt-switch {
+  padding: 0 10px;
+  gap: 5px;
+  font:
+    12px system-ui,
+    sans-serif;
+}
+.spatial-workshop-tools .sculpt-switch[aria-pressed="true"] {
+  background: #486958;
+  color: white;
+}
+.spatial-settings {
+  font:
+    11px/1.6 system-ui,
+    sans-serif;
+  padding: 2px 8px 6px;
+}
+.spatial-settings summary {
+  cursor: pointer;
+  text-align: center;
+  opacity: 0.7;
+}
+.spatial-settings > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 12px;
+  padding: 7px 0;
+}
+.spatial-settings label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.spatial-settings input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #486958;
+}
+.spatial-secondary {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px;
+}
+.spatial-secondary button {
+  font:
+    10px system-ui,
+    sans-serif;
+  min-height: 28px;
+  opacity: 0.65;
+}
+.spatial-workshop-tools > p {
+  font:
+    11px system-ui,
+    sans-serif;
+  text-align: center;
+}
+.spatial-workshop .fpv-gesture-hint {
+  top: 20px;
+  bottom: auto;
+}
+.spatial-workshop-tools button:focus-visible {
+  outline: 2px solid #486958;
+  outline-offset: 2px;
+}
