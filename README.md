@@ -24,8 +24,18 @@ https://www.americanscientist.org/article/the-nature-of-emotions
   basse douce, motifs mélodiques transformés et pulsations feutrées. Les notes
   sont anticipées sur l’horloge audio (250 ms), pas déclenchées par les frames.
   La réverbération procédurale, l’écho filtré, la stéréo et la compression sont
-  conservés. Plafond de 48 oscillateurs, enveloppes douces et nettoyage à la fin
+  conservés. Plafond de 40 sources simultanées, enveloppes douces et nettoyage à la fin
   de chaque note ; aucun sample externe.
+- Les timbres sont produits par `src/audio/organicInstruments.ts` : clavier feutré
+  à partiels amortis et légèrement inharmoniques, cordes pincées à retard fractionnaire,
+  basse amortie et balais de bruit filtré. Une banque LRU conserve au plus 24 buffers
+  mono à 22,05 kHz ; aucun enregistrement externe. Les nappes utilisent une onde
+  additive douce, légèrement dédoublée, au lieu d’un triangle fixe.
+- Les accords sont tenus sur deux mesures, avec attaques décalées. Les mélodies
+  suivent des intervalles voisins, changent d’articulation et laissent des silences.
+  La réverbération dispose d’un pré-délai et d’un filtrage des graves pour préserver
+  la lisibilité du mixage. Le rendu demeure une synthèse procédurale, pas un enregistrement
+  d’instruments acoustiques ; sa qualité perceptive reste à écouter sur matériel réel.
 - `src/audio/generativeScore.ts` sépare les règles de composition du graphe audio.
   Les émotions modulent la densité, le filtrage et l’espace sonore, suivant
   des correspondances artistiques.

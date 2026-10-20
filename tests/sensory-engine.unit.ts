@@ -200,3 +200,57 @@ test("gyro conversion stays normalized across portrait and landscape orientation
   assert.ok(first.angleTo(turned) > 0.5);
   assert.ok(first.angleTo(landscape) > 1);
 });
+
+test("organic instruments are reproducible, bounded, click-free and naturally decay", async () => {
+  const { synthesizeOrganic } =
+    await import("../src/audio/organicInstruments.ts");
+  for (const timbre of ["felt", "string", "bass", "brush"] as const) {
+    const data = synthesizeOrganic(timbre, 57, 730),
+      again = synthesizeOrganic(timbre, 57, 730);
+    assert.deepEqual(data, again);
+    assert.ok(data.every(Number.isFinite));
+    assert.ok(Math.max(...data.subarray(0, 20000).map(Math.abs)) <= 0.821);
+    assert.ok(Math.abs(data[0]) < 0.001);
+    assert.ok(Math.abs(data[data.length - 1]) < 0.001);
+    const rms = (start: number, end: number) => {
+      let sum = 0;
+      for (let i = start; i < end; i++) sum += data[i] ** 2;
+      return Math.sqrt(sum / (end - start));
+    };
+    assert.ok(
+      rms(0, Math.floor(data.length * 0.35)) >
+        rms(Math.floor(data.length * 0.8), data.length) * 2,
+    );
+  }
+});
+test("procedural string keeps its intended pitch instead of becoming a detuned oscillator", async () => {
+  const { synthesizeOrganic } =
+    await import("../src/audio/organicInstruments.ts");
+  const sampleRate = 22050,
+    data = synthesizeOrganic("string", 57, 730),
+    expected = sampleRate / 220;
+  let bestLag = 0,
+    best = -Infinity;
+  const corr = (lag: number) => {
+    let result = 0;
+    for (let i = 2205; i < 6615; i++) result += data[i] * data[i + lag];
+    return result;
+  };
+  for (
+    let lag = Math.floor(expected) - 4;
+    lag <= Math.ceil(expected) + 4;
+    lag++
+  ) {
+    const value = corr(lag);
+    if (value > best) {
+      best = value;
+      bestLag = lag;
+    }
+  }
+  const left = corr(bestLag - 1),
+    right = corr(bestLag + 1),
+    fraction = (0.5 * (left - right)) / (left - 2 * best + right),
+    frequency = sampleRate / (bestLag + fraction),
+    cents = 1200 * Math.log2(frequency / 220);
+  assert.ok(Math.abs(cents) < 20, `string tuning: ${cents.toFixed(1)} cents`);
+});

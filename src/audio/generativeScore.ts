@@ -5,11 +5,14 @@ export type MusicalEvent = {
   duration: number;
   gain: number;
   pan: number;
+  offset?: number;
+  timbre?: "felt" | "string";
 };
 /** Slow four-bar harmony and transformed two-bar phrases, one reproducible musical clock. */
 export class GenerativeScore {
   private random: () => number;
   private step = 0;
+  private lastMelody = 66;
   private motif = [0, 2, 1, 4, 2, 1, 3, 0];
   readonly beat: number;
   constructor(seed: number) {
@@ -21,7 +24,7 @@ export class GenerativeScore {
       bar = Math.floor(step / 4),
       beat = step % 4,
       section = Math.floor(bar / 8),
-      chordIndex = [0, 2, 1, 3, 0, 1, 2, 3][bar % 8];
+      chordIndex = [0, 2, 1, 3, 0, 1, 2, 3][Math.floor(bar / 2) % 8];
     // Dmaj9, Bm9, Gmaj9, Asus2: shared tones keep the changing landscape coherent.
     const chords = [
         [50, 57, 61, 66, 69],
@@ -32,42 +35,57 @@ export class GenerativeScore {
       chord = chords[chordIndex],
       notes: MusicalEvent[] = [];
     if (beat === 0) {
-      notes.push(
-        ...chord.slice(1).map((midi, i) => ({
-          kind: "pad" as const,
-          midi,
-          duration: this.beat * 5.5,
-          gain: 0.024,
-          pan: (i - 1.5) * 0.26,
-        })),
-      );
+      if (bar % 2 === 0)
+        notes.push(
+          ...chord.slice(1).map((midi, i) => ({
+            kind: "pad" as const,
+            midi,
+            duration: this.beat * 8.2,
+            gain: 0.045,
+            pan: (i - 1.5) * 0.26,
+            offset: i * 0.035,
+          })),
+        );
       notes.push({
         kind: "bass",
         midi: chord[0] - 12,
         duration: this.beat * 3.7,
-        gain: 0.11,
+        gain: 0.12,
         pan: 0,
       });
     }
-    if (step % 2 === 0 && this.random() > 0.16 - energy * 0.1) {
+    if (
+      step % 2 === 0 &&
+      bar % 8 !== 7 &&
+      this.random() > 0.2 - energy * 0.12
+    ) {
       const index =
         (this.motif[Math.floor(step / 2) % 8] + section) % chord.length;
       let midi = chord[index] + 12;
       if (midi > 76) midi -= 12;
+      while (midi - this.lastMelody > 7) midi -= 12;
+      while (this.lastMelody - midi > 7) midi += 12;
+      midi = Math.max(50, Math.min(76, midi));
+      this.lastMelody = midi;
       notes.push({
         kind: "melody",
         midi,
         duration: this.beat * (2.2 + this.random()),
-        gain: 0.055 + this.random() * 0.02,
-        pan: (this.random() - 0.5) * 0.85,
+        gain: 0.085 + this.random() * 0.025,
+        pan: (this.random() - 0.5) * 0.65,
+        offset: 0.015 + this.random() * 0.027,
+        timbre: section % 3 === 2 ? "string" : "felt",
       });
     }
-    if (beat === 0 || (beat === 2 && this.random() < 0.35 + energy * 0.3))
+    if (
+      bar % 4 !== 3 &&
+      (beat === 0 || (beat === 2 && this.random() < 0.25 + energy * 0.3))
+    )
       notes.push({
         kind: "pulse",
         midi: 38,
         duration: 0.4,
-        gain: 0.065,
+        gain: 0.035,
         pan: 0,
       });
     if (step % 32 === 31) {
