@@ -145,6 +145,9 @@ export function TwinPaper({
         min: Math.min(...points.map((p) => p.x)),
         max: Math.max(...points.map((p) => p.x)),
         maps: pigments.get(path.emojiId),
+        patterns: pigments
+          .get(path.emojiId)
+          .map((map) => ctx.createPattern(map, "repeat")),
       };
       prepared.set(path, value);
       return value;
@@ -189,10 +192,9 @@ export function TwinPaper({
           ctx.globalAlpha = path.opacity * 0.7;
           const inflate = (p) =>
             1 +
-            e *
-              (0.12 +
-                (0.5 +
-                  0.5 * Math.sin(p.x * 12 + p.y * 7 - time * 0.48 + phase)) *
+            (0.025 + e * 0.19) *
+              (Math.sin(p.x * 12 + p.y * 7 - time * 0.36 + phase) * 0.65 +
+                Math.sin(p.x * 27 - p.y * 13 + time * 0.21 + phase * 1.7) *
                   0.35);
           ctx.beginPath();
           for (let i = 0; i < points.length; i += stride) {
@@ -208,6 +210,24 @@ export function TwinPaper({
           }
           ctx.closePath();
           ctx.fill();
+          if (path.primary) {
+            // Texture is confined to the connected wash, never a row of round stamps.
+            ctx.save();
+            ctx.clip();
+            const scale = Math.max(0.09, path.width * 5) / 256;
+            for (let plate = 0; plate < 2; plate++) {
+              const pattern = data.patterns[plate];
+              pattern.setTransform(
+                new DOMMatrix()
+                  .translate(copy + phase * 0.037, phase * 0.019)
+                  .scale(scale * (plate ? 0.63 : 1)),
+              );
+              ctx.fillStyle = pattern;
+              ctx.globalAlpha = path.opacity * (plate ? 0.72 : 0.85);
+              ctx.fillRect(-0.5, -0.5, 1, 1);
+            }
+            ctx.restore();
+          }
           // Fine, slightly imperfect ink remains crisp among the transparent washes.
           if (path.width < 0.004) {
             ctx.globalAlpha = path.opacity;
@@ -253,6 +273,9 @@ export function TwinPaper({
         const p = pointToPaper(dot, dot.frame),
           e = bands[dot.band] || 0;
         ctx.fillStyle = dot.color;
+        ctx.globalAlpha =
+          (dot.opacity ?? 0.5) *
+          (0.8 + 0.2 * Math.sin(time * 0.28 + dot.phase));
         ctx.beginPath();
         ctx.ellipse(
           p.x,

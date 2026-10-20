@@ -12,11 +12,11 @@ export function createBrushPigments() {
         const canvas = createPigmentPlate(
           kind,
           8341 + id.length * 137 + index * 953,
-          128,
+          256,
           false,
         );
         const ctx = canvas.getContext("2d"),
-          image = ctx.getImageData(0, 0, 128, 128),
+          image = ctx.getImageData(0, 0, 256, 256),
           rgb = inks[index]
             .slice(1)
             .match(/../g)
@@ -26,7 +26,7 @@ export function createBrushPigments() {
             tide = image.data[i + 2] / 255,
             tooth = image.data[i + 1] / 255;
           for (let k = 0; k < 3; k++)
-            image.data[i + k] = rgb[k] * (1.08 - load * 0.3 - tide * 0.18);
+            image.data[i + k] = rgb[k] * (1.12 - load * 0.55 - tide * 0.25);
           image.data[i + 3] *= index ? 0.5 + 0.5 * tooth : 0.5 + 0.5 * load;
         }
         ctx.putImageData(image, 0, 0);
