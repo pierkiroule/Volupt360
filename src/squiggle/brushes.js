@@ -1,3 +1,4 @@
+export const SCULPT_RADIUS = 7.1;
 export const SQUIGGLE_BRUSHES = [
   { id: "anger", color: "#ed531c", emoji: "🔥", name: "Feu" },
   { id: "sadness", color: "#2969ba", emoji: "🌧️", name: "Pluie" },

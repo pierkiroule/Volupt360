@@ -142,7 +142,10 @@ test("offline watercolor works in 2D and 360 without external image requests", a
   });
   expect(stats.stats.particles).toBeLessThanOrEqual(2800);
   expect(stats.stats.veils).toBeLessThanOrEqual(160);
-  expect(stats.stats.ribbonVertices).toBeLessThanOrEqual(4200);
+  expect(stats.stats.ribbonVertices).toBeGreaterThan(4200);
+  expect(stats.stats.ribbonVertices).toBeLessThanOrEqual(
+    stats.stats.reliefVertexCapacity,
+  );
   expect(stats.finite).toBe(true);
   expect(stats.remaining).toBe(0);
   await page.getByRole("button", { name: "Autres outils" }).click();
@@ -151,4 +154,85 @@ test("offline watercolor works in 2D and 360 without external image requests", a
   expect((await download).suggestedFilename()).toBe("squiggle-360.png");
   expect(external).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("pigment relief has real thickness, outward smooth normals, closed caps and a bounded tap deposit", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/.vite/deps/three.js");
+    const { createPigmentRibbons } =
+      await import("/src/squiggle/createPigmentRibbons.js");
+    const { pigmentAtlas } = await import("/src/squiggle/pigmentAtlas.js");
+    const texture = new THREE.CanvasTexture(pigmentAtlas()),
+      body = createPigmentRibbons(texture, { mobile: true });
+    const stroke = {
+      id: 1,
+      emotionId: "peace",
+      color: "#087d99",
+      size: 85,
+      opacity: 0.9,
+      points: [
+        { x: 0.22, y: 0.45 },
+        { x: 0.27, y: 0.48 },
+        { x: 0.34, y: 0.44 },
+      ],
+    };
+    body.setDocument([stroke]);
+    const geo = body.mesh.geometry,
+      p = geo.attributes.position,
+      n = geo.attributes.normal;
+    let min = Infinity,
+      max = -Infinity,
+      normError = 0,
+      outward = 0,
+      total = 0;
+    const a = new THREE.Vector3(),
+      b = new THREE.Vector3(),
+      c = new THREE.Vector3(),
+      expected = new THREE.Vector3();
+    for (let i = 0; i < body.vertices; i++) {
+      a.fromBufferAttribute(p, i);
+      min = Math.min(min, a.length());
+      max = Math.max(max, a.length());
+      a.fromBufferAttribute(n, i);
+      normError = Math.max(normError, Math.abs(a.length() - 1));
+    }
+    for (let i = 0; i < body.vertices; i += 3) {
+      a.fromBufferAttribute(p, i);
+      b.fromBufferAttribute(p, i + 1);
+      c.fromBufferAttribute(p, i + 2);
+      b.sub(a);
+      c.sub(a);
+      b.cross(c);
+      if (b.lengthSq() < 1e-12) continue;
+      expected.fromBufferAttribute(n, i);
+      if (b.dot(expected) > 0) outward++;
+      total++;
+    }
+    const count = body.vertices;
+    body.setDocument([{ ...stroke, points: [{ x: 0.3, y: 0.5 }] }]);
+    const tap = body.vertices;
+    body.setDocument([]);
+    const empty = body.vertices;
+    body.dispose();
+    texture.dispose();
+    return {
+      thickness: max - min,
+      normError,
+      outward: outward / total,
+      count,
+      tap,
+      empty,
+      capacity: body.capacity,
+    };
+  });
+  expect(result.thickness).toBeGreaterThan(0.3);
+  expect(result.normError).toBeLessThan(0.00001);
+  expect(result.outward).toBeGreaterThan(0.95);
+  expect(result.count).toBeGreaterThan(500);
+  expect(result.tap).toBeGreaterThan(0);
+  expect(result.tap).toBeLessThanOrEqual(result.capacity);
+  expect(result.empty).toBe(0);
 });

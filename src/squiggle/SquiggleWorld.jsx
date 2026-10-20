@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { createWatercolorField } from "./createWatercolorField.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
 import { createWatercolorMotion } from "./drawAccents.js";
-import { directionToPaper } from "./brushes.js";
+import { directionToPaper, SCULPT_RADIUS } from "./brushes.js";
 function Painting({ strokes, draft, source, paused, onCapture }) {
   const { gl, scene, camera } = useThree(),
     time = useRef(0);
@@ -84,6 +84,7 @@ function Painting({ strokes, draft, source, paused, onCapture }) {
       accents.texture.needsUpdate = true;
     }
     gl.domElement.dataset.materialStyle = "abstract-watercolor";
+    gl.domElement.dataset.reliefVertices = String(weather.stats.ribbonVertices);
     gl.domElement.dataset.particles = String(weather.stats.particles);
     gl.domElement.dataset.veils = String(weather.stats.veils);
     gl.domElement.dataset.strokes = String(strokes.length);
@@ -201,7 +202,7 @@ function Interaction({
     const canvas = gl.domElement,
       ray = new THREE.Raycaster(),
       pointer = new THREE.Vector2(),
-      sphere = new THREE.Sphere(new THREE.Vector3(), 9),
+      sphere = new THREE.Sphere(new THREE.Vector3(), SCULPT_RADIUS),
       hit = new THREE.Vector3();
     let gesture = null;
     const point = (e) => {

@@ -56,7 +56,7 @@ export function createWatercolorField({ mobile = false } = {}) {
         vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
         float size=${veil ? "matter.y*430.*(.9+breath*.18)" : "(12.+matter.y*18.)*(.75+breath*.5)"};
         gl_PointSize=clamp(size*pixelRatio/max(1.,-view.z),${veil ? "12." : "1."},${veil ? "220." : "13."});
-        C=color;D=vec4(seed,${veil ? "matter.z*.42" : "matter.z*(.25+.65*sin(age*3.14159))"},matter.w,t);
+        C=color;D=vec4(seed,${veil ? "matter.z*.27" : "matter.z*(.25+.65*sin(age*3.14159))"},matter.w,t);
       }`,
       fragmentShader: `uniform sampler2D pigment;varying vec3 C;varying vec4 D;
       void main(){vec2 q=gl_PointCoord-.5;float angle=D.x*12.+D.w*.11;mat2 rot=mat2(cos(angle),-sin(angle),sin(angle),cos(angle));q=rot*q;
@@ -167,6 +167,7 @@ export function createWatercolorField({ mobile = false } = {}) {
     get stats() {
       return {
         ribbonVertices: ribbons.vertices,
+        reliefVertexCapacity: ribbons.capacity,
         particles: dust.geometry.drawRange.count,
         veils: veils.geometry.drawRange.count,
         capacity,
