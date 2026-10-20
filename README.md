@@ -46,6 +46,13 @@ les mouvements interpolés à partir du temps. En 3D, les tracés sont des surfa
 ouvertes, fines et plissées, sans section fermée ni bouchons : ils restent des
 voiles, jamais des corps pleins. Les alphas modulent réellement leur transparence,
 avec réserves de papier, bords diffus et dépôts pigmentaires contrastés.
+Les ressources portent les noms `GEO_Nappe_Aquarelle_01`,
+`Mesh_AudioWave_Organic` et `MAT_Watercolor_NaturalGrain` ; le style du matériau
+est identifié `Shader_Organic_Fluid`. `displacementNoise.js` construit une texture
+locale reproductible de 128 × 128 px, `TEX_Displace_Noise_Base`, avec des champs
+périodiques à plusieurs échelles : déformation lente des voiles, dérive des
+pigments, grain naturel et bords humides irréguliers. Elle est générée hors de
+l’animation et libérée avec le moteur. Ces noms n’ajoutent pas de source audio.
 Le rendu double face permet de les traverser ; l’écriture de profondeur est
 désactivée pour conserver leurs superpositions translucides. L’éclairage reste
 doux et mat, sans reflet métallique.

@@ -212,6 +212,26 @@ test("watercolor veils are open, double-sided and translucent with bounded geome
       total++;
     }
     const count = body.vertices;
+    const noise = body.mesh.material.uniforms.displacementNoise.value;
+    const names = [
+      body.mesh.name,
+      geo.name,
+      body.mesh.material.name,
+      body.mesh.material.userData.style,
+      noise.name,
+    ];
+    const { createDisplacementNoise } =
+      await import("/src/squiggle/displacementNoise.js");
+    const secondNoise = createDisplacementNoise();
+    const reproducible = noise.image.data.every(
+      (v, i) => v === secondNoise.image.data[i],
+    );
+    let disposed = false;
+    noise.addEventListener("dispose", () => {
+      disposed = true;
+    });
+    secondNoise.dispose();
+    const noiseVariation = new Set(noise.image.data).size;
     const edges = new Map();
     const key = (i) => [p.getX(i), p.getY(i), p.getZ(i)].join(",");
     for (let i = 0; i < count; i += 3)
@@ -234,6 +254,10 @@ test("watercolor veils are open, double-sided and translucent with bounded geome
     body.dispose();
     texture.dispose();
     return {
+      names,
+      reproducible,
+      disposed,
+      noiseVariation,
       openEdges,
       doubleSided,
       depthWrite,
@@ -247,6 +271,16 @@ test("watercolor veils are open, double-sided and translucent with bounded geome
       capacity: body.capacity,
     };
   });
+  expect(result.names).toEqual([
+    "Mesh_AudioWave_Organic",
+    "GEO_Nappe_Aquarelle_01",
+    "MAT_Watercolor_NaturalGrain",
+    "Shader_Organic_Fluid",
+    "TEX_Displace_Noise_Base",
+  ]);
+  expect(result.reproducible).toBe(true);
+  expect(result.disposed).toBe(true);
+  expect(result.noiseVariation).toBeGreaterThan(100);
   expect(result.openEdges).toBeGreaterThan(10);
   expect(result.doubleSided).toBe(true);
   expect(result.depthWrite).toBe(false);
