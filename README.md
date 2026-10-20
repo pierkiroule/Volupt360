@@ -1,4 +1,89 @@
-# EmoCiel360 — Peindre et traverser ses ressentis
+# Mon Ciel Sensoriel •°
+
+**Donne une forme à ce que tu ressens.**
+
+L’entrée principale propose de choisir jusqu’à cinq mots sensoriels, de régler leur
+intensité, puis de contempler une matière céleste commune. Les correspondances sont
+artistiques : aucun diagnostic, score ou profil psychologique n’est calculé.
+
+## Utilisation
+
+- Choisir parmi 30 mots, chercher sans tenir compte des accents ou ajouter son mot.
+  Un mot personnel n’est pas interprété automatiquement : ses huit propriétés
+  peuvent être composées librement dans « Donner une matière à mon mot ».
+- Glisser pour regarder, toucher un voile pour le déformer localement et pincer
+  pour ouvrir ou resserrer le champ. La caméra reste au même endroit.
+- Au clavier : focus sur le ciel, flèches pour regarder, +/− pour le champ,
+  espace pour pause/reprise, Échap pour retrouver les commandes.
+- « Faire évoluer mon ciel » transforme la même scène progressivement. On peut
+  retirer/ajouter des mots et retrouver la composition initiale.
+- « Contempler » masque l’interface ; pause et retour aux commandes restent visibles.
+  Le mode mouvements réduits respecte aussi la préférence système.
+- Le son est facultatif, activé exclusivement par un geste explicite. La pause et
+  la mise en arrière-plan suspendent le son ; la reprise reste volontaire.
+- Export PNG de la vue sans interface, signature facultative, sauvegarde/chargement
+  JSON et lien compact contenant la composition dans le fragment `#c=…`.
+
+Les mots restent en mémoire de l’onglet. Pas d’analytics, de stockage serveur ni
+collecte ajoutés. Un fichier ou un lien partagé contient les mots et intensités :
+le partage est une action explicite. Les fichiers importés sont validés et bornés.
+
+## Architecture du parcours sensoriel
+
+- `src/data/sensoryWords.ts` : dictionnaire typé, huit axes, facilement extensible.
+- `src/transduction/` : combinaison pondérée indépendante du rendu, interactions
+  non linéaires, palette et champs de forces déterministes par graine.
+- `src/store/useSensoryStore.ts` : état Zustand, composition initiale, pause,
+  préférences et transformations sans remonter la scène.
+- `src/scene/SensoryScene.tsx` : R3F, voiles instanciés, buffers de pigments et
+  filaments, caméra manuelle et qualité adaptative Drei.
+- `src/shaders/sensoryShaders.ts` : même déformation GPU pour toutes les matières,
+  diffusion, grain, étirement, fragmentation, gravité et résonance locale.
+- `src/audio/sensoryAudio.ts` : Web Audio native, nappes harmoniques, modulations,
+  micro-événements bornés, réverbération procédurale, échos filtrés et compression.
+- `src/components/SensoryExperience.tsx` / `src/sensory.css` : interface responsive,
+  accessibilité, composition et exports.
+- `src/utils/sensoryComposition.ts` : validation, JSON, UTF-8/base64url et exports.
+- `src/scene/SensoryFallback.tsx` : ciel SVG sans WebGL, modifications et PNG.
+
+La scène utilise trois dessins GPU principaux : 24 voiles instanciés, 1 600 grains,
+22 filaments. En qualité réduite : 16 voiles, 800 grains, filaments masqués et DPR 1
+au lieu de 1,5 maximum. Pas de textures externes ni de ray marching. Les buffers
+sont recréés uniquement quand la graine change ; intensités et couleurs sont
+interpolées. Écouteurs, géométries et contexte audio sont nettoyés.
+
+La graine reproduit les paramètres, la disposition et les mouvements à un même
+instant d’animation. JSON et lien ne sauvegardent ni le temps écoulé ni le regard :
+ils ouvrent la composition depuis son commencement. Les pixels peuvent varier
+selon le GPU et la qualité adaptative. Le secours SVG conserve la composition,
+mais simplifie la profondeur et les interactions spatiales.
+
+## Développement et vérification
+
+Node.js 22.12 minimum pour Vite ; Node 24 recommandé pour les tests TypeScript natifs.
+
+```sh
+npm ci
+npm run dev
+npm run typecheck
+npm run test:sensory
+npm run build
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/sensory-experience.spec.js tests/emotion-disk.spec.js
+```
+
+Vercel : `npm run build`, sortie `dist`, aucun secret ni backend requis. Les ateliers
+historiques sont chargés séparément : EmoCiel via `?emociel`, puis `?bulle`,
+`?peinture`, `?resonant`, `?atelier`, `?legacy`, `?classic`, `?conte`, `?original`.
+
+Les tests navigateur utilisent Chromium avec rendu logiciel. Ils ne certifient
+pas 60 FPS sur Android physique, la qualité sonore sur haut-parleur ni la compatibilité
+Safari. Ces validations matérielles restent nécessaires. Le build signale toujours
+la taille du chunk Three.js (environ 670 ko avant gzip) ; il est chargé à l’entrée
+dans le ciel, séparément de l’accueil.
+
+---
+
+## Atelier historique : EmoCiel360 (`?emociel`)
 
 **Un disque de peinture animé, puis un monde 360° à contempler ou à explorer en FPV.**
 
@@ -8,20 +93,20 @@ Taille, opacité et annuler/rétablir sont directement accessibles.
 
 ## Des émotions comme matières métaphoriques
 
-| Brosse | Couleur | Particules symboliques |
-| --- | --- | --- |
-| Joie | Ambre | Soleils et rayons |
-| Tristesse | Bleu nuit | Gouttes de pluie |
-| Colère | Vermillon | Flammes et braises |
-| Inquiétude | Violet | Nœuds et boucles serrées |
-| Apaisement | Turquoise | Ondes concentriques |
-| Confusion | Mauve | Points d’interrogation |
-| Affection | Rose | Petits cœurs |
-| Fatigue | Bleu ardoise | Croissants de lune |
-| Frustration | Brun ocré | Fragments de grillage |
-| Émerveillement | Pervenche | Étoiles et éclats |
-| Espoir | Vert | Petites pousses |
-| Indéfinissable | Gris sauge | Voiles entrecoupés |
+| Brosse         | Couleur      | Particules symboliques   |
+| -------------- | ------------ | ------------------------ |
+| Joie           | Ambre        | Soleils et rayons        |
+| Tristesse      | Bleu nuit    | Gouttes de pluie         |
+| Colère         | Vermillon    | Flammes et braises       |
+| Inquiétude     | Violet       | Nœuds et boucles serrées |
+| Apaisement     | Turquoise    | Ondes concentriques      |
+| Confusion      | Mauve        | Points d’interrogation   |
+| Affection      | Rose         | Petits cœurs             |
+| Fatigue        | Bleu ardoise | Croissants de lune       |
+| Frustration    | Brun ocré    | Fragments de grillage    |
+| Émerveillement | Pervenche    | Étoiles et éclats        |
+| Espoir         | Vert         | Petites pousses          |
+| Indéfinissable | Gris sauge   | Voiles entrecoupés       |
 
 Les marques sont dessinées en Canvas dans un atlas partagé de 512 pixels, utilisé
 par la page 2D et les particules WebGL. Aucun chargement de police ou de sprite

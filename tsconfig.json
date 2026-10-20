@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "src/transduction/**/*.ts",
+    "src/data/sensoryWords.ts",
+    "src/store/useSensoryStore.ts",
+    "src/utils/sensoryComposition.ts",
+    "src/audio/sensoryAudio.ts",
+    "src/shaders/sensoryShaders.ts",
+    "src/scene/**/*.tsx",
+    "src/components/SensoryExperience.tsx"
+  ]
+}
