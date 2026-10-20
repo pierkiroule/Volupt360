@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("drawing commands retain opacity, real flood fill, erasure and reversible history", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?resonant");
   const result = await page.evaluate(async () => {
     const { createDrawingSurface } =
       await import("/src/resonant/drawingSurface.js");
@@ -92,7 +92,7 @@ test("editor tools, MP3 and animation styles operate on the same drawing through
     if (m.type() === "error" && /WebGL|shader|THREE/.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?resonant");
   await expect(
     page.getByRole("heading", { name: "Resonant Paint 360" }),
   ).toBeVisible();
@@ -151,7 +151,7 @@ test("editor tools, MP3 and animation styles operate on the same drawing through
 test("resonant world reuses one texture and geometry across styles and disposes GPU resources", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?resonant");
   const r = await page.evaluate(async () => {
     const { createResonantWorld } =
       await import("/src/resonant/createResonantWorld.js");
@@ -191,7 +191,7 @@ test.describe("mobile drawing", () => {
   test("native touch paints immediately, supports history shortcuts and exports the drawing", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/?resonant");
     const canvas = page.getByRole("img", { name: "Dessin 2D" }),
       r = await canvas.boundingBox();
     const client = await page.context().newCDPSession(page);
@@ -229,7 +229,7 @@ test.describe("mobile drawing", () => {
 test("drawing-born FX keep bounded reusable buffers, source colors and smooth spectral motion", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?resonant");
   const r = await page.evaluate(async () => {
     const { createResonantWorld } =
       await import("/src/resonant/createResonantWorld.js");
@@ -319,7 +319,7 @@ test("drawing-born FX keep bounded reusable buffers, source colors and smooth sp
 test("spectral response changes rendered 360 pixels with a fixed camera and clock", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?resonant");
   const result = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js");
     const { createResonantWorld } =

@@ -17,7 +17,9 @@ createRoot(document.getElementById("root")).render(
     ) : new URLSearchParams(location.search).has("atelier") ? (
       <WatercolorWorkshop />
     ) : (
-      <ResonantPaint />
+      <ResonantPaint
+        projective={!new URLSearchParams(location.search).has("resonant")}
+      />
     )}
   </React.StrictMode>,
 );

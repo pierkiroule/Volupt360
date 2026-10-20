@@ -6,7 +6,7 @@ export const ANIMATION_STYLES = [
   ["breath", "Respiration · ample"],
   ["ripple", "Résonances · ondulantes"],
 ];
-export function createResonantWorld() {
+export function createResonantWorld({ autonomous = false } = {}) {
   const group = new THREE.Group(),
     envelope = createPigmentEnvelope();
   const uniforms = {
@@ -27,6 +27,10 @@ export function createResonantWorld() {
       globalThis.innerWidth < 600,
   );
   const geometry = new THREE.SphereGeometry(12, 128, 80);
+  const autonomousBands = new Float32Array(6),
+    autonomousAudio = { bands: autonomousBands, energy: 0.3, flux: 0 };
+  const rates = [0.21, 0.17, 0.27, 0.19, 0.31, 0.14],
+    offsets = [0, 1, 2, 0, 4, 2];
   const material = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -77,7 +81,12 @@ export function createResonantWorld() {
       );
     },
     update(time, audio, dt) {
-      envelope.update(audio, dt);
+      if (autonomous) {
+        for (let i = 0; i < 6; i++)
+          autonomousBands[i] =
+            0.27 + Math.sin(time * rates[i] + offsets[i]) * 0.11;
+        envelope.update(autonomousAudio, dt);
+      } else envelope.update(audio, dt);
       uniforms.style.value +=
         (targetStyle - uniforms.style.value) *
         (1 - Math.exp(-Math.max(0, dt) / 0.8));

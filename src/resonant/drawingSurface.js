@@ -1,3 +1,4 @@
+import { createProjectivePigment } from "./projectivePigment.js";
 import { createPigmentPlate } from "../chill/createPigmentPlate.js";
 export const DRAWING_WIDTH = 1200,
   DRAWING_HEIGHT = 800;
@@ -12,7 +13,10 @@ export const DRAWING_TOOLS = [
   ["ellipse", "Ellipse", "○"],
   ["stamp", "Tampon", "✦"],
 ];
-export function createDrawingSurface(onChange = () => {}) {
+export function createDrawingSurface(
+  onChange = () => {},
+  { projective = false } = {},
+) {
   const canvas = document.createElement("canvas"),
     base = document.createElement("canvas");
   canvas.width = base.width = DRAWING_WIDTH;
@@ -20,6 +24,9 @@ export function createDrawingSurface(onChange = () => {}) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true }),
     back = base.getContext("2d");
   const textures = new Map();
+  const pigment = projective
+    ? createProjectivePigment(DRAWING_WIDTH, DRAWING_HEIGHT)
+    : null;
   let actions = [],
     future = [],
     active = null;
@@ -100,6 +107,10 @@ export function createDrawingSurface(onChange = () => {}) {
     }
     if (a.tool === "fill") {
       flood(a);
+      return;
+    }
+    if (pigment && ["watercolor", "dry", "ink", "splatch"].includes(a.tool)) {
+      pigment.render(ctx, a);
       return;
     }
     const first = a.points[0],
@@ -250,6 +261,7 @@ export function createDrawingSurface(onChange = () => {}) {
       actions = [];
       future = [];
       textures.clear();
+      pigment?.dispose();
       canvas.width = base.width = 1;
     },
   };

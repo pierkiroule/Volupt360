@@ -1535,9 +1535,9 @@ export function createSoundNest(
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   renderer.setAnimationLoop(frame);
   return {
-    setResonantDrawing(canvas) {
+    setResonantDrawing(canvas, options) {
       if (!resonantWorld) {
-        resonantWorld = createResonantWorld();
+        resonantWorld = createResonantWorld(options);
         landscape.add(resonantWorld.group);
       }
       resonantWorld.setCanvas(canvas);

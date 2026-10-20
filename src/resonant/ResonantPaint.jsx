@@ -1,3 +1,5 @@
+import { PROJECTIVE_TOOLS } from "./projectivePigment.js";
+import { createPaperLife } from "./createPaperLife.js";
 import { useEffect, useRef, useState } from "react";
 import { createDrawingSurface, DRAWING_TOOLS } from "./drawingSurface.js";
 import { ANIMATION_STYLES } from "./createResonantWorld.js";
@@ -17,18 +19,19 @@ const COLORS = [
   "#ffffff",
   "#000000",
 ];
-export default function ResonantPaint() {
+export default function ResonantPaint({ projective = false }) {
   const stage = useRef(null),
     paper = useRef(null),
     engine = useRef(null),
     drawing = useRef(null),
     pointer = useRef(null),
-    mode = useRef("2d");
+    mode = useRef("2d"),
+    life = useRef(null);
   const twigs = useTwigBank({ poeticVoices: false });
   const [dimension, setDimension] = useState("2d"),
-    [tool, setTool] = useState("paint"),
+    [tool, setTool] = useState(projective ? "watercolor" : "paint"),
     [color, setColor] = useState("#456f9c"),
-    [size, setSize] = useState(22),
+    [size, setSize] = useState(projective ? 70 : 22),
     [opacity, setOpacity] = useState(0.85),
     [filled, setFilled] = useState(true),
     [shape, setShape] = useState("star"),
@@ -49,20 +52,26 @@ export default function ResonantPaint() {
     ctx.drawImage(drawing.current.canvas, 0, 0);
   }
   useEffect(() => {
-    document.title = "Resonant Paint 360 — Le dessin résonant";
-    const surface = createDrawingSurface((state) => {
-      setStats({
-        count: state.count,
-        canUndo: state.canUndo,
-        canRedo: state.canRedo,
-      });
-      if (paper.current) {
-        paper.current.dataset.actions = String(state.count);
-        const c = paper.current.getContext("2d");
-        c.clearRect(0, 0, 1200, 800);
-        c.drawImage(state.canvas, 0, 0);
-      }
-    });
+    document.title = projective
+      ? "EmoCiel360 — Peins ton ciel émotionnel"
+      : "Resonant Paint 360 — Le dessin résonant";
+    const surface = createDrawingSurface(
+      (state) => {
+        setStats({
+          count: state.count,
+          canUndo: state.canUndo,
+          canRedo: state.canRedo,
+        });
+        if (paper.current) {
+          paper.current.dataset.actions = String(state.count);
+          const c = paper.current.getContext("2d");
+          c.clearRect(0, 0, 1200, 800);
+          c.drawImage(state.canvas, 0, 0);
+        }
+        life.current?.update();
+      },
+      { projective },
+    );
     drawing.current = surface;
     const owner = createSoundNest(stage.current, {
       onError: setError,
@@ -80,7 +89,7 @@ export default function ResonantPaint() {
       [],
     );
     owner.setPoeticFragments([]);
-    owner.setPadSource(twigs.bank.current);
+    if (!projective) owner.setPadSource(twigs.bank.current);
     owner.startSpatialSculpture();
     owner.setPaperVisible(true);
     owner.pauseChillSession(false);
@@ -115,7 +124,20 @@ export default function ResonantPaint() {
     };
   }, []);
   useEffect(() => {
-    if (dimension === "2d") refresh();
+    if (dimension === "2d") {
+      refresh();
+      paper.current.dataset.actions = String(stats.count);
+      if (projective)
+        life.current = createPaperLife(
+          paper.current,
+          drawing.current.canvas,
+          () => pointer.current !== null,
+        );
+    }
+    return () => {
+      life.current?.dispose();
+      life.current = null;
+    };
   }, [dimension]);
   function point(e) {
     const r = paper.current.getBoundingClientRect();
@@ -159,12 +181,15 @@ export default function ResonantPaint() {
   async function enterWorld() {
     drawing.current.finish();
     pointer.current = null;
-    engine.current.setResonantDrawing(drawing.current.canvas);
+    engine.current.setResonantDrawing(drawing.current.canvas, {
+      autonomous: projective,
+    });
     engine.current.setResonantAnimation(style);
     engine.current.setPaperVisible(false);
     engine.current.travelPanorama();
     setMoving(true);
     setDimension("3d");
+    if (projective) return;
     try {
       await twigs.bank.current.preparePlayback();
       if (
@@ -203,30 +228,54 @@ export default function ResonantPaint() {
   function exportPNG() {
     const a = document.createElement("a");
     a.href = drawing.current.exportPNG();
-    a.download = "resonant-paint-360.png";
+    a.download = projective ? "emociel360.png" : "resonant-paint-360.png";
     a.click();
   }
   const ambience = twigs.snapshot.ambience;
   return (
     <main
-      className={`resonant-app ${dimension === "3d" ? "resonant-world" : ""}`}
+      className={`resonant-app ${projective ? "emociel-app" : ""} ${dimension === "3d" ? "resonant-world" : ""}`}
     >
       <div id="stage" ref={stage} />
       <header className="resonant-header">
         <div>
           <h1>
-            Resonant Paint <span>360</span>
+            {projective ? (
+              <>
+                EmoCiel<span>360</span>
+              </>
+            ) : (
+              <>
+                Resonant Paint <span>360</span>
+              </>
+            )}
           </h1>
           <p>
-            Le dessin résonant ·{" "}
-            {dimension === "2d" ? "Dessiner librement" : "Habiter son dessin"}
+            {projective ? (
+              dimension === "2d" ? (
+                "Peins ton ciel émotionnel, à ta façon."
+              ) : (
+                "Contemple et traverse ta peinture."
+              )
+            ) : (
+              <>
+                Le dessin résonant ·{" "}
+                {dimension === "2d"
+                  ? "Dessiner librement"
+                  : "Habiter son dessin"}
+              </>
+            )}
           </p>
         </div>
         <button
           className="resonant-primary"
           onClick={dimension === "2d" ? enterWorld : returnToPaper}
         >
-          {dimension === "2d" ? "Animer en 360°" : "Retour au dessin"}
+          {dimension === "2d"
+            ? projective
+              ? "Entrer dans mon ciel"
+              : "Animer en 360°"
+            : "Retour au dessin"}
         </button>
       </header>
       {dimension === "2d" && (
@@ -351,18 +400,20 @@ export default function ResonantPaint() {
                 role="group"
                 aria-label="Outils"
               >
-                {DRAWING_TOOLS.map(([id, name, glyph]) => (
-                  <button
-                    key={id}
-                    aria-label={name}
-                    title={name}
-                    aria-pressed={tool === id}
-                    onClick={() => setTool(id)}
-                  >
-                    <span>{glyph}</span>
-                    <small>{name}</small>
-                  </button>
-                ))}
+                {(projective ? PROJECTIVE_TOOLS : DRAWING_TOOLS).map(
+                  ([id, name, glyph]) => (
+                    <button
+                      key={id}
+                      aria-label={name}
+                      title={name}
+                      aria-pressed={tool === id}
+                      onClick={() => setTool(id)}
+                    >
+                      <span>{glyph}</span>
+                      <small>{name}</small>
+                    </button>
+                  ),
+                )}
               </div>
               <div
                 className="resonant-swatches"
@@ -392,7 +443,7 @@ export default function ResonantPaint() {
                     type="range"
                     aria-label="Taille"
                     min="2"
-                    max="100"
+                    max={projective ? "160" : "100"}
                     value={size}
                     onChange={(e) => setSize(Number(e.target.value))}
                   />
@@ -447,6 +498,12 @@ export default function ResonantPaint() {
                 <span>{stats.count}/300 gestes</span>
               </div>
             </>
+          ) : projective ? (
+            <p className="emociel-contemplation">
+              {moving
+                ? "Laisse-toi porter. Glisse pour orienter le regard."
+                : "Explore du regard, au doigt ou avec le gyroscope."}
+            </p>
           ) : (
             <div className="resonant-audio">
               <label className="resonant-import">

@@ -1,73 +1,72 @@
-# Resonant Paint 360
+# EmoCiel360
 
-**Le dessin résonant : un atelier 2D, puis son animation immersive à 360°.**
+**Peins ton ciel émotionnel en 2D. Contemple et traverse ta peinture en 360°.**
 
-L’application s’ouvre directement sur un éditeur traditionnel : crayon, peinture,
-aquarelle texturée, gomme, remplissage par zone, lignes, rectangles, ellipses et
-tampons (étoile, cercle, carré, triangle). Couleurs libres, taille, opacité et formes
-pleines ou contours complètent les outils. La page reste statique.
+L’atelier propose cinq outils : Lavis, Pigments secs, Encre, Taches et Gomme.
+Couleurs libres, taille et opacité accompagnent des gestes spontanés. Aucun choix
+de couleur ou de forme ne reçoit d’interprétation psychologique automatique.
 
-Annuler/rétablir fonctionne par boutons et raccourcis Ctrl/Cmd Z, Maj Z ou Y.
-L’effacement complet est lui aussi annulable. L’export PNG de 1200 × 800 pixels
-contient uniquement le dessin sur papier clair. Les outils se replient.
+Les matières sont procédurales et reproductibles : granulation, bords irréguliers,
+accumulations pigmentaires, réserves de papier, fibres sèches et auréoles. Le lavis
+reste connecté ; les taches produisent des silhouettes organiques abstraites.
+Les outils, annuler/rétablir, l’export PNG et l’effacement annulable sont dans une
+barre pliable. Ctrl/Cmd Z, Maj Z et Y fonctionnent aussi.
 
-## Animer son dessin
+## Une peinture vivante, sans audio
 
-« Animer en 360° » transpose la page sur une surface panoramique en relief :
-les couleurs et la transparence viennent du dessin exact, y compris les zones
-effacées. La densité du dessin donne une profondeur au paysage. Trois animations
-sont disponibles : Courants, Respiration et Résonances. Les mouvements sont locaux,
-lents et adoucis par les enveloppes audio du moteur existant.
+La page anime des phénomènes locaux de diffusion et des auréoles, avec des overlays
+masqués par la peinture. Le document sec de référence reste inchangé : l’animation
+n’érode ni ne remplace les gestes. Les textures sont calculées et mises en cache
+pendant la création, jamais pendant l’animation.
 
-Des nuages de grains colorés et des filaments suivent les zones réellement peintes.
-Les graves animent la profondeur et les volumes ; les médiums entraînent les courants
-et les fils ; les aigus enrichissent les détails. Les transitoires produisent une
-accentuation douce, sans flash. Le style change par interpolation. Le dessin 2D
-reste statique et les préférences de réduction des mouvements sont respectées.
-Les effets utilisent deux lots GPU supplémentaires et des buffers fixes : jusqu’à
-1400 particules/32 filaments sur mobile, 3200 particules/64 filaments sur ordinateur.
-Aucun effet n’est généré dans les zones vides d’un dessin vierge.
+« Entrer dans mon ciel » déploie la même image en panorama en relief. Courants,
+respiration et ondulations suivent des champs temporels autonomes. Particules et
+filaments naissent uniquement des zones peintes et reprennent leurs couleurs.
+Il n’y a ni import MP3, ni lecture audio, ni audioreactivité dans ce parcours.
+Les variations ne cherchent pas à imposer un rythme respiratoire.
 
-Importer son MP3 (20 Mo maximum) active la lecture et l’analyse Web Audio native.
-Aucun morceau n’est chargé automatiquement. Sans fichier, l’animation fonctionne
-silencieusement. Lecture/pause et volume restent accessibles. Retourner au dessin
-suspend l’audio et retrouve les pixels d’origine : la 3D ne modifie pas la page.
-
-Le voyage commence automatiquement ; il peut être suspendu. Gyroscope, navigation
-tactile et casque WebXR réutilisent le moteur existant. Le gyroscope et WebXR
-nécessitent un navigateur, des capteurs et un contexte HTTPS compatibles.
+Le voyage peut être suspendu pour contempler. Le regard s’oriente au doigt ou au
+gyroscope ; WebXR reste disponible sur matériel compatible. Le retour à la page
+retrouve le dessin et son historique. L’export PNG utilise la peinture de référence
+sur papier clair, sans les contrôles de l’interface.
 
 ## Architecture
 
-- `src/resonant/drawingSurface.js` : document de commandes, raster Canvas 2D,
-  remplissage, historique et export.
-- `src/resonant/ResonantPaint.jsx` : éditeur, outils, MP3 et transitions de vue.
-- `src/resonant/createResonantWorld.js` : surface panoramique et trois champs
-  d’animation GPU, avec une texture partagée et une géométrie réutilisée.
-- `src/engine/createSoundNest.js` : points d’intégration minimaux au moteur Three.js,
-  à la caméra et au signal audio existants.
-- `src/chill/createPigmentPlate.js` : textures aquarellées procédurales réutilisées.
+- `src/resonant/ResonantPaint.jsx` : atelier et transitions, avec configuration
+  projective activée par défaut.
+- `projectivePigment.js` : quatre signatures picturales, textures et contours.
+- `drawingSurface.js` : image source, commandes, gomme, historique et export.
+- `createPaperLife.js` : animation locale Canvas 2D, masques et cache de zones peintes.
+- `createResonantWorld.js` : panorama et champs autonomes, réduction des mouvements.
+- `createResonantEffects.js` : deux lots GPU de particules et de filaments.
+- `src/engine/createSoundNest.js` : moteur Three.js et navigation existants réutilisés.
 
-Le parcours précédent reste accessible avec `?atelier`. Les parcours historiques
-`?legacy`, `?classic`, `?conte` et `?original` restent disponibles.
+Les anciens parcours restent accessibles : `?resonant` pour Resonant Paint avec MP3,
+`?atelier` pour l’ancien atelier partagé et les paramètres historiques `?legacy`,
+`?classic`, `?conte` et `?original`.
 
-## Performances et limites
+## Budgets et limites
 
-Une seule image de référence de 1200 × 800 pixels est envoyée au GPU à l’entrée en
-3D. Les animations ne génèrent aucune nouvelle texture par frame. La surface 3D
-et sa texture sont réutilisées et libérées à la fermeture. Les commandes sont
-bornées à 300 gestes, avec 2048 points maximum par geste et 24 textures aquarelles
-teintées dans le cache. Le remplissage est calculé uniquement à la validation et à
-la reconstruction de l’historique.
+Le document de référence fait 1200 × 800 pixels. Il est borné à 300 gestes de 2048
+points maximum. Le contour pictural utilise un pas adaptatif pour borner sa complexité.
+Le cache de textures teintées contient au maximum 24 entrées. La page anime à 25
+images/s maximum au repos, et répond directement aux événements de dessin pendant
+le geste. La boucle se suspend lorsque l’onglet est caché et respecte la préférence
+de réduction des mouvements.
 
-Le panorama peut étirer les dessins près des pôles et raccorder leurs deux bords.
-Il s’agit d’une transduction animée de l’image, pas d’une reconstruction volumétrique
-physique. La session reste en mémoire ; exporter le PNG avant de fermer la page.
-Il n’y a pas encore de calques, de sélection ou de sauvegarde de projet éditable.
-Les performances prolongées sur téléphone physique et les casques restent à vérifier.
-Aucune donnée ni fichier audio n’est envoyé à un serveur.
+La 3D réutilise sa texture, ses géométries et ses buffers. Les budgets d’effets sont
+1400 particules et 32 filaments sur mobile, 3200 particules et 64 filaments sur
+ordinateur. Les effets sont entièrement animés sur le GPU. Ressources et écouteurs
+sont libérés à la fermeture.
 
-## Développement et déploiement
+Le relief est une transduction panoramique : les pôles peuvent étirer les traits,
+et les bords du dessin se rejoignent. Ce n’est pas une reconstruction volumétrique
+physique. La session reste en mémoire : exporter avant de fermer. Pas de calques,
+ni de sauvegarde de projet éditable pour l’instant. Les performances prolongées
+sur téléphones physiques et casques restent à mesurer. Aucun backend ou transfert
+des créations n’est utilisé.
+
+## Développement
 
 Node.js 22.12 minimum, Node 24 recommandé.
 
@@ -77,13 +76,13 @@ npm run dev
 npm run build
 ```
 
-Vercel : commande `npm run build`, sortie `dist`. Aucun backend, aucune clé API.
+Vercel : `npm run build`, sortie `dist`. Aucun secret ni API payante.
 
 ```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/resonant-paint.spec.js tests/twin-painting.spec.js tests/spatial-workshop.spec.js tests/watercolor-workshop.spec.js tests/watercolor-library.spec.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/emociel.spec.js tests/resonant-paint.spec.js
 ```
 
-Les tests couvrent le remplissage réel, l’opacité, la gomme, l’historique, le tactile,
-l’export PNG, les transitions 2D/3D, l’import d’un véritable fichier audio de test,
-les shaders et la libération des ressources. Les tests des anciens parcours utilisent
-`?atelier` pour contrôler leurs régressions sans changer l’entrée principale.
+Les tests couvrent les textures, l’historique, les animations autonomes, l’absence
+d’import musical dans EmoCiel, la réduction des mouvements et les régressions du
+parcours Resonant Paint. Les capteurs réels et le casque doivent être vérifiés sur
+les appareils concernés.
