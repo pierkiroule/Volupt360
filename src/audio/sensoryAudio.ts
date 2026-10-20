@@ -1,3 +1,4 @@
+import { audioVisualResonance } from "./audioVisualResonance.ts";
 import { OrganicInstrumentBank } from "./organicInstruments.ts";
 import type { SensoryParameters } from "../transduction/types.ts";
 import { seededRandom } from "../transduction/engine.ts";
@@ -5,6 +6,7 @@ import { GenerativeScore, type MusicalEvent } from "./generativeScore.ts";
 /** Look-ahead scheduling, bounded voices and a single stereo graph, unlocked by a user gesture. */
 export class SensoryAudio {
   context: AudioContext;
+  private unbindResonance: () => void;
   private bank: OrganicInstrumentBank;
   private padWave: PeriodicWave;
   private master: GainNode;
@@ -14,6 +16,7 @@ export class SensoryAudio {
   private suspendTimer: ReturnType<typeof setTimeout> | undefined;
   private score: GenerativeScore;
   private nextBeat = 0;
+  private lastGesture = -10;
   private params: SensoryParameters;
   private volume = 0.4;
   private playing = true;
@@ -31,6 +34,56 @@ export class SensoryAudio {
     const random = seededRandom(seed);
     this.master = c.createGain();
     this.master.gain.value = 0;
+    const analyser = c.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.65;
+    this.master.connect(analyser);
+    const bins = new Uint8Array(analyser.frequencyBinCount),
+      wave = new Float32Array(analyser.fftSize);
+    this.unbindResonance = audioVisualResonance.bind(
+      () => c.currentTime,
+      (out) => {
+        analyser.getByteFrequencyData(bins);
+        analyser.getFloatTimeDomainData(wave);
+        let bass = 0,
+          body = 0,
+          air = 0,
+          bc = 0,
+          mc = 0,
+          ac = 0,
+          power = 0;
+        for (let i = 0; i < bins.length; i++) {
+          const hz = (i * c.sampleRate) / analyser.fftSize,
+            v = bins[i] / 255;
+          if (hz < 400) {
+            bass += v;
+            bc++;
+          } else if (hz < 1600) {
+            body += v;
+            mc++;
+          } else if (hz < 6000) {
+            air += v;
+            ac++;
+          }
+        }
+        for (const v of wave) power += v * v;
+        out[0] = bass / Math.max(1, bc);
+        out[1] = body / Math.max(1, mc);
+        out[2] = air / Math.max(1, ac);
+        out[3] = Math.min(1, Math.sqrt(power / wave.length) * 12);
+      },
+      (pan, position) => {
+        if (
+          !this.playing ||
+          this.closed ||
+          c.state !== "running" ||
+          c.currentTime - this.lastGesture < 1.4
+        )
+          return;
+        this.lastGesture = c.currentTime;
+        this.note(this.score.response(position, pan), c.currentTime + 0.025);
+      },
+    );
     const compressor = c.createDynamicsCompressor();
     compressor.threshold.value = -18;
     compressor.knee.value = 18;
@@ -125,6 +178,13 @@ export class SensoryAudio {
             event.midi,
           );
     const start = Math.max(time + (event.offset ?? 0), c.currentTime + 0.012);
+    audioVisualResonance.schedule({
+      kind: event.kind,
+      midi: event.midi,
+      pan: event.pan,
+      strength: Math.min(1, event.gain * 8),
+      time: start,
+    });
     for (let layer = 0; layer < layers; layer++) {
       const envelope = c.createGain(),
         filter = c.createBiquadFilter(),
@@ -203,6 +263,7 @@ export class SensoryAudio {
   async play(active: boolean) {
     if (this.closed) return;
     this.playing = active;
+    audioVisualResonance.setActive(active);
     clearTimeout(this.suspendTimer);
     if (active) {
       await this.context.resume();
@@ -217,6 +278,7 @@ export class SensoryAudio {
   dispose() {
     if (this.closed) return;
     this.closed = true;
+    this.unbindResonance();
     clearInterval(this.timer);
     this.bank.clear();
     clearTimeout(this.suspendTimer);

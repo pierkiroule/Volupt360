@@ -17,6 +17,7 @@ interface SkyState {
   reduced: boolean;
   hidden: boolean;
   sound: boolean;
+  poetry: boolean;
   volume: number;
   setPhase: (phase: SkyState["phase"]) => void;
   setWords: (words: WordChoice[]) => void;
@@ -32,6 +33,7 @@ interface SkyState {
         | "reduced"
         | "hidden"
         | "sound"
+        | "poetry"
         | "volume"
         | "travel"
         | "gyro"
@@ -58,6 +60,7 @@ export const useSensoryStore = create<SkyState>((set, get) => ({
   reduced: matchMedia("(prefers-reduced-motion:reduce)").matches,
   hidden: false,
   sound: false,
+  poetry: true,
   volume: 0.4,
   setPhase: (phase) => set({ phase }),
   setWords: (words) =>

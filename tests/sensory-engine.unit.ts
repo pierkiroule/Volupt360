@@ -254,3 +254,77 @@ test("procedural string keeps its intended pitch instead of becoming a detuned o
     cents = 1200 * Math.log2(frequency / 220);
   assert.ok(Math.abs(cents) < 20, `string tuning: ${cents.toFixed(1)} cents`);
 });
+
+test("audio/visual mailbox delivers on the audio clock, stays bounded and releases old owners safely", async () => {
+  const { AudioVisualResonance } =
+    await import("../src/audio/audioVisualResonance.ts");
+  let now = 0;
+  const bus = new AudioVisualResonance();
+  const unbindOld = bus.bind(
+    () => now,
+    (out) => out.set([0.5, 0.3, 0.1, 0.4]),
+  );
+  const event = {
+    kind: "melody" as const,
+    midi: 64,
+    pan: 0,
+    strength: 0.5,
+    time: 1,
+  };
+  bus.schedule(event);
+  assert.equal(bus.sample(0.1).events.length, 0);
+  now = 1;
+  assert.equal(bus.sample(0.1).events.length, 1);
+  assert.equal(bus.sample(0.1).events.length, 0);
+  assert.ok(bus.state.energy > 0 && bus.state.energy < 0.4);
+  for (let i = 0; i < 100; i++) bus.schedule({ ...event, time: 2 });
+  now = 2;
+  assert.equal(bus.sample(0.1).events.length, 32);
+  bus.bind(
+    () => now,
+    (out) => out.fill(0.2),
+  );
+  unbindOld();
+  assert.ok(bus.sample(0.1).energy > 0);
+  bus.setActive(false);
+  bus.schedule(event);
+  assert.equal(bus.sample(0.1).events.length, 0);
+});
+test("poetic fragments vary with chosen families without asserting a visitor's state", async () => {
+  const { poetryFor } = await import("../src/data/orbitalPoetry.ts");
+  assert.notDeepEqual(poetryFor(["joie"]), poetryFor(["tristesse"]));
+  assert.deepEqual(poetryFor(["joie", "peur"]), poetryFor(["peur", "joie"]));
+  assert.ok(
+    poetryFor(["joie", "peur"]).includes("deux couleurs peuvent cohabiter"),
+  );
+  assert.ok(poetryFor([]).every((text) => text.length < 60));
+});
+
+test("touch replies remain in the current harmony and cannot start audio through an inactive bridge", async () => {
+  const { GenerativeScore } = await import("../src/audio/generativeScore.ts");
+  const { AudioVisualResonance } =
+    await import("../src/audio/audioVisualResonance.ts");
+  const score = new GenerativeScore(19),
+    notes = score.next(0.5),
+    classes = new Set(
+      notes
+        .filter((n) => n.kind === "pad" || n.kind === "bass")
+        .map((n) => n.midi % 12),
+    );
+  for (let i = 0; i <= 10; i++)
+    assert.ok(classes.has(score.response(i / 10, 0).midi % 12));
+  let calls = 0;
+  const bus = new AudioVisualResonance();
+  bus.gesture(0, 0.5);
+  assert.equal(calls, 0);
+  bus.bind(
+    () => 0,
+    () => {},
+    () => calls++,
+  );
+  bus.gesture(0, 0.5);
+  assert.equal(calls, 1);
+  bus.setActive(false);
+  bus.gesture(0, 0.5);
+  assert.equal(calls, 1);
+});

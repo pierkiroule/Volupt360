@@ -24,7 +24,9 @@ export default function DroneNavigation() {
       calibrated.current = false;
       return;
     }
+    let source = "";
     const sample = (event: DeviceOrientationEvent) => {
+      if (source && event.type !== source) return;
       if (
         event.alpha === null ||
         event.beta === null ||
@@ -32,11 +34,14 @@ export default function DroneNavigation() {
         ![event.alpha, event.beta, event.gamma].every(Number.isFinite)
       )
         return;
+      source = event.type;
       deviceQuaternion(
         event.alpha,
         event.beta,
         event.gamma,
-        window.screen.orientation?.angle ?? 0,
+        window.screen.orientation?.angle ??
+          (window as Window & { orientation?: number }).orientation ??
+          0,
         device.current,
       );
       hasSample.current = true;
@@ -53,6 +58,10 @@ export default function DroneNavigation() {
         useSensoryStore.getState().patch({ gyroStatus: "active" });
     };
     window.addEventListener("deviceorientation", sample);
+    window.addEventListener(
+      "deviceorientationabsolute",
+      sample as EventListener,
+    );
     const timeout = setTimeout(() => {
       if (!hasSample.current)
         useSensoryStore
@@ -61,6 +70,10 @@ export default function DroneNavigation() {
     }, 5000);
     return () => {
       window.removeEventListener("deviceorientation", sample);
+      window.removeEventListener(
+        "deviceorientationabsolute",
+        sample as EventListener,
+      );
       clearTimeout(timeout);
       const euler = new THREE.Euler().setFromQuaternion(
         camera.quaternion,

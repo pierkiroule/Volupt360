@@ -1,3 +1,6 @@
+import { audioVisualResonance } from "../audio/audioVisualResonance.ts";
+import { seededRandom } from "../transduction/engine.ts";
+import OrbitalPoetry from "./OrbitalPoetry.tsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { AdaptiveDpr, PerformanceMonitor } from "@react-three/drei";
@@ -5,6 +8,8 @@ import * as THREE from "three";
 import { transduce } from "../transduction/engine.ts";
 import { useSensoryStore } from "../store/useSensoryStore.ts";
 import {
+  burstVertex,
+  burstFragment,
   cloudVertex,
   cloudFragment,
   ribbonVertex,
@@ -35,6 +40,7 @@ function Matter({
   onCapture: (capture: Capture) => void;
   low: boolean;
 }) {
+  const reduced = useSensoryStore((s) => s.reduced);
   const composition = useSensoryStore((s) => s.composition),
     p = useMemo(() => transduce(composition), [composition]);
   const colors = useMemo(
@@ -46,10 +52,24 @@ function Matter({
   );
   const { gl, scene, camera } = useThree(),
     time = useRef(0),
-    clouds = useRef<THREE.InstancedMesh>(null);
+    clouds = useRef<THREE.InstancedMesh>(null),
+    echoTime = useRef(0),
+    lastBurst = useRef(-10),
+    burstSlot = useRef(0),
+    echoSlot = useRef(0);
+  const focusDirection = useMemo(() => new THREE.Vector3(), []);
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
+      uAudio: { value: new THREE.Vector4() },
+      uEchoes: {
+        value: Array.from(
+          { length: 4 },
+          () => new THREE.Vector4(100, 100, 100, 0),
+        ),
+      },
+      uEchoAges: { value: new THREE.Vector4(-100, -100, -100, -100) },
+      uEchoTime: { value: 0 },
       uResonance: { value: p.coupling },
       uA: {
         value: new THREE.Vector4(
@@ -76,6 +96,44 @@ function Matter({
     () => createSensoryWorld(composition.seed),
     [composition.seed],
   );
+  const bursts = useMemo(() => {
+    const geometry = new THREE.BufferGeometry(),
+      count = 576,
+      random = seededRandom(composition.seed ^ 0x819f),
+      drift = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const y = random() * 2 - 1,
+        a = random() * Math.PI * 2,
+        r = 0.3 + random() * 0.7,
+        s = Math.sqrt(1 - y * y);
+      drift.set([Math.cos(a) * s * r, y * r, Math.sin(a) * s * r], i * 3);
+    }
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(new Float32Array(count * 3), 3),
+    );
+    geometry.setAttribute("aDrift", new THREE.BufferAttribute(drift, 3));
+    geometry.setAttribute(
+      "aOrigin",
+      new THREE.BufferAttribute(new Float32Array(count * 3), 3).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    geometry.setAttribute(
+      "aBorn",
+      new THREE.BufferAttribute(new Float32Array(count).fill(-100), 1).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    geometry.setAttribute(
+      "aStrength",
+      new THREE.BufferAttribute(new Float32Array(count), 1).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    return geometry;
+  }, [composition.seed]);
+  useEffect(() => () => bursts.dispose(), [bursts]);
   useEffect(() => {
     world.matrices.forEach((m, i) => clouds.current?.setMatrixAt(i, m));
     if (clouds.current) clouds.current.instanceMatrix.needsUpdate = true;
@@ -86,10 +144,11 @@ function Matter({
     };
   }, [world]);
   useEffect(() => {
+    bursts.setDrawRange(0, low ? 288 : 576);
     world.particles.setDrawRange(0, low ? 1000 : 2400);
     world.ribbons.setDrawRange(0, low ? 12 * 100 * 6 : Infinity);
     world.ink.setDrawRange(0, low ? 12 * 100 * 6 : Infinity);
-  }, [world, low]);
+  }, [world, low, bursts]);
   useEffect(
     () =>
       onCapture(
@@ -109,6 +168,75 @@ function Matter({
     if (state.paused) return;
     const dt = Math.min(delta, 0.1),
       f = 1 - Math.exp(-dt * 2);
+    echoTime.current += dt;
+    uniforms.uEchoTime.value = echoTime.current;
+    const audio = audioVisualResonance.sample(dt),
+      amount = state.sound ? (state.reduced ? 0.15 : 1) : 0;
+    uniforms.uAudio.value.set(
+      audio.bass * amount,
+      audio.body * amount,
+      audio.air * amount,
+      audio.energy * amount,
+    );
+    for (const event of audio.events) {
+      if (!state.sound) continue;
+      camera.getWorldDirection(focusDirection);
+      let index = (event.midi * 7 + event.id * 3) % world.matrices.length,
+        best = -Infinity;
+      for (let i = 0; i < world.matrices.length; i++) {
+        const m = world.matrices[i].elements,
+          dx = m[12] - camera.position.x,
+          dy = m[13] - camera.position.y,
+          dz = m[14] - camera.position.z,
+          distance = Math.max(0.1, Math.hypot(dx, dy, dz));
+        const facing =
+          (dx * focusDirection.x +
+            dy * focusDirection.y +
+            dz * focusDirection.z) /
+          distance;
+        const score =
+          facing * 0.9 -
+          distance * 0.012 +
+          Math.sin(i * 2.3 + event.midi * 0.5 + event.id) * 0.22;
+        if (score > best) {
+          best = score;
+          index = i;
+        }
+      }
+      const matrix = world.matrices[index],
+        slot = echoSlot.current++ % 4;
+      uniforms.uEchoes.value[slot].set(
+        matrix.elements[12],
+        matrix.elements[13],
+        matrix.elements[14],
+        event.strength * amount,
+      );
+      uniforms.uEchoAges.value.setComponent(slot, echoTime.current);
+      if (
+        !state.reduced &&
+        event.kind === "melody" &&
+        echoTime.current - lastBurst.current > 2.8
+      ) {
+        const first = (burstSlot.current++ % (low ? 3 : 6)) * 96,
+          origin = bursts.getAttribute("aOrigin"),
+          born = bursts.getAttribute("aBorn"),
+          strength = bursts.getAttribute("aStrength");
+        for (let i = first; i < first + 96; i++) {
+          origin.setXYZ(
+            i,
+            matrix.elements[12],
+            matrix.elements[13],
+            matrix.elements[14],
+          );
+          born.setX(i, echoTime.current);
+          strength.setX(i, event.strength);
+        }
+        origin.needsUpdate = born.needsUpdate = strength.needsUpdate = true;
+        lastBurst.current = echoTime.current;
+      }
+    }
+    gl.domElement.dataset.audioEnergy = audio.energy.toFixed(4);
+    gl.domElement.dataset.pigmentReleases = String(burstSlot.current);
     time.current += dt * (0.5 + p.speed * 2) * (state.reduced ? 0.07 : 1);
     uniforms.uTime.value = time.current;
     uniforms.uResonance.value += (p.coupling - uniforms.uResonance.value) * f;
@@ -142,6 +270,7 @@ function Matter({
   });
   const encounter = (point: THREE.Vector3, delta: number) => {
     if (delta > 5 || useSensoryStore.getState().paused) return;
+    audioVisualResonance.gesture(point.x / 15, 0.5 + point.y / 20);
     uniforms.uTouch.value.copy(point);
     uniforms.uTouchTime.value = time.current;
   };
@@ -188,6 +317,15 @@ function Matter({
           side={THREE.DoubleSide}
         />
       </mesh>
+      <points geometry={bursts} frustumCulled={false} visible={!reduced}>
+        <shaderMaterial
+          uniforms={uniforms}
+          vertexShader={burstVertex}
+          fragmentShader={burstFragment}
+          transparent
+          depthWrite={false}
+        />
+      </points>
       <points geometry={world.particles} frustumCulled={false}>
         <shaderMaterial
           uniforms={uniforms}
@@ -232,6 +370,7 @@ export default function SensoryScene({
         <AdaptiveDpr pixelated />
         <Matter onCapture={onCapture} low={low} />
       </PerformanceMonitor>
+      <OrbitalPoetry />
       <DroneNavigation />
       <ContextGuard onFailure={onFailure} />
     </Canvas>

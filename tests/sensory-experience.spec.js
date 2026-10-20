@@ -404,3 +404,69 @@ test("generative audio produces a bounded non-silent signal", async ({
     }),
   ).toBeLessThan(0.9);
 });
+
+test("music drives measured energy and pigment releases; poetry remains optional", async ({
+  page,
+}) => {
+  await birth(page);
+  await page
+    .getByRole("button", { name: "Activer le son", exact: true })
+    .click();
+  const canvas = page.locator("canvas");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-audio-energy")), {
+      timeout: 6000,
+    })
+    .toBeGreaterThan(0.001);
+  await expect
+    .poll(
+      async () => Number(await canvas.getAttribute("data-pigment-releases")),
+      { timeout: 7000 },
+    )
+    .toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Ouvrir les options" }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Poésie flottante" }),
+  ).toBeChecked();
+  await page.getByRole("checkbox", { name: "Poésie flottante" }).uncheck();
+  await page.getByRole("button", { name: "Fermer les réglages" }).click();
+  await page
+    .getByRole("button", { name: "Mettre en pause", exact: true })
+    .click();
+  await page.waitForTimeout(150);
+  const releases = await canvas.getAttribute("data-pigment-releases");
+  await page.waitForTimeout(300);
+  await expect(canvas).toHaveAttribute("data-pigment-releases", releases);
+});
+
+test("360 activation stops FPV and supports absolute-only device events", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    DeviceOrientationEvent.requestPermission = async () => "granted";
+  });
+  await birth(page);
+  const canvas = page.locator("canvas");
+  await page
+    .getByRole("button", { name: "Gyroscope 360", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "↗ Voyager", exact: true }),
+  ).toBeVisible();
+  await page.waitForTimeout(150);
+  const position = await canvas.getAttribute("data-camera-position");
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new DeviceOrientationEvent("deviceorientationabsolute", {
+        alpha: 12,
+        beta: 80,
+        gamma: 0,
+      }),
+    ),
+  );
+  await expect(
+    page.getByRole("button", { name: "Gyroscope 360", exact: true }),
+  ).toContainText("actif");
+  await page.waitForTimeout(300);
+  await expect(canvas).toHaveAttribute("data-camera-position", position);
+});

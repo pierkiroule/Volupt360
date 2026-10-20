@@ -642,3 +642,15 @@
     gap: 8px;
   }
 }
+.cosmo-gyro-status {
+  position: absolute;
+  top: 135px;
+  left: 18px;
+  max-width: calc(100% - 36px);
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: #f6f3ecee;
+  color: #293e50;
+  font-size: 12px;
+  z-index: 4;
+}

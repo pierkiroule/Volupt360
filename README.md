@@ -40,6 +40,33 @@ https://www.americanscientist.org/article/the-nature-of-emotions
   Les émotions modulent la densité, le filtrage et l’espace sonore, suivant
   des correspondances artistiques.
 
+## Projection, poésie et résonance
+
+L’univers offre une matière ouverte à l’externalisation : les effets n’interprètent
+pas la personne et ne simulent aucune amélioration émotionnelle obligatoire.
+La poésie orbitale propose au plus deux fragments à la fois, issus d’un corpus
+éditable (`src/data/orbitalPoetry.ts`). Ils restent ancrés dans l’espace, apparaissent
+et se dissolvent lentement ; une option permet de les masquer. Les associations
+avec les familles émotionnelles sont artistiques et non diagnostiques.
+
+`src/audio/audioVisualResonance.ts` relie le moteur sonore et la scène :
+
+- Énergie mesurée par analyseur Web Audio, répartie en graves, corps et détails.
+- Événements de notes transmis à leur date audio réelle, dans une file limitée à 32.
+- Quatre foyers locaux de résonance : diffusion et vibration des pigments,
+  sans pulsation globale de la géométrie ni flash.
+- Libérations espacées de 96 pigments, avec un buffer fixe de 576 particules
+  (288 en qualité réduite). Aucun ajout permanent d’objets dans la scène.
+- Toucher une matière peut appeler une corde douce de l’accord courant,
+  au plus une fois toutes les 1,4 seconde, exclusivement lorsque le son est activé.
+- Pause et son coupé désactivent les nouveaux déclenchements ; les mouvements
+  réduits masquent les libérations et atténuent les réactions locales.
+
+Le gyro 360° arrête désormais le déplacement FPV à l’activation. Les événements
+`deviceorientation` et `deviceorientationabsolute` sont pris en charge, en conservant
+une seule source de référence. En absence de mesure, un message propose le tactile.
+Le regard est calibré à la position courante, sans imposer de déplacement.
+
 ## Parcours
 
 - Choisir 1 à 3 émoji-tags sur la roue, avec une présence visuelle réglable.

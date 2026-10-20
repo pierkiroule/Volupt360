@@ -115,7 +115,7 @@ export default function SensoryExperience() {
     }
     try {
       await requestGyroscope();
-      s.patch({ gyro: true, gyroStatus: "waiting" });
+      s.patch({ gyro: true, gyroStatus: "waiting", travel: false });
     } catch (err) {
       setError((err as Error).message);
     }
@@ -223,7 +223,7 @@ export default function SensoryExperience() {
             Ouvrir une composition
           </button>
           <small>
-            Entre au cœur d’un monde peint à l’eau.
+            Donner une forme à ses émotions, puis les regarder autrement.
             <br />
             Sans diagnostic, sans score, sans données collectées.
           </small>
@@ -308,6 +308,16 @@ export default function SensoryExperience() {
                   le champ
                 </small>
               </header>
+              {s.gyroStatus === "waiting" && (
+                <p className="cosmo-gyro-status" role="status">
+                  Tourne doucement le téléphone pour activer le regard 360°.
+                </p>
+              )}
+              {s.gyroStatus === "unavailable" && (
+                <p className="cosmo-gyro-status" role="status">
+                  Aucune mesure du capteur. Glisse pour regarder autour de toi.
+                </p>
+              )}
               <nav
                 className="sensory-toolbar"
                 aria-label="Commandes de l’univers"
@@ -327,7 +337,9 @@ export default function SensoryExperience() {
                     ? s.gyroStatus === "active"
                       ? "360° actif"
                       : "360° en attente…"
-                    : "Gyro 360°"}
+                    : s.gyroStatus === "unavailable"
+                      ? "360° sans capteur"
+                      : "Gyro 360°"}
                 </button>
                 {s.gyro && (
                   <button onClick={() => s.patch({ recenter: s.recenter + 1 })}>
@@ -400,6 +412,14 @@ export default function SensoryExperience() {
               </button>
               <h2>Contemplation</h2>
               <div className="sensory-options">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={s.poetry}
+                    onChange={(e) => s.patch({ poetry: e.target.checked })}
+                  />
+                  Poésie flottante
+                </label>
                 <label>
                   Volume
                   <input

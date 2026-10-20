@@ -13,11 +13,28 @@ export class GenerativeScore {
   private random: () => number;
   private step = 0;
   private lastMelody = 66;
+  private harmony = [50, 57, 61, 66, 69];
   private motif = [0, 2, 1, 4, 2, 1, 3, 0];
   readonly beat: number;
   constructor(seed: number) {
     this.random = seededRandom(seed);
     this.beat = 60 / (66 + this.random() * 10);
+  }
+  response(position: number, pan: number): MusicalEvent {
+    const index = Math.min(
+      this.harmony.length - 1,
+      Math.floor(Math.max(0, Math.min(1, position)) * this.harmony.length),
+    );
+    let midi = this.harmony[index] + 12;
+    if (midi > 76) midi -= 12;
+    return {
+      kind: "melody",
+      midi,
+      duration: this.beat * 2,
+      gain: 0.08,
+      pan,
+      timbre: "string",
+    };
   }
   next(energy: number): MusicalEvent[] {
     const step = this.step++,
@@ -34,6 +51,7 @@ export class GenerativeScore {
       ],
       chord = chords[chordIndex],
       notes: MusicalEvent[] = [];
+    this.harmony = chord;
     if (beat === 0) {
       if (bar % 2 === 0)
         notes.push(
