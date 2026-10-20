@@ -7,6 +7,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { loadPhotoMatter } from "./photoMatter.js";
+import { addPNGCredits } from "./pngCredits.js";
 import SketchSurface from "./SketchSurface.jsx";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 import { requestGyroscope } from "../scene/gyroOrientation.ts";
@@ -29,6 +31,17 @@ class WorldBoundary extends Component {
   }
 }
 export default function SquiggleApp() {
+  const [photoMatter, setPhotoMatter] = useState(null),
+    [creditsOpen, setCreditsOpen] = useState(false);
+  useEffect(() => {
+    let active = true;
+    loadPhotoMatter().then((matter) => {
+      if (active) setPhotoMatter(matter);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const [erase, setErase] = useState(false),
     [recenter, setRecenter] = useState(0);
   const [strokes, setStrokes] = useState([]),
@@ -148,7 +161,10 @@ export default function SquiggleApp() {
     try {
       const fn = mode === "2d" ? capture2d.current : capture3d.current;
       if (!fn) return;
-      downloadBlob(await fn(), "squiggle-360.png");
+      downloadBlob(
+        await addPNGCredits(await fn(), photoMatter?.credits || []),
+        "squiggle-360.png",
+      );
     } catch (e) {
       setError(e.message);
     }
@@ -157,6 +173,7 @@ export default function SquiggleApp() {
     <main className={`squiggle-app is-${mode}`}>
       <SketchSurface
         strokes={strokes}
+        photoMatter={photoMatter}
         tool={tool}
         active={mode === "2d"}
         paused={paused}
@@ -174,6 +191,7 @@ export default function SquiggleApp() {
           >
             <World
               strokes={strokes}
+              photoMatter={photoMatter}
               draft={draft}
               source={source}
               paint={paint}
@@ -322,6 +340,14 @@ export default function SquiggleApp() {
             ↶
           </button>
           <button
+            className="squiggle-credit-button"
+            aria-label="Sources des matières"
+            aria-expanded={creditsOpen}
+            onClick={() => setCreditsOpen(!creditsOpen)}
+          >
+            ⓘ
+          </button>
+          <button
             aria-label="Autres outils"
             aria-expanded={more}
             onClick={() => setMore(!more)}
@@ -329,6 +355,45 @@ export default function SquiggleApp() {
             •••
           </button>
         </div>
+        {creditsOpen && (
+          <aside
+            className="squiggle-credits"
+            aria-label="Crédits photographiques"
+          >
+            <div>
+              <strong>Matières & sources</strong>
+              <button
+                aria-label="Fermer les crédits"
+                onClick={() => setCreditsOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <p>
+              Photographies recadrées, désaturées et mêlées aux pigments. Les
+              crédits sont aussi intégrés aux métadonnées du PNG.
+            </p>
+            {photoMatter ? (
+              photoMatter.credits.map((c) => (
+                <p key={c.source}>
+                  <a href={c.source} target="_blank" rel="noreferrer">
+                    {c.title}
+                  </a>
+                  <br />
+                  {c.artist} ·{" "}
+                  <a href={c.licenseURL} target="_blank" rel="noreferrer">
+                    {c.license}
+                  </a>
+                </p>
+              ))
+            ) : (
+              <p>
+                Textures procédurales actives. Les photographies libres
+                s’ajoutent lorsque Commons est accessible.
+              </p>
+            )}
+          </aside>
+        )}
         {more && (
           <div className="squiggle-more">
             <label>

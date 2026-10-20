@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { createEmotionWeather } from "../emociel/createEmotionWeather.js";
+import { createWatercolorField } from "./createWatercolorField.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
-import { drawAccents } from "./drawAccents.js";
-import { directionToPaper, paperToDisk } from "./brushes.js";
-function Painting({ strokes, draft, source, paused, onCapture }) {
+import { createWatercolorMotion } from "./drawAccents.js";
+import { directionToPaper } from "./brushes.js";
+function Painting({ strokes, draft, source, paused, onCapture, photoMatter }) {
   const { gl, scene, camera } = useThree(),
     time = useRef(0);
-  const weather = useMemo(() => createEmotionWeather(), []),
+  const weather = useMemo(
+      () =>
+        createWatercolorField({
+          mobile: innerWidth < 600 || matchMedia("(pointer: coarse)").matches,
+        }),
+      [],
+    ),
     texture = useMemo(() => {
       const t = new THREE.CanvasTexture(source.canvas);
       t.colorSpace = THREE.SRGBColorSpace;
@@ -24,11 +30,29 @@ function Painting({ strokes, draft, source, paused, onCapture }) {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.repeat.y = 1 / 0.92;
     texture.offset.y = -0.04 / 0.92;
-    return { canvas, ctx: canvas.getContext("2d"), texture, last: -1 };
+    return {
+      canvas,
+      ctx: canvas.getContext("2d"),
+      texture,
+      motion: createWatercolorMotion({ mobile: innerWidth < 600 }),
+      last: -1,
+    };
   }, []);
-  useEffect(() => () => accents.texture.dispose(), [accents]);
+  useEffect(
+    () => () => {
+      accents.texture.dispose();
+      accents.motion.dispose();
+    },
+    [accents],
+  );
+  useEffect(() => {
+    accents.motion.setPhotoMatter(photoMatter);
+    weather.setPhotoMatter(photoMatter);
+    accents.last = -1;
+  }, [photoMatter, accents, weather]);
   useEffect(() => {
     accents.last = -1;
+    accents.motion.setDocument(draft ? [...strokes, draft] : strokes);
   }, [strokes, draft, accents]);
   useEffect(() => () => weather.dispose(), [weather]);
   useEffect(() => () => texture.dispose(), [texture]);
@@ -36,12 +60,7 @@ function Painting({ strokes, draft, source, paused, onCapture }) {
     texture.needsUpdate = true;
   }, [source, texture]);
   useEffect(() => {
-    weather.setDocument(
-      (draft ? [...strokes, draft] : strokes).map((s) => ({
-        ...s,
-        points: s.points.map(paperToDisk),
-      })),
-    );
+    weather.setDocument(draft ? [...strokes, draft] : strokes);
   }, [strokes, draft, weather]);
   useEffect(() => {
     onCapture(
@@ -62,23 +81,21 @@ function Painting({ strokes, draft, source, paused, onCapture }) {
       accents.ctx.clearRect(0, 0, 512, 256);
       accents.ctx.save();
       accents.ctx.scale(512 / 768, 256 / 768);
-      drawAccents(
-        accents.ctx,
-        draft ? [...strokes, draft] : strokes,
-        time.current,
-      );
+      accents.motion.draw(accents.ctx, time.current);
       accents.ctx.restore();
       accents.texture.needsUpdate = true;
     }
+    gl.domElement.dataset.photoMatter = String(Boolean(photoMatter));
+    gl.domElement.dataset.materialStyle = "abstract-watercolor";
+    gl.domElement.dataset.particles = String(weather.stats.particles);
+    gl.domElement.dataset.veils = String(weather.stats.veils);
     gl.domElement.dataset.strokes = String(strokes.length);
     gl.domElement.dataset.animationTime = time.current.toFixed(3);
   });
   return (
     <>
       <color attach="background" args={["#faf7ef"]} />
-      <group position={[0, 0, -20]}>
-        <primitive object={weather.group} />
-      </group>
+      <primitive object={weather.group} />
       <mesh>
         <sphereGeometry args={[8.98, 64, 40]} />
         <meshBasicMaterial

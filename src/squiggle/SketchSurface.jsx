@@ -1,12 +1,9 @@
 import { useEffect, useRef } from "react";
-import {
-  createDiskPainter,
-  drawEmotionLife,
-  DISK_SIZE,
-} from "../emociel/emotionPainting.js";
-import { drawAccents } from "./drawAccents.js";
+import { createDiskPainter, DISK_SIZE } from "../emociel/emotionPainting.js";
+import { createWatercolorMotion } from "./drawAccents.js";
 export default function SketchSurface({
   strokes,
+  photoMatter,
   tool,
   active,
   paused,
@@ -24,7 +21,8 @@ export default function SketchSurface({
       preview = createDiskPainter({ clip: false }),
       canvas = ref.current,
       ctx = canvas.getContext("2d");
-    owner.current = { painter, document: [] };
+    const motion = createWatercolorMotion({ mobile: innerWidth < 600 });
+    owner.current = { painter, motion, document: [] };
     let held = null,
       frame = 0,
       last = 0,
@@ -42,16 +40,7 @@ export default function SketchSurface({
       ctx.fillRect(0, 0, DISK_SIZE, DISK_SIZE);
       ctx.drawImage(painter.canvas, 0, 0);
       if (held) ctx.drawImage(preview.canvas, 0, 0);
-      drawAccents(
-        ctx,
-        held ? [...live.current.strokes, held.stroke] : live.current.strokes,
-        time,
-      );
-      drawEmotionLife(
-        ctx,
-        held ? [...live.current.strokes, held.stroke] : live.current.strokes,
-        time,
-      );
+      motion.draw(ctx, time);
       canvas.dataset.strokes = String(live.current.strokes.length);
       canvas.dataset.animationTime = time.toFixed(3);
     };
@@ -67,6 +56,7 @@ export default function SketchSurface({
         stroke: { ...live.current.tool, points: [point(e)] },
       };
       preview.setDocument([held.stroke]);
+      motion.setDocument([...live.current.strokes, held.stroke]);
       draw();
     };
     const move = (e) => {
@@ -82,6 +72,7 @@ export default function SketchSurface({
         held.stroke.points.push(p);
       }
       preview.setDocument([held.stroke]);
+      motion.setDocument([...live.current.strokes, held.stroke]);
       draw();
     };
     const end = (e) => {
@@ -89,6 +80,7 @@ export default function SketchSurface({
       const stroke = held.stroke;
       held = null;
       preview.setDocument([]);
+      motion.setDocument(live.current.strokes);
       live.current.onStroke(stroke);
     };
     const tick = (now) => {
@@ -127,11 +119,15 @@ export default function SketchSurface({
         canvas.removeEventListener(key, end);
       canvas.removeEventListener("contextmenu", block);
       window.removeEventListener("blur", blur);
+      motion.dispose();
       painter.dispose();
       preview.dispose();
       owner.current = null;
     };
   }, []);
+  useEffect(() => {
+    owner.current?.motion.setPhotoMatter(photoMatter);
+  }, [photoMatter]);
   useEffect(() => {
     if (!owner.current) return;
     const { painter, document } = owner.current;
@@ -142,6 +138,7 @@ export default function SketchSurface({
       painter.stroke(strokes.at(-1));
     else painter.setDocument(strokes);
     owner.current.document = strokes;
+    owner.current.motion.setDocument(strokes);
     onSource({ canvas: painter.canvas, revision: strokes });
   }, [strokes]);
   return (
@@ -151,6 +148,8 @@ export default function SketchSurface({
       width={DISK_SIZE}
       height={DISK_SIZE}
       hidden={!active}
+      data-material-style="abstract-watercolor"
+      data-photo-matter={Boolean(photoMatter)}
       role="img"
       aria-label="Feuille de dessin animée"
     />

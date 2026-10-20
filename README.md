@@ -1,8 +1,8 @@
 # Squiggle 360 — Dessiner, puis entrer dans son dessin
 
 La page principale ouvre directement une feuille animée plein écran. Huit brosses
-émoji produisent du feu, de la pluie, des ondes, des rayons, des tourbillons,
-des éclats, de l’énergie et de la brume. Taille et annulation restent accessibles ;
+émoji sélectionnent huit dynamiques de pigments abstraits : voiles, diffusion,
+remous, nappes et poussières. Aucun pictogramme ni dessin figuratif n’est émis. Taille et annulation restent accessibles ;
 le bouton « Autres outils » déplie opacité, gomme par tracé, rétablissement,
 pause des animations, export PNG et effacement.
 
@@ -27,6 +27,37 @@ Le moteur Canvas des matières et le moteur Three.js des effets sont réutilisé
 `src/squiggle/` isole l’interface, les interactions, la projection et les deux vues.
 L’expérience CosmoMood précédente reste accessible via **`?cosmomood`**, avec sa
 musique et ses univers. Sa documentation historique est conservée ci-dessous.
+
+
+## Matières aquarellées et photographiques
+
+L’atlas procédural `pigmentAtlas.js` génère quatre masques de granulation,
+auréoles, réserves et bords humides, une seule fois par session. Le moteur Canvas
+prépare ses ancres hors animation. En 360°, `createWatercolorField` associe
+membranes plissées, nappes pigmentaires et poussières volumétriques en trois
+appels de dessin, avec plafonds mobiles (160 nappes, 2 800 particules et
+700 segments de membranes). Les textures et géométries sont libérées à la sortie.
+
+`photoMatter.js` demande jusqu’à quatre photographies de textures naturelles à
+Wikimedia Commons, sans clé. Seules CC BY, CC0 et domaine public avec métadonnées
+et liens vérifiables sont retenues ; les licences partage à l’identique sont
+exclues. Les vignettes sont recadrées, désaturées et leurs contrastes accentués.
+La photo se mélange en lumière douce/produit à la matière Canvas et module les
+pigments des shaders 3D. Aucun chargement réseau n’est effectué par frame.
+Cache de session et cache HTTP du navigateur ; délai global de dix secondes,
+vignettes de 512 px limitées à 3 Mo, quatre images maximum. En cas d’échec réseau,
+CORS ou décodage, le dessin reste procédural et disponible immédiatement.
+
+Les crédits restent derrière le bouton discret **ⓘ**. Auteur, source, licence et
+indication de transformation sont également intégrés au PNG via un bloc UTF-8
+iTXt, sans texte ajouté sur l’image. Les métadonnées peuvent être supprimées par
+des plateformes tierces : conserver les crédits lors d’une redistribution.
+Aucun fichier de photographie n’est ajouté au dépôt.
+
+Les tests vérifient le chargement et les erreurs Commons avec des réponses
+simulées, le mélange en 2D/3D, les bornes GPU, la libération des ressources et le
+CRC des métadonnées PNG. L’accès réel à Commons a échoué par résolution DNS dans
+l’environnement de développement ; sa disponibilité réelle n’a pas été validée.
 
 ---
 

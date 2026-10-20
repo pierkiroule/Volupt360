@@ -227,3 +227,32 @@
     margin-top: 2px;
   }
 }
+.squiggle-credit-button {
+  opacity: 0.55;
+  font-size: 15px;
+  padding: 0 8px;
+}
+.squiggle-credits {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: min(340px, calc(100vw - 28px));
+  max-height: 50dvh;
+  overflow: auto;
+  padding: 16px;
+  background: #faf8f1f5;
+  border: 1px solid #dce2df;
+  border-radius: 18px;
+  font-size: 11px;
+  line-height: 1.5;
+  box-shadow: 0 10px 40px #20353b18;
+}
+.squiggle-credits div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.squiggle-credits a {
+  color: #315e6b;
+  text-underline-offset: 2px;
+}
