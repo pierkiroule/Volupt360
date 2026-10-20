@@ -1,72 +1,78 @@
-# EmoCiel360
+# EmoCiel360 — Composer et traverser son ciel
 
-**Peins ton ciel émotionnel en 2D. Contemple et traverse ta peinture en 360°.**
+Le visiteur fait tourner une bulle 3D et dépose à sa surface des tags émojis qu’il
+choisit lui-même. Les couleurs se rencontrent et composent progressivement un ciel
+animé. Un glissement fait tourner la bulle ; un toucher bref dépose un tag. Le choix
+« Retirer » enlève le tag le plus proche du point touché. Présence du ressenti,
+annuler/rétablir et mot personnel facultatif complètent une petite palette de douze
+repères émotionnels.
 
-L’atelier propose cinq outils : Lavis, Pigments secs, Encre, Taches et Gomme.
-Couleurs libres, taille et opacité accompagnent des gestes spontanés. Aucun choix
-de couleur ou de forme ne reçoit d’interprétation psychologique automatique.
+## Entrer, contempler, traverser
 
-Les empreintes pigmentaires sont superposées avec des orientations variées, sans tuile rectangulaire ni silhouette polygonale répétée. Les matières sont procédurales et reproductibles : granulation, bords irréguliers,
-accumulations pigmentaires, réserves de papier, fibres sèches et auréoles. Le lavis
-reste connecté ; les taches produisent des silhouettes organiques abstraites.
-Les outils, annuler/rétablir, l’export PNG et l’effacement annulable sont dans une
-barre pliable. Ctrl/Cmd Z, Maj Z et Y fonctionnent aussi.
+« Entrer dans ma bulle » ouvre le même ciel à 360°, orienté vers le dernier dépôt.
+La contemplation maintient la position de la caméra : le doigt et le gyroscope
+orientent uniquement le regard. Le vol FPV réactive le déplacement : maintenir
+accélère progressivement, glisser oriente le vol, relâcher retrouve une trajectoire
+accompagnée qui reste près du ciel. Le bouton « Contempler » interrompt le voyage.
+Le gyroscope est facultatif et conserve une alternative tactile.
 
-## Une peinture vivante, sans audio
+Les animations sont autonomes et silencieuses. Les tags ne déclenchent ni analyse
+audio ni musique. Les variations de matière, grains et filaments réutilisent le
+moteur Three.js existant. La préférence de réduction des mouvements est respectée.
 
-La page anime des phénomènes locaux de diffusion et des auréoles, avec des overlays
-masqués par la peinture. Le document sec de référence reste inchangé : l’animation
-n’érode ni ne remplace les gestes. Les textures sont calculées et mises en cache
-pendant la création, jamais pendant l’animation.
+## Explorer une dynamique, sans corriger ses émotions
 
-« Entrer dans mon ciel » déploie la même image en panorama en relief. Courants,
-respiration et ondulations suivent des champs temporels autonomes. Particules et
-filaments naissent uniquement des zones peintes et reprennent leurs couleurs.
-Il n’y a ni import MP3, ni lecture audio, ni audioreactivité dans ce parcours.
-Les variations ne cherchent pas à imposer un rythme respiratoire.
+Cinq présentations sont proposées : Mon ciel, Faire de la place, Chercher un appui,
+Faire des liens, Un autre regard. Les variations concernent l’espace, l’éclairage
+ou les courants visuels ; elles ne suppriment ni ne remplacent les ressentis.
+Elles sont réversibles. Une question métaphorique s’ouvre uniquement lorsque le
+visiteur choisit une piste. Elle peut être fermée immédiatement ou remplacée par
+une autre invitation. Aucune réponse n’est exigée ou enregistrée.
 
-Le voyage peut être suspendu pour contempler. Le regard s’oriente au doigt ou au
-gyroscope ; WebXR reste disponible sur matériel compatible. Le retour à la page
-retrouve le dessin et son historique. L’export PNG utilise la peinture de référence
-sur papier clair, sans les contrôles de l’interface.
+« Lire mon ciel » décrit exclusivement les choix déclarés : nombre de tags,
+diversité des ressentis nommés, voisinages et répartition géométrique. Il ne classe
+pas les émotions en bonnes ou mauvaises, n’attribue aucun score psychologique et
+n’infère ni diagnostic, ni risque, ni efficacité thérapeutique. Ambivalence,
+contraste et coexistence sont des lectures que la personne peut choisir elle-même.
+Un besoin facultatif peut servir à choisir explicitement une piste d’exploration.
 
 ## Architecture
 
-- `src/resonant/ResonantPaint.jsx` : atelier et transitions, avec configuration
-  projective activée par défaut.
-- `projectivePigment.js` : quatre signatures picturales, textures et contours.
-- `drawingSurface.js` : image source, commandes, gomme, historique et export.
-- `createPaperLife.js` : animation locale Canvas 2D, masques et cache de zones peintes.
-- `createResonantWorld.js` : panorama et champs autonomes, réduction des mouvements.
-- `createResonantEffects.js` : deux lots GPU de particules et de filaments.
-- `src/engine/createSoundNest.js` : moteur Three.js et navigation existants réutilisés.
+- `src/emociel/skyModel.js` : palette, questions, texture de la bulle et descriptif
+  des déclarations et voisinages géométriques.
+- `src/emociel/OrbEditor.jsx` : bulle 3D, rotation et dépôt par raycasting UV.
+- `src/emociel/OrbExperience.jsx` : composition, historique, contemplation, FPV,
+  besoins et invitations.
+- `src/resonant/createResonantWorld.js` : déploiement intérieur, animation autonome
+  et variations visuelles progressives.
+- `src/engine/createCameraRig.js` : blocage de la translation en contemplation et
+  navigation FPV existante réutilisée.
 
-Les anciens parcours restent accessibles : `?resonant` pour Resonant Paint avec MP3,
-`?atelier` pour l’ancien atelier partagé et les paramètres historiques `?legacy`,
-`?classic`, `?conte` et `?original`.
+Les textures sont recalculées uniquement lors d’un dépôt ou d’une modification.
+L’extérieur et l’intérieur partagent les mêmes tags et la même projection de ciel.
+La texture de 1536 × 768 pixels est réutilisée. L’éditeur extérieur ne rend pas
+pendant la visite intérieure ; son ratio de pixels est plafonné à 1,6. Les effets
+intérieurs conservent les budgets mobiles précédents. Ressources, écouteurs et
+boucles sont libérés à la fermeture.
 
-## Budgets et limites
+## Données et limites
 
-Le document de référence fait 1200 × 800 pixels. Il est borné à 300 gestes de 2048
-points maximum. Le contour pictural utilise un pas adaptatif pour borner sa complexité.
-Le cache contient au maximum 16 jeux de trois empreintes teintées de 192 pixels. La page anime à 25
-images/s maximum au repos, et répond directement aux événements de dessin pendant
-le geste. La boucle se suspend lorsque l’onglet est caché et respecte la préférence
-de réduction des mouvements.
+La composition et les mots restent uniquement en mémoire dans l’onglet. Aucun
+backend, compte, partage ou sauvegarde automatique. Le parcours actuel ne propose
+pas encore d’export de projet. Fermer ou recharger la page réinitialise la création.
+La bulle est limitée à 96 tags et l’historique à 80 étapes. Le descriptif spatial
+est géométrique et ne constitue pas une mesure psychologique de complexité.
 
-La 3D réutilise sa texture, ses géométries et ses buffers. Les budgets d’effets sont
-1400 particules et 32 filaments sur mobile, 3200 particules et 64 filaments sur
-ordinateur. Les effets sont entièrement animés sur le GPU. Ressources et écouteurs
-sont libérés à la fermeture.
+Le rendu intérieur est une projection panoramique en relief, pas une reconstruction
+volumétrique physique. Les symboles peuvent se déformer près des pôles. Le matériel
+physique (gyroscope et performances prolongées Android/iOS) reste à vérifier.
+L’outil constitue une exploration artistique ; aucune efficacité thérapeutique
+validée n’est revendiquée.
 
-Le relief est une transduction panoramique : les pôles peuvent étirer les traits,
-et les bords du dessin se rejoignent. Ce n’est pas une reconstruction volumétrique
-physique. La session reste en mémoire : exporter avant de fermer. Pas de calques,
-ni de sauvegarde de projet éditable pour l’instant. Les performances prolongées
-sur téléphones physiques et casques restent à mesurer. Aucun backend ou transfert
-des créations n’est utilisé.
+Les anciens ateliers restent accessibles avec `?peinture` (aquarelle), `?resonant`
+(dessin classique/MP3), `?atelier`, `?legacy`, `?classic`, `?conte` ou `?original`.
 
-## Développement
+## Développement et vérifications
 
 Node.js 22.12 minimum, Node 24 recommandé.
 
@@ -74,15 +80,7 @@ Node.js 22.12 minimum, Node 24 recommandé.
 npm ci
 npm run dev
 npm run build
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/orb-experience.spec.js tests/emociel.spec.js tests/resonant-paint.spec.js tests/spatial-workshop.spec.js
 ```
 
-Vercel : `npm run build`, sortie `dist`. Aucun secret ni API payante.
-
-```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/emociel.spec.js tests/resonant-paint.spec.js
-```
-
-Les tests couvrent les textures, l’historique, les animations autonomes, l’absence
-d’import musical dans EmoCiel, la réduction des mouvements et les régressions du
-parcours Resonant Paint. Les capteurs réels et le casque doivent être vérifiés sur
-les appareils concernés.
+Vercel : `npm run build`, sortie `dist`. Pas de clé API ni dépendance ajoutée.

@@ -14,7 +14,7 @@ test("EmoCiel has five projective tools, animated paper and a silent autonomous 
   page.on("request", (r) => {
     if (/\.mp3(?:\?|$)/.test(r.url())) audioRequests.push(r.url());
   });
-  await page.goto("/");
+  await page.goto("/?peinture");
   await expect(page.getByRole("heading", { name: "EmoCiel360" })).toBeVisible();
   await expect(
     page
@@ -58,7 +58,7 @@ test("EmoCiel has five projective tools, animated paper and a silent autonomous 
 test("dry pigment structures are seeded, detailed, distinct and preserved through history", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?peinture");
   const r = await page.evaluate(async () => {
     const { createDrawingSurface } =
       await import("/src/resonant/drawingSurface.js");
@@ -108,7 +108,7 @@ test("dry pigment structures are seeded, detailed, distinct and preserved throug
 test("autonomous world ignores audio input and reduced motion freezes the paper", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?peinture");
   const r = await page.evaluate(async () => {
     const { createResonantWorld } =
       await import("/src/resonant/createResonantWorld.js");
@@ -146,7 +146,7 @@ test.describe("EmoCiel mobile", () => {
   test("touch paints textured matter, returns from the world and exports the unchanged source", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/?peinture");
     const canvas = page.getByRole("img", { name: "Dessin 2D" }),
       r = await canvas.boundingBox();
     const client = await page.context().newCDPSession(page);
@@ -190,7 +190,7 @@ test.describe("EmoCiel mobile", () => {
 test("layered watercolor composition preserves transparency, has no seam and survives undo", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?peinture");
   const result = await page.evaluate(async () => {
     const { createDrawingSurface } =
       await import("/src/resonant/drawingSurface.js");

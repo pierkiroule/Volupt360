@@ -3970,3 +3970,348 @@ label:focus-visible {
     scroll-behavior: auto;
   }
 }
+
+.orb-experience {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 42%, #fdfbf8, #e6e2e5);
+  color: #36454d;
+  font:
+    13px/1.45 system-ui,
+    sans-serif;
+  isolation: isolate;
+}
+.orb-experience button,
+.orb-experience select,
+.orb-experience input {
+  font: inherit;
+}
+.orb-experience button {
+  min-height: 40px;
+  border: 1px solid #647c8528;
+  border-radius: 12px;
+  background: #faf8f1ef;
+  color: inherit;
+  padding: 7px 11px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.orb-experience button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.orb-experience button[aria-pressed="true"],
+.orb-experience button.is-selected {
+  background: #dce8e6;
+  box-shadow: inset 0 0 0 1px #668e92;
+}
+.orb-experience :focus-visible {
+  outline: 2px solid #547e87;
+  outline-offset: 3px;
+}
+.orb-header {
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: #fbf8f1cb;
+}
+.orb-header h1 {
+  font:
+    27px/1.2 Georgia,
+    serif;
+  margin: 0;
+  letter-spacing: -1px;
+}
+.orb-header h1 span {
+  color: #958091;
+}
+.orb-header p {
+  font-size: 11px;
+  margin: 5px 0 0;
+  max-width: 260px;
+  opacity: 0.76;
+}
+.orb-header .orb-primary {
+  background: #536f78;
+  color: #fff;
+  border: 0;
+  max-width: 155px;
+}
+.orb-editor {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 180px;
+  touch-action: none;
+}
+.orb-editor[hidden] {
+  display: none;
+}
+.orb-editor canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.orb-hint {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  font:
+    12px/1.5 Georgia,
+    serif;
+  margin: 0 18px 10px;
+  color: #6a747d;
+}
+.orb-tools {
+  position: relative;
+  z-index: 4;
+  box-sizing: border-box;
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  border: 1px solid #7b859528;
+  background: #faf7f0ef;
+  border-radius: 22px 22px 0 0;
+}
+.orb-palette {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+.orb-palette button {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  min-width: 0;
+  padding: 4px 1px;
+  border-color: transparent;
+}
+.orb-palette span {
+  font-size: 23px;
+}
+.orb-palette small {
+  font-size: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.orb-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+.orb-row label {
+  font-size: 10px;
+  display: grid;
+  min-width: 90px;
+  flex: 1;
+}
+.orb-row input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #688c96;
+}
+.orb-row .tool-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.orb-meaning {
+  font-size: 10px;
+  padding-top: 8px;
+}
+.orb-meaning summary {
+  cursor: pointer;
+  text-align: center;
+  opacity: 0.75;
+}
+.orb-meaning label {
+  display: grid;
+  gap: 5px;
+  margin-top: 6px;
+}
+.orb-meaning input {
+  padding: 8px;
+  border: 1px solid #a6b2b8;
+  border-radius: 9px;
+}
+.orb-about {
+  z-index: 4;
+  font-size: 10px;
+  padding: 4px 12px;
+  background: #faf7f0;
+  text-align: center;
+}
+.orb-about summary {
+  cursor: pointer;
+}
+.orb-about p {
+  max-width: 550px;
+  margin: 8px auto;
+}
+.orb-inside .orb-tools {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.orb-evolution {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  margin-top: 9px;
+}
+.orb-experience select {
+  max-width: 100%;
+  border: 1px solid #7a8f9a55;
+  border-radius: 9px;
+  padding: 8px;
+  background: #fffdf8;
+  color: inherit;
+}
+.orb-question {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 175px;
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 28px));
+  box-sizing: border-box;
+  background: #fffaf0ef;
+  border: 1px solid #a3a2a23a;
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 8px 40px #3b4d5b17;
+}
+.orb-question > span {
+  font-size: 10px;
+  opacity: 0.65;
+}
+.orb-question p {
+  font:
+    21px/1.5 Georgia,
+    serif;
+  margin: 14px 0;
+}
+.orb-question small {
+  display: block;
+  margin-top: 10px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+.orb-close {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  font-size: 20px !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.orb-question-recall {
+  display: block;
+  margin: 8px auto 0;
+  min-height: 28px !important;
+  font-size: 11px !important;
+}
+.orb-reflection {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 100px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 28px));
+  max-height: calc(100dvh - 270px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 22px;
+  background: #fffaf3f7;
+  border-radius: 22px;
+  box-shadow: 0 10px 40px #34495722;
+}
+.orb-reflection h2 {
+  font:
+    23px Georgia,
+    serif;
+  margin: 0 0 12px;
+}
+.orb-reflection ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+}
+.orb-reflection li {
+  background: #e5e9ed;
+  padding: 5px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+.orb-reflection label {
+  display: grid;
+  gap: 5px;
+  margin: 12px 0;
+  font-size: 11px;
+}
+.orb-note {
+  font-size: 10px;
+  opacity: 0.75;
+}
+.orb-error {
+  position: absolute;
+  z-index: 8;
+  top: 95px;
+  left: 5%;
+  right: 5%;
+  padding: 12px;
+  background: #fff4de;
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .orb-tools {
+    width: 330px;
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    border-radius: 18px;
+  }
+  .orb-editor {
+    margin-right: 340px;
+  }
+  .orb-header {
+    padding: 5px 12px;
+  }
+  .orb-palette span {
+    font-size: 19px;
+  }
+  .orb-hint {
+    margin-right: 350px;
+    font-size: 10px;
+  }
+  .orb-inside .orb-tools {
+    left: auto;
+    transform: none;
+  }
+  .orb-question {
+    bottom: 20px;
+    left: 12px;
+    transform: none;
+    width: calc(100% - 365px);
+    max-height: 70dvh;
+    overflow: auto;
+  }
+}

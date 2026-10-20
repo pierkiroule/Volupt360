@@ -1,3 +1,4 @@
+import OrbExperience from "./emociel/OrbExperience.jsx";
 import ResonantPaint from "./resonant/ResonantPaint.jsx";
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -16,10 +17,13 @@ createRoot(document.getElementById("root")).render(
       <ChillExperience />
     ) : new URLSearchParams(location.search).has("atelier") ? (
       <WatercolorWorkshop />
-    ) : (
+    ) : new URLSearchParams(location.search).has("resonant") ||
+      new URLSearchParams(location.search).has("peinture") ? (
       <ResonantPaint
         projective={!new URLSearchParams(location.search).has("resonant")}
       />
+    ) : (
+      <OrbExperience />
     )}
   </React.StrictMode>,
 );

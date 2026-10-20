@@ -1542,6 +1542,15 @@ export function createSoundNest(
       }
       resonantWorld.setCanvas(canvas);
     },
+    lookPanorama(direction) {
+      rig.setPanoramaLook(new THREE.Vector3(...direction));
+    },
+    setPanoramaTranslation(value) {
+      rig.setPanoramaTranslation(value);
+    },
+    setSkyEvolution(id) {
+      resonantWorld?.setEvolution(id);
+    },
     setResonantAnimation(style) {
       resonantWorld?.setStyle(style);
     },
