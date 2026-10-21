@@ -100,7 +100,7 @@ function Painting({ strokes, draft, source, paused, onCapture, materials }) {
   });
   return (
     <>
-      <color attach="background" args={["#faf7ef"]} />
+      <color attach="background" args={["#05070d"]} />
       <primitive object={weather.group} />
       <mesh>
         <sphereGeometry args={[8.98, 64, 40]} />

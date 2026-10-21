@@ -36,11 +36,13 @@ export default function SketchSurface({
     };
     const draw = () => {
       if (!live.current.active) return;
-      ctx.fillStyle = "#faf7ef";
+      ctx.fillStyle = "#05070d";
       ctx.fillRect(0, 0, DISK_SIZE, DISK_SIZE);
+      ctx.globalCompositeOperation = "screen";
       ctx.drawImage(painter.canvas, 0, 0);
       if (held) ctx.drawImage(preview.canvas, 0, 0);
       motion.draw(ctx, time);
+      ctx.globalCompositeOperation = "source-over";
       canvas.dataset.strokes = String(live.current.strokes.length);
       canvas.dataset.animationTime = time.toFixed(3);
     };

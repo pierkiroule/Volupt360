@@ -61,12 +61,12 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
     void main(){
       float h=heightAt(U);
       vec3 n=normalize(N);
-      float light=.72+.28*abs(dot(n,normalize(vec3(-.55,.8,.9))));
+      float light=.88+.12*abs(dot(n,normalize(vec3(-.55,.8,.9))));
       float naturalGrain=texture2D(displacementNoise,U*vec2(2.,1.4)+F.z*.13).g;
       float pigment=(.62+.58*h)*(.83+naturalGrain*.32);
       vec2 surfaceUV=vec2((F.x+.01+fract(U.x*1.7+F.z*.11)*.98)/${PIGMENT_COLUMNS}.,.01+U.y*.98);
       vec4 matter=texture2D(materialColor,surfaceUV);
-      vec3 lit=mix(C,matter.rgb,matter.a*.72)*pigment*light;
+      vec3 lit=mix(C,mix(matter.rgb,C,.32),matter.a*.56)*pigment*light;
       float wetEdge=(texture2D(displacementNoise,vec2(U.x*.7+F.z*.17,U.y*.13)).b-.5)*.11;
       float edge=smoothstep(0.,.17,U.y+wetEdge)*(1.-smoothstep(.83,1.,U.y+wetEdge));
       float ends=smoothstep(0.,.07,U.x)*(1.-smoothstep(.93,1.,U.x));

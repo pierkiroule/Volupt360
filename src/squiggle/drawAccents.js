@@ -110,10 +110,11 @@ export function createWatercolorMotion({ mobile = false } = {}) {
     },
     draw(ctx, time) {
       for (const a of anchors) {
-        const phase = a.seed + time * (0.16 + a.family * 0.018);
+        const phase = a.seed + time * (0.12 + a.family * 0.012);
         const drift = a.size * (0.035 + (a.family === 7 ? 0.055 : 0));
         const w = a.size * (1.05 + 0.12 * Math.sin(phase));
         ctx.save();
+        ctx.globalCompositeOperation = "screen";
         ctx.translate(
           a.x + Math.sin(phase) * drift,
           a.y + Math.cos(phase * 0.73) * drift,
@@ -145,7 +146,7 @@ export function createWatercolorMotion({ mobile = false } = {}) {
             w * 0.84,
           );
         // Fine pigment dust follows a continuous orbit, never symbolic sprites.
-        ctx.fillStyle = "#304b5d";
+        ctx.fillStyle = "#e0edfa";
         ctx.globalAlpha = a.opacity * 0.35;
         for (let j = 0; j < 2; j++) {
           const p = phase + j * 3.1,

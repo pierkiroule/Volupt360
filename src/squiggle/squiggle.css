@@ -2,8 +2,8 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #faf7ef;
-  color: #30474b;
+  background: #05070d;
+  color: #e3e9ef;
   font-family: system-ui, sans-serif;
   touch-action: none;
 }
@@ -39,21 +39,21 @@
 .squiggle-header h1 span {
   font-size: 16px;
   letter-spacing: 0.08em;
-  color: #7c9fa6;
+  color: #a6c6d4;
 }
 .squiggle-header p {
   font-size: 11px;
   margin: 5px 0;
-  color: #5b7074;
-  text-shadow: 0 1px #fff;
+  color: #a8b7c8;
+  text-shadow: 0 1px 8px #000;
 }
 .squiggle-app button {
   min-height: 44px;
   min-width: 44px;
   border-radius: 18px;
-  border: 1px solid #819b9e40;
-  background: #fff9;
-  color: #30474b;
+  border: 1px solid #bbd6ee30;
+  background: #151e2bc9;
+  color: #e3e9ef;
   font: inherit;
   cursor: pointer;
   pointer-events: auto;
@@ -68,7 +68,7 @@
   cursor: default;
 }
 .squiggle-app .squiggle-switch {
-  background: #365e68;
+  background: #304759;
   color: #fff;
   padding: 0 18px;
   font-size: 14px;
@@ -81,9 +81,9 @@
   transform: translateX(-50%);
   width: min(510px, calc(100% - 24px));
   padding: 8px 10px;
-  border: 1px solid #ffffffbb;
+  border: 1px solid #bdd7ed26;
   border-radius: 25px;
-  background: #faf8f0e8;
+  background: #111925cf;
   backdrop-filter: blur(16px);
   box-shadow: 0 5px 35px #29454b15;
 }
@@ -103,8 +103,8 @@
   padding: 0;
 }
 .squiggle-brushes button[aria-pressed="true"] {
-  background: #dce8e8;
-  border-color: #a5bfc4;
+  background: #33475b;
+  border-color: #98bfdb;
 }
 .squiggle-controls {
   display: flex;
@@ -124,7 +124,7 @@
 .squiggle-app input[type="range"] {
   width: 100%;
   min-width: 45px;
-  accent-color: #487581;
+  accent-color: #b2d6e5;
   min-height: 35px;
   touch-action: auto;
 }
@@ -148,7 +148,7 @@
 .squiggle-more button {
   font-size: 12px;
   padding: 0 12px;
-  background: #fff6;
+  background: #23304499;
 }
 .squiggle-view-tools {
   max-width: calc(100% - 24px);
@@ -163,7 +163,7 @@
   gap: 5px;
   padding: 4px;
   border-radius: 22px;
-  background: #faf8f0cc;
+  background: #111925c9;
   backdrop-filter: blur(12px);
   white-space: nowrap;
 }
@@ -174,7 +174,7 @@
   background: transparent;
 }
 .squiggle-view-tools button[aria-pressed="true"] {
-  background: #dce8e8;
+  background: #33475b;
 }
 .squiggle-error {
   position: absolute;
@@ -183,7 +183,7 @@
   max-width: calc(100% - 28px);
   padding: 12px 50px 12px 18px;
   border-radius: 18px;
-  background: #fff0d9;
+  background: #352d26;
   font-size: 13px;
   box-shadow: 0 4px 22px #0002;
 }
@@ -201,8 +201,8 @@
   place-items: center;
   padding: 90px 30px 160px;
   text-align: center;
-  background: #faf7ef;
-  color: #30474b;
+  background: #05070d;
+  color: #e3e9ef;
 }
 @media (max-width: 420px) {
   .squiggle-header {

@@ -46,8 +46,12 @@ export function createWatercolorField({ mobile = false } = {}) {
       vertexColors: true,
       transparent: true,
       depthWrite: false,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneMinusSrcColorFactor,
+      premultipliedAlpha: true,
       vertexShader: `attribute vec3 flow;attribute vec4 matter;uniform float time,pixelRatio;varying vec3 C;varying vec4 D;
-      void main(){float seed=matter.x;float speed=${veil ? ".13+matter.w*.02" : ".45+matter.w*.035"};float t=time*speed;
+      void main(){float seed=matter.x;float speed=${veil ? ".13+matter.w*.02" : ".25+matter.w*.02"};float t=time*speed;
         float age=fract(seed+t*.12);float breath=.5+.5*sin(t+seed*31.);
         vec3 radial=normalize(position); vec3 across=normalize(cross(radial,flow));
         vec3 p=position+flow*sin(t+seed*21.)*matter.y*.7+across*cos(t*.73+seed*17.)*matter.y*.55;
@@ -65,11 +69,11 @@ export function createWatercolorField({ mobile = false } = {}) {
             ? `q.x*=.84;q.y*=1.15; if(max(abs(q.x),abs(q.y))>.49)discard;
           float tile=mod(floor(D.z),${PIGMENT_COLUMNS}.);float ink=texture2D(pigment,vec2((tile+q.x+.5)/${PIGMENT_COLUMNS}.,q.y+.5)).a;
           float ridge=.68+.32*sin(q.x*13.+q.y*5.+D.w*.4+D.x*17.);
-          float alpha=ink*D.y;vec3 tint=C*(.68+ridge*.32);`
+          float alpha=ink*D.y;vec3 tint=C*(.88+ridge*.24);`
             : `float r=length(q);float alpha=(1.-smoothstep(.06,.5,r))*D.y;
-          alpha*=.8+.2*sin(q.x*32.+q.y*29.+D.x*173.);vec3 tint=mix(C,C*.48,.3);`
+          alpha*=.8+.2*sin(q.x*32.+q.y*29.+D.x*173.);vec3 tint=mix(C,vec3(.88,.94,1.),.18);`
         }
-        if(alpha<.003)discard;gl_FragColor=vec4(tint,alpha);
+        if(alpha<.003)discard;gl_FragColor=vec4(tint*alpha,alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
