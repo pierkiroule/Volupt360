@@ -9,7 +9,7 @@ test("paint a shared disk landscape, visit it and return without losing strokes"
     if (m.type() === "error" && /THREE|shader|WebGL/i.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?squibble");
   await expect(
     page.getByRole("group", { name: "Palette de brosses" }).getByRole("button"),
   ).toHaveCount(12);
@@ -54,7 +54,7 @@ test("paint a shared disk landscape, visit it and return without losing strokes"
 test("relief follows painted coordinates with distinct peaks and water valleys and owns bounded resources", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?squibble");
   const result = await page.evaluate(async () => {
     const { createLandscape } = await import("/src/squiggle/landscapeModel.js");
     const mountain = {
@@ -121,7 +121,7 @@ test("mobile disk stays paintable with touch and a complete tactile visit", asyn
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?squibble");
   const canvas = page.locator(".landscape-disk canvas");
   await expect(canvas).toHaveAttribute("data-landscape-mode", "disk");
   const box = await canvas.boundingBox();
@@ -169,7 +169,7 @@ test("gyro rotates the view without translation and disabling it preserves tacti
   await page.addInitScript(() => {
     window.DeviceOrientationEvent.requestPermission = async () => "granted";
   });
-  await page.goto("/");
+  await page.goto("/?squibble");
   const canvas = page.locator(".landscape-disk canvas");
   await expect(canvas).toHaveAttribute("data-landscape-mode", "disk");
   const b = await canvas.boundingBox();

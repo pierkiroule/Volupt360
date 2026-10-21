@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("painted gestures become bounded spatial ribbons and respond to audio on the GPU", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?squibble");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/three/build/three.module.js");
     const { spatializeInk } =
@@ -90,7 +90,7 @@ test("enter an immersive universe without a ground plane, pause and export", asy
     if (m.type() === "error" && /shader|WebGL|THREE/i.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?squibble");
   const disk = page.locator(".landscape-disk canvas");
   await expect(disk).toHaveAttribute("data-landscape-mode", "disk");
   const b = await disk.boundingBox();

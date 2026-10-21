@@ -8,14 +8,16 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test:sensory": "node --experimental-strip-types --test tests/sensory-engine.unit.ts",
-    "textures:placeholders": "node scripts/generate-texture-placeholders.mjs"
+    "textures:placeholders": "node scripts/generate-texture-placeholders.mjs",
+    "test:studio": "playwright test tests/studio.spec.js",
+    "test:studio:offline": "playwright test tests/studio-offline.spec.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
