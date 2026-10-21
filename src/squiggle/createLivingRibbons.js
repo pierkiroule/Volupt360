@@ -71,7 +71,9 @@ export function createLivingRibbons({ mobile = false } = {}) {
         float grain=texture2D(pigment,q).a;
         float wet=texture2D(noise,U*vec2(2.,1.)+L.x*.11).b;
         // Warp within a padded atlas cell: organic image structure, no cross-tile bleed.
-        vec2 paperUV=clamp(U+drift*vec2(.065,.11),vec2(.015),vec2(.985));
+        // Mirrored repeats keep image features readable instead of stretching one photo over a whole path.
+        float repeatX=1.-abs(mod(U.x*5.+L.x*.07,2.)-1.);
+        vec2 paperUV=clamp(vec2(repeatX,U.y)+drift*vec2(.035,.06),vec2(.015),vec2(.985));
         vec4 source=texture2D(matter,vec2((tile+.01+paperUV.x*.98)/8.,.01+paperUV.y*.98));
         float detail=dot(source.rgb,vec3(.2126,.7152,.0722));
         float deposits=smoothstep(.12,.78,1.-detail)*source.a;
@@ -82,17 +84,19 @@ export function createLivingRibbons({ mobile = false } = {}) {
         float granulation=smoothstep(.18,.8,wet*grain)*textureGrain+deposits*.18;
         float rim=exp(-pow((U.y-.12-drift.y*.05)*32.,2.))+exp(-pow((U.y-.88-drift.y*.05)*32.,2.));
         float alpha=drawn*fading*birth*edge*ends*(.24+grain*.48+granulation*.22+rim*.16)*(.8+wet*.2);
-        alpha*=.75+audio.x*.16+pulse*.08;
+        alpha*=1.08+audio.x*.16+pulse*.08;
         // Soft-light preserves the chosen pigment; multiply deposits ink in darker image details.
         vec3 stained=softLight(C,source.rgb);
-        vec3 dye=mix(C,stained,source.a*.72);
+        // Retain image chroma and internal contrast: soft-light alone erased the photographs.
+        vec3 textured=mix(stained,source.rgb,.68);
+        vec3 dye=mix(C,textured,source.a*.9);
         dye*=1.-deposits*.24;
-        alpha*=mix(1.,.65+detail*.2+deposits*.5,source.a);
+        alpha*=mix(1.,.85+detail*.15+deposits*.35,source.a);
         vec3 color=dye*(.63+grain*.23+wet*.12);
         color*=1.-rim*.2-granulation*.12;
         alpha*=.88+tide*.12;
         if(alpha<.004)discard;
-        gl_FragColor=vec4(color,alpha);
+        gl_FragColor=vec4(color,min(alpha,.94));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
@@ -150,8 +154,8 @@ export function createLivingRibbons({ mobile = false } = {}) {
         (i + family) % 3 === 0
           ? 0.025 + rand() * 0.04
           : (i + family) % 3 === 1
-            ? 0.16 + rand() * 0.13
-            : 0.32 + rand() * 0.35;
+            ? 0.24 + rand() * 0.18
+            : 0.48 + rand() * 0.45;
       color.set(item.color);
       const rows = [];
       for (let j = 0; j <= segments; j++) {
