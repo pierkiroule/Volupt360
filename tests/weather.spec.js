@@ -7,7 +7,7 @@ async function place(page, name, x, y) {
 test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?meteo");
   await expect(
     page.getByRole("button", { name: "Entrer dans mon ciel ↗" }),
   ).toBeDisabled();
@@ -57,7 +57,7 @@ test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
 });
 test("explicit local save, reload and mobile tools fit", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?meteo");
   await place(page, "Orage", 0.4, 0.4);
   await place(page, "Crépuscule", 0.7, 0.65);
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
@@ -74,7 +74,7 @@ test("explicit local save, reload and mobile tools fit", async ({ page }) => {
 test("all weather materials stay finite and malformed saved data is rejected", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?meteo");
   const result = await page.evaluate(async () => {
     const m = await import("/src/weather/weatherModel.ts");
     localStorage.setItem(
@@ -155,7 +155,7 @@ test("imaginary weather compiles its watercolor shaders, pauses and preserves th
       errors.push(m.text());
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?meteo");
   await place(page, "Aurore imaginaire", 0.28, 0.35);
   await place(page, "Pluie suspendue", 0.7, 0.38);
   await place(page, "Reflets irisés", 0.5, 0.72);
@@ -197,7 +197,7 @@ test("watercolor ground renders and flight keeps clearance above hills", async (
     if (m.type() === "error" && /WebGL|shader|GL_INVALID|THREE/i.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?meteo");
   await place(page, "Rayonnement", 0.5, 0.5);
   await place(page, "Pluie", 0.3, 0.4);
   await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
@@ -256,7 +256,7 @@ test("tilted-phone gyro turns preserve a level horizon and fixed contemplation p
       },
     });
   });
-  await page.goto("/");
+  await page.goto("/?meteo");
   await place(page, "Rayonnement", 0.5, 0.5);
   await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
   await page.getByRole("button", { name: "360°", exact: true }).click();
@@ -316,7 +316,7 @@ test("tilted-phone gyro turns preserve a level horizon and fixed contemplation p
 test("horizon calibration remains finite across screen rotations, poles and heading wrap", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?meteo");
   const result = await page.evaluate(async () => {
     const { HorizonGyro, angleDelta } =
       await import("/src/weather/HorizonGyro.ts");
@@ -349,7 +349,7 @@ test("horizon calibration remains finite across screen rotations, poles and head
 test("emoji skydomes are deterministic, seamless and react to the composition", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?meteo");
   const result = await page.evaluate(async () => {
     const m = await import("/src/weather/skydomeTexture.ts");
     const z = {
@@ -403,7 +403,7 @@ test("generated skydome renders in 360 and its drift stops on pause", async ({
       errors.push(m.text());
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?meteo");
   await place(page, "Aurore imaginaire", 0.4, 0.32);
   await place(page, "Crépuscule", 0.7, 0.6);
   await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();

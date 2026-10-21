@@ -20,6 +20,8 @@
     "src/shaders/sensoryShaders.ts",
     "src/scene/**/*.tsx",
     "src/components/SensoryExperience.tsx",
+    "src/landscape/**/*.ts",
+    "src/landscape/**/*.tsx",
     "src/weather/**/*.ts",
     "src/weather/**/*.tsx",
     "src/colibri/**/*.ts",

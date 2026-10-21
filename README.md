@@ -1,3 +1,13 @@
+# Paysages •° — LandscapeComposer
+
+Un compositeur de paysages 3D : cinq biomes, quatre atmosphères, relief et densité réglables, génération par graine, exploration 360° et sauvegarde locale. La bibliothèque procédurale fonctionne lorsque les ressources distantes sont indisponibles.
+
+**Poly Haven : intégration réseau préparée mais non validée sur des fichiers réels**, l’API étant bloquée depuis cet environnement (`403`). Les tests glTF utilisent une ressource synthétique. Voir [l’architecture, les limites et la validation](docs/landscape-composer.md).
+
+Les expériences existantes sont conservées sous `?meteo`, `?studio` et `?colibri`.
+
+---
+
 # Ma météo émotionnelle •°
 
 Pose des émojis météo sur un disque aquarellé animé, ajuste la proportion et l’opacité de chaque zone, puis entre dans le même ciel en 3D pour le contempler ou y voyager. Un outil de composition libre, sans interprétation automatique.
