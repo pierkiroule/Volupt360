@@ -15,6 +15,7 @@ import { requestGyroscope } from "../scene/gyroOrientation.ts";
 import { downloadBlob } from "../utils/sensoryComposition.ts";
 import "./squiggle.css";
 import "./squibble.css";
+import { FLIGHT_BRUSHES } from "./createFlightBrushes.js";
 import MusicPanel from "./MusicPanel.jsx";
 const World = lazy(() => import("./SquiggleWorld.jsx"));
 class WorldBoundary extends Component {
@@ -36,6 +37,7 @@ export default function SquiggleApp() {
   const [selected, setSelected] = useState([]),
     [inside, setInside] = useState(false),
     [travel, setTravel] = useState(false),
+    [flightBrush, setFlightBrush] = useState(0),
     [paused, setPaused] = useState(
       matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
@@ -132,6 +134,7 @@ export default function SquiggleApp() {
           preview={!inside}
           paint={false}
           travel={travel}
+          flightBrush={flightBrush}
           paused={paused}
           gyro={gyro}
           recenter={recenter}
@@ -298,9 +301,27 @@ export default function SquiggleApp() {
               {paused ? "▷" : "❚❚"}
             </button>
           </nav>
+          <div
+            className="squibble-flight-brushes"
+            role="group"
+            aria-label="Brosses de voyage"
+          >
+            {FLIGHT_BRUSHES.map((brush, i) => (
+              <button
+                key={brush.name}
+                title={brush.name}
+                aria-label={"Brosse " + brush.name}
+                aria-pressed={flightBrush === i}
+                onClick={() => setFlightBrush(i)}
+                style={{ color: brush.color }}
+              >
+                {brush.glyph}
+              </button>
+            ))}
+          </div>
           <p className="squibble-flight-hint">
             {travel
-              ? "Glisse pour tourner · Maintiens pour accélérer"
+              ? "Le vol peint · Glisse pour tourner · Maintiens pour accélérer"
               : "Glisse ou tourne ton téléphone pour contempler"}
           </p>
         </>

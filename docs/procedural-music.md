@@ -18,7 +18,7 @@ initial : ces correspondances sont artistiques, sans analyse psychologique.
 - `MusicPanel.jsx` : interface et chargement différé du moteur ; destruction au
   démontage. Une interruption du contexte appelle une reprise explicite.
 - `AudioFeatures.js` analyse le niveau RMS, trois bandes FFT et leurs variations
-  avec des enveloppes indépendantes. Les nuages se diluent selon les graves,
+  avec des enveloppes indépendantes. Les rubans vivants se déforment selon les graves,
   leurs courants suivent les médiums et les détails répondent aux aigus. Des
   filaments fins et les particules ont des réponses locales différentes. La
   pause visuelle fige ces réactions ; couper le son les laisse se dissiper. Aucun déplacement
@@ -77,3 +77,17 @@ le partage et la fermeture du contexte, ainsi que le retour hors ligne.
 Une partition simulée n'est pas un test audio réel de 30 minutes. Une écoute
 prolongée, la mesure CPU et le confort sur des téléphones physiques restent à
 valider. Le limiteur protège le signal, pas le niveau d'écoute choisi sur l'appareil.
+
+## Peinture en voyage
+
+Les nuages ont été remplacés par `createLivingRibbons.js` : surfaces ouvertes
+texturées, croissance le long de la trajectoire, durées de 18 à 40 secondes,
+dissolution puis renouvellement à des phases décalées. Un seul mesh regroupe les
+trajectoires procédurales, sans nouvelle géométrie par frame.
+
+`createFlightBrushes.js` dépose un sillage à 1,8 m devant la caméra pendant le
+voyage. Trois styles : Voile, Encre, Grains. Contemplation et pause interrompent
+le dépôt sans créer de raccord au redémarrage. Les traces vivent jusqu'à
+75 secondes ; un buffer circulaire plafonné à 2 200 segments sur mobile borne
+la mémoire. Les photos incluent la peinture. Un retour à la bulle termine la
+session de peinture en cours.

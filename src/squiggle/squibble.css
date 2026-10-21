@@ -255,3 +255,25 @@
     transition: none;
   }
 }
+
+.squibble-flight-brushes {
+  position: absolute;
+  bottom: max(108px, calc(env(safe-area-inset-bottom) + 88px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  background: #111a29a8;
+  padding: 4px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+.squibble-flight-brushes button {
+  font-size: 25px;
+  background: transparent;
+  border: 1px solid transparent;
+}
+.squibble-flight-brushes button[aria-pressed="true"] {
+  background: #334358a0;
+  border-color: #bbd4ed55;
+}

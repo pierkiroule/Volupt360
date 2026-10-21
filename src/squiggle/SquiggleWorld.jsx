@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { createResonanceDust } from "./squibbleUniverse.js";
-import { createObjectField } from "./createObjectField.js";
+import { createFlightBrushes } from "./createFlightBrushes.js";
+import { createLivingRibbons } from "./createLivingRibbons.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
 
 import { directionToPaper, SCULPT_RADIUS } from "./brushes.js";
@@ -20,7 +21,7 @@ function Painting({
     time = useRef(0),
     reaction = useRef({ energy: 0, bass: 0, mid: 0, treble: 0, pulse: 0 });
   const objects = useMemo(
-    () => createObjectField({ mobile: innerWidth < 600 }),
+    () => createLivingRibbons({ mobile: innerWidth < 600 }),
     [],
   );
   const dust = useMemo(
@@ -65,7 +66,7 @@ function Painting({
     gl.domElement.dataset.audioBass = resonance.bass.toFixed(3);
     gl.domElement.dataset.audioMid = resonance.mid.toFixed(3);
     gl.domElement.dataset.audioTreble = resonance.treble.toFixed(3);
-    gl.domElement.dataset.materialStyle = "projective-objects";
+    gl.domElement.dataset.materialStyle = "living-watercolor-ribbons";
     gl.domElement.dataset.objects = String(objects.count);
     gl.domElement.dataset.strokes = String(strokes.length);
     gl.domElement.dataset.animationTime = time.current.toFixed(3);
@@ -375,6 +376,25 @@ function Interaction({
   });
   return null;
 }
+function FlightPainter({ travel, paused, flightBrush = 0, audioRef }) {
+  const { camera, gl } = useThree();
+  const painter = useMemo(
+    () => createFlightBrushes({ mobile: innerWidth < 600 }),
+    [],
+  );
+  useEffect(() => () => painter.dispose(), [painter]);
+  useFrame((_, dt) => {
+    painter.update(camera, dt, {
+      active: travel,
+      paused,
+      brush: flightBrush,
+      energy: audioRef?.current?.getFeatures().energy || 0,
+    });
+    gl.domElement.dataset.paintedSegments = String(painter.count);
+    gl.domElement.dataset.flightBrush = String(flightBrush);
+  });
+  return <primitive object={painter.group} />;
+}
 export default function SquiggleWorld(props) {
   return (
     <Canvas
@@ -390,6 +410,7 @@ export default function SquiggleWorld(props) {
     >
       <Painting {...props} />
       {!props.preview && <Interaction {...props} />}
+      {!props.preview && <FlightPainter {...props} />}
     </Canvas>
   );
 }
