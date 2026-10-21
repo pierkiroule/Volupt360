@@ -11,6 +11,7 @@ import {
 import { deviceQuaternion, requestGyroscope } from "../scene/gyroOrientation";
 import { ProjectiveVeil, InkBirds } from "./ProjectiveAtmosphere";
 import { WeatherLandscape, groundHeight } from "./WeatherLandscape";
+import { HorizonGyro, angleDelta } from "./HorizonGyro";
 export { requestGyroscope };
 interface Navigation {
   x: number;
@@ -204,7 +205,9 @@ function Flight({
     yaw: 0,
     pitch: 0,
     gyro: null as THREE.Quaternion | null,
-    offset: null as THREE.Quaternion | null,
+    horizon: new HorizonGyro(),
+    viewYaw: 0,
+    viewPitch: 0,
     desired: new THREE.Quaternion(),
     euler: new THREE.Euler(),
     target: new THREE.Vector3(),
@@ -220,11 +223,13 @@ function Flight({
     s.euler.setFromQuaternion(camera.quaternion, "YXZ");
     s.yaw = s.euler.y;
     s.pitch = s.euler.x;
+    s.viewYaw = s.yaw;
+    s.viewPitch = s.pitch;
   }, [camera]);
   useEffect(() => {
     const s = state.current;
     s.gyro = null;
-    s.offset = null;
+    s.horizon.reset();
     if (!gyro) return;
     let received = false;
     const timer = setTimeout(() => {
@@ -234,12 +239,17 @@ function Flight({
         );
     }, 4000);
     const handler = (e: DeviceOrientationEvent) => {
-      if (e.alpha === null || e.beta === null || e.gamma === null) return;
+      if (
+        ![e.alpha, e.beta, e.gamma].every(
+          (v) => typeof v === "number" && Number.isFinite(v),
+        )
+      )
+        return;
       received = true;
       s.gyro = deviceQuaternion(
-        e.alpha,
-        e.beta,
-        e.gamma,
+        e.alpha!,
+        e.beta!,
+        e.gamma!,
         screen.orientation?.angle || 0,
         s.gyro || new THREE.Quaternion(),
       );
@@ -271,7 +281,7 @@ function Flight({
       groundHeight(camera.position.x, camera.position.z) + 1.3,
     );
     if (input.active) {
-      s.offset = null;
+      s.horizon.reset();
       s.yaw -= input.x * dt;
       s.pitch = THREE.MathUtils.clamp(
         s.pitch - input.y * dt * 0.7,
@@ -280,12 +290,10 @@ function Flight({
       );
       s.desired.setFromEuler(s.euler.set(s.pitch, s.yaw, 0, "YXZ"));
     } else if (s.gyro) {
-      if (!s.offset)
-        s.offset = s.gyro.clone().invert().premultiply(camera.quaternion);
-      s.desired.copy(s.offset).multiply(s.gyro);
-      s.euler.setFromQuaternion(s.desired, "YXZ");
-      s.yaw = s.euler.y;
-      s.pitch = s.euler.x;
+      const look = s.horizon.update(s.gyro, s.viewYaw, s.viewPitch);
+      s.yaw = look.yaw;
+      s.pitch = look.pitch;
+      s.desired.setFromEuler(s.euler.set(s.pitch, s.yaw, 0, "YXZ"));
     } else if (travel) {
       s.target.set(
         Math.sin(s.time * 0.04) * 1.3,
@@ -298,7 +306,17 @@ function Flight({
       s.yaw = s.euler.y;
       s.pitch = s.euler.x;
     }
-    camera.quaternion.slerp(s.desired, 1 - Math.exp(-dt * 3));
+    // Smooth yaw/pitch rather than slerping: interpolation must never introduce bank.
+    const blend = 1 - Math.exp(-dt * 3);
+    s.viewYaw += angleDelta(s.yaw - s.viewYaw) * blend;
+    s.viewPitch = THREE.MathUtils.damp(s.viewPitch, s.pitch, 3, dt);
+    camera.quaternion.setFromEuler(
+      s.euler.set(s.viewPitch, s.viewYaw, 0, "YXZ"),
+    );
+    gl.domElement.dataset.heading = camera.quaternion
+      .toArray()
+      .map((n) => n.toFixed(6))
+      .join(",");
     gl.domElement.dataset.position = camera.position
       .toArray()
       .map((n) => n.toFixed(3))

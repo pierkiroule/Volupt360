@@ -45,3 +45,9 @@ La vérification dédiée contrôle la compilation WebGL des voiles, l’absence
 `WeatherLandscape.tsx` ajoute un terrain continu, des collines, des vallées et un cours d’eau sinueux animé. Les nuances du ciel teintent les terres, avec grain et contours de séchage dans des shaders légers. Un brouillard progressif raccorde le relief au fond papier. La grille compte 80 × 80 segments sur petit écran, 112 × 112 sur grand écran ; le cours d’eau utilise 160 segments. Aucune tuile distante ni moteur physique supplémentaire.
 
 La fonction `groundHeight` est partagée avec la caméra pour garantir une marge de 1,3 unité au-dessus du terrain. Le paysage ne modifie pas les zones du disque. La pause fige le mouvement de l’eau. Le test dédié vérifie le rendu WebGL sans erreur, des hauteurs finies, des reliefs variables et la marge du vol. Les performances sur appareil réel restent à mesurer.
+
+## Gyroscope et horizon
+
+`HorizonGyro.ts` extrait le cap et l’élévation du regard depuis le capteur, puis les calibre séparément sur la vue actuelle. Le roulis du téléphone n’est pas appliqué à la caméra. L’interpolation s’effectue sur les deux angles, avec roulis nul, pour garder le sol horizontal même pendant un virage. Les passages de cap 359° → 0° suivent le chemin court ; les orientations proches de la verticale conservent le dernier cap exploitable. L’élévation est limitée à ±1,15 radian pour éviter le retournement. Les données capteur non finies sont ignorées.
+
+Les tests couvrent des événements capteur simulés avec téléphone incliné, les changements de cap et d’orientation d’écran, la stabilité de l’horizon et l’absence de translation en contemplation. Ces tests ne remplacent pas une vérification gyroscope sur téléphone réel.

@@ -243,3 +243,106 @@ test("watercolor ground renders and flight keeps clearance above hills", async (
   await page.screenshot({ path: "test-results/weather-ground.png" });
   expect(errors).toEqual([]);
 });
+test("tilted-phone gyro turns preserve a level horizon and fixed contemplation position", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "DeviceOrientationEvent", {
+      configurable: true,
+      value: class extends Event {
+        static async requestPermission() {
+          return "granted";
+        }
+      },
+    });
+  });
+  await page.goto("/");
+  await place(page, "Rayonnement", 0.5, 0.5);
+  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", { name: "360°", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "360°", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(100);
+  const pose = async (alpha, beta, gamma) =>
+    page.evaluate(
+      (p) => {
+        const e = new Event("deviceorientation");
+        Object.assign(e, p);
+        window.dispatchEvent(e);
+      },
+      { alpha, beta, gamma },
+    );
+  const initialPosition = await page
+    .locator("canvas")
+    .getAttribute("data-position");
+  await pose(20, 45, 25);
+  await page.waitForTimeout(100);
+  const before = await page.locator("canvas").getAttribute("data-heading");
+  await pose(110, 45, 25);
+  await page.waitForTimeout(450);
+  const after = await page.locator("canvas").getAttribute("data-heading");
+  expect(after).not.toBe(before);
+  const roll = await page.evaluate(async () => {
+    const { Euler, Quaternion } =
+      await import("/node_modules/three/build/three.module.js");
+    const values = document
+      .querySelector("canvas")
+      .dataset.heading.split(",")
+      .map(Number);
+    return new Euler().setFromQuaternion(new Quaternion(...values), "YXZ").z;
+  });
+  expect(Math.abs(roll)).toBeLessThan(0.001);
+  expect(await page.locator("canvas").getAttribute("data-position")).toBe(
+    initialPosition,
+  );
+  await pose(200, 70, -25);
+  await page.waitForTimeout(300);
+  const nextRoll = await page.evaluate(async () => {
+    const { Euler, Quaternion } =
+      await import("/node_modules/three/build/three.module.js");
+    return new Euler().setFromQuaternion(
+      new Quaternion(
+        ...document
+          .querySelector("canvas")
+          .dataset.heading.split(",")
+          .map(Number),
+      ),
+      "YXZ",
+    ).z;
+  });
+  expect(Math.abs(nextRoll)).toBeLessThan(0.001);
+});
+test("horizon calibration remains finite across screen rotations, poles and heading wrap", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { HorizonGyro, angleDelta } =
+      await import("/src/weather/HorizonGyro.ts");
+    const { deviceQuaternion } = await import("/src/scene/gyroOrientation.ts");
+    const samples = [];
+    for (const screen of [0, 90, 180, 270]) {
+      const h = new HorizonGyro();
+      for (const alpha of [350, 359, 1, 10, 80, 180]) {
+        const p = h.update(deviceQuaternion(alpha, 45, 25, screen), 0.2, 0.1);
+        samples.push({ yaw: p.yaw, pitch: p.pitch });
+      }
+      h.reset();
+      for (const beta of [90, 30, 1, 0, -1, -30]) {
+        const p = h.update(deviceQuaternion(20, beta, 0, screen), 0, 0);
+        samples.push({ yaw: p.yaw, pitch: p.pitch });
+      }
+    }
+    return { samples, wrap: angleDelta((-358 * Math.PI) / 180) };
+  });
+  expect(
+    result.samples.every(
+      (p) =>
+        Number.isFinite(p.yaw) &&
+        Number.isFinite(p.pitch) &&
+        Math.abs(p.pitch) <= 1.15,
+    ),
+  ).toBe(true);
+  expect(result.wrap).toBeCloseTo((2 * Math.PI) / 180, 6);
+});
