@@ -5,14 +5,15 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   useState,
 } from "react";
+import { loadLocalTexture } from "./localTexture.js";
 import SketchSurface from "./SketchSurface.jsx";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 import { requestGyroscope } from "../scene/gyroOrientation.ts";
 import { downloadBlob } from "../utils/sensoryComposition.ts";
 import "./squiggle.css";
-const PolyHavenPanel = lazy(() => import("./PolyHavenPanel.jsx"));
 const World = lazy(() => import("./SquiggleWorld.jsx"));
 class WorldBoundary extends Component {
   state = { failed: false };
@@ -30,8 +31,34 @@ class WorldBoundary extends Component {
   }
 }
 export default function SquiggleApp() {
-  const [materials, setMaterials] = useState({}),
-    [materialPanel, setMaterialPanel] = useState(false);
+  const [localMatter, setLocalMatter] = useState(null),
+    [textureEnabled, setTextureEnabled] = useState(true),
+    [textureStatus, setTextureStatus] = useState("loading");
+  useEffect(() => {
+    let active = true;
+    loadLocalTexture().then((matter) => {
+      if (active) {
+        setLocalMatter(matter);
+        setTextureStatus(matter ? "ready" : "unavailable");
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const materials = useMemo(
+    () =>
+      localMatter && textureEnabled
+        ? Object.fromEntries(SQUIGGLE_BRUSHES.map((b) => [b.id, localMatter]))
+        : {},
+    [localMatter, textureEnabled],
+  );
+  async function retryTexture() {
+    setTextureStatus("loading");
+    const matter = await loadLocalTexture({ retry: true });
+    setLocalMatter(matter);
+    setTextureStatus(matter ? "ready" : "unavailable");
+  }
   const [erase, setErase] = useState(false),
     [recenter, setRecenter] = useState(0);
   const [strokes, setStrokes] = useState([]),
@@ -157,7 +184,10 @@ export default function SquiggleApp() {
     }
   };
   return (
-    <main className={`squiggle-app is-${mode}`}>
+    <main
+      className={`squiggle-app is-${mode}`}
+      data-texture-status={textureStatus}
+    >
       <SketchSurface
         strokes={strokes}
         materials={materials}
@@ -297,7 +327,6 @@ export default function SquiggleApp() {
               aria-pressed={brush === b.id && !erase}
               onClick={() => {
                 setBrush(b.id);
-                setMaterialPanel(false);
                 setPaint(true);
                 setTravel(false);
                 setErase(false);
@@ -335,35 +364,26 @@ export default function SquiggleApp() {
             •••
           </button>
         </div>
-        {materialPanel && (
-          <Suspense
-            fallback={
-              <div className="squiggle-material-panel">Chargement…</div>
-            }
-          >
-            <PolyHavenPanel
-              brush={SQUIGGLE_BRUSHES.find((b) => b.id === brush)}
-              current={materials[brush]}
-              onClose={() => setMaterialPanel(false)}
-              onApply={(matter) =>
-                setMaterials((previous) => {
-                  const next = { ...previous };
-                  if (matter) next[brush] = matter;
-                  else delete next[brush];
-                  return next;
-                })
-              }
-            />
-          </Suspense>
-        )}
         {more && (
           <div className="squiggle-more">
             <button
-              aria-expanded={materialPanel}
-              onClick={() => setMaterialPanel(!materialPanel)}
+              aria-label="Texture locale Text1"
+              aria-pressed={textureEnabled && Boolean(localMatter)}
+              disabled={!localMatter}
+              onClick={() => setTextureEnabled(!textureEnabled)}
             >
-              Matières
+              Texture Text1
             </button>
+            {textureStatus !== "ready" && (
+              <span className="squiggle-texture-status" role="status">
+                {textureStatus === "loading"
+                  ? "Chargement de Text1.png…"
+                  : "Text1.png indisponible · alphas locaux actifs"}
+              </span>
+            )}
+            {textureStatus === "unavailable" && (
+              <button onClick={retryTexture}>Réessayer la texture</button>
+            )}
             <label>
               Opacité
               <input

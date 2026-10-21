@@ -38,7 +38,7 @@ export function createMaterialAtlas() {
             ctx.drawImage(materials[b.id][key], i * size, 0, size, size);
         });
         const t = new THREE.CanvasTexture(canvas);
-        t.name = `PolyHaven_${key}`;
+        t.name = `Text1_${key}`;
         if (key === "canvas") t.colorSpace = THREE.SRGBColorSpace;
         return t;
       };

@@ -68,33 +68,28 @@ reproductibilité des huit alphas ; le dessin, le rendu 360° et le PNG fonction
 aussi avec les requêtes externes bloquées. Le pilotage FPV, le gyro, la pause et
 l’historique restent couverts par les tests du parcours Squiggle.
 
-## Poly Haven — matières optionnelles
+## Texture locale Text1.png
 
-**Autres outils → Matières** ouvre une galerie de textures CC0 : recherche par
-nom, identifiant ou catégorie, 24 aperçus maximum, puis application à la brosse
-active. Cela modifie ses tracés existants et suivants dans les deux vues.
-**Alpha local** retire cette matière. Le dessin n’effectue aucun appel externe
-avant l’ouverture du panneau et les alphas locaux restent toujours disponibles.
+Poly Haven, son API et sa galerie sont retirés de Squiggle. La texture du dépôt
+`public/textures/Text1.png` (casse exacte) est chargée automatiquement, une seule
+fois par session, et partagée par les huit brosses. Elle enrichit les empreintes
+2D et les voiles 3D, avec les alphas aquarellés et le bruit organique existants.
+Les couleurs et la transparence PNG sont conservées ; une hauteur douce est
+dérivée de la luminance, sans transformer les voiles en volumes pleins.
 
-`polyHaven.js` utilise `/assets?t=textures`, puis `/files/{id}`. Les aperçus CDN
-servent uniquement à la galerie ; le rendu utilise les vraies cartes `diff`
-(et `disp` si disponible), en 1k de préférence. Les images sont téléchargées en
-CORS, limitées à 8 Mo chacune et ramenées à 256 px. Une hauteur issue de la
-luminance remplace la carte de déplacement absente. Cache de catalogue en
-session, cache de quatre matières et cache HTTP ; les requêtes sont annulées à
-la fermeture du panneau. Une sélection échouée conserve la matière précédente.
+`localTexture.js` utilise uniquement l’URL locale issue de la base Vite. La source
+est ramenée à 256 px pour les atlas mobiles ; limite de téléchargement 16 Mo,
+délai de dix secondes, fermeture du bitmap après décodage et aucun appel externe.
+Le bouton **Texture Text1**, dans les outils dépliés, permet de comparer avec les
+alphas seuls. Un fichier absent ou illisible laisse le dessin disponible et un
+bouton **Réessayer la texture** permet de le recharger. Les ressources GPU sont
+libérées au changement de matière et à la sortie.
 
-Les matières suivent les huit brosses, avec une paire d’atlas GPU bornés créée
-uniquement lorsqu’une matière est active. Les alphas aquarellés et le bruit
-organique sont conservés. Les atlas remplacés sont libérés, et le retour aux
-alphas rend les ressources GPU optionnelles. Aucune bibliothèque ajoutée.
-Un lien discret dans le panneau renvoie à Poly Haven et à sa licence CC0.
-
-Les tests utilisent des réponses simulées pour contrôler recherche, chargement
-des vraies cartes, visibilité en 2D/360, cache, erreurs, retour aux alphas et
-libération GPU. L’accès réel à Poly Haven a été refusé par le réseau de
-l’environnement (`403`) ; le service réel et un téléphone physique restent à
-valider.
+Le fichier réel `Text1.png`, récupéré depuis `origin/main` sans fusion de branche,
+est inclus dans ce changement. La source de test fait 96 × 96 px : le transfert
+vers les atlas GPU n’ajoute pas de détails à cette résolution native. Les tests
+contrôlent son service effectif depuis `public`, son chargement et son rendu
+2D/360, ainsi que le cache, l’export PNG et la reprise après un fichier absent.
 
 ---
 
