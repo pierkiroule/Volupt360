@@ -7,7 +7,7 @@ test("built studio reloads offline and resumes its local project", async ({
     !process.env.STUDIO_PROD_URL,
     "Requires a running production preview",
   );
-  const url = process.env.STUDIO_PROD_URL;
+  const url = process.env.STUDIO_PROD_URL + "?studio";
   await page.goto(url);
   await page.getByRole("button", { name: "Créer une œuvre" }).click();
   const canvas = page.locator(".studio-drawing");

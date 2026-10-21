@@ -20,6 +20,8 @@
     "src/shaders/sensoryShaders.ts",
     "src/scene/**/*.tsx",
     "src/components/SensoryExperience.tsx",
+    "src/colibri/**/*.ts",
+    "src/colibri/**/*.tsx",
     "src/studio/**/*.ts",
     "src/studio/**/*.tsx",
     "src/vite-env.d.ts"

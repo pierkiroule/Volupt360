@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+const ColibriApp = lazy(() => import("./colibri/ColibriApp.tsx"));
 const StudioApp = lazy(() => import("./studio/StudioApp.tsx"));
 const SquiggleApp = lazy(() => import("./squiggle/SquiggleApp.jsx"));
 const DiskExperience = lazy(() => import("./emociel/DiskExperience.jsx"));
@@ -37,8 +38,10 @@ createRoot(document.getElementById("root")).render(
         <SensoryExperience />
       ) : new URLSearchParams(location.search).has("squibble") ? (
         <SquiggleApp />
-      ) : (
+      ) : new URLSearchParams(location.search).has("studio") ? (
         <StudioApp />
+      ) : (
+        <ColibriApp />
       )}
     </Suspense>
   </React.StrictMode>,

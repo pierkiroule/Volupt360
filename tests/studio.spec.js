@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 async function start(page) {
-  await page.goto("/");
+  await page.goto("/?studio");
   await page.getByRole("button", { name: "Créer une œuvre" }).click();
   await expect(page.locator(".studio-drawing")).toHaveAttribute(
     "data-ready",
@@ -140,7 +140,7 @@ test("continuous depth transition, true 3D view, gyro, immersive return and PNG"
 test("all twelve renderers are distinct, seeded and reversible effects stay local", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?studio");
   const result = await page.evaluate(async () => {
     const { newProject, BRUSH_IDS } = await import("/src/studio/model.ts");
     const { drawStroke } = await import("/src/studio/Renderer2D.ts");
@@ -221,7 +221,7 @@ test("all twelve renderers are distinct, seeded and reversible effects stay loca
 test("project validation, partial eraser and original-space transduction round-trip", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?studio");
   const result = await page.evaluate(async () => {
     const { newProject, validateProject } =
       await import("/src/studio/model.ts");
@@ -355,7 +355,7 @@ test("mobile touch, second finger cancels drawing, and reduced motion stays paus
 test("all effect grammars remain finite and local, duration ends and disabled means original", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?studio");
   const results = await page.evaluate(async () => {
     const { newProject, EFFECT_IDS } = await import("/src/studio/model.ts");
     const { paintEffect, motion } =
@@ -487,7 +487,7 @@ test("all spatial brush families render on WebGL and release GPU allocations", a
     if (m.type() === "error" && /shader|WebGL|THREE/i.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/");
+  await page.goto("/?studio");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/three/build/three.module.js");
     const { newProject, BRUSH_IDS } = await import("/src/studio/model.ts");

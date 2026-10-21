@@ -1,3 +1,11 @@
+# Squibble le colibris •°
+
+Un imaginaire à butiner : choisis un à trois émojis, fais éclore un monde aquarellé puis traverse ses bulles pour découvrir récits, images et invitations métaphoriques. Un carnet local conserve uniquement les ressources choisies.
+
+Le nouveau parcours est l’accueil par défaut. L’atelier de création ci-dessous reste accessible à **`?studio`**, avec ses projets préservés. Voir [l’architecture Squibble](docs/squibble-colibri.md).
+
+---
+
 # SQUIGGLE 360 •°
 
 **L’atelier des dessins vivants — Dessiner. Animer. Habiter.**

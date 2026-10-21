@@ -1,0 +1,371 @@
+.colibri {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  background: #f6f1e6;
+  color: #375b58;
+  font-family: Georgia, "Times New Roman", serif;
+  isolation: isolate;
+}
+.colibri * {
+  box-sizing: border-box;
+}
+.colibri-wash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 15% 30%, #afc7bc45, transparent 45%),
+    radial-gradient(ellipse at 90% 70%, #cc9c8130, transparent 48%);
+  filter: url("#none");
+}
+.colibri-wash:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.35' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.colibri-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  gap: 18px;
+}
+.colibri header {
+  text-align: center;
+}
+.colibri-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font:
+    10px/1.6 system-ui,
+    sans-serif;
+  color: #6b8177;
+  margin: 0 0 12px;
+}
+.colibri h1 {
+  font-size: clamp(44px, 9vw, 76px);
+  font-weight: normal;
+  font-style: italic;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+  margin: 0;
+}
+.colibri h1 span {
+  display: block;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  margin-top: 13px;
+}
+.colibri-intro {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #6b7b73;
+  margin: 20px 0 0;
+}
+.colibri-disc-wrap {
+  position: relative;
+  width: min(64vw, 340px);
+  aspect-ratio: 1;
+  margin: 28px 0;
+}
+.colibri-world {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 50px #b7c8b74d,
+    inset 0 0 50px #fff8;
+  border: 1px solid #82968b30;
+  touch-action: none;
+}
+.colibri-orbit {
+  position: absolute;
+  inset: -23px;
+  pointer-events: none;
+}
+.colibri-orbit button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font-size: 24px;
+  background: #f9f6edcc;
+  border: 1px solid #7b968530;
+  pointer-events: auto;
+  transition:
+    transform 0.25s,
+    background 0.25s;
+}
+.colibri-orbit button[aria-pressed="true"] {
+  background: #dce8d9;
+  border-color: #698d80;
+  box-shadow: 0 0 0 5px #abc4b329;
+  transform: translate(-50%, -50%) scale(1.08);
+}
+.colibri button,
+.colibri a {
+  cursor: pointer;
+  color: inherit;
+}
+.colibri button {
+  font-family: inherit;
+}
+.colibri button:focus-visible,
+.colibri a:focus-visible {
+  outline: 2px solid #386c68;
+  outline-offset: 4px;
+}
+.colibri-enter {
+  position: absolute;
+  inset: 35% 18%;
+  border: 0;
+  background: #f7f4e8c9;
+  border-radius: 50%;
+  font-size: 15px;
+  backdrop-filter: blur(3px);
+  box-shadow: 0 8px 32px #718a7610;
+}
+.colibri-enter span {
+  display: block;
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+.colibri-enter:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.colibri footer {
+  text-align: center;
+  max-width: 460px;
+}
+.colibri footer p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+.colibri-footer-links {
+  display: flex;
+  gap: 22px;
+  justify-content: center;
+  align-items: center;
+}
+.colibri-footer-links button,
+.colibri-footer-links a {
+  font: 12px Georgia;
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  padding: 12px 0;
+}
+.colibri small {
+  display: block;
+  font: 10px/1.6 system-ui;
+  color: #87938a;
+  margin-top: 10px;
+}
+.in-flight .colibri-shell {
+  padding: 0;
+}
+.in-flight .colibri-disc-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  aspect-ratio: auto;
+}
+.in-flight .colibri-world {
+  border-radius: 0;
+  border: 0;
+}
+.colibri-flight-title {
+  position: absolute;
+  top: max(22px, env(safe-area-inset-top));
+  left: 25px;
+  font-size: 25px;
+  font-style: italic;
+  pointer-events: none;
+}
+.colibri-flight-title span {
+  font-size: 16px;
+}
+.colibri-flight-hint {
+  position: absolute;
+  bottom: 95px;
+  text-align: center;
+  left: 20px;
+  right: 20px;
+  font-size: 12px;
+  pointer-events: none;
+  color: #56716c;
+}
+.colibri-controls {
+  position: absolute;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: #faf8efd9;
+  border: 1px solid #8da49630;
+  border-radius: 40px;
+  backdrop-filter: blur(12px);
+}
+.colibri-controls button {
+  background: transparent;
+  border: 0;
+  border-radius: 25px;
+  padding: 12px;
+  font-size: 13px;
+  min-height: 44px;
+}
+.colibri-controls button[aria-pressed="true"] {
+  background: #dce7dc;
+}
+.colibri-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #3b55513b;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10;
+  animation: colibri-reveal 0.7s ease both;
+}
+.colibri-card {
+  width: min(100%, 510px);
+  max-height: 90dvh;
+  overflow: auto;
+  background: #fcf8ee;
+  border: 1px solid #fff9;
+  border-radius: 70% 65% 24px 24px / 20px 25px 24px 24px;
+  padding: 38px;
+  text-align: center;
+  box-shadow: 0 20px 90px #344f4826;
+}
+.colibri-card h2 {
+  font-size: 32px;
+  font-weight: normal;
+  font-style: italic;
+  line-height: 1.2;
+  margin: 12px 0 20px;
+}
+.colibri-resource-text {
+  font-size: 20px;
+  line-height: 1.8;
+  margin: 0 0 20px;
+}
+.colibri-author {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7f8a7c;
+}
+.colibri-card img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  border-radius: 50% 48% 45% 40% / 10% 15% 12% 14%;
+  margin-bottom: 10px;
+}
+.colibri-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+.colibri-card button {
+  border: 1px solid #76978a55;
+  border-radius: 26px;
+  padding: 12px 18px;
+  min-height: 44px;
+  background: transparent;
+  font-size: 14px;
+}
+.colibri-card button.primary {
+  background: #456e65;
+  color: #fffbee;
+  border-color: transparent;
+}
+.colibri-notebook > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0;
+}
+.colibri-notebook > div button:first-child {
+  flex: 1;
+  text-align: left;
+}
+.colibri-notice {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  background: #fbf8ed;
+  padding: 15px 22px;
+  border-radius: 20px;
+  box-shadow: 0 3px 30px #506b5125;
+  max-width: 90%;
+  width: max-content;
+  font-size: 14px;
+}
+.colibri {
+  scrollbar-width: thin;
+}
+@keyframes colibri-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-height: 740px) {
+  .colibri-shell {
+    gap: 10px;
+    padding: 18px 12px;
+  }
+  .colibri-intro {
+    margin-top: 12px;
+    font-size: 13px;
+  }
+  .colibri h1 {
+    font-size: 46px;
+  }
+  .colibri-disc-wrap {
+    width: min(57vw, 260px);
+    margin: 25px 0;
+  }
+  .colibri footer p {
+    font-size: 12px;
+  }
+  .colibri small {
+    font-size: 9px;
+  }
+  .colibri-card {
+    padding: 25px;
+  }
+  .colibri-resource-text {
+    font-size: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .colibri * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
