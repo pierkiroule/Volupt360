@@ -115,7 +115,7 @@ export function createEmotionWeather() {
       for (const s of strokes) {
         const b = brushFor(s.emotionId),
           kind = b.index;
-        color.set(b.color);
+        color.set(s.color || b.color);
         for (let i = 0; i < per && count < capacity; i++) {
           const p =
               s.points[

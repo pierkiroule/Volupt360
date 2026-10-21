@@ -69,7 +69,7 @@ export function emotionalBridges(strokes) {
   }
   return out;
 }
-export function createDiskPainter() {
+export function createDiskPainter({ clip = true } = {}) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = DISK_SIZE;
   const ctx = canvas.getContext("2d"),
@@ -77,12 +77,14 @@ export function createDiskPainter() {
   function stroke(s) {
     const b = brushFor(s.emotionId);
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(DISK_SIZE / 2, DISK_SIZE / 2, DISK_SIZE / 2 - 1, 0, Math.PI * 2);
-    ctx.clip();
+    if (clip) {
+      ctx.beginPath();
+      ctx.arc(DISK_SIZE / 2, DISK_SIZE / 2, DISK_SIZE / 2 - 1, 0, Math.PI * 2);
+      ctx.clip();
+    }
     pigment.render(ctx, {
       tool: "watercolor",
-      color: b.color,
+      color: s.color || b.color,
       size: s.size,
       opacity: s.opacity,
       variant: s.id % 12,

@@ -1,0 +1,426 @@
+import { useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import { createPhotoBubbles } from "./createPhotoBubbles.js";
+import { createResonanceDust } from "./squibbleUniverse.js";
+import { createFlightBrushes } from "./createFlightBrushes.js";
+import { createLivingRibbons } from "./createLivingRibbons.js";
+import { deviceQuaternion } from "../scene/gyroOrientation.ts";
+
+import { directionToPaper, SCULPT_RADIUS } from "./brushes.js";
+function Painting({
+  strokes,
+  draft,
+  source,
+  paused,
+  onCapture,
+  materials,
+  photoMaterials = materials,
+  preview = false,
+  audioRef,
+}) {
+  const { gl, scene, camera } = useThree(),
+    time = useRef(0),
+    reaction = useRef({ energy: 0, bass: 0, mid: 0, treble: 0, pulse: 0 });
+  const objects = useMemo(
+    () => createLivingRibbons({ mobile: innerWidth < 600 }),
+    [],
+  );
+  const photos = useMemo(() => createPhotoBubbles(), []);
+  useEffect(() => () => photos.dispose(), [photos]);
+  useEffect(() => {
+    photos.setMaterials(photoMaterials);
+  }, [photoMaterials, photos]);
+  const dust = useMemo(
+    () => createResonanceDust(strokes, innerWidth < 600),
+    [strokes],
+  );
+  useEffect(() => () => dust.dispose(), [dust]);
+  useEffect(() => () => objects.dispose(), [objects]);
+  useEffect(() => {
+    objects.setMaterials(materials);
+  }, [materials, objects]);
+  useEffect(() => {
+    objects.setDocument(draft ? [...strokes, draft] : strokes);
+  }, [strokes, draft, objects]);
+  useEffect(() => {
+    onCapture?.(
+      () =>
+        new Promise((resolve, reject) => {
+          gl.render(scene, camera);
+          gl.domElement.toBlob((b) =>
+            b ? resolve(b) : reject(Error("Capture indisponible.")),
+          );
+        }),
+    );
+  }, [gl, scene, camera, onCapture]);
+  useFrame((_, dt) => {
+    if (!paused) time.current += Math.min(dt, 0.1);
+    if (!paused) {
+      const sound = audioRef?.current?.getFeatures();
+      for (const key in reaction.current)
+        reaction.current[key] = sound?.[key] || 0;
+    }
+    const resonance = reaction.current;
+    objects.update(time.current, resonance);
+    dust.update(time.current, resonance);
+    photos.update(time.current, camera, resonance);
+    objects.group.rotation.y = preview ? time.current * 0.035 : 0;
+    dust.points.rotation.y = preview ? time.current * 0.035 : 0;
+    gl.domElement.dataset.photoBubbles = String(photos.count);
+    gl.domElement.dataset.externalMaterials = String(
+      Object.keys(materials).length,
+    );
+    gl.domElement.dataset.audioEnergy = resonance.energy.toFixed(3);
+    gl.domElement.dataset.audioBass = resonance.bass.toFixed(3);
+    gl.domElement.dataset.audioMid = resonance.mid.toFixed(3);
+    gl.domElement.dataset.audioTreble = resonance.treble.toFixed(3);
+    gl.domElement.dataset.materialStyle = "living-watercolor-ribbons";
+    gl.domElement.dataset.objects = String(objects.count);
+    gl.domElement.dataset.strokes = String(strokes.length);
+    gl.domElement.dataset.animationTime = time.current.toFixed(3);
+  });
+  return (
+    <>
+      <color attach="background" args={["#05070d"]} />
+      <primitive object={objects.group} />
+      <primitive object={dust.points} />
+      <primitive object={photos.group} />
+      {preview && (
+        <mesh>
+          <sphereGeometry args={[9, 48, 32]} />
+          <shaderMaterial
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            uniforms={{
+              tint: { value: new THREE.Color(strokes[0]?.color || "#7188af") },
+            }}
+            vertexShader={`varying vec3 N,V;void main(){vec4 p=modelViewMatrix*vec4(position,1.);N=normalize(normalMatrix*normal);V=-p.xyz;gl_Position=projectionMatrix*p;}`}
+            fragmentShader={`uniform vec3 tint;varying vec3 N,V;void main(){float rim=pow(1.-max(0.,dot(normalize(N),normalize(V))),3.);gl_FragColor=vec4(tint,.025+rim*.38);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+          }`}
+          />
+        </mesh>
+      )}
+    </>
+  );
+}
+function Interaction({
+  strokes,
+  paint,
+  travel,
+  tool,
+  onStroke,
+  onDraft,
+  onErase,
+  onGyroUnavailable,
+  recenter,
+  gyro,
+  paused,
+}) {
+  const { camera, gl } = useThree(),
+    state = useRef({ paint, tool, onStroke, onDraft, onErase, paused });
+  state.current = { paint, tool, onStroke, onDraft, onErase, paused };
+  const goal = useRef({ yaw: 0, pitch: 0 }),
+    desired = useRef(new THREE.Quaternion()),
+    viewEuler = useRef(new THREE.Euler()),
+    sensor = useRef(new THREE.Quaternion()),
+    base = useRef(new THREE.Quaternion()),
+    reference = useRef(null),
+    sensorReady = useRef(false),
+    flight = useRef({ held: false, holdTime: 0, speed: 0 }),
+    forward = useRef(new THREE.Vector3()),
+    inward = useRef(new THREE.Vector3()),
+    nextPosition = useRef(new THREE.Vector3());
+  useEffect(() => {
+    // Enter facing the latest gesture instead of a potentially empty longitude.
+    const recent = strokes.at(-1);
+    if (!recent?.points.length) return;
+    const p = recent.points[Math.floor(recent.points.length / 2)];
+    const longitude = p.x * Math.PI * 2,
+      latitude = (0.04 + p.y * 0.92) * Math.PI;
+    camera.lookAt(
+      -Math.cos(longitude) * Math.sin(latitude),
+      Math.cos(latitude),
+      Math.sin(longitude) * Math.sin(latitude),
+    );
+    const e = new THREE.Euler().setFromQuaternion(camera.quaternion, "YXZ");
+    goal.current = { yaw: e.y, pitch: e.x };
+  }, [camera]);
+  useEffect(() => {
+    if (!gyro) {
+      const e = new THREE.Euler().setFromQuaternion(camera.quaternion, "YXZ");
+      goal.current = { yaw: e.y, pitch: e.x };
+      sensorReady.current = false;
+      return;
+    }
+    reference.current = null;
+    sensorReady.current = false;
+    const pose = new THREE.Euler().setFromQuaternion(camera.quaternion, "YXZ");
+    goal.current = { yaw: pose.y, pitch: pose.x };
+    let source = "";
+    const sample = (e) => {
+      if (source && source !== e.type) return;
+      if (
+        [e.alpha, e.beta, e.gamma].some(
+          (v) => v === null || !Number.isFinite(v),
+        )
+      )
+        return;
+      source = e.type;
+      deviceQuaternion(
+        e.alpha,
+        e.beta,
+        e.gamma,
+        screen.orientation?.angle ?? window.orientation ?? 0,
+        sensor.current,
+      );
+      if (!reference.current) {
+        reference.current = sensor.current.clone().invert();
+        base.current.copy(camera.quaternion);
+        goal.current = { yaw: 0, pitch: 0 };
+      }
+      sensorReady.current = true;
+    };
+    window.addEventListener("deviceorientation", sample);
+    window.addEventListener("deviceorientationabsolute", sample);
+    const timeout = setTimeout(() => {
+      if (!sensorReady.current) onGyroUnavailable?.();
+    }, 6000);
+    return () => {
+      window.removeEventListener("deviceorientation", sample);
+      window.removeEventListener("deviceorientationabsolute", sample);
+      clearTimeout(timeout);
+    };
+  }, [gyro, camera, recenter]);
+  useEffect(() => {
+    const canvas = gl.domElement,
+      ray = new THREE.Raycaster(),
+      pointer = new THREE.Vector2(),
+      sphere = new THREE.Sphere(new THREE.Vector3(), SCULPT_RADIUS),
+      hit = new THREE.Vector3();
+    let gesture = null;
+    const point = (e) => {
+      const r = canvas.getBoundingClientRect();
+      pointer.set(
+        ((e.clientX - r.left) / r.width) * 2 - 1,
+        (-(e.clientY - r.top) / r.height) * 2 + 1,
+      );
+      camera.updateMatrixWorld();
+      ray.setFromCamera(pointer, camera);
+      return ray.ray.intersectSphere(sphere, hit)
+        ? directionToPaper(hit)
+        : null;
+    };
+    const down = (e) => {
+      if (!e.isPrimary || e.button > 0) return;
+      canvas.setPointerCapture(e.pointerId);
+      const p = point(e);
+      if (state.current.paint && state.current.tool.erase) {
+        if (p) state.current.onErase(p);
+        return;
+      }
+      flight.current.held = true;
+      flight.current.holdTime = 0;
+      gesture = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        paint: state.current.paint,
+        stroke: { ...state.current.tool, points: p ? [p] : [] },
+      };
+      if (gesture.paint)
+        state.current.onDraft?.({
+          ...gesture.stroke,
+          points: [...gesture.stroke.points],
+        });
+    };
+    const move = (e) => {
+      if (!gesture || gesture.id !== e.pointerId) return;
+      if (gesture.paint) {
+        const p = point(e);
+        if (p) gesture.stroke.points = [p];
+      } else {
+        goal.current.yaw -= (e.clientX - gesture.x) * 0.003;
+        goal.current.pitch = THREE.MathUtils.clamp(
+          goal.current.pitch - (e.clientY - gesture.y) * 0.003,
+          -1.3,
+          1.3,
+        );
+      }
+      if (gesture.paint)
+        state.current.onDraft?.({
+          ...gesture.stroke,
+          points: [...gesture.stroke.points],
+        });
+      gesture.x = e.clientX;
+      gesture.y = e.clientY;
+    };
+    const up = (e) => {
+      if (!e || (gesture && e.pointerId === gesture.id))
+        flight.current.held = false;
+      if (!gesture || (e && e.pointerId !== gesture.id)) return;
+      if (gesture.paint && gesture.stroke.points.length)
+        state.current.onStroke(gesture.stroke);
+      gesture = null;
+      state.current.onDraft?.(null);
+    };
+    const keys = (e) => {
+      if (document.activeElement !== canvas) return;
+      if (e.key.startsWith("Arrow")) {
+        e.preventDefault();
+        goal.current.yaw +=
+          e.key === "ArrowLeft" ? 0.1 : e.key === "ArrowRight" ? -0.1 : 0;
+        goal.current.pitch = THREE.MathUtils.clamp(
+          goal.current.pitch +
+            (e.key === "ArrowUp" ? 0.1 : e.key === "ArrowDown" ? -0.1 : 0),
+          -1.3,
+          1.3,
+        );
+      }
+    };
+    const blur = () => up();
+    canvas.tabIndex = 0;
+    canvas.setAttribute(
+      "aria-label",
+      "Création 360 : peindre au doigt ou regarder en glissant",
+    );
+    canvas.addEventListener("pointerdown", down);
+    canvas.addEventListener("pointermove", move);
+    for (const key of ["pointerup", "pointercancel", "lostpointercapture"])
+      canvas.addEventListener(key, up);
+    canvas.addEventListener("keydown", keys);
+    window.addEventListener("blur", blur);
+    return () => {
+      canvas.removeEventListener("pointerdown", down);
+      canvas.removeEventListener("pointermove", move);
+      for (const key of ["pointerup", "pointercancel", "lostpointercapture"])
+        canvas.removeEventListener(key, up);
+      canvas.removeEventListener("keydown", keys);
+      window.removeEventListener("blur", blur);
+    };
+  }, [gl, camera]);
+  useFrame((_, dt) => {
+    desired.current.setFromEuler(
+      viewEuler.current.set(goal.current.pitch, goal.current.yaw, 0, "YXZ"),
+    );
+    if (gyro && sensorReady.current && reference.current)
+      desired.current
+        .copy(base.current)
+        .multiply(reference.current)
+        .multiply(sensor.current);
+    camera.quaternion.slerp(
+      desired.current,
+      1 - Math.exp(-Math.min(dt, 0.1) * 10),
+    );
+    const step = Math.min(dt, 0.05),
+      f = flight.current;
+    // Fly inside the painted sphere; ease back towards its centre before its edge.
+    if (travel && !paused) {
+      f.holdTime = f.held ? f.holdTime + step : 0;
+      f.speed = THREE.MathUtils.damp(
+        f.speed,
+        f.held ? 0.65 + Math.min(1, f.holdTime / 2) : 0.65,
+        2,
+        step,
+      );
+      forward.current.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      inward.current.copy(camera.position).negate();
+      const radius = camera.position.length();
+      if (radius > 3.5) {
+        const influence = THREE.MathUtils.smoothstep(radius, 3.5, 6.2);
+        forward.current
+          .lerp(inward.current.normalize(), influence * 0.9)
+          .normalize();
+        if (!f.held && !gyro) {
+          viewEuler.current.setFromQuaternion(camera.quaternion, "YXZ");
+          const targetYaw = Math.atan2(-inward.current.x, -inward.current.z);
+          const delta = Math.atan2(
+            Math.sin(targetYaw - goal.current.yaw),
+            Math.cos(targetYaw - goal.current.yaw),
+          );
+          goal.current.yaw += delta * (1 - Math.exp(-step * influence * 0.8));
+          goal.current.pitch = THREE.MathUtils.damp(
+            goal.current.pitch,
+            Math.asin(THREE.MathUtils.clamp(inward.current.y, -1, 1)),
+            0.6 * influence,
+            step,
+          );
+        }
+      }
+      nextPosition.current
+        .copy(camera.position)
+        .addScaledVector(forward.current, step * f.speed);
+      nextPosition.current.clampLength(0, 6.3);
+      camera.position.copy(nextPosition.current);
+    } else {
+      f.speed = 0;
+      f.holdTime = 0;
+    }
+    const nextFov = THREE.MathUtils.damp(
+      camera.fov,
+      travel ? 82 + f.speed * 2 : 75,
+      2,
+      step,
+    );
+    if (Math.abs(camera.fov - nextFov) > 0.001) {
+      camera.fov = nextFov;
+      camera.updateProjectionMatrix();
+    }
+    gl.domElement.dataset.speed = f.speed.toFixed(3);
+    gl.domElement.dataset.position = camera.position
+      .toArray()
+      .map((n) => n.toFixed(4))
+      .join(",");
+    gl.domElement.dataset.heading = camera.quaternion
+      .toArray()
+      .map((n) => n.toFixed(4))
+      .join(",");
+    gl.domElement.dataset.interaction = travel
+      ? "travel"
+      : paint
+        ? "paint"
+        : "look";
+  });
+  return null;
+}
+function FlightPainter({ travel, paused, flightBrush = 0, audioRef }) {
+  const { camera, gl } = useThree();
+  const painter = useMemo(
+    () => createFlightBrushes({ mobile: innerWidth < 600 }),
+    [],
+  );
+  useEffect(() => () => painter.dispose(), [painter]);
+  useFrame((_, dt) => {
+    painter.update(camera, dt, {
+      active: travel,
+      paused,
+      brush: flightBrush,
+      energy: audioRef?.current?.getFeatures().energy || 0,
+    });
+    gl.domElement.dataset.paintedSegments = String(painter.count);
+    gl.domElement.dataset.flightBrush = String(flightBrush);
+  });
+  return <primitive object={painter.group} />;
+}
+export default function SquiggleWorld(props) {
+  return (
+    <Canvas
+      className="squiggle-world"
+      dpr={[1, 1.4]}
+      camera={{
+        position: props.preview ? [0, 0, 24] : [0, 0, 0.001],
+        fov: props.preview ? 50 : 75,
+        near: 0.1,
+        far: 60,
+      }}
+      gl={{ antialias: false }}
+    >
+      <Painting {...props} />
+      {!props.preview && <Interaction {...props} />}
+      {!props.preview && <FlightPainter {...props} />}
+    </Canvas>
+  );
+}

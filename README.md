@@ -1,3 +1,100 @@
+# Squiggle 360 — Dessiner, puis entrer dans son dessin
+
+La page principale ouvre directement une feuille animée plein écran. Huit brosses
+émoji sélectionnent huit dynamiques de pigments abstraits : voiles, diffusion,
+remous, nappes et poussières. Aucun pictogramme ni dessin figuratif n’est émis. Taille et annulation restent accessibles ;
+le bouton « Autres outils » déplie opacité, gomme par tracé, rétablissement,
+pause des animations, export PNG et effacement.
+
+Le bouton **360°** projette le même document sur un panorama intérieur avec
+ses effets animés. **Peindre** ajoute des gestes au document partagé ;
+**Regarder** permet de tourner la vue au doigt, à la souris ou avec le gyroscope.
+**Voyager** avance en FPV : glisser oriente le vol, maintenir accélère progressivement.
+Relâcher conserve une allure lente ; une assistance ramène le vol vers l’intérieur
+avant le bord du panorama. **Pause vol** immobilise immédiatement la caméra.
+Le voyage ne dessine pas ; revenir à **Peindre** permet de tracer depuis le nouveau
+point de vue. Les gestes ajoutés en 360° retrouvent leur place sur la feuille 2D. La couture
+panoramique découpe les gestes qui la traversent. Il s’agit d’une peinture
+panoramique avec effets dans l’espace, pas d’un éditeur de volumes indépendants.
+
+Le document reste en mémoire pendant la session (120 tracés maximum, historique
+limité à 60 actions). Le PNG exporte la vue courante sans interface. Aucune
+dépendance ajoutée. Aucun son automatique. Les préférences de réduction des
+animations sont respectées au démarrage. Gyroscope : contexte sécurisé et
+matériel compatible nécessaires ; le glissement tactile reste disponible.
+
+Le moteur Canvas des matières et le moteur Three.js des effets sont réutilisés.
+`src/squiggle/` isole l’interface, les interactions, la projection et les deux vues.
+L’expérience CosmoMood précédente reste accessible via **`?cosmomood`**, avec sa
+musique et ses univers. Sa documentation historique est conservée ci-dessous.
+
+## Bibliothèque locale d’alphas aquarellés
+
+L’API photo et son code de chargement ont été retirés de Squiggle, ainsi que les
+crédits et métadonnées photographiques. Aucune connexion réseau, clé, image
+importée ou attribution externe n’est nécessaire pour ces matières.
+
+`pigmentAtlas.js` génère une bibliothèque reproductible de huit textures RGBA :
+auréoles, capillarités, granulation, fibres, craquelures, diffusion, projections
+et encre sèche. Chaque alpha fait 256 × 256 px ; l’atlas partagé de 2048 × 256 px
+est généré une seule fois par session, hors animation. Les bords restent
+transparents et organiques, avec réserves de papier et dépôts contrastés.
+
+Les mêmes alphas servent aux empreintes Canvas 2D, aux voiles et aux corps
+pigmentaires 3D. Les caches de teintes sont limités, les ancres préparées hors animation et
+les mouvements interpolés à partir du temps. En 3D, les tracés sont des surfaces
+ouvertes, fines et plissées, sans section fermée ni bouchons : ils restent des
+voiles, jamais des corps pleins. Les alphas modulent réellement leur transparence,
+avec réserves de papier, bords diffus et dépôts pigmentaires contrastés.
+Les ressources portent les noms `GEO_Nappe_Aquarelle_01`,
+`Mesh_AudioWave_Organic` et `MAT_Watercolor_NaturalGrain` ; le style du matériau
+est identifié `Shader_Organic_Fluid`. `displacementNoise.js` construit une texture
+locale reproductible de 128 × 128 px, `TEX_Displace_Noise_Base`, avec des champs
+périodiques à plusieurs échelles : déformation lente des voiles, dérive des
+pigments, grain naturel et bords humides irréguliers. Elle est générée hors de
+l’animation et libérée avec le moteur. Ces noms n’ajoutent pas de source audio.
+Le rendu double face permet de les traverser ; l’écriture de profondeur est
+désactivée pour conserver leurs superpositions translucides. L’éclairage reste
+doux et mat, sans reflet métallique.
+Le moteur 3D utilise trois appels de dessin pour les voiles, nappes et poussières ;
+plafonds mobiles : 160 nappes, 2 800 particules et 700 segments à quatre bandes,
+soit 16 800 sommets maximum. Seules les portions actives des buffers sont mises
+à jour. Le point de dessin vise le rayon des voiles pendant le déplacement.
+Les ressources GPU sont
+libérées à la sortie ; seul l’atlas CPU partagé reste en cache pour la session.
+
+Les tests contrôlent la diversité, les détails, la transparence et la
+reproductibilité des huit alphas ; le dessin, le rendu 360° et le PNG fonctionnent
+aussi avec les requêtes externes bloquées. Le pilotage FPV, le gyro, la pause et
+l’historique restent couverts par les tests du parcours Squiggle.
+
+## Textures locales Text1.png et rezo.png
+
+Aucune API de texture n’est utilisée. Les deux fichiers réels du dépôt,
+`public/textures/Text1.png` et `public/textures/rezo.png`, sont récupérés depuis
+`main` sans fusion de branche. Le premier fichier s’appelle bien **Text1.png**,
+et non Texture1.png. Ils sont répartis en alternance entre les huit brosses :
+quatre utilisent Text1 et quatre rezo, dans les deux vues.
+
+`localTexture.js` charge chaque source une seule fois par session, en parallèle,
+avec cache HTTP, limite de 16 Mo et délai de dix secondes par image. Chaque
+bitmap est fermé après préparation des cartes couleur et hauteur à 256 px.
+Les transparences PNG, alphas aquarellés et bruits organiques sont conservés.
+Le bouton **Textures locales**, dans les outils dépliés, permet de comparer avec
+les alphas seuls ; son infobulle indique la source de la brosse sélectionnée.
+
+Si une image manque, toutes les brosses utilisent temporairement celle qui est
+disponible. Si les deux manquent, les alphas locaux restent actifs. La relance ne
+retélécharge que les sources en échec et conserve les tracés. Les ressources GPU
+remplacées sont libérées. Aucun appel externe n’est nécessaire.
+
+Les sources font 96 × 96 px pour Text1 et 1254 × 1254 px pour rezo ; le transfert
+vers les atlas n’invente pas de détails supplémentaires. Les tests vérifient les
+deux vrais fichiers servis depuis `public`, l’alternance des brosses en 2D/360,
+le chargement unique, les erreurs partielles ou totales, la relance et le PNG.
+
+---
+
 # CosmoMood 360•° — Mon univers émotionnel
 
 Un disque, une à trois émotions, une orb miniature à découvrir puis à traverser.

@@ -1,10 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { offlinePlugin } from "./build/offlinePlugin.js";
 import { readdirSync } from "node:fs";
 
 export default defineConfig({
   plugins: [
     react(),
+    offlinePlugin(),
     {
       name: "echo-mood-music-catalog",
       resolveId(id) {
