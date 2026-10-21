@@ -55,6 +55,10 @@ export function createLivingRibbons({ mobile = false } = {}) {
       gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
     fragmentShader: `uniform sampler2D pigment,noise,matter;uniform float time,pulse;uniform vec3 audio;
       varying vec2 U;varying vec3 C;varying vec4 L;
+      vec3 softLight(vec3 base,vec3 layer){
+        return mix(base-(1.-2.*layer)*base*(1.-base),
+          base+(2.*layer-1.)*(sqrt(max(base,vec3(0.)))-base),step(vec3(.5),layer));
+      }
       void main(){
         float age=fract(time/L.y+L.z);
         float head=smoothstep(.02,.62,age);
@@ -66,16 +70,24 @@ export function createLivingRibbons({ mobile = false } = {}) {
         vec2 q=vec2((tile+.12+fract(U.x*.74+L.x*.13+drift.x*.06)*.76)/8.,.12+U.y*.76);
         float grain=texture2D(pigment,q).a;
         float wet=texture2D(noise,U*vec2(2.,1.)+L.x*.11).b;
-        vec4 source=texture2D(matter,vec2((tile+.01+U.x*.98)/8.,.01+U.y*.98));
+        // Warp within a padded atlas cell: organic image structure, no cross-tile bleed.
+        vec2 paperUV=clamp(U+drift*vec2(.065,.11),vec2(.015),vec2(.985));
+        vec4 source=texture2D(matter,vec2((tile+.01+paperUV.x*.98)/8.,.01+paperUV.y*.98));
         float detail=dot(source.rgb,vec3(.2126,.7152,.0722));
+        float deposits=smoothstep(.12,.78,1.-detail)*source.a;
+        float textureGrain=mix(1.,.55+detail*.55,source.a);
         float edge=smoothstep(0.,.18,U.y+drift.y*.07)*(1.-smoothstep(.82,1.,U.y+drift.y*.07));
         float ends=smoothstep(0.,.025,U.x)*(1.-smoothstep(.94,1.,U.x));
         float tide=.5+.5*sin(U.x*19.+wet*5.+time*.13+L.x);
-        float granulation=smoothstep(.18,.8,wet*grain);
+        float granulation=smoothstep(.18,.8,wet*grain)*textureGrain+deposits*.18;
         float rim=exp(-pow((U.y-.12-drift.y*.05)*32.,2.))+exp(-pow((U.y-.88-drift.y*.05)*32.,2.));
         float alpha=drawn*fading*birth*edge*ends*(.24+grain*.48+granulation*.22+rim*.16)*(.8+wet*.2);
         alpha*=.75+audio.x*.16+pulse*.08;
-        vec3 dye=mix(C,C*mix(vec3(1.),source.rgb,.5),source.a*.65);
+        // Soft-light preserves the chosen pigment; multiply deposits ink in darker image details.
+        vec3 stained=softLight(C,source.rgb);
+        vec3 dye=mix(C,stained,source.a*.72);
+        dye*=1.-deposits*.24;
+        alpha*=mix(1.,.65+detail*.2+deposits*.5,source.a);
         vec3 color=dye*(.63+grain*.23+wet*.12);
         color*=1.-rim*.2-granulation*.12;
         alpha*=.88+tide*.12;

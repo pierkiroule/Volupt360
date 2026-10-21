@@ -117,7 +117,7 @@ test("missing slots fall back and rapid selections cannot publish stale montages
   });
   expect(result.sources).toBeLessThanOrEqual(16);
 });
-test("three emoji selections feed all their collages to the photo bubbles", async ({
+test("three emoji selections enrich watercolor without photo bubbles", async ({
   page,
 }) => {
   const errors = [];
@@ -131,14 +131,14 @@ test("three emoji selections feed all their collages to the photo bubbles", asyn
   );
   await expect(page.locator(".squibble-orb canvas")).toHaveAttribute(
     "data-photo-bubbles",
-    "8",
+    "0",
   );
   await page
     .getByRole("button", { name: "Entrer dans mon monde", exact: true })
     .click();
   await expect(page.locator(".squiggle-world canvas")).toHaveAttribute(
     "data-photo-bubbles",
-    "8",
+    "0",
   );
   expect(errors).toEqual([]);
 });

@@ -155,7 +155,6 @@ export default function SquiggleApp() {
           strokes={strokes}
           audioRef={audioRef}
           materials={materials}
-          photoMaterials={montage?.photos || fallbackMaterials}
           draft={null}
           preview={!inside}
           paint={false}

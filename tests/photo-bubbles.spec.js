@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-test("local images appear as photo bubbles in preview and travel and survive PNG capture", async ({
+test("watercolor worlds omit photo bubbles in preview and travel and retain PNG capture", async ({
   page,
 }) => {
   const errors = [];
@@ -10,7 +10,7 @@ test("local images appear as photo bubbles in preview and travel and survive PNG
   await page.goto("/");
   await expect(page.locator(".squibble-orb canvas")).toHaveAttribute(
     "data-photo-bubbles",
-    "4",
+    "0",
   );
   await page.getByRole("button", { name: "Vague", exact: true }).click();
   await page
@@ -18,7 +18,7 @@ test("local images appear as photo bubbles in preview and travel and survive PNG
     .click();
   await expect(page.locator(".squiggle-world canvas")).toHaveAttribute(
     "data-photo-bubbles",
-    "4",
+    "0",
   );
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Photographier ce regard" }).click();

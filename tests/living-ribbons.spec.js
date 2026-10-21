@@ -117,11 +117,33 @@ test("ribbons actually grow and fade on the GPU without reconstructing buffers",
     const early = sample(0.025),
       drawn = sample(0.61),
       faded = sample(0.995);
+    // The supplied image must affect actual GPU pigment, not only metadata.
+    const { SQUIGGLE_BRUSHES } = await import("/src/squiggle/brushes.js");
+    const image = document.createElement("canvas");
+    image.width = image.height = 64;
+    const ctx = image.getContext("2d");
+    const imagePixels = () => {
+      field.setMaterials(Object.fromEntries(SQUIGGLE_BRUSHES.map(b =>
+        [b.id, { canvas: image, height: image }])));
+      sample(.61);
+      const px = new Uint8Array(192 * 192 * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, 192, 192, px);
+      return px;
+    };
+    ctx.fillStyle = "#eee2c8"; ctx.fillRect(0, 0, 64, 64);
+    const light = imagePixels();
+    ctx.fillStyle = "#183848"; ctx.fillRect(0, 0, 64, 64);
+    const dark = imagePixels();
+    let textureDifference = 0;
+    for (let i = 0; i < light.length; i += 4)
+      if (Math.abs(light[i]-dark[i])+Math.abs(light[i+1]-dark[i+1])+Math.abs(light[i+2]-dark[i+2]) > 6)
+        textureDifference++;
     field.dispose();
     target.dispose();
     renderer.dispose();
-    return { early, drawn, faded };
+    return { early, drawn, faded, textureDifference };
   });
+  expect(result.textureDifference).toBeGreaterThan(30);
   expect(result.drawn).toBeGreaterThan(50);
   expect(result.early).toBeLessThan(result.drawn * 0.3);
   expect(result.faded).toBeLessThan(result.drawn * 0.1);
