@@ -2,23 +2,23 @@ import {
   Component,
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  useCallback,
 } from "react";
 import { TextureLibraryFactory } from "./textures/TextureLibraryFactory.js";
 import { loadLocalTextures } from "./localTexture.js";
-import { EMOJI_INGREDIENTS, generateUniverse } from "./squibbleUniverse.js";
-import { SQUIGGLE_BRUSHES } from "./brushes.js";
+import { EMOJI_INGREDIENTS } from "./squibbleUniverse.js";
+import { LAND_BRUSHES } from "./landscapeModel.js";
 import { requestGyroscope } from "../scene/gyroOrientation.ts";
 import { downloadBlob } from "../utils/sensoryComposition.ts";
+import MusicPanel from "./MusicPanel.jsx";
 import "./squiggle.css";
 import "./squibble.css";
-import { FLIGHT_BRUSHES } from "./createFlightBrushes.js";
-import MusicPanel from "./MusicPanel.jsx";
-const World = lazy(() => import("./SquiggleWorld.jsx"));
+import "./landscape.css";
+const World = lazy(() => import("./LandscapeWorld.jsx"));
 class WorldBoundary extends Component {
   state = { failed: false };
   static getDerivedStateFromError() {
@@ -27,7 +27,7 @@ class WorldBoundary extends Component {
   render() {
     return this.state.failed ? (
       <div className="squibble-unavailable" role="alert">
-        La 3D est indisponible sur cet appareil. Essaie avec WebGL activé.
+        La 3D est indisponible sur cet appareil.
       </div>
     ) : (
       this.props.children
@@ -35,141 +35,121 @@ class WorldBoundary extends Component {
   }
 }
 export default function SquiggleApp() {
-  const [selected, setSelected] = useState([]),
-    [inside, setInside] = useState(false),
-    [travel, setTravel] = useState(false),
-    [flightBrush, setFlightBrush] = useState(0),
-    [paused, setPaused] = useState(
+  const [inside, setInside] = useState(false),
+    [active, setActive] = useState(LAND_BRUSHES[0].emoji);
+  const [strokes, setStrokes] = useState([]),
+    [draft, setDraft] = useState(null),
+    [size, setSize] = useState(1.15),
+    [opacity, setOpacity] = useState(0.7);
+  const [materials, setMaterials] = useState({}),
+    [libraryState, setLibraryState] = useState("idle");
+  const [travel, setTravel] = useState(false),
+    [gyro, setGyro] = useState(false),
+    [recenter, setRecenter] = useState(0);
+  const [paused, setPaused] = useState(
       matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
-    [gyro, setGyro] = useState(false),
-    [recenter, setRecenter] = useState(0),
-    [localMatter, setLocalMatter] = useState([]),
-    [montage, setMontage] = useState(null),
-    [libraryState, setLibraryState] = useState("idle"),
-    [notice, setNotice] = useState(""),
-    [capturing, setCapturing] = useState(false);
+    [notice, setNotice] = useState("");
   const audioRef = useRef(null),
-    textureLibrary = useRef(null);
-  const capture = useRef(null),
-    noticeTimer = useRef(0);
+    factory = useRef(null),
+    capture = useRef(null),
+    timer = useRef(0);
   useEffect(() => {
-    document.title = "Squibble360 — Un monde à ressentir";
+    document.title = "Squibble360 — Peindre un paysage intérieur";
     if (import.meta.env.PROD && "serviceWorker" in navigator)
       navigator.serviceWorker
         .register(import.meta.env.BASE_URL + "sw.js")
         .catch(() => {});
-    textureLibrary.current = new TextureLibraryFactory();
+    const library = new TextureLibraryFactory();
+    factory.current = library;
     let alive = true;
-    loadLocalTextures().then((value) => {
-      if (alive) setLocalMatter(value);
+    loadLocalTextures().then((sources) => {
+      if (alive && sources.length)
+        setMaterials((old) =>
+          Object.fromEntries(
+            LAND_BRUSHES.map((b, i) => [
+              b.emoji,
+              old[b.emoji] || sources[i % sources.length],
+            ]),
+          ),
+        );
     });
     return () => {
       alive = false;
-      textureLibrary.current?.dispose();
-      clearTimeout(noticeTimer.current);
+      library.dispose();
+      clearTimeout(timer.current);
     };
   }, []);
   const notify = useCallback((text) => {
     setNotice(text);
-    clearTimeout(noticeTimer.current);
-    noticeTimer.current = setTimeout(() => setNotice(""), 4500);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setNotice(""), 4500);
   }, []);
-  const fallbackMaterials = useMemo(
-    () =>
-      localMatter.length
-        ? Object.fromEntries(
-            SQUIGGLE_BRUSHES.map((b, i) => [
-              b.id,
-              localMatter[i % localMatter.length],
-            ]),
-          )
-        : {},
-    [localMatter],
-  );
-  const choices = useMemo(
-    () =>
-      selected.map((emoji) => EMOJI_INGREDIENTS.find((e) => e.emoji === emoji)),
-    [selected],
-  );
   useEffect(() => {
-    let active = true;
-    if (!choices.length) {
-      setMontage(null);
-      setLibraryState("idle");
-      return;
-    }
+    let alive = true;
     setLibraryState("loading");
-    textureLibrary.current.compose(choices).then((result) => {
-      if (active) {
-        setMontage(result);
-        setLibraryState(result ? "ready" : "fallback");
-      }
-    });
+    factory.current
+      .compose([EMOJI_INGREDIENTS.find((e) => e.emoji === active)])
+      .then((result) => {
+        if (!alive) return;
+        const surface = result && Object.values(result.photos)[0];
+        if (surface) setMaterials((old) => ({ ...old, [active]: surface }));
+        setLibraryState(surface ? "ready" : "fallback");
+      });
     return () => {
-      active = false;
+      alive = false;
     };
-  }, [choices]);
-  const materials = montage?.materials || fallbackMaterials;
-  const strokes = useMemo(() => generateUniverse(choices), [choices]);
+  }, [active]);
+  const choices = useMemo(() => {
+    const emojis = [...new Set(strokes.map((s) => s.emoji))];
+    return (emojis.length ? emojis : [active]).map((emoji) =>
+      EMOJI_INGREDIENTS.find((e) => e.emoji === emoji),
+    );
+  }, [strokes, active]);
   const onCapture = useCallback((fn) => {
     capture.current = fn;
   }, []);
-  function toggle(emoji) {
-    if (selected.includes(emoji))
-      setSelected(selected.filter((e) => e !== emoji));
-    else if (selected.length < 3) setSelected([...selected, emoji]);
-    else notify("Trois emojis au maximum · touche un choix pour le retirer.");
-  }
-  function leave() {
-    setInside(false);
-    setTravel(false);
-    setGyro(false);
-    capture.current = null;
-    setNotice("");
-  }
+  const addStroke = useCallback(
+    (stroke) => setStrokes((old) => (old.length < 80 ? [...old, stroke] : old)),
+    [],
+  );
+  const tool = useMemo(
+    () => ({ emoji: active, size, opacity }),
+    [active, size, opacity],
+  );
+  const brush = LAND_BRUSHES.find((b) => b.emoji === active);
   async function photo() {
-    if (!capture.current || capturing) return;
-    setCapturing(true);
     try {
-      downloadBlob(
-        await capture.current(),
-        "squibble360-" + new Date().toISOString().replaceAll(":", "-") + ".png",
-      );
-      notify("Ta photo a été téléchargée.");
+      if (capture.current)
+        downloadBlob(await capture.current(), "squibble360-paysage.png");
     } catch {
       notify("Photo indisponible. Réessaie dans un instant.");
-    } finally {
-      setCapturing(false);
     }
   }
   const world = (
     <WorldBoundary>
       <Suspense
         fallback={
-          <div className="squibble-loading">Ton monde prend forme…</div>
+          <div className="squibble-loading">Le paysage prend forme…</div>
         }
       >
         <World
-          key={inside ? "inside" : "orb"}
+          editor={!inside}
           strokes={strokes}
-          audioRef={audioRef}
+          draft={draft}
           materials={materials}
-          draft={null}
-          preview={!inside}
-          paint={false}
+          tool={tool}
+          onDraft={setDraft}
+          onStroke={addStroke}
+          onCapture={onCapture}
+          audioRef={audioRef}
           travel={travel}
-          flightBrush={flightBrush}
-          paused={paused}
           gyro={gyro}
           recenter={recenter}
-          tool={{ erase: false }}
-          onCapture={onCapture}
+          paused={paused}
           onGyroUnavailable={() => {
             setGyro(false);
-            notify(
-              "Gyroscope indisponible · glisse pour regarder autour de toi.",
-            );
+            notify("Gyroscope indisponible · glisse pour regarder.");
           }}
         />
       </Suspense>
@@ -178,10 +158,11 @@ export default function SquiggleApp() {
   return (
     <main
       className={
-        "squiggle-app squibble " + (inside ? "is-inside" : "is-choosing")
+        "squiggle-app squibble landscape-app " +
+        (inside ? "is-inside" : "is-choosing")
       }
-      data-choices={selected.length}
       data-texture-library={libraryState}
+      data-strokes={strokes.length}
     >
       {!inside ? (
         <>
@@ -189,95 +170,121 @@ export default function SquiggleApp() {
             <h1>
               Squibble<span>360</span>
             </h1>
-            <p>Un monde à ressentir, un regard à explorer.</p>
+            <p>Peins un monde. Entre dans son paysage.</p>
           </header>
           <section
             className="squibble-selector"
-            aria-label="Composer sa bulle-monde"
+            aria-label="Peindre le disque paysage"
           >
-            <div className="squibble-orb">{world}</div>
-            <button
-              className="squibble-portal"
-              aria-label="Entrer dans mon monde"
-              disabled={!selected.length}
-              onClick={() => {
-                setInside(true);
-                setTravel(true);
-              }}
-            >
-              <span>{selected.length ? "Entrer ↗" : "Choisis tes emojis"}</span>
-            </button>
+            <div className="landscape-disk">{world}</div>
             <div
               className="squibble-ring"
               role="group"
-              aria-label="Emojis de ton univers"
+              aria-label="Palette de brosses"
             >
-              {EMOJI_INGREDIENTS.map((e, i) => {
+              {LAND_BRUSHES.map((b, i) => {
                 const angle =
-                  (i * Math.PI * 2) / EMOJI_INGREDIENTS.length - Math.PI / 2;
+                  (i * Math.PI * 2) / LAND_BRUSHES.length - Math.PI / 2;
                 return (
                   <button
-                    key={e.emoji}
-                    aria-label={e.name}
-                    aria-pressed={selected.includes(e.emoji)}
+                    key={b.emoji}
+                    aria-label={b.name}
+                    title={b.name}
+                    aria-pressed={active === b.emoji}
                     style={{
                       "--x": Math.cos(angle),
                       "--y": Math.sin(angle),
-                      "--tint": e.color,
+                      "--tint": b.color,
                     }}
-                    onClick={() => toggle(e.emoji)}
+                    onClick={() => setActive(b.emoji)}
                   >
-                    <span aria-hidden="true">{e.emoji}</span>
+                    {b.emoji}
                   </button>
                 );
               })}
             </div>
           </section>
-          <footer className="squibble-invitation">
-            <p>1 à 3 emojis. Laisse émerger un univers.</p>
-            <div className="squibble-chosen" aria-label="Tes choix">
-              {selected.length ? (
-                selected.map((e) => (
-                  <button
-                    key={e}
-                    aria-label={
-                      "Retirer " +
-                      EMOJI_INGREDIENTS.find((x) => x.emoji === e).name
-                    }
-                    onClick={() => toggle(e)}
-                  >
-                    {e}
-                    <small>×</small>
-                  </button>
-                ))
-              ) : (
-                <span>Tout commence par une rencontre.</span>
-              )}
+          <footer className="landscape-editor-tools">
+            <p>
+              {brush.name} <span>· Dessine dans le disque</span>
+            </p>
+            <div className="landscape-settings">
+              <label>
+                Taille{" "}
+                <input
+                  aria-label="Taille de la brosse"
+                  type="range"
+                  min=".45"
+                  max="2.4"
+                  step=".05"
+                  value={size}
+                  onChange={(e) => setSize(+e.target.value)}
+                />
+              </label>
+              <label>
+                Opacité{" "}
+                <input
+                  aria-label="Opacité de la brosse"
+                  type="range"
+                  min=".2"
+                  max="1"
+                  step=".05"
+                  value={opacity}
+                  onChange={(e) => setOpacity(+e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="landscape-actions">
+              <button
+                aria-label="Annuler le dernier tracé"
+                disabled={!strokes.length}
+                onClick={() => setStrokes((s) => s.slice(0, -1))}
+              >
+                ↶
+              </button>
+              <button
+                disabled={!strokes.length}
+                onClick={() => {
+                  setDraft(null);
+                  setInside(true);
+                  setTravel(false);
+                }}
+              >
+                Entrer dans mon paysage ↗
+              </button>
+              <button aria-label="Photographier le disque" onClick={photo}>
+                ▣
+              </button>
             </div>
             <small>
-              {libraryState === "loading"
-                ? "Les images se rencontrent…"
-                : "Une exploration artistique et projective, sans interprétation de tes choix."}
+              {strokes.length >= 80
+                ? "Palette pleine pour cette œuvre · annule un tracé pour continuer."
+                : "Chaque geste dépose sa matière et façonne le relief."}
             </small>
           </footer>
         </>
       ) : (
         <>
-          {world}
+          <div className="landscape-immersive">{world}</div>
           <header className="squibble-flight-header">
-            <button aria-label="Revenir à ma bulle" onClick={leave}>
-              ← Bulle
+            <button
+              onClick={() => {
+                setInside(false);
+                setTravel(false);
+                setGyro(false);
+              }}
+            >
+              ← Peindre
             </button>
-            <span aria-label="Emojis choisis">{selected.join(" ")}</span>
           </header>
           <nav
             className="squibble-flight-tools"
-            aria-label="Explorer et photographier"
+            aria-label="Explorer le paysage"
           >
             <button
               aria-label={travel ? "Contempler" : "Voyager en FPV"}
               aria-pressed={travel}
-              onClick={() => setTravel(!travel)}
+              onClick={() => setTravel((v) => !v)}
             >
               {travel ? "Ⅱ Contempler" : "➤ Voyager"}
             </button>
@@ -293,9 +300,7 @@ export default function SquiggleApp() {
                   await requestGyroscope();
                   setGyro(true);
                 } catch {
-                  notify(
-                    "Gyroscope indisponible · le glissement tactile reste disponible.",
-                  );
+                  notify("Glisse pour regarder · gyroscope indisponible.");
                 }
               }}
             >
@@ -309,11 +314,7 @@ export default function SquiggleApp() {
                 ↺
               </button>
             )}
-            <button
-              aria-label="Photographier ce regard"
-              disabled={capturing}
-              onClick={photo}
-            >
+            <button aria-label="Photographier ce regard" onClick={photo}>
               ▣ Photo
             </button>
             <button
@@ -323,32 +324,14 @@ export default function SquiggleApp() {
                   : "Mettre les animations en pause"
               }
               aria-pressed={paused}
-              onClick={() => setPaused(!paused)}
+              onClick={() => setPaused((v) => !v)}
             >
               {paused ? "▷" : "❚❚"}
             </button>
           </nav>
-          <div
-            className="squibble-flight-brushes"
-            role="group"
-            aria-label="Brosses de voyage"
-          >
-            {FLIGHT_BRUSHES.map((brush, i) => (
-              <button
-                key={brush.name}
-                title={brush.name}
-                aria-label={"Brosse " + brush.name}
-                aria-pressed={flightBrush === i}
-                onClick={() => setFlightBrush(i)}
-                style={{ color: brush.color }}
-              >
-                {brush.glyph}
-              </button>
-            ))}
-          </div>
           <p className="squibble-flight-hint">
             {travel
-              ? "Le vol peint · Glisse pour tourner · Maintiens pour accélérer"
+              ? "Glisse pour orienter le voyage entre les reliefs"
               : "Glisse ou tourne ton téléphone pour contempler"}
           </p>
         </>

@@ -1,0 +1,97 @@
+.landscape-app .squibble-selector {
+  width: min(88vw, 56svh, 620px);
+  top: 45%;
+}
+.landscape-disk {
+  position: absolute;
+  inset: 9%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f3ecdc;
+  box-shadow:
+    0 14px 54px #565e5022,
+    inset 0 0 0 1px #796a4b22;
+  touch-action: none;
+}
+.landscape-disk canvas {
+  touch-action: none;
+}
+.landscape-editor-tools {
+  position: absolute;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(430px, calc(100% - 26px));
+  text-align: center;
+}
+.landscape-editor-tools p {
+  margin: 0 0 10px;
+  font:
+    16px Georgia,
+    serif;
+}
+.landscape-editor-tools p span {
+  font: 11px system-ui;
+  color: #64766e;
+}
+.landscape-settings {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 8px 0;
+}
+.landscape-settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.landscape-settings input {
+  width: 100px;
+  min-height: 30px;
+  accent-color: #628c87;
+  touch-action: auto;
+}
+.landscape-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.landscape-actions button {
+  background: #faf7e9dd;
+}
+.landscape-actions button:nth-child(2) {
+  background: #dfe9df;
+  padding: 0 16px;
+}
+.landscape-editor-tools small {
+  display: block;
+  font-size: 10px;
+  color: #62796e;
+  margin-top: 9px;
+}
+.landscape-immersive {
+  position: absolute;
+  inset: 0;
+}
+.landscape-immersive canvas {
+  touch-action: none;
+}
+@media (max-height: 650px) {
+  .landscape-app .squibble-selector {
+    width: min(67vw, 47svh);
+    top: 43%;
+  }
+  .landscape-editor-tools {
+    bottom: 8px;
+  }
+  .landscape-editor-tools small {
+    display: none;
+  }
+  .landscape-editor-tools p {
+    margin-bottom: 3px;
+  }
+  .landscape-settings {
+    margin: 2px 0;
+  }
+}
