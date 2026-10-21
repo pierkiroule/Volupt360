@@ -10,6 +10,7 @@ import {
 } from "./weatherModel";
 import { deviceQuaternion, requestGyroscope } from "../scene/gyroOrientation";
 import { ProjectiveVeil, InkBirds } from "./ProjectiveAtmosphere";
+import { WeatherLandscape, groundHeight } from "./WeatherLandscape";
 export { requestGyroscope };
 interface Navigation {
   x: number;
@@ -265,6 +266,10 @@ function Flight({
       );
       camera.position.lerp(s.target, 1 - Math.exp(-dt * 0.6));
     }
+    camera.position.y = Math.max(
+      camera.position.y,
+      groundHeight(camera.position.x, camera.position.z) + 1.3,
+    );
     if (input.active) {
       s.offset = null;
       s.yaw -= input.x * dt;
@@ -304,6 +309,7 @@ function Flight({
     <>
       <color attach="background" args={["#eff1ec"]} />
       <fog attach="fog" args={["#eff1ec", 13, 34]} />
+      <WeatherLandscape zones={zones} paused={paused} />
       <InkBirds paused={paused} />
       {zones.map((z) => (
         <Phenomenon key={z.id} zone={z} paused={paused} />

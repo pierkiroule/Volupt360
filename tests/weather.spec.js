@@ -188,3 +188,58 @@ test("imaginary weather compiles its watercolor shaders, pauses and preserves th
   await page.reload();
   await expect(page.locator("main")).toHaveAttribute("data-zones", "3");
 });
+test("watercolor ground renders and flight keeps clearance above hills", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error" && /WebGL|shader|GL_INVALID|THREE/i.test(m.text()))
+      errors.push(m.text());
+  });
+  await page.goto("/");
+  await place(page, "Rayonnement", 0.5, 0.5);
+  await place(page, "Pluie", 0.3, 0.4);
+  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-landscape",
+    "watercolor",
+  );
+  const ranges = await page.evaluate(async () => {
+    const m = await import("/src/weather/WeatherLandscape.tsx");
+    let min = Infinity,
+      max = -Infinity;
+    for (let x = -12; x <= 12; x += 0.5)
+      for (let z = -12; z <= 12; z += 0.5) {
+        const h = m.groundHeight(x, z);
+        if (!Number.isFinite(h)) throw Error("nonfinite ground");
+        min = Math.min(min, h);
+        max = Math.max(max, h);
+      }
+    return {
+      min,
+      max,
+      river: Array.from({ length: 12 }, (_, i) => m.riverCenter(i - 6)),
+    };
+  });
+  expect(ranges.max - ranges.min).toBeGreaterThan(0.5);
+  expect(ranges.river.every(Number.isFinite)).toBe(true);
+  await page.mouse.move(600, 300);
+  await page.mouse.down();
+  await page.mouse.move(600, 430, { steps: 5 });
+  await page.waitForTimeout(650);
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await page.waitForTimeout(600);
+  const clearance = await page.evaluate(async () => {
+    const m = await import("/src/weather/WeatherLandscape.tsx");
+    const [x, y, z] = document
+      .querySelector("canvas")
+      .dataset.position.split(",")
+      .map(Number);
+    return y - m.groundHeight(x, z);
+  });
+  expect(clearance).toBeGreaterThanOrEqual(1.29);
+  await page.screenshot({ path: "test-results/weather-ground.png" });
+  expect(errors).toEqual([]);
+});

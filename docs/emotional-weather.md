@@ -39,3 +39,9 @@ Les alphas procéduraux combinent lavis, granulation, contours de séchage et r�
 Cinq silhouettes d’oiseaux d’encre partagent une géométrie et un appel de rendu. Leur apparition progressive est intermittente ; la pause fige aussi les ailes et les voiles. La caméra commence orientée vers la première matière choisie, pour éviter une arrivée face à un ciel vide. Les météos imaginaires restent des matières ouvertes à la projection, sans signification psychologique imposée.
 
 La vérification dédiée contrôle la compilation WebGL des voiles, l’absence d’erreurs shader, la reproductibilité des textures, les trois nouvelles météos et leur sauvegarde. Les performances sur téléphone réel ne sont pas déclarées mesurées.
+
+## Paysage au sol
+
+`WeatherLandscape.tsx` ajoute un terrain continu, des collines, des vallées et un cours d’eau sinueux animé. Les nuances du ciel teintent les terres, avec grain et contours de séchage dans des shaders légers. Un brouillard progressif raccorde le relief au fond papier. La grille compte 80 × 80 segments sur petit écran, 112 × 112 sur grand écran ; le cours d’eau utilise 160 segments. Aucune tuile distante ni moteur physique supplémentaire.
+
+La fonction `groundHeight` est partagée avec la caméra pour garantir une marge de 1,3 unité au-dessus du terrain. Le paysage ne modifie pas les zones du disque. La pause fige le mouvement de l’eau. Le test dédié vérifie le rendu WebGL sans erreur, des hauteurs finies, des reliefs variables et la marge du vol. Les performances sur appareil réel restent à mesurer.
