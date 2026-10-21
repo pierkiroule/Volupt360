@@ -5,9 +5,12 @@ const families = new Map(SQUIGGLE_BRUSHES.map((b, i) => [b.id, i]));
 export function createWatercolorMotion({ mobile = false } = {}) {
   const atlas = pigmentAtlas(),
     masks = new Map();
-  let anchors = [];
-  function tinted(color) {
-    if (masks.has(color)) return masks.get(color);
+  let anchors = [],
+    materials = {},
+    lastStrokes = [];
+  function tinted(color, family) {
+    const key = `${color}:${family}`;
+    if (masks.has(key)) return masks.get(key);
     const c = document.createElement("canvas");
     c.width = atlas.width;
     c.height = atlas.height;
@@ -15,6 +18,22 @@ export function createWatercolorMotion({ mobile = false } = {}) {
 
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, c.width, c.height);
+    const matter = materials[SQUIGGLE_BRUSHES[family]?.id];
+    if (matter) {
+      ctx.globalAlpha = 0.92;
+      for (let tile = 0; tile < PIGMENT_COLUMNS; tile++)
+        ctx.drawImage(
+          matter.canvas,
+          tile * PIGMENT_CELL,
+          0,
+          PIGMENT_CELL,
+          PIGMENT_CELL,
+        );
+      ctx.globalCompositeOperation = "multiply";
+      ctx.globalAlpha = 0.06;
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, c.width, c.height);
+    }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "destination-in";
     ctx.drawImage(atlas, 0, 0);
@@ -23,11 +42,18 @@ export function createWatercolorMotion({ mobile = false } = {}) {
       masks.get(key).width = 1;
       masks.delete(key);
     }
-    masks.set(color, c);
+    masks.set(key, c);
     return c;
   }
   return {
+    setMaterials(value) {
+      materials = value;
+      for (const c of masks.values()) c.width = 1;
+      masks.clear();
+      this.setDocument(lastStrokes);
+    },
     setDocument(strokes) {
+      lastStrokes = strokes;
       anchors = [];
       const capacity = mobile ? 600 : 1000;
       const per = Math.max(
@@ -74,7 +100,8 @@ export function createWatercolorMotion({ mobile = false } = {}) {
             seed: i * 2.399 + s.id * 7.13,
             size: s.size,
             opacity: s.opacity,
-            mask: tinted(s.color || "#466c86"),
+            mask: tinted(s.color || "#466c86", family),
+            external: Boolean(materials[SQUIGGLE_BRUSHES[family]?.id]),
             family,
             tile: family % PIGMENT_COLUMNS,
           });
@@ -92,7 +119,8 @@ export function createWatercolorMotion({ mobile = false } = {}) {
           a.y + Math.cos(phase * 0.73) * drift,
         );
         ctx.rotate(a.angle + Math.sin(phase * 0.7) * 0.18);
-        ctx.globalAlpha = a.opacity * (a.family === 5 ? 0.34 : 0.64);
+        ctx.globalAlpha =
+          a.opacity * (a.external ? 0.95 : a.family === 5 ? 0.34 : 0.64);
         ctx.drawImage(
           a.mask,
           a.tile * PIGMENT_CELL,
@@ -104,6 +132,18 @@ export function createWatercolorMotion({ mobile = false } = {}) {
           w * 1.2,
           w * 0.84,
         );
+        if (a.external)
+          ctx.drawImage(
+            a.mask,
+            a.tile * PIGMENT_CELL,
+            0,
+            PIGMENT_CELL,
+            PIGMENT_CELL,
+            -w * 0.6,
+            -w * 0.42,
+            w * 1.2,
+            w * 0.84,
+          );
         // Fine pigment dust follows a continuous orbit, never symbolic sprites.
         ctx.fillStyle = "#304b5d";
         ctx.globalAlpha = a.opacity * 0.35;

@@ -155,6 +155,9 @@ export function createWatercolorField({ mobile = false } = {}) {
   }
   return {
     group,
+    setMaterials(value) {
+      ribbons.setMaterials(value);
+    },
     setDocument(strokes) {
       ribbons.setDocument(strokes);
       fill(veils, strokes, true);

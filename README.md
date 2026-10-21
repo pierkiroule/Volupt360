@@ -68,6 +68,34 @@ reproductibilité des huit alphas ; le dessin, le rendu 360° et le PNG fonction
 aussi avec les requêtes externes bloquées. Le pilotage FPV, le gyro, la pause et
 l’historique restent couverts par les tests du parcours Squiggle.
 
+## Poly Haven — matières optionnelles
+
+**Autres outils → Matières** ouvre une galerie de textures CC0 : recherche par
+nom, identifiant ou catégorie, 24 aperçus maximum, puis application à la brosse
+active. Cela modifie ses tracés existants et suivants dans les deux vues.
+**Alpha local** retire cette matière. Le dessin n’effectue aucun appel externe
+avant l’ouverture du panneau et les alphas locaux restent toujours disponibles.
+
+`polyHaven.js` utilise `/assets?t=textures`, puis `/files/{id}`. Les aperçus CDN
+servent uniquement à la galerie ; le rendu utilise les vraies cartes `diff`
+(et `disp` si disponible), en 1k de préférence. Les images sont téléchargées en
+CORS, limitées à 8 Mo chacune et ramenées à 256 px. Une hauteur issue de la
+luminance remplace la carte de déplacement absente. Cache de catalogue en
+session, cache de quatre matières et cache HTTP ; les requêtes sont annulées à
+la fermeture du panneau. Une sélection échouée conserve la matière précédente.
+
+Les matières suivent les huit brosses, avec une paire d’atlas GPU bornés créée
+uniquement lorsqu’une matière est active. Les alphas aquarellés et le bruit
+organique sont conservés. Les atlas remplacés sont libérés, et le retour aux
+alphas rend les ressources GPU optionnelles. Aucune bibliothèque ajoutée.
+Un lien discret dans le panneau renvoie à Poly Haven et à sa licence CC0.
+
+Les tests utilisent des réponses simulées pour contrôler recherche, chargement
+des vraies cartes, visibilité en 2D/360, cache, erreurs, retour aux alphas et
+libération GPU. L’accès réel à Poly Haven a été refusé par le réseau de
+l’environnement (`403`) ; le service réel et un téléphone physique restent à
+valider.
+
 ---
 
 # CosmoMood 360•° — Mon univers émotionnel

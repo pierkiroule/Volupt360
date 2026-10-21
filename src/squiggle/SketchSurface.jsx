@@ -3,6 +3,7 @@ import { createDiskPainter, DISK_SIZE } from "../emociel/emotionPainting.js";
 import { createWatercolorMotion } from "./drawAccents.js";
 export default function SketchSurface({
   strokes,
+  materials,
   tool,
   active,
   paused,
@@ -125,6 +126,9 @@ export default function SketchSurface({
     };
   }, []);
   useEffect(() => {
+    owner.current?.motion.setMaterials(materials);
+  }, [materials]);
+  useEffect(() => {
     if (!owner.current) return;
     const { painter, document } = owner.current;
     if (
@@ -144,6 +148,7 @@ export default function SketchSurface({
       width={DISK_SIZE}
       height={DISK_SIZE}
       hidden={!active}
+      data-external-materials={Object.keys(materials).length}
       data-material-style="abstract-watercolor"
       role="img"
       aria-label="Feuille de dessin animée"

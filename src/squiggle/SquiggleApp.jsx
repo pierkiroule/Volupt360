@@ -12,6 +12,7 @@ import { SQUIGGLE_BRUSHES } from "./brushes.js";
 import { requestGyroscope } from "../scene/gyroOrientation.ts";
 import { downloadBlob } from "../utils/sensoryComposition.ts";
 import "./squiggle.css";
+const PolyHavenPanel = lazy(() => import("./PolyHavenPanel.jsx"));
 const World = lazy(() => import("./SquiggleWorld.jsx"));
 class WorldBoundary extends Component {
   state = { failed: false };
@@ -29,6 +30,8 @@ class WorldBoundary extends Component {
   }
 }
 export default function SquiggleApp() {
+  const [materials, setMaterials] = useState({}),
+    [materialPanel, setMaterialPanel] = useState(false);
   const [erase, setErase] = useState(false),
     [recenter, setRecenter] = useState(0);
   const [strokes, setStrokes] = useState([]),
@@ -157,6 +160,7 @@ export default function SquiggleApp() {
     <main className={`squiggle-app is-${mode}`}>
       <SketchSurface
         strokes={strokes}
+        materials={materials}
         tool={tool}
         active={mode === "2d"}
         paused={paused}
@@ -174,6 +178,7 @@ export default function SquiggleApp() {
           >
             <World
               strokes={strokes}
+              materials={materials}
               draft={draft}
               source={source}
               paint={paint}
@@ -292,6 +297,7 @@ export default function SquiggleApp() {
               aria-pressed={brush === b.id && !erase}
               onClick={() => {
                 setBrush(b.id);
+                setMaterialPanel(false);
                 setPaint(true);
                 setTravel(false);
                 setErase(false);
@@ -329,8 +335,35 @@ export default function SquiggleApp() {
             •••
           </button>
         </div>
+        {materialPanel && (
+          <Suspense
+            fallback={
+              <div className="squiggle-material-panel">Chargement…</div>
+            }
+          >
+            <PolyHavenPanel
+              brush={SQUIGGLE_BRUSHES.find((b) => b.id === brush)}
+              current={materials[brush]}
+              onClose={() => setMaterialPanel(false)}
+              onApply={(matter) =>
+                setMaterials((previous) => {
+                  const next = { ...previous };
+                  if (matter) next[brush] = matter;
+                  else delete next[brush];
+                  return next;
+                })
+              }
+            />
+          </Suspense>
+        )}
         {more && (
           <div className="squiggle-more">
+            <button
+              aria-expanded={materialPanel}
+              onClick={() => setMaterialPanel(!materialPanel)}
+            >
+              Matières
+            </button>
             <label>
               Opacité
               <input

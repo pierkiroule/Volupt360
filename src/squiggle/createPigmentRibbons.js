@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createMaterialAtlas } from "./materialAtlas.js";
 import { createDisplacementNoise } from "./displacementNoise.js";
 import { PIGMENT_COLUMNS } from "./pigmentAtlas.js";
 import { SQUIGGLE_BRUSHES, SCULPT_RADIUS } from "./brushes.js";
@@ -11,6 +12,7 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
   const geometry = new THREE.BufferGeometry();
   geometry.name = "GEO_Nappe_Aquarelle_01";
   const noiseTexture = createDisplacementNoise();
+  const external = createMaterialAtlas();
   const buffers = {
     position: new Float32Array(maxVertices * 3),
     normal: new Float32Array(maxVertices * 3),
@@ -34,18 +36,23 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
     vertexColors: true,
     uniforms: {
       pigment: { value: texture },
+      materialColor: { value: external.color },
+      materialHeight: { value: external.height },
       displacementNoise: { value: noiseTexture },
       time: { value: 0 },
     },
-    vertexShader: `attribute vec4 fold;uniform sampler2D displacementNoise;uniform float time;varying vec2 U;varying vec3 C,N,P;varying vec4 F;
+    vertexShader: `attribute vec4 fold;uniform sampler2D displacementNoise,materialColor,materialHeight;uniform float time;varying vec2 U;varying vec3 C,N,P;varying vec4 F;
     void main(){U=uv;C=color;F=fold;
       vec2 flowUV=uv*vec2(.65,.4)+vec2(fold.z*.071+time*.013,-time*.009);
       vec3 field=texture2D(displacementNoise,flowUV).rgb;
-      float sway=(field.r-.5)*.5+(field.b-.5)*.16;
+      vec2 surfaceUV=vec2((fold.x+.01+fract(uv.x*1.7+fold.z*.11)*.98)/${PIGMENT_COLUMNS}.,.01+uv.y*.98);
+      float present=texture2D(materialColor,surfaceUV).a;
+      float detail=texture2D(materialHeight,surfaceUV).r-.5;
+      float sway=(field.r-.5)*.5+(field.b-.5)*.16+detail*present*.08;
       vec3 p=position+normal*sway*fold.w;
       vec4 view=modelViewMatrix*vec4(p,1.);P=view.xyz;N=normalize(normalMatrix*normal);
       gl_Position=projectionMatrix*view;}`,
-    fragmentShader: `uniform sampler2D pigment,displacementNoise;uniform float time;varying vec2 U;varying vec3 C,N,P;varying vec4 F;
+    fragmentShader: `uniform sampler2D pigment,displacementNoise,materialColor;uniform float time;varying vec2 U;varying vec3 C,N,P;varying vec4 F;
     float heightAt(vec2 uv){
       vec2 flow=texture2D(displacementNoise,uv*.35+vec2(time*.006,F.z*.071)).rb-.5;
       vec2 q=vec2(.12+fract(uv.x*1.7+F.z*.11+flow.x*.09)*.76,clamp(.12+uv.y*.76+flow.y*.07,.03,.97));
@@ -57,7 +64,9 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
       float light=.72+.28*abs(dot(n,normalize(vec3(-.55,.8,.9))));
       float naturalGrain=texture2D(displacementNoise,U*vec2(2.,1.4)+F.z*.13).g;
       float pigment=(.62+.58*h)*(.83+naturalGrain*.32);
-      vec3 lit=C*pigment*light;
+      vec2 surfaceUV=vec2((F.x+.01+fract(U.x*1.7+F.z*.11)*.98)/${PIGMENT_COLUMNS}.,.01+U.y*.98);
+      vec4 matter=texture2D(materialColor,surfaceUV);
+      vec3 lit=mix(C,matter.rgb,matter.a*.72)*pigment*light;
       float wetEdge=(texture2D(displacementNoise,vec2(U.x*.7+F.z*.17,U.y*.13)).b-.5)*.11;
       float edge=smoothstep(0.,.17,U.y+wetEdge)*(1.-smoothstep(.83,1.,U.y+wetEdge));
       float ends=smoothstep(0.,.07,U.x)*(1.-smoothstep(.93,1.,U.x));
@@ -92,6 +101,11 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
   };
   return {
     mesh,
+    setMaterials(value) {
+      external.setMaterials(value);
+      material.uniforms.materialColor.value = external.color;
+      material.uniforms.materialHeight.value = external.height;
+    },
     setDocument(strokes) {
       let vertices = 0;
       const per = Math.max(
@@ -211,6 +225,7 @@ export function createPigmentRibbons(texture, { mobile = false } = {}) {
       return maxVertices;
     },
     dispose() {
+      external.dispose();
       noiseTexture.dispose();
       geometry.dispose();
       material.dispose();

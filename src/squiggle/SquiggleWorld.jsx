@@ -5,7 +5,7 @@ import { createWatercolorField } from "./createWatercolorField.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
 import { createWatercolorMotion } from "./drawAccents.js";
 import { directionToPaper, SCULPT_RADIUS } from "./brushes.js";
-function Painting({ strokes, draft, source, paused, onCapture }) {
+function Painting({ strokes, draft, source, paused, onCapture, materials }) {
   const { gl, scene, camera } = useThree(),
     time = useRef(0);
   const weather = useMemo(
@@ -46,6 +46,11 @@ function Painting({ strokes, draft, source, paused, onCapture }) {
     [accents],
   );
   useEffect(() => {
+    accents.motion.setMaterials(materials);
+    weather.setMaterials(materials);
+    accents.last = -1;
+  }, [materials, accents, weather]);
+  useEffect(() => {
     accents.last = -1;
     accents.motion.setDocument(draft ? [...strokes, draft] : strokes);
   }, [strokes, draft, accents]);
@@ -83,6 +88,9 @@ function Painting({ strokes, draft, source, paused, onCapture }) {
       accents.ctx.restore();
       accents.texture.needsUpdate = true;
     }
+    gl.domElement.dataset.externalMaterials = String(
+      Object.keys(materials).length,
+    );
     gl.domElement.dataset.materialStyle = "abstract-watercolor";
     gl.domElement.dataset.reliefVertices = String(weather.stats.ribbonVertices);
     gl.domElement.dataset.particles = String(weather.stats.particles);

@@ -227,3 +227,77 @@
     margin-top: 2px;
   }
 }
+.squiggle-material-panel {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  max-height: 60dvh;
+  overflow: auto;
+  padding: 14px;
+  border-radius: 20px;
+  background: #faf8f2f5;
+  border: 1px solid #dce3df;
+  box-shadow: 0 12px 40px #223b4020;
+  font-size: 12px;
+}
+.squiggle-material-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.squiggle-material-panel small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.65;
+}
+.squiggle-material-panel form {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.squiggle-material-panel input {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #cad8d7;
+  border-radius: 12px;
+  padding: 10px;
+  font: inherit;
+  background: #fff9;
+}
+.squiggle-material-panel button {
+  font-size: 12px;
+}
+.squiggle-material-panel a {
+  color: #34616a;
+}
+.squiggle-material-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.squiggle-material-gallery button {
+  height: auto;
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.squiggle-material-gallery img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+.squiggle-material-gallery span {
+  display: block;
+  padding: 6px;
+  font-size: 11px;
+  white-space: normal;
+}
+.squiggle-material-panel footer {
+  font-size: 10px;
+  opacity: 0.65;
+  margin-top: 12px;
+}
