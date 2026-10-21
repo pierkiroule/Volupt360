@@ -105,6 +105,32 @@ export function WeatherDisk({
               k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy);
             }
             ctx.stroke();
+          } else if (z.kind === "aurora" || z.kind === "prism") {
+            ctx.globalAlpha = z.opacity * 0.24;
+            ctx.strokeStyle = n % 2 ? type.secondary : type.color;
+            ctx.lineWidth = 1.3 + (n % 3);
+            ctx.beginPath();
+            for (let k = 0; k <= 25; k++) {
+              const xx = (k / 25 - 0.5) * radius * 1.7,
+                yy =
+                  py * 0.65 +
+                  Math.sin(k * 0.14 + time * 0.2 + phase) * radius * 0.18;
+              k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy);
+            }
+            ctx.stroke();
+          } else if (z.kind === "dream") {
+            ctx.globalAlpha = z.opacity * 0.4;
+            ctx.beginPath();
+            ctx.ellipse(
+              px + Math.sin(time * 0.2 + phase) * 7,
+              py + Math.cos(time * 0.15 + phase) * 8,
+              3 + r() * 6,
+              2 + r() * 5,
+              phase,
+              0,
+              6.28,
+            );
+            ctx.stroke();
           } else if (z.kind === "snow") {
             ctx.globalAlpha = z.opacity * 0.65;
             py = ((py + radius + time * 5) % (radius * 2)) - radius;

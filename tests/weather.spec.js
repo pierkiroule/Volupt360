@@ -145,3 +145,46 @@ test("all weather materials stay finite and malformed saved data is rejected", a
   await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "8");
 });
+test("imaginary weather compiles its watercolor shaders, pauses and preserves the scene", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error" && /WebGL|shader|GL_INVALID|THREE/i.test(m.text()))
+      errors.push(m.text());
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await place(page, "Aurore imaginaire", 0.28, 0.35);
+  await place(page, "Pluie suspendue", 0.7, 0.38);
+  await place(page, "Reflets irisés", 0.5, 0.72);
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  const textures = await page.evaluate(async () => {
+    const m = await import("/src/weather/weatherModel.ts");
+    const a = m.pigment(173, "#776396"),
+      b = m.pigment(173, "#776396");
+    const ca = a.getContext("2d").getImageData(0, 0, 256, 256).data,
+      cb = b.getContext("2d").getImageData(0, 0, 256, 256).data;
+    return {
+      reproducible: ca.every((v, i) => v === cb[i]),
+      alphas: new Set(Array.from(ca).filter((_, i) => i % 4 === 3)).size,
+    };
+  });
+  expect(textures.reproducible).toBe(true);
+  expect(textures.alphas).toBeGreaterThan(80);
+  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await expect(page.locator("canvas")).toHaveAttribute("data-birds", "5");
+  await expect(page.locator("canvas")).toHaveAttribute("data-zones", "3");
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: "test-results/weather-projective.png" });
+  expect(errors).toEqual([]);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await page.getByRole("button", { name: "← Disque", exact: true }).click();
+  await expect(page.locator(".weather-disk")).toHaveAttribute(
+    "data-zones",
+    "3",
+  );
+  await page.reload();
+  await expect(page.locator("main")).toHaveAttribute("data-zones", "3");
+});

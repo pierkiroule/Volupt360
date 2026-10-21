@@ -55,6 +55,27 @@ export const WEATHER = [
     color: "#d88791",
     secondary: "#eab976",
   },
+  {
+    id: "aurora",
+    emoji: "🌌",
+    label: "Aurore imaginaire",
+    color: "#699d94",
+    secondary: "#ab85b2",
+  },
+  {
+    id: "dream",
+    emoji: "🫧",
+    label: "Pluie suspendue",
+    color: "#909ac5",
+    secondary: "#caacc7",
+  },
+  {
+    id: "prism",
+    emoji: "🌈",
+    label: "Reflets irisés",
+    color: "#cba075",
+    secondary: "#8cafb0",
+  },
 ] as const;
 export type WeatherId = (typeof WEATHER)[number]["id"];
 export interface Zone {
@@ -119,6 +140,38 @@ export function pigment(seed: number, color: string): HTMLCanvasElement {
       1 + r() * 1.5,
       1 + r() * 1.5,
     );
+  }
+  // Dry tide marks follow irregular organic contours, with pigment gathered at edges.
+  ctx.globalCompositeOperation = "source-atop";
+  for (let bloom = 0; bloom < 13; bloom++) {
+    const x = (r() - 0.5) * 150,
+      y = (r() - 0.5) * 150,
+      radius = 14 + r() * 42,
+      phase = r() * 6.28;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 0.4 + r() * 0.85;
+    ctx.globalAlpha = 0.12 + r() * 0.18;
+    ctx.beginPath();
+    for (let n = 0; n <= 70; n++) {
+      const a = (n / 70) * Math.PI * 2,
+        rr =
+          radius *
+          (1 +
+            Math.sin(a * 5 + phase) * 0.09 +
+            Math.sin(a * 11 + phase) * 0.035);
+      const px = x + Math.cos(a) * rr,
+        py = y + Math.sin(a) * rr * 0.7;
+      n ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.globalAlpha = 0.12;
+  for (let i = 0; i < 1500; i++) {
+    const x = r() * 256 - 128,
+      y = r() * 256 - 128;
+    ctx.fillRect(x, y, 0.4 + r() * 1.1, 0.4 + r() * 1.1);
   }
   ctx.globalAlpha = 1;
   return c;

@@ -4,7 +4,7 @@ Un disque de composition animé devient un ciel spatial à contempler et à trav
 
 ## Parcours
 
-1. Choisir parmi huit phénomènes (soleil, nuages, pluie, orage, vent, brume, neige et crépuscule).
+1. Choisir parmi onze phénomènes (soleil, nuages, pluie, orage, vent, brume, neige, crépuscule, aurore imaginaire, pluie suspendue et reflets irisés).
 2. Toucher le disque pour déposer une zone pigmentaire animée. Les phénomènes peuvent se superposer.
 3. Toucher le centre d’une zone pour la sélectionner et la déplacer ; régler sa proportion et son opacité, ou la retirer.
 4. Entrer dans le ciel 3D. Glisser pour regarder autour de soi, activer le gyroscope si disponible, ou lancer un voyage doux à trajectoire bornée autour et au cœur de la composition.
@@ -14,7 +14,7 @@ Les contrôles incluent annuler/rétablir, figer/animer et enregistrer. L’enre
 
 ## Architecture
 
-- `weatherModel.ts` : huit palettes, modèle de zones, grain procédural déterministe, validation du ciel enregistré et correspondance spatiale.
+- `weatherModel.ts` : onze palettes, modèle de zones, grain procédural déterministe, validation du ciel enregistré et correspondance spatiale.
 - `WeatherDisk.tsx` : rendu Canvas 2D, pigments mis en cache, mouvements et interactions Pointer Events.
 - `WeatherWorld.tsx` : nappes aquarellées distribuées en volume, pluie, neige, vent et éclairs graphiques sans flash ; caméra, voyage et gyroscope calibré sur l’orientation courante.
 - `WeatherApp.tsx` : état partagé entre les deux vues, outils et historique borné.
@@ -31,3 +31,11 @@ Les ambiances historiques restent accessibles sous `?colibri` et l’atelier sou
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/weather.spec.js tests/colibri.spec.js tests/studio.spec.js`
 
 Les vérifications navigateur couvrent dépôt, sélection, déplacement, proportion/opacité, retrait, annulation, conservation entre 2D et 3D, voyage/pause, sauvegarde/rechargement, viewport mobile et validation des données. Le gyroscope matériel et les performances prolongées sur smartphone réel demandent une validation sur appareil. Aucun objectif de 60 FPS n’est déclaré mesuré.
+
+## Matières projectives
+
+Les alphas procéduraux combinent lavis, granulation, contours de séchage et réserves de papier. Ils restent reproductibles par graine. Un voile tessellé par zone anime des plis et une diffusion lente en GLSL depuis la géométrie originale ; trois nappes superposées et 48 particules au maximum complètent sa profondeur. Les surfaces sont translucides, sans bloom ni ray marching. Les textures et matériaux sont libérés sans invalider prématurément les sources Canvas lors du remontage de vérification React StrictMode.
+
+Cinq silhouettes d’oiseaux d’encre partagent une géométrie et un appel de rendu. Leur apparition progressive est intermittente ; la pause fige aussi les ailes et les voiles. La caméra commence orientée vers la première matière choisie, pour éviter une arrivée face à un ciel vide. Les météos imaginaires restent des matières ouvertes à la projection, sans signification psychologique imposée.
+
+La vérification dédiée contrôle la compilation WebGL des voiles, l’absence d’erreurs shader, la reproductibilité des textures, les trois nouvelles météos et leur sauvegarde. Les performances sur téléphone réel ne sont pas déclarées mesurées.

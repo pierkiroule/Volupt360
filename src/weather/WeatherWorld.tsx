@@ -9,6 +9,7 @@ import {
   type Zone,
 } from "./weatherModel";
 import { deviceQuaternion, requestGyroscope } from "../scene/gyroOrientation";
+import { ProjectiveVeil, InkBirds } from "./ProjectiveAtmosphere";
 export { requestGyroscope };
 interface Navigation {
   x: number;
@@ -50,7 +51,6 @@ function Phenomenon({ zone, paused }: { zone: Zone; paused: boolean }) {
   useEffect(
     () => () => {
       assets.texture.dispose();
-      (assets.texture.image as HTMLCanvasElement).width = 1;
       assets.geometry.dispose();
       assets.rainGeometry.dispose();
     },
@@ -58,7 +58,7 @@ function Phenomenon({ zone, paused }: { zone: Zone; paused: boolean }) {
   );
   const layouts = useMemo(() => {
     const r = random(zone.seed);
-    return Array.from({ length: 5 }, () => ({
+    return Array.from({ length: 3 }, () => ({
       position: [(r() - 0.5) * 3, (r() - 0.5) * 1.7, (r() - 0.5) * 2.5] as [
         number,
         number,
@@ -107,12 +107,20 @@ function Phenomenon({ zone, paused }: { zone: Zone; paused: boolean }) {
         rain[j + 5] = p[k + 2];
       }
       assets.rainGeometry.attributes.position.needsUpdate = true;
+      if (zone.kind === "dream") {
+        for (let i = 0; i < 48; i++) {
+          p[i * 3] += Math.sin(t * 0.11 + i) * 0.3;
+          p[i * 3 + 1] =
+            assets.original[i * 3 + 1] + Math.sin(t * 0.16 + i) * 0.4;
+        }
+      }
     }
     void camera;
   });
   const scale = zone.size * 5;
   return (
     <group position={skyPosition(zone)} scale={scale}>
+      <ProjectiveVeil zone={zone} paused={paused} />
       <group ref={root}>
         {layouts.map((l, i) => (
           <sprite
@@ -178,22 +186,6 @@ function Phenomenon({ zone, paused }: { zone: Zone; paused: boolean }) {
           />
         </lineSegments>
       )}
-      {zone.kind === "wind" &&
-        [0, 1, 2].map((n) => (
-          <mesh
-            key={n}
-            position={[0, (n - 1) * 0.3, 0]}
-            rotation={[0, n * 0.2, 0.2]}
-          >
-            <torusGeometry args={[1 + n * 0.12, 0.006, 3, 48, Math.PI * 1.5]} />
-            <meshBasicMaterial
-              color={type.secondary}
-              transparent
-              opacity={zone.opacity * 0.4}
-              depthWrite={false}
-            />
-          </mesh>
-        ))}
     </group>
   );
 }
@@ -221,7 +213,12 @@ function Flight({
   });
   useEffect(() => {
     camera.position.set(0, 0, 2);
-    camera.quaternion.identity();
+    if (zones[0]) camera.lookAt(...skyPosition(zones[0]));
+    const s = state.current;
+    s.desired.copy(camera.quaternion);
+    s.euler.setFromQuaternion(camera.quaternion, "YXZ");
+    s.yaw = s.euler.y;
+    s.pitch = s.euler.x;
   }, [camera]);
   useEffect(() => {
     const s = state.current;
@@ -307,6 +304,7 @@ function Flight({
     <>
       <color attach="background" args={["#eff1ec"]} />
       <fog attach="fog" args={["#eff1ec", 13, 34]} />
+      <InkBirds paused={paused} />
       {zones.map((z) => (
         <Phenomenon key={z.id} zone={z} paused={paused} />
       ))}
