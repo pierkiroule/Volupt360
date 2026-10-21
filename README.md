@@ -1,3 +1,11 @@
+# Ma météo émotionnelle •°
+
+Pose des émojis météo sur un disque aquarellé animé, ajuste la proportion et l’opacité de chaque zone, puis entre dans le même ciel en 3D pour le contempler ou y voyager. Un outil de composition libre, sans interprétation automatique.
+
+L’accueil utilise ce nouveau parcours. Les expériences précédentes restent accessibles : **`?colibri`**, **`?studio`**. L’enregistrement du ciel est local et volontaire. Voir [l’architecture et le fonctionnement](docs/emotional-weather.md).
+
+---
+
 # Squibble le colibris •°
 
 Un imaginaire à butiner : choisis un à trois émojis, fais éclore un monde aquarellé puis traverse ses bulles pour découvrir récits, images et invitations métaphoriques. Un carnet local conserve uniquement les ressources choisies.

@@ -4,7 +4,7 @@ test("selection, world, poetic encounter and local nectar", async ({
 }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?colibri");
   await expect(
     page.getByRole("heading", { name: "Squibble le colibris •°" }),
   ).toBeVisible();
@@ -40,7 +40,7 @@ test("selection, world, poetic encounter and local nectar", async ({
 test("seeded resources are diverse, bounded and independent of selection order", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?colibri");
   const result = await page.evaluate(async () => {
     const m = await import("/src/colibri/resources.ts");
     const a = m.resourceWorld(["🌊", "🌙"]),
@@ -62,7 +62,7 @@ test("mobile palette fits and original studio remains available", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?colibri");
   await expect(page.locator(".colibri-orbit button")).toHaveCount(12);
   const boxes = await page
     .locator(".colibri-orbit button")

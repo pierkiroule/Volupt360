@@ -1,0 +1,381 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { WeatherDisk } from "./WeatherDisk";
+import { WeatherWorld, requestGyroscope } from "./WeatherWorld";
+import {
+  WEATHER,
+  MAX_ZONES,
+  readSaved,
+  STORAGE_KEY,
+  type Zone,
+  type WeatherId,
+} from "./weatherModel";
+import "./weather.css";
+export default function WeatherApp() {
+  const [zones, setZones] = useState<Zone[]>(readSaved),
+    [selected, setSelected] = useState<string | null>(null),
+    [kind, setKind] = useState<WeatherId>("sun"),
+    [size, setSize] = useState(0.27),
+    [opacity, setOpacity] = useState(0.8),
+    [inside, setInside] = useState(false),
+    [paused, setPaused] = useState(
+      () => matchMedia("(prefers-reduced-motion: reduce)").matches,
+    ),
+    [travel, setTravel] = useState(false),
+    [gyro, setGyro] = useState(false),
+    [notice, setNotice] = useState("");
+  const navigation = useRef({ x: 0, y: 0, active: false }),
+    pointer = useRef<number | null>(null),
+    origin = useRef({ x: 0, y: 0 }),
+    history = useRef<Zone[][]>([]),
+    future = useRef<Zone[][]>([]),
+    [revision, setRevision] = useState(0);
+  const current = useRef(zones);
+  current.current = zones;
+  const resetInput = useCallback(() => {
+    navigation.current = { x: 0, y: 0, active: false };
+    pointer.current = null;
+  }, []);
+  const gyroError = useCallback((text: string) => {
+    setGyro(false);
+    setNotice(text);
+  }, []);
+  useEffect(() => {
+    document.title = "Ma météo émotionnelle •°";
+    if (import.meta.env.PROD && "serviceWorker" in navigator)
+      navigator.serviceWorker
+        .register(import.meta.env.BASE_URL + "sw.js")
+        .catch(() => {});
+    const hide = () => {
+      if (document.hidden) {
+        setPaused(true);
+        resetInput();
+      }
+    };
+    window.addEventListener("blur", resetInput);
+    document.addEventListener("visibilitychange", hide);
+    return () => {
+      window.removeEventListener("blur", resetInput);
+      document.removeEventListener("visibilitychange", hide);
+    };
+  }, [resetInput]);
+  function checkpoint() {
+    history.current.push(current.current.map((z) => ({ ...z })));
+    if (history.current.length > 50) history.current.shift();
+    future.current = [];
+    setRevision((r) => r + 1);
+  }
+  function place(x: number, y: number) {
+    if (zones.length >= MAX_ZONES) {
+      setNotice(
+        "Le disque accueille jusqu’à 32 zones. Tu peux déplacer ou retirer une zone.",
+      );
+      return;
+    }
+    checkpoint();
+    const zone: Zone = {
+      id: crypto.randomUUID(),
+      kind,
+      x,
+      y,
+      size,
+      opacity,
+      seed: Math.floor(Math.random() * 0xffffffff),
+    };
+    setZones([...zones, zone]);
+    setSelected(zone.id);
+  }
+  function select(id: string) {
+    const z = zones.find((z) => z.id === id)!;
+    checkpoint();
+    setSelected(id);
+    setKind(z.kind);
+    setSize(z.size);
+    setOpacity(z.opacity);
+  }
+  function change(property: "size" | "opacity", value: number) {
+    if (property === "size") setSize(value);
+    else setOpacity(value);
+    if (selected)
+      setZones(
+        zones.map((z) => (z.id === selected ? { ...z, [property]: value } : z)),
+      );
+  }
+  function undo(redo = false) {
+    const from = redo ? future.current : history.current,
+      to = redo ? history.current : future.current;
+    const value = from.pop();
+    if (!value) return;
+    to.push(zones);
+    setZones(value);
+    setSelected(null);
+    setRevision((r) => r + 1);
+  }
+  void revision;
+  return (
+    <main
+      className={"meteo " + (inside ? "meteo-immersed" : "")}
+      data-zones={zones.length}
+    >
+      {!inside && (
+        <header>
+          <p className="meteo-kicker">
+            Un paysage à composer, sans rien à expliquer
+          </p>
+          <h1>
+            Ma météo émotionnelle <span>•°</span>
+          </h1>
+          <p>Pose les nuances de ton ciel. Laisse-les se rencontrer.</p>
+        </header>
+      )}
+      <section
+        className="meteo-stage"
+        aria-label={
+          inside ? "Mon ciel en trois dimensions" : "Composition de mon ciel"
+        }
+      >
+        {inside ? (
+          <div
+            className="meteo-flight"
+            onPointerDown={(e) => {
+              if (!e.isPrimary || paused || pointer.current !== null) return;
+              pointer.current = e.pointerId;
+              origin.current = { x: e.clientX, y: e.clientY };
+              navigation.current.active = true;
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              if (pointer.current !== e.pointerId) return;
+              navigation.current.x = Math.max(
+                -1,
+                Math.min(1, (e.clientX - origin.current.x) / 90),
+              );
+              navigation.current.y = Math.max(
+                -1,
+                Math.min(1, (e.clientY - origin.current.y) / 90),
+              );
+            }}
+            onPointerUp={(e) => {
+              if (pointer.current === e.pointerId) resetInput();
+            }}
+            onPointerCancel={(e) => {
+              if (pointer.current === e.pointerId) resetInput();
+            }}
+            onLostPointerCapture={(e) => {
+              if (pointer.current === e.pointerId) resetInput();
+            }}
+          >
+            <WeatherWorld
+              zones={zones}
+              paused={paused}
+              travel={travel}
+              gyro={gyro}
+              navigation={navigation}
+              onGyroError={gyroError}
+            />
+          </div>
+        ) : (
+          <WeatherDisk
+            zones={zones}
+            selected={selected}
+            kind={kind}
+            paused={paused}
+            onPlace={place}
+            onSelect={select}
+            onMove={(id, x, y) =>
+              setZones(
+                current.current.map((z) => (z.id === id ? { ...z, x, y } : z)),
+              )
+            }
+          />
+        )}
+        {!inside && zones.length === 0 && (
+          <p className="meteo-empty">
+            Un peu de soleil, un passage de pluie…
+            <br />
+            Choisis un émoji, puis touche le disque.
+          </p>
+        )}
+      </section>
+      {!inside ? (
+        <section className="meteo-tools" aria-label="Composer ma météo">
+          <div className="meteo-palette">
+            {WEATHER.map((w) => (
+              <button
+                key={w.id}
+                aria-label={w.label}
+                aria-pressed={kind === w.id}
+                onClick={() => {
+                  setKind(w.id);
+                  setSelected(null);
+                }}
+              >
+                {w.emoji}
+              </button>
+            ))}
+          </div>
+          <div className="meteo-sliders">
+            <label>
+              Proportion <output>{Math.round(size * 100)} %</output>
+              <input
+                aria-label="Proportion"
+                type="range"
+                min=".10"
+                max=".5"
+                step=".01"
+                value={size}
+                onPointerDown={checkpoint}
+                onKeyDown={(e) => {
+                  if (!e.repeat) checkpoint();
+                }}
+                onChange={(e) => change("size", +e.target.value)}
+              />
+            </label>
+            <label>
+              Opacité <output>{Math.round(opacity * 100)} %</output>
+              <input
+                aria-label="Opacité"
+                type="range"
+                min=".1"
+                max="1"
+                step=".01"
+                value={opacity}
+                onPointerDown={checkpoint}
+                onKeyDown={(e) => {
+                  if (!e.repeat) checkpoint();
+                }}
+                onChange={(e) => change("opacity", +e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="meteo-actions">
+            <button
+              aria-label="Annuler"
+              disabled={!history.current.length}
+              onClick={() => undo()}
+            >
+              ↶
+            </button>
+            <button
+              aria-label="Rétablir"
+              disabled={!future.current.length}
+              onClick={() => undo(true)}
+            >
+              ↷
+            </button>
+            <button
+              disabled={!selected}
+              onClick={() => {
+                checkpoint();
+                setZones(zones.filter((z) => z.id !== selected));
+                setSelected(null);
+              }}
+            >
+              Retirer
+            </button>
+            <button
+              className="meteo-primary"
+              disabled={!zones.length}
+              onClick={() => {
+                setInside(true);
+                setPaused(false);
+                setTravel(false);
+                resetInput();
+              }}
+            >
+              Entrer dans mon ciel ↗
+            </button>
+          </div>
+          <div className="meteo-secondary">
+            <button aria-pressed={!paused} onClick={() => setPaused(!paused)}>
+              {paused ? "Animer" : "Figer"}
+            </button>
+            <button
+              disabled={!zones.length}
+              onClick={() => {
+                try {
+                  localStorage.setItem(
+                    STORAGE_KEY,
+                    JSON.stringify({ version: 1, zones }),
+                  );
+                  setNotice(
+                    "Ton ciel est enregistré sur cet appareil uniquement.",
+                  );
+                } catch {
+                  setNotice("Enregistrement indisponible sur cet appareil.");
+                }
+              }}
+            >
+              Enregistrer
+            </button>
+          </div>
+          <p className="meteo-help">
+            Touche le centre d’une zone pour la déplacer ou l’ajuster.
+          </p>
+        </section>
+      ) : (
+        <>
+          <div className="meteo-flight-name">
+            Ma météo <span>•°</span>
+          </div>
+          <p className="meteo-flight-hint">
+            {travel
+              ? "Un voyage doux autour et au cœur de tes nuances."
+              : "Glisse pour regarder autour de toi."}
+          </p>
+          <nav
+            className="meteo-flight-controls"
+            aria-label="Contempler mon ciel"
+          >
+            <button
+              onClick={() => {
+                setInside(false);
+                setGyro(false);
+                resetInput();
+              }}
+            >
+              ← Disque
+            </button>
+            <button
+              aria-pressed={travel}
+              onClick={() => {
+                setTravel(!travel);
+                setPaused(false);
+              }}
+            >
+              {travel ? "Contempler" : "Voyager"}
+            </button>
+            <button
+              aria-pressed={gyro}
+              onClick={async () => {
+                if (gyro) {
+                  setGyro(false);
+                  return;
+                }
+                try {
+                  await requestGyroscope();
+                  setGyro(true);
+                } catch (e) {
+                  gyroError((e as Error).message);
+                }
+              }}
+            >
+              360°
+            </button>
+            <button onClick={() => setPaused(!paused)}>
+              {paused ? "Reprendre" : "Pause"}
+            </button>
+          </nav>
+        </>
+      )}
+      {notice && (
+        <button
+          className="meteo-notice"
+          role="status"
+          onClick={() => setNotice("")}
+        >
+          {notice}
+        </button>
+      )}
+    </main>
+  );
+}

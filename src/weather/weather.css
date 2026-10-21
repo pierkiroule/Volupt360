@@ -1,0 +1,271 @@
+.meteo {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 12% 20%, #d5dfd133, transparent 55%), #f5f1e8;
+  color: #38595b;
+  overflow: auto;
+  font-family: Georgia, serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 18px 18px;
+  gap: 18px;
+}
+.meteo * {
+  box-sizing: border-box;
+}
+.meteo header {
+  text-align: center;
+  flex-shrink: 0;
+}
+.meteo-kicker {
+  font: 10px/1.6 system-ui;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #81908b;
+  margin: 0 0 12px;
+}
+.meteo h1 {
+  font-size: clamp(27px, 6vw, 43px);
+  font-style: italic;
+  font-weight: normal;
+  margin: 0;
+  letter-spacing: -0.035em;
+}
+.meteo h1 span {
+  font-size: 22px;
+}
+.meteo header > p:last-child {
+  font-size: 14px;
+  color: #75857e;
+  line-height: 1.6;
+  margin: 10px 0 0;
+}
+.meteo-stage {
+  position: relative;
+  flex-shrink: 0;
+  width: min(78vw, 55dvh, 520px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow:
+    0 8px 70px #83988b1a,
+    inset 0 0 0 1px #607e731a;
+}
+.weather-disk {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  touch-action: none;
+  cursor: crosshair;
+}
+.meteo-empty {
+  position: absolute;
+  inset: 40% 10% auto;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.8;
+  pointer-events: none;
+  color: #9baba2;
+}
+.meteo-tools {
+  width: min(100%, 500px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.meteo-palette {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.meteo button {
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid #718e7c35;
+  background: #fff9;
+  border-radius: 22px;
+  min-height: 44px;
+  padding: 10px 14px;
+}
+.meteo button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.meteo-palette button {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  font-size: 26px;
+  background: #fff6;
+}
+.meteo button[aria-pressed="true"] {
+  background: #dce7dc;
+  border-color: #91ab9b;
+}
+.meteo button:focus-visible,
+.meteo input:focus-visible {
+  outline: 2px solid #497e7c;
+  outline-offset: 3px;
+}
+.meteo-sliders {
+  display: flex;
+  gap: 24px;
+  padding: 0 5px;
+}
+.meteo-sliders label {
+  flex: 1;
+  font-size: 13px;
+}
+.meteo-sliders output {
+  float: right;
+  font: 11px system-ui;
+  color: #75877c;
+}
+.meteo input[type="range"] {
+  width: 100%;
+  display: block;
+  accent-color: #618b80;
+  margin: 9px 0 0;
+  min-height: 24px;
+}
+.meteo-actions {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.meteo-actions button {
+  font-size: 14px;
+}
+.meteo button.meteo-primary {
+  background: #456e65;
+  color: #fff9ec;
+  border-color: transparent;
+}
+.meteo-help {
+  text-align: center;
+  color: #8a978b;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
+.meteo-immersed {
+  padding: 0;
+  overflow: hidden;
+}
+.meteo-immersed .meteo-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+.meteo-flight {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+.meteo-flight-name {
+  position: absolute;
+  top: max(22px, env(safe-area-inset-top));
+  left: 24px;
+  font-style: italic;
+  font-size: 24px;
+  pointer-events: none;
+}
+.meteo-flight-name span {
+  font-size: 16px;
+}
+.meteo-flight-controls {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 5px;
+  border: 1px solid #fff8;
+  background: #fffaf0d9;
+  backdrop-filter: blur(12px);
+  padding: 6px;
+  border-radius: 30px;
+  max-width: 98vw;
+}
+.meteo-flight-controls button {
+  border: 0;
+  background: none;
+  font-size: 13px;
+  padding: 10px 13px;
+}
+.meteo-flight-hint {
+  position: absolute;
+  bottom: 92px;
+  text-align: center;
+  left: 25px;
+  right: 25px;
+  font-size: 12px;
+  color: #6d837c;
+  pointer-events: none;
+}
+.meteo-notice {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90vw;
+  width: max-content;
+  z-index: 20;
+  box-shadow: 0 8px 30px #56746325;
+  background: #fffbee !important;
+  font-size: 13px;
+}
+@media (max-height: 750px) {
+  .meteo {
+    gap: 12px;
+    padding-top: 15px;
+  }
+  .meteo-stage {
+    width: min(70vw, 45dvh, 440px);
+  }
+  .meteo-kicker {
+    display: none;
+  }
+  .meteo-tools {
+    gap: 10px;
+  }
+  .meteo-palette button {
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+  }
+  .meteo h1 {
+    font-size: 27px;
+  }
+  .meteo header > p:last-child {
+    font-size: 12px;
+  }
+  .meteo-palette {
+    gap: 3px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meteo * {
+    transition: none !important;
+  }
+}
+.meteo-secondary {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+.meteo-secondary button {
+  font-size: 11px;
+  background: transparent;
+  border: 0;
+  padding: 3px 10px;
+  min-height: 32px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
