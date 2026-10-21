@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { pigmentAtlas } from "./pigmentAtlas.js";
 export const FLIGHT_BRUSHES = [
-  { name: "Voile", glyph: "≈", color: "#88d8d0", width: 0.14 },
-  { name: "Encre", glyph: "∿", color: "#c7d0f6", width: 0.025 },
-  { name: "Grains", glyph: "⁙", color: "#f3cd82", width: 0.2 },
+  { name: "Voile", glyph: "≈", color: "#368e91", width: 0.14 },
+  { name: "Encre", glyph: "∿", color: "#535c86", width: 0.025 },
+  { name: "Grains", glyph: "⁙", color: "#b78336", width: 0.2 },
 ];
 /** Ring-buffer painting: one draw call, at most 75 seconds of living pigment. */
 export function createFlightBrushes({ mobile = false } = {}) {

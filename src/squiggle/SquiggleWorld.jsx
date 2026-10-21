@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import WatercolorPaper from "./WatercolorPaper.jsx";
 import { createPhotoBubbles } from "./createPhotoBubbles.js";
 import { createResonanceDust } from "./squibbleUniverse.js";
 import { createFlightBrushes } from "./createFlightBrushes.js";
@@ -82,7 +83,8 @@ function Painting({
   });
   return (
     <>
-      <color attach="background" args={["#05070d"]} />
+      <color attach="background" args={["#f6f1e5"]} />
+      <WatercolorPaper />
       <primitive object={objects.group} />
       <primitive object={dust.points} />
       <primitive object={photos.group} />
@@ -92,7 +94,7 @@ function Painting({
           <shaderMaterial
             transparent
             depthWrite={false}
-            blending={THREE.AdditiveBlending}
+            blending={THREE.NormalBlending}
             uniforms={{
               tint: { value: new THREE.Color(strokes[0]?.color || "#7188af") },
             }}

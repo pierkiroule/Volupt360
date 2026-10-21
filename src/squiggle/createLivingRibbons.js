@@ -70,9 +70,15 @@ export function createLivingRibbons({ mobile = false } = {}) {
         float detail=dot(source.rgb,vec3(.2126,.7152,.0722));
         float edge=smoothstep(0.,.18,U.y+drift.y*.07)*(1.-smoothstep(.82,1.,U.y+drift.y*.07));
         float ends=smoothstep(0.,.025,U.x)*(1.-smoothstep(.94,1.,U.x));
-        float alpha=drawn*fading*birth*edge*ends*(.18+grain*.75)*(.8+wet*.2);
+        float tide=.5+.5*sin(U.x*19.+wet*5.+time*.13+L.x);
+        float granulation=smoothstep(.18,.8,wet*grain);
+        float rim=exp(-pow((U.y-.12-drift.y*.05)*32.,2.))+exp(-pow((U.y-.88-drift.y*.05)*32.,2.));
+        float alpha=drawn*fading*birth*edge*ends*(.24+grain*.48+granulation*.22+rim*.16)*(.8+wet*.2);
         alpha*=.75+audio.x*.16+pulse*.08;
-        vec3 color=C*(.8+grain*.45+wet*.2+source.a*(detail-.5)*.08);
+        vec3 dye=mix(C,C*mix(vec3(1.),source.rgb,.5),source.a*.65);
+        vec3 color=dye*(.63+grain*.23+wet*.12);
+        color*=1.-rim*.2-granulation*.12;
+        alpha*=.88+tide*.12;
         if(alpha<.004)discard;
         gl_FragColor=vec4(color,alpha);
         #include <tonemapping_fragment>

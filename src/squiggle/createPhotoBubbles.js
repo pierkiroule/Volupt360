@@ -43,10 +43,12 @@ export function createPhotoBubbles() {
         fragmentShader: `uniform sampler2D photo;uniform float energy;varying vec3 P,N,V;
     void main(){float facing=max(0.,dot(normalize(N),normalize(V)));float rim=pow(1.-facing,3.);
     vec2 uv=P.xy*.5+.5;vec4 image=texture2D(photo,uv);
-    vec3 color=mix(image.rgb,vec3(.64,.81,1.),rim*.18);
+    vec3 color=mix(image.rgb,vec3(.95,.93,.88),rim*.32);
     float sheen=pow(max(0.,dot(normalize(N),normalize(vec3(-.5,.8,1.)))),24.)*.055;
-    color+=vec3(.75,.88,1.)*(sheen+rim*(.06+energy*.08));
-    gl_FragColor=vec4(color,(.94-rim*.36)*image.a);
+    color+=vec3(.95,.93,.88)*sheen;
+    float fiber=sin(P.x*91.+sin(P.y*47.))*sin(P.y*83.+P.z*31.);
+    float edge=smoothstep(.02,.23,facing+fiber*.045);
+    gl_FragColor=vec4(color,(.94-rim*.36)*image.a*edge);
     #include <colorspace_fragment>
     }`,
       });

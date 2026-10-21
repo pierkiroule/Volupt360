@@ -87,7 +87,7 @@ test("ribbons actually grow and fade on the GPU without reconstructing buffers",
     ]);
     const renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setSize(192, 192);
-    renderer.setClearColor("#05070d");
+    renderer.setClearColor("#f6f1e5");
     const target = new THREE.WebGLRenderTarget(192, 192);
     renderer.setRenderTarget(target);
     const scene = new THREE.Scene();
@@ -98,6 +98,12 @@ test("ribbons actually grow and fade on the GPU without reconstructing buffers",
       data = mesh.geometry.attributes.life.array,
       period = data[1],
       offset = data[2];
+    // Sample a rendered empty frame: render targets use linear output, unlike the screen.
+    scene.remove(field.group);
+    renderer.render(scene, camera);
+    const background = new Uint8Array(4);
+    renderer.readRenderTargetPixels(target, 0, 0, 1, 1, background);
+    scene.add(field.group);
     const sample = (age) => {
       field.update((age - offset + 1) * period);
       renderer.render(scene, camera);
@@ -105,7 +111,7 @@ test("ribbons actually grow and fade on the GPU without reconstructing buffers",
       renderer.readRenderTargetPixels(target, 0, 0, 192, 192, px);
       let bright = 0;
       for (let i = 0; i < px.length; i += 4)
-        if (Math.max(px[i], px[i + 1], px[i + 2]) > 35) bright++;
+        if (Math.max(Math.abs(px[i]-background[0]), Math.abs(px[i+1]-background[1]), Math.abs(px[i+2]-background[2])) > 12) bright++;
       return bright;
     };
     const early = sample(0.025),
