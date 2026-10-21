@@ -60,6 +60,7 @@ export function createObjectField({ mobile = false } = {}) {
             time: { value: 0 },
             seed: { value: profile.seed },
             flow: { value: item.flow ?? 1 },
+            resonance: { value: 0 },
             tint: { value: new THREE.Color(item.color) },
             opacity: { value: item.opacity },
             layer: { value: 1 },
@@ -69,11 +70,11 @@ export function createObjectField({ mobile = false } = {}) {
           side: THREE.DoubleSide,
           forceSinglePass: true,
           blending: THREE.AdditiveBlending,
-          vertexShader: `uniform float time,seed,flow;varying vec2 U;varying vec3 N,V;
+          vertexShader: `uniform float time,seed,flow,resonance;varying vec2 U;varying vec3 N,V;
           void main(){U=uv;
           float wave=sin(position.y*2.8+position.x*2.+time*.32*flow+seed)*.13
            +sin(position.z*3.2-position.y*1.7-time*.24*flow+seed)*.075;
-          vec3 p=position+normalize(position)*wave;
+          vec3 p=position+normalize(position)*wave*(1.+resonance*.45);
           vec4 view=modelViewMatrix*vec4(p,1.);N=normalize(normalMatrix*normal);V=-view.xyz;gl_Position=projectionMatrix*view;}`,
           fragmentShader: `uniform sampler2D surface;uniform vec3 tint;uniform float opacity,time,seed,layer;varying vec2 U;varying vec3 N,V;
           void main(){
@@ -137,7 +138,7 @@ export function createObjectField({ mobile = false } = {}) {
       entries.clear();
       sync();
     },
-    update(time) {
+    update(time, resonance = 0) {
       for (const e of entries.values()) {
         const phase = time * 0.18 + e.profile.seed;
         e.mesh.position
@@ -147,8 +148,10 @@ export function createObjectField({ mobile = false } = {}) {
         e.mesh.rotateY(Math.sin(phase * 0.7) * 0.18);
         e.mesh.rotateZ(Math.sin(phase) * 0.08);
         e.mesh.material.uniforms.time.value = time;
+        e.mesh.material.uniforms.resonance.value = resonance;
         for (const layer of e.mesh.children) {
           layer.material.uniforms.time.value = time;
+          layer.material.uniforms.resonance.value = resonance;
           layer.rotation.y = time * 0.035 + e.profile.seed;
           layer.rotation.z = Math.sin(phase * 0.8) * 0.14;
         }

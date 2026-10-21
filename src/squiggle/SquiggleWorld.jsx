@@ -14,6 +14,7 @@ function Painting({
   onCapture,
   materials,
   preview = false,
+  audioRef,
 }) {
   const { gl, scene, camera } = useThree(),
     time = useRef(0);
@@ -46,8 +47,9 @@ function Painting({
   }, [gl, scene, camera, onCapture]);
   useFrame((_, dt) => {
     if (!paused) time.current += Math.min(dt, 0.1);
-    objects.update(time.current);
-    dust.update(time.current);
+    const resonance = audioRef?.current?.getFeatures().energy || 0;
+    objects.update(time.current, resonance);
+    dust.update(time.current, resonance);
     objects.group.rotation.y = preview ? time.current * 0.035 : 0;
     dust.points.rotation.y = preview ? time.current * 0.035 : 0;
     gl.domElement.dataset.externalMaterials = String(

@@ -15,6 +15,7 @@ import { requestGyroscope } from "../scene/gyroOrientation.ts";
 import { downloadBlob } from "../utils/sensoryComposition.ts";
 import "./squiggle.css";
 import "./squibble.css";
+import MusicPanel from "./MusicPanel.jsx";
 const World = lazy(() => import("./SquiggleWorld.jsx"));
 class WorldBoundary extends Component {
   state = { failed: false };
@@ -43,10 +44,15 @@ export default function SquiggleApp() {
     [localMatter, setLocalMatter] = useState([]),
     [notice, setNotice] = useState(""),
     [capturing, setCapturing] = useState(false);
+  const audioRef = useRef(null);
   const capture = useRef(null),
     noticeTimer = useRef(0);
   useEffect(() => {
     document.title = "Squibble360 — Un monde à ressentir";
+    if (import.meta.env.PROD && "serviceWorker" in navigator)
+      navigator.serviceWorker
+        .register(import.meta.env.BASE_URL + "sw.js")
+        .catch(() => {});
     let alive = true;
     loadLocalTextures().then((value) => {
       if (alive) setLocalMatter(value);
@@ -120,6 +126,7 @@ export default function SquiggleApp() {
         <World
           key={inside ? "inside" : "orb"}
           strokes={strokes}
+          audioRef={audioRef}
           materials={materials}
           draft={null}
           preview={!inside}
@@ -298,6 +305,7 @@ export default function SquiggleApp() {
           </p>
         </>
       )}
+      <MusicPanel choices={choices} audioRef={audioRef} />
       <div className="squibble-notice" role="status">
         {notice}
       </div>

@@ -91,14 +91,15 @@ export function createResonanceDust(items, mobile) {
   const material = new THREE.ShaderMaterial({
     uniforms: {
       time: { value: 0 },
+      resonance: { value: 0 },
       ratio: { value: Math.min(devicePixelRatio || 1, 1.4) },
     },
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     vertexColors: true,
-    vertexShader: `attribute float seed;uniform float time,ratio;varying vec3 C;varying float A;
-      void main(){vec3 p=position+vec3(sin(time*.12+seed*31.),cos(time*.15+seed*17.),sin(time*.09+seed*43.))*.22;
+    vertexShader: `attribute float seed;uniform float time,ratio,resonance;varying vec3 C;varying float A;
+      void main(){vec3 p=position+vec3(sin(time*.12+seed*31.),cos(time*.15+seed*17.),sin(time*.09+seed*43.))*(.22+resonance*.12);
       vec4 v=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*v;
       gl_PointSize=clamp((18.+seed*16.)*ratio/max(1.,-v.z),1.,6.);
       C=color;A=.25+.35*(.5+.5*sin(time*.23+seed*19.));}`,
@@ -112,8 +113,9 @@ export function createResonanceDust(items, mobile) {
   points.frustumCulled = false;
   return {
     points,
-    update(t) {
+    update(t, resonance = 0) {
       material.uniforms.time.value = t;
+      material.uniforms.resonance.value = resonance;
     },
     dispose() {
       geometry.dispose();
