@@ -79,7 +79,7 @@ test("seeded photomontages mix selected ingredients, are reproducible, cached an
 test("missing slots fall back and rapid selections cannot publish stale montages", async ({
   page,
 }) => {
-  await page.route("**/textures/emojis/feu/01-base.png", (r) =>
+  await page.route("**/textures/emojis/feu/Feubase01.png", (r) =>
     r.fulfill({ status: 404, body: "missing" }),
   );
   await page.goto("/");
@@ -154,7 +154,7 @@ test("replacing a slot image changes the resulting photo without changing code",
     ctx.fillRect(0, 0, 32, 32);
     return c.toDataURL("image/png").split(",")[1];
   });
-  await page.route("**/textures/emojis/feu/01-base.png", (r) =>
+  await page.route("**/textures/emojis/feu/Feubase01.png", (r) =>
     r.fulfill({ contentType: "image/png", body: Buffer.from(data, "base64") }),
   );
   const pixel = await page.evaluate(async () => {

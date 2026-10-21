@@ -12,21 +12,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/feu/01-base.png",
+          "path": "emojis/feu/Feubase01.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/feu/01-matiere.png",
+          "path": "emojis/feu/Feumatiere01.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/feu/01-accent.png",
+          "path": "emojis/feu/Feuaccent01.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
