@@ -24,8 +24,8 @@ export function objectProfile(item) {
 export function objectRadius(theta, phi, seed, family) {
   return (
     1 +
-    0.1 * Math.sin(theta * (3 + (family % 3)) + seed) * Math.sin(phi) ** 2 +
-    0.05 * Math.sin(phi * 7 + theta * 2 + seed)
+    0.16 * Math.sin(theta * (3 + (family % 3)) + seed) * Math.sin(phi) ** 2 +
+    0.09 * Math.sin(phi * 7 + theta * 2 + seed) * Math.sin(phi) ** 2
   );
 }
 /** CPU-generated once per object: shared color surface and shaded 2.5D thumbnail. */
@@ -48,28 +48,36 @@ export function createObjectMatter(item, source) {
     const v = Math.sin(x * 127.1 + y * 311.7 + seed * 74.7) * 43758.5453;
     return v - Math.floor(v);
   };
+  const noise = (x, y) => {
+    const ix = Math.floor(x),
+      iy = Math.floor(y);
+    let a = x - ix,
+      b = y - iy;
+    a = a * a * (3 - 2 * a);
+    b = b * b * (3 - 2 * b);
+    return (
+      (hash(ix, iy) * (1 - a) + hash(ix + 1, iy) * a) * (1 - b) +
+      (hash(ix, iy + 1) * (1 - a) + hash(ix + 1, iy + 1) * a) * b
+    );
+  };
   for (let y = 0; y < n; y++)
     for (let x = 0; x < n; x++) {
       const i = (y * n + x) * 4,
         u = x / n,
         v = y / n;
-      const flow = Math.sin(u * 32 + Math.sin(v * 19 + seed) * 2 + seed);
-      const fissure = Math.abs(
-        Math.sin(u * 48 + Math.sin(v * 13 + seed) * 3 + seed),
-      );
-      const grain = hash(x, y),
-        coarse = hash(Math.floor(x / 4), Math.floor(y / 4));
+      const warp = noise(u * 4 + seed, v * 4);
+      const field = noise(u * 7 + warp * 2, v * 6 + warp);
+      const fine = noise(u * 24, v * 24);
+      const grain = hash(x, y);
       const sample = source
         ? (photo[i] + photo[i + 1] + photo[i + 2]) / 765
         : 0.5;
-      const erosion = grain < 0.065 || (coarse < 0.1 && grain < 0.5);
-      const shade =
-        (fissure < 0.065 ? 0.18 : 0.48 + 0.28 * flow + 0.27 * sample) *
-        (erosion ? 0.35 : 0.85 + grain * 0.3);
-      const edge = fissure > 0.065 && fissure < 0.1 ? 0.36 : 0;
+      const flow = 0.5 + 0.5 * Math.sin(u * 12 + v * 8 + warp * 5 + seed);
+      const shade = 0.66 + field * 0.35 + fine * 0.12 + sample * 0.12;
       for (let c = 0; c < 3; c++)
-        pixels.data[i + c] = Math.min(255, rgb[c] * shade + edge * 220);
-      pixels.data[i + 3] = 255;
+        pixels.data[i + c] = Math.min(255, rgb[c] * shade + flow * 18);
+      pixels.data[i + 3] =
+        255 * (0.18 + 0.54 * field + 0.14 * fine) * (0.92 + grain * 0.08);
     }
   ctx.putImageData(pixels, 0, 0);
   const sprite = document.createElement("canvas");
@@ -94,14 +102,14 @@ export function createObjectMatter(item, source) {
           Math.min(n - 1, Math.floor(u * n))) *
         4;
       const i = (y * n + x) * 4,
-        light = 0.4 + 0.7 * Math.max(0, -nx * 0.4 + ny * 0.5 + z * 0.7),
-        rim = Math.pow(1 - z, 2) * 0.38;
+        light = 0.8 + 0.25 * Math.max(0, -nx * 0.4 + ny * 0.5 + z * 0.7),
+        rim = Math.pow(z, 2) * 0.1;
       for (let c = 0; c < 3; c++)
         image.data[i + c] = Math.min(
           255,
           pixels.data[sample + c] * light + rgb[c] * rim,
         );
-      image.data[i + 3] = Math.min(1, (1 - r) * 60) * 255;
+      image.data[i + 3] = Math.pow(1 - r * r, 0.85) * pixels.data[sample + 3];
     }
   sc.putImageData(image, 0, 0);
   return {
@@ -147,13 +155,27 @@ export function createObjectPainter() {
       ctx.save();
       ctx.translate(p.x * OBJECT_SIZE, p.y * OBJECT_SIZE);
       ctx.rotate(Math.sin(time * 0.15 + seed) * 0.065);
+      ctx.globalCompositeOperation = "screen";
       ctx.globalAlpha = item.opacity;
+      ctx.scale(
+        1 + Math.sin(time * 0.23 + seed) * 0.045,
+        1 + Math.cos(time * 0.19 + seed) * 0.04,
+      );
       ctx.drawImage(
         entries.get(item.id).matter.sprite,
         -size / 2,
         -size / 2,
         size,
         size,
+      );
+      ctx.rotate(Math.sin(time * 0.12 + seed) * 0.17);
+      ctx.globalAlpha = item.opacity * 0.4;
+      ctx.drawImage(
+        entries.get(item.id).matter.sprite,
+        -size * 0.43,
+        -size * 0.46,
+        size * 0.92,
+        size * 0.92,
       );
       ctx.restore();
     }

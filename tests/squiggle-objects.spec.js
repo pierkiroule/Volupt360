@@ -65,7 +65,7 @@ test("shared object textures are deterministic, geometry finite, resources dispo
 }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
-    const { createObjectMatter } =
+    const { createObjectMatter, objectRadius } =
       await import("/src/squiggle/objectMatter.js");
     const { createObjectField } =
       await import("/src/squiggle/createObjectField.js");
@@ -80,6 +80,12 @@ test("shared object textures are deterministic, geometry finite, resources dispo
     const a = createObjectMatter(item),
       b = createObjectMatter(item);
     const same = a.canvas.toDataURL() === b.canvas.toDataURL();
+    const closedPoles = objectRadius(0, 0, 3, 1) === objectRadius(2, 0, 3, 1);
+    const pixels = a.canvas.getContext("2d").getImageData(0, 0, 256, 256).data;
+    let translucent = 0;
+    for (let i = 3; i < pixels.length; i += 4)
+      if (pixels[i] > 0 && pixels[i] < 240) translucent++;
+
     const field = createObjectField({ mobile: true });
     field.setDocument([item]);
     const mesh = field.group.children[0];
@@ -99,6 +105,9 @@ test("shared object textures are deterministic, geometry finite, resources dispo
     b.dispose();
     return {
       same,
+      closedPoles,
+      translucent,
+      layers: mesh.children.length,
       finite,
       moving,
       disposed,
@@ -107,6 +116,9 @@ test("shared object textures are deterministic, geometry finite, resources dispo
     };
   });
   expect(result.same).toBe(true);
+  expect(result.closedPoles).toBe(true);
+  expect(result.translucent).toBeGreaterThan(60000);
+  expect(result.layers).toBe(1);
   expect(result.finite).toBe(true);
   expect(result.moving).toBe(true);
   expect(result.disposed).toBe(2);
