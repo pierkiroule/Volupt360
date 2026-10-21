@@ -55,7 +55,7 @@ export default function SquiggleApp() {
     capture = useRef(null),
     timer = useRef(0);
   useEffect(() => {
-    document.title = "Squibble360 — Peindre un paysage intérieur";
+    document.title = "Squibble360 — Peindre un univers résonant";
     if (import.meta.env.PROD && "serviceWorker" in navigator)
       navigator.serviceWorker
         .register(import.meta.env.BASE_URL + "sw.js")
@@ -170,11 +170,11 @@ export default function SquiggleApp() {
             <h1>
               Squibble<span>360</span>
             </h1>
-            <p>Peins un monde. Entre dans son paysage.</p>
+            <p>Peins un geste. Écoute-le prendre vie.</p>
           </header>
           <section
             className="squibble-selector"
-            aria-label="Peindre le disque paysage"
+            aria-label="Peindre le disque univers"
           >
             <div className="landscape-disk">{world}</div>
             <div
@@ -250,7 +250,7 @@ export default function SquiggleApp() {
                   setTravel(false);
                 }}
               >
-                Entrer dans mon paysage ↗
+                Entrer dans mon univers ↗
               </button>
               <button aria-label="Photographier le disque" onClick={photo}>
                 ▣
@@ -259,7 +259,7 @@ export default function SquiggleApp() {
             <small>
               {strokes.length >= 80
                 ? "Palette pleine pour cette œuvre · annule un tracé pour continuer."
-                : "Chaque geste dépose sa matière et façonne le relief."}
+                : "Chaque geste dépose sa matière et fait naître une résonance."}
             </small>
           </footer>
         </>
@@ -279,7 +279,7 @@ export default function SquiggleApp() {
           </header>
           <nav
             className="squibble-flight-tools"
-            aria-label="Explorer le paysage"
+            aria-label="Explorer l’univers"
           >
             <button
               aria-label={travel ? "Contempler" : "Voyager en FPV"}
@@ -331,7 +331,7 @@ export default function SquiggleApp() {
           </nav>
           <p className="squibble-flight-hint">
             {travel
-              ? "Glisse pour orienter le voyage entre les reliefs"
+              ? "Glisse pour voyager entre les matières sonores"
               : "Glisse ou tourne ton téléphone pour contempler"}
           </p>
         </>

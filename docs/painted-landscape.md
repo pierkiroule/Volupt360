@@ -1,3 +1,5 @@
+> Version précédente : le mode immersif est maintenant un univers de matières audioreactives. Voir `audio-ink-universe.md`. Le modèle de disque reste utilisé dans l’atelier.
+
 # Squibble360 — Le disque devient paysage
 
 La route principale est un atelier à douze brosses, une seule active à la fois. L'utilisateur trace dans le disque vu du dessus ; les mêmes positions X/Z, couleurs et opacités deviennent un relief aquarellé dans le monde 360°. Les émojis sont des outils artistiques, sans interprétation ni mesure psychologique.

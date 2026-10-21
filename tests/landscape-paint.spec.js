@@ -30,7 +30,7 @@ test("paint a shared disk landscape, visit it and return without losing strokes"
   await paint(0.65);
   await expect(page.locator("main")).toHaveAttribute("data-strokes", "2");
   await page.screenshot({ path: "/tmp/landscape-disk.png" });
-  await page.getByRole("button", { name: "Entrer dans mon paysage" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon univers" }).click();
   const world = page.locator(".landscape-immersive canvas");
   await expect(world).toHaveAttribute("data-landscape-mode", "360");
   const still = await world.getAttribute("data-position");
@@ -151,7 +151,7 @@ test("mobile disk stays paintable with touch and a complete tactile visit", asyn
   });
   await expect(page.locator("main")).toHaveAttribute("data-strokes", "1");
   await page.screenshot({ path: "/tmp/landscape-mobile.png" });
-  await page.getByRole("button", { name: "Entrer dans mon paysage" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon univers" }).click();
   await expect(page.locator(".landscape-immersive canvas")).toHaveAttribute(
     "data-landscape-mode",
     "360",
@@ -174,7 +174,7 @@ test("gyro rotates the view without translation and disabling it preserves tacti
   await expect(canvas).toHaveAttribute("data-landscape-mode", "disk");
   const b = await canvas.boundingBox();
   await page.mouse.click(b.x + b.width * 0.5, b.y + b.height * 0.5);
-  await page.getByRole("button", { name: "Entrer dans mon paysage" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon univers" }).click();
   const world = page.locator(".landscape-immersive canvas");
   await expect(world).toHaveAttribute("data-landscape-mode", "360");
   const position = await world.getAttribute("data-position");

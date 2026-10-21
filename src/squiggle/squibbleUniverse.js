@@ -76,8 +76,16 @@ export function createResonanceDust(items, mobile) {
       y = 1 - 2 * ((i + 0.5) / count),
       r = 2.2 + (((i * 7919) % 1000) / 1000) * 6.1;
     const side = Math.sqrt(1 - y * y);
+    const ink = items.length ? items[i % items.length].worldPoints : null;
+    const anchor = ink?.[i % ink.length];
     positions.set(
-      [Math.cos(a) * side * r, y * r, Math.sin(a) * side * r],
+      anchor
+        ? [
+            anchor.x + Math.cos(a) * side * 0.85,
+            anchor.y + y * 0.85,
+            anchor.z + Math.sin(a) * side * 0.85,
+          ]
+        : [Math.cos(a) * side * r, y * r, Math.sin(a) * side * r],
       i * 3,
     );
     color.set(items[i % Math.max(1, items.length)]?.color || "#8a98b9");
@@ -126,6 +134,7 @@ export function createResonanceDust(items, mobile) {
       a = p.x * Math.PI * 2,
       t = (0.04 + p.y * 0.92) * Math.PI,
       r = item.radius || 7.1;
+    const ink = item.worldPoints?.[i % item.worldPoints.length];
     const cx = -Math.cos(a) * Math.sin(t) * r,
       cy = Math.cos(t) * r,
       cz = Math.sin(a) * Math.sin(t) * r;
@@ -136,9 +145,9 @@ export function createResonanceDust(items, mobile) {
           angle = u * 2.5 + i * 2.399;
         threads.set(
           [
-            cx + Math.cos(angle) * (0.3 + u * 0.4),
-            cy + (u - 0.5) * 1.1 + Math.sin(angle) * 0.2,
-            cz + Math.sin(angle) * 0.35,
+            (ink?.x ?? cx) + Math.cos(angle) * (0.3 + u * 0.4),
+            (ink?.y ?? cy) + (u - 0.5) * 1.1 + Math.sin(angle) * 0.2,
+            (ink?.z ?? cz) + Math.sin(angle) * 0.35,
           ],
           cursor,
         );

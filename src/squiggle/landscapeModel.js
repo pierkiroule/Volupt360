@@ -20,7 +20,7 @@ export const LAND_BRUSHES = [
   { emoji: "✨", name: "Éclats", color: "#c0a04c", relief: 1.8, kind: "grain" },
   {
     emoji: "🌧️",
-    name: "Vallées",
+    name: "Lavis",
     color: "#566eaa",
     relief: -1.5,
     kind: "water",
@@ -33,8 +33,20 @@ export const LAND_BRUSHES = [
     relief: 1.8,
     kind: "soft",
   },
-  { emoji: "☀️", name: "Dunes", color: "#ce9b53", relief: 2.6, kind: "soft" },
-  { emoji: "🌙", name: "Creux", color: "#68769a", relief: -1.0, kind: "soft" },
+  {
+    emoji: "☀️",
+    name: "Ondes dorées",
+    color: "#ce9b53",
+    relief: 2.6,
+    kind: "soft",
+  },
+  {
+    emoji: "🌙",
+    name: "Encres nocturnes",
+    color: "#68769a",
+    relief: -1.0,
+    kind: "soft",
+  },
   {
     emoji: "🍃",
     name: "Souffles",
@@ -42,7 +54,13 @@ export const LAND_BRUSHES = [
     relief: 1.3,
     kind: "ridge",
   },
-  { emoji: "❄️", name: "Crêtes", color: "#739bab", relief: 3.7, kind: "grain" },
+  {
+    emoji: "❄️",
+    name: "Cristaux",
+    color: "#739bab",
+    relief: 3.7,
+    kind: "grain",
+  },
   {
     emoji: "🫧",
     name: "Sources",

@@ -4,8 +4,13 @@ import { createMaterialAtlas } from "./materialAtlas.js";
 import { createDisplacementNoise } from "./displacementNoise.js";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 /** Open sheets with staggered growth/dissolution; one draw call, no frame allocations. */
-export function createLivingRibbons({ mobile = false } = {}) {
-  const capacity = mobile ? 48 : 72,
+export function createLivingRibbons({
+  mobile = false,
+  maxRibbons,
+  spatialInk = false,
+  brushes = SQUIGGLE_BRUSHES,
+} = {}) {
+  const capacity = Math.min(80, maxRibbons || (mobile ? 48 : 72)),
     segments = mobile ? 48 : 72,
     bands = mobile ? 3 : 5;
   const limit = capacity * segments * bands * 6,
@@ -15,19 +20,20 @@ export function createLivingRibbons({ mobile = false } = {}) {
     color: new Float32Array(limit * 3),
     uv: new Float32Array(limit * 2),
     life: new Float32Array(limit * 4),
+    density: new Float32Array(limit),
   };
   for (const [key, array] of Object.entries(arrays))
     geometry.setAttribute(
       key,
       new THREE.BufferAttribute(
         array,
-        key === "uv" ? 2 : key === "life" ? 4 : 3,
+        key === "uv" ? 2 : key === "life" ? 4 : key === "density" ? 1 : 3,
       ),
     );
   geometry.setDrawRange(0, 0);
   const pigment = new THREE.CanvasTexture(pigmentAtlas());
   pigment.colorSpace = THREE.SRGBColorSpace;
-  const external = createMaterialAtlas(),
+  const external = createMaterialAtlas({ brushes }),
     noise = createDisplacementNoise();
   const material = new THREE.ShaderMaterial({
     transparent: true,
@@ -37,24 +43,26 @@ export function createLivingRibbons({ mobile = false } = {}) {
     vertexColors: true,
     uniforms: {
       time: { value: 0 },
+      spatialInk: { value: spatialInk ? 1 : 0 },
       audio: { value: new THREE.Vector3() },
       pulse: { value: 0 },
+      atlasColumns: { value: brushes.length },
       pigment: { value: pigment },
       noise: { value: noise },
       matter: { value: external.color },
     },
-    vertexShader: `attribute vec4 life;uniform float time;uniform vec3 audio;varying vec2 U;varying vec3 C;varying vec4 L;
-      void main(){U=uv;C=color;L=life;
+    vertexShader: `attribute vec4 life;attribute float density;varying float opacity;uniform float time,spatialInk;uniform vec3 audio;varying vec2 U;varying vec3 C;varying vec4 L;
+      void main(){U=uv;C=color;L=life;opacity=density;
       float cycle=floor(time/life.y+life.z);
-      float turn=sin(cycle*2.399+life.x)*.32;
+      float turn=sin(cycle*2.399+life.x)*.32*(1.-spatialInk);
       mat2 rotate=mat2(cos(turn),-sin(turn),sin(turn),cos(turn));
       vec3 p=position;p.xz=rotate*p.xz;
       float local=mix(audio.x,audio.y,.5+.5*sin(life.x));
-      p+=vec3(sin(p.y*.8+time*.21+life.x),cos(p.z*.9-time*.17+life.x),sin(p.x*.6+time*.19))*(.08+local*.22);
+      p+=vec3(sin(p.y*.8+time*.21+life.x),cos(p.z*.9-time*.17+life.x),sin(p.x*.6+time*.19))*(.08+local*mix(.22,.7,spatialInk));
       p.y+=sin(uv.x*13.+time*.5+life.x)*sin(uv.y*3.14159)*(.035+audio.z*.065);
       gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-    fragmentShader: `uniform sampler2D pigment,noise,matter;uniform float time,pulse;uniform vec3 audio;
-      varying vec2 U;varying vec3 C;varying vec4 L;
+    fragmentShader: `uniform sampler2D pigment,noise,matter;uniform float time,pulse,atlasColumns,spatialInk;uniform vec3 audio;
+      varying vec2 U;varying vec3 C;varying vec4 L;varying float opacity;
       vec3 softLight(vec3 base,vec3 layer){
         return mix(base-(1.-2.*layer)*base*(1.-base),
           base+(2.*layer-1.)*(sqrt(max(base,vec3(0.)))-base),step(vec3(.5),layer));
@@ -67,14 +75,14 @@ export function createLivingRibbons({ mobile = false } = {}) {
         float birth=smoothstep(0.,.07,age);
         vec2 drift=texture2D(noise,U*vec2(.6,.3)+vec2(time*.006,L.x*.03)).rg-.5;
         float tile=L.w;
-        vec2 q=vec2((tile+.12+fract(U.x*.74+L.x*.13+drift.x*.06)*.76)/8.,.12+U.y*.76);
+        vec2 q=vec2((mod(tile,8.)+.12+fract(U.x*.74+L.x*.13+drift.x*.06)*.76)/8.,.12+U.y*.76);
         float grain=texture2D(pigment,q).a;
         float wet=texture2D(noise,U*vec2(2.,1.)+L.x*.11).b;
         // Warp within a padded atlas cell: organic image structure, no cross-tile bleed.
         // Mirrored repeats keep image features readable instead of stretching one photo over a whole path.
         float repeatX=1.-abs(mod(U.x*5.+L.x*.07,2.)-1.);
         vec2 paperUV=clamp(vec2(repeatX,U.y)+drift*vec2(.035,.06),vec2(.015),vec2(.985));
-        vec4 source=texture2D(matter,vec2((tile+.01+paperUV.x*.98)/8.,.01+paperUV.y*.98));
+        vec4 source=texture2D(matter,vec2((tile+.01+paperUV.x*.98)/atlasColumns,.01+paperUV.y*.98));
         float detail=dot(source.rgb,vec3(.2126,.7152,.0722));
         float deposits=smoothstep(.12,.78,1.-detail)*source.a;
         float textureGrain=mix(1.,.55+detail*.55,source.a);
@@ -83,7 +91,8 @@ export function createLivingRibbons({ mobile = false } = {}) {
         float tide=.5+.5*sin(U.x*19.+wet*5.+time*.13+L.x);
         float granulation=smoothstep(.18,.8,wet*grain)*textureGrain+deposits*.18;
         float rim=exp(-pow((U.y-.12-drift.y*.05)*32.,2.))+exp(-pow((U.y-.88-drift.y*.05)*32.,2.));
-        float alpha=drawn*fading*birth*edge*ends*(.24+grain*.48+granulation*.22+rim*.16)*(.8+wet*.2);
+        float memory=mix(drawn*fading*birth,.65+.35*drawn*fading,spatialInk);
+        float alpha=memory*edge*ends*(.24+grain*.48+granulation*.22+rim*.16)*(.8+wet*.2);
         alpha*=1.08+audio.x*.16+pulse*.08;
         // Soft-light preserves the chosen pigment; multiply deposits ink in darker image details.
         vec3 stained=softLight(C,source.rgb);
@@ -94,7 +103,7 @@ export function createLivingRibbons({ mobile = false } = {}) {
         alpha*=mix(1.,.85+detail*.15+deposits*.35,source.a);
         vec3 color=dye*(.63+grain*.23+wet*.12);
         color*=1.-rim*.2-granulation*.12;
-        alpha*=.88+tide*.12;
+        alpha*=(.88+tide*.12)*opacity;
         if(alpha<.004)discard;
         gl_FragColor=vec4(color,min(alpha,.94));
         #include <tonemapping_fragment>
@@ -130,7 +139,7 @@ export function createLivingRibbons({ mobile = false } = {}) {
         offset = rand();
       const family = Math.max(
         0,
-        SQUIGGLE_BRUSHES.findIndex((b) => b.id === item.emotionId),
+        brushes.findIndex((b) => b.id === item.emotionId),
       );
       const anchor = new THREE.Vector3(
         -Math.cos(a) * Math.sin(t),
@@ -149,13 +158,18 @@ export function createLivingRibbons({ mobile = false } = {}) {
         v.clampLength(0, 7.2);
         controls.push(v);
       }
-      const curve = new THREE.CatmullRomCurve3(controls, false, "centripetal");
+      const path =
+        item.worldPoints?.length > 1
+          ? item.worldPoints.map((p) => new THREE.Vector3(p.x, p.y, p.z))
+          : controls;
+      const curve = new THREE.CatmullRomCurve3(path, false, "centripetal");
       const width =
-        (i + family) % 3 === 0
+        item.ribbonWidth ||
+        ((i + family) % 3 === 0
           ? 0.025 + rand() * 0.04
           : (i + family) % 3 === 1
             ? 0.24 + rand() * 0.18
-            : 0.48 + rand() * 0.45;
+            : 0.48 + rand() * 0.45);
       color.set(item.color);
       const rows = [];
       for (let j = 0; j <= segments; j++) {
@@ -165,6 +179,8 @@ export function createLivingRibbons({ mobile = false } = {}) {
         across.crossVectors(tangent, up);
         if (across.lengthSq() < 0.001) across.set(1, 0, 0);
         across.normalize();
+        if (spatialInk)
+          across.applyAxisAngle(tangent, 0.75 + Math.sin(phase) * 0.45);
         const normal = new THREE.Vector3()
             .crossVectors(tangent, across)
             .normalize(),
@@ -194,6 +210,7 @@ export function createLivingRibbons({ mobile = false } = {}) {
         arrays.color.set([color.r, color.g, color.b], cursor * 3);
         arrays.uv.set([point.u, point.v], cursor * 2);
         arrays.life.set([phase, period, offset, family], cursor * 4);
+        arrays.density[cursor] = item.opacity ?? 1;
         cursor++;
       };
       for (let j = 0; j < segments; j++)

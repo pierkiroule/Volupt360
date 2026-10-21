@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import AudioInkUniverse from "./AudioInkUniverse.jsx";
 import WatercolorPaper from "./WatercolorPaper.jsx";
 import { createLandscape, LAND_RADIUS } from "./landscapeModel.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
 
-function Navigator({
+export function Navigator({
   land,
   travel,
   gyro,
   recenter,
   onGyroUnavailable,
   paused,
+  volume = false,
 }) {
   const { camera, gl } = useThree();
   const state = useRef({ yaw: 0, pitch: -0.18, held: null, last: 0 });
@@ -23,7 +25,7 @@ function Navigator({
   const forward = useMemo(() => new THREE.Vector3(), []),
     inward = useMemo(() => new THREE.Vector3(), []);
   useEffect(() => {
-    camera.position.set(0, land.heightAt(0, 8) + 3.5, 8);
+    camera.position.set(0, volume ? 1 : land.heightAt(0, 8) + 3.5, 8);
     camera.lookAt(0, land.heightAt(0, 0), 0);
     euler.setFromQuaternion(camera.quaternion, "YXZ");
     state.current.yaw = euler.y;
@@ -136,7 +138,7 @@ function Navigator({
     camera.quaternion.slerp(desired, 1 - Math.exp(-dt * 7));
     if (travel && !paused) {
       forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
-      forward.y = 0;
+      forward.y *= volume ? 0.6 : 0;
       forward.normalize();
       const radius = Math.hypot(camera.position.x, camera.position.z);
       if (radius > 8) {
@@ -158,16 +160,20 @@ function Navigator({
         camera.position.x *= 12.5 / r;
         camera.position.z *= 12.5 / r;
       }
-      const floor = land.heightAt(camera.position.x, camera.position.z) + 2.2;
-      camera.position.y = Math.max(
-        land.heightAt(camera.position.x, camera.position.z) + 0.8,
-        THREE.MathUtils.damp(
-          camera.position.y,
-          floor + 0.25 * Math.sin(_.clock.elapsedTime * 0.18),
-          2,
-          dt,
-        ),
-      );
+      if (volume) {
+        camera.position.y = THREE.MathUtils.clamp(camera.position.y, -7, 7);
+      } else {
+        const floor = land.heightAt(camera.position.x, camera.position.z) + 2.2;
+        camera.position.y = Math.max(
+          land.heightAt(camera.position.x, camera.position.z) + 0.8,
+          THREE.MathUtils.damp(
+            camera.position.y,
+            floor + 0.25 * Math.sin(_.clock.elapsedTime * 0.18),
+            2,
+            dt,
+          ),
+        );
+      }
     }
     gl.domElement.dataset.heading = camera.quaternion
       .toArray()
@@ -351,7 +357,11 @@ export default function LandscapeWorld(props) {
       }
       gl={{ antialias: true }}
     >
-      <Terrain {...props} />
+      {props.editor ? (
+        <Terrain {...props} />
+      ) : (
+        <AudioInkUniverse {...props} Navigator={Navigator} />
+      )}
     </Canvas>
   );
 }

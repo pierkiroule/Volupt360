@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 /** Lazy pair of bounded shared atlases; no per-frame downloads or allocations. */
-export function createMaterialAtlas() {
+export function createMaterialAtlas({ brushes = SQUIGGLE_BRUSHES } = {}) {
   const placeholder = new THREE.DataTexture(
     new Uint8Array([255, 255, 255, 0]),
     1,
@@ -30,10 +30,10 @@ export function createMaterialAtlas() {
       if (!Object.values(materials).some(Boolean)) return;
       const make = (key, size) => {
         const canvas = document.createElement("canvas");
-        canvas.width = size * 8;
+        canvas.width = size * brushes.length;
         canvas.height = size;
         const ctx = canvas.getContext("2d");
-        SQUIGGLE_BRUSHES.forEach((b, i) => {
+        brushes.forEach((b, i) => {
           if (materials[b.id])
             ctx.drawImage(materials[b.id][key], i * size, 0, size, size);
         });
@@ -42,7 +42,7 @@ export function createMaterialAtlas() {
         if (key === "canvas") t.colorSpace = THREE.SRGBColorSpace;
         return t;
       };
-      color = make("canvas", 256);
+      color = make("canvas", Math.min(256, Math.floor(2048 / brushes.length)));
       height = make("height", 128);
     },
     dispose() {
