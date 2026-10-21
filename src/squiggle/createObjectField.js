@@ -59,6 +59,7 @@ export function createObjectField({ mobile = false } = {}) {
             surface: { value: texture },
             time: { value: 0 },
             seed: { value: profile.seed },
+            flow: { value: item.flow ?? 1 },
             tint: { value: new THREE.Color(item.color) },
             opacity: { value: item.opacity },
             layer: { value: 1 },
@@ -68,10 +69,10 @@ export function createObjectField({ mobile = false } = {}) {
           side: THREE.DoubleSide,
           forceSinglePass: true,
           blending: THREE.AdditiveBlending,
-          vertexShader: `uniform float time,seed;varying vec2 U;varying vec3 N,V;
+          vertexShader: `uniform float time,seed,flow;varying vec2 U;varying vec3 N,V;
           void main(){U=uv;
-          float wave=sin(position.y*2.8+position.x*2.+time*.32+seed)*.13
-           +sin(position.z*3.2-position.y*1.7-time*.24+seed)*.075;
+          float wave=sin(position.y*2.8+position.x*2.+time*.32*flow+seed)*.13
+           +sin(position.z*3.2-position.y*1.7-time*.24*flow+seed)*.075;
           vec3 p=position+normalize(position)*wave;
           vec4 view=modelViewMatrix*vec4(p,1.);N=normalize(normalMatrix*normal);V=-view.xyz;gl_Position=projectionMatrix*view;}`,
           fragmentShader: `uniform sampler2D surface;uniform vec3 tint;uniform float opacity,time,seed,layer;varying vec2 U;varying vec3 N,V;
@@ -82,7 +83,7 @@ export function createObjectField({ mobile = false } = {}) {
           float facing=abs(dot(n,normalize(V)));
           float soft=pow(smoothstep(0.,.75,facing),1.4);
           float stream=.72+.28*sin(U.x*17.+U.y*11.+time*.23+seed);
-          float alpha=opacity*wash.a*soft*stream*.5*layer;
+          float alpha=opacity*wash.a*soft*stream*.38*layer;
           gl_FragColor=vec4(mix(wash.rgb,tint,.18)*(.88+facing*.16),alpha);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -118,7 +119,7 @@ export function createObjectField({ mobile = false } = {}) {
         t = (0.04 + p.y * 0.92) * Math.PI;
       e.base
         .set(-Math.cos(a) * Math.sin(t), Math.cos(t), Math.sin(a) * Math.sin(t))
-        .multiplyScalar(SCULPT_RADIUS);
+        .multiplyScalar(item.radius ?? SCULPT_RADIUS);
       e.mesh.position.copy(e.base);
       e.mesh.lookAt(0, 0, 0);
       e.orientation = e.mesh.quaternion.clone();

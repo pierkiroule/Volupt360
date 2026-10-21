@@ -1,17 +1,31 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { createResonanceDust } from "./squibbleUniverse.js";
 import { createObjectField } from "./createObjectField.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
 
 import { directionToPaper, SCULPT_RADIUS } from "./brushes.js";
-function Painting({ strokes, draft, source, paused, onCapture, materials }) {
+function Painting({
+  strokes,
+  draft,
+  source,
+  paused,
+  onCapture,
+  materials,
+  preview = false,
+}) {
   const { gl, scene, camera } = useThree(),
     time = useRef(0);
   const objects = useMemo(
     () => createObjectField({ mobile: innerWidth < 600 }),
     [],
   );
+  const dust = useMemo(
+    () => createResonanceDust(strokes, innerWidth < 600),
+    [strokes],
+  );
+  useEffect(() => () => dust.dispose(), [dust]);
   useEffect(() => () => objects.dispose(), [objects]);
   useEffect(() => {
     objects.setMaterials(materials);
@@ -20,7 +34,7 @@ function Painting({ strokes, draft, source, paused, onCapture, materials }) {
     objects.setDocument(draft ? [...strokes, draft] : strokes);
   }, [strokes, draft, objects]);
   useEffect(() => {
-    onCapture(
+    onCapture?.(
       () =>
         new Promise((resolve, reject) => {
           gl.render(scene, camera);
@@ -33,6 +47,9 @@ function Painting({ strokes, draft, source, paused, onCapture, materials }) {
   useFrame((_, dt) => {
     if (!paused) time.current += Math.min(dt, 0.1);
     objects.update(time.current);
+    dust.update(time.current);
+    objects.group.rotation.y = preview ? time.current * 0.035 : 0;
+    dust.points.rotation.y = preview ? time.current * 0.035 : 0;
     gl.domElement.dataset.externalMaterials = String(
       Object.keys(materials).length,
     );
@@ -45,6 +62,25 @@ function Painting({ strokes, draft, source, paused, onCapture, materials }) {
     <>
       <color attach="background" args={["#05070d"]} />
       <primitive object={objects.group} />
+      <primitive object={dust.points} />
+      {preview && (
+        <mesh>
+          <sphereGeometry args={[9, 48, 32]} />
+          <shaderMaterial
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            uniforms={{
+              tint: { value: new THREE.Color(strokes[0]?.color || "#7188af") },
+            }}
+            vertexShader={`varying vec3 N,V;void main(){vec4 p=modelViewMatrix*vec4(position,1.);N=normalize(normalMatrix*normal);V=-p.xyz;gl_Position=projectionMatrix*p;}`}
+            fragmentShader={`uniform vec3 tint;varying vec3 N,V;void main(){float rim=pow(1.-max(0.,dot(normalize(N),normalize(V))),3.);gl_FragColor=vec4(tint,.025+rim*.38);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+          }`}
+          />
+        </mesh>
+      )}
     </>
   );
 }
@@ -173,7 +209,7 @@ function Interaction({
         stroke: { ...state.current.tool, points: p ? [p] : [] },
       };
       if (gesture.paint)
-        state.current.onDraft({
+        state.current.onDraft?.({
           ...gesture.stroke,
           points: [...gesture.stroke.points],
         });
@@ -192,7 +228,7 @@ function Interaction({
         );
       }
       if (gesture.paint)
-        state.current.onDraft({
+        state.current.onDraft?.({
           ...gesture.stroke,
           points: [...gesture.stroke.points],
         });
@@ -206,7 +242,7 @@ function Interaction({
       if (gesture.paint && gesture.stroke.points.length)
         state.current.onStroke(gesture.stroke);
       gesture = null;
-      state.current.onDraft(null);
+      state.current.onDraft?.(null);
     };
     const keys = (e) => {
       if (document.activeElement !== canvas) return;
@@ -332,11 +368,16 @@ export default function SquiggleWorld(props) {
     <Canvas
       className="squiggle-world"
       dpr={[1, 1.4]}
-      camera={{ position: [0, 0, 0.001], fov: 75, near: 0.1, far: 40 }}
+      camera={{
+        position: props.preview ? [0, 0, 24] : [0, 0, 0.001],
+        fov: props.preview ? 50 : 75,
+        near: 0.1,
+        far: 60,
+      }}
       gl={{ antialias: false }}
     >
       <Painting {...props} />
-      <Interaction {...props} />
+      {!props.preview && <Interaction {...props} />}
     </Canvas>
   );
 }

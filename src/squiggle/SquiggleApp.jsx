@@ -2,18 +2,19 @@ import {
   Component,
   lazy,
   Suspense,
-  useCallback,
   useEffect,
-  useRef,
   useMemo,
+  useRef,
   useState,
+  useCallback,
 } from "react";
-import { loadLocalTextures, localTextureStatus } from "./localTexture.js";
-import SketchSurface from "./SketchSurface.jsx";
+import { loadLocalTextures } from "./localTexture.js";
+import { EMOJI_INGREDIENTS, generateUniverse } from "./squibbleUniverse.js";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 import { requestGyroscope } from "../scene/gyroOrientation.ts";
 import { downloadBlob } from "../utils/sensoryComposition.ts";
 import "./squiggle.css";
+import "./squibble.css";
 const World = lazy(() => import("./SquiggleWorld.jsx"));
 class WorldBoundary extends Component {
   state = { failed: false };
@@ -22,8 +23,8 @@ class WorldBoundary extends Component {
   }
   render() {
     return this.state.failed ? (
-      <div className="squiggle-fallback">
-        La 3D n’est pas disponible ici. Le dessin 2D reste accessible.
+      <div className="squibble-unavailable" role="alert">
+        La 3D est indisponible sur cet appareil. Essaie avec WebGL activé.
       </div>
     ) : (
       this.props.children
@@ -31,24 +32,38 @@ class WorldBoundary extends Component {
   }
 }
 export default function SquiggleApp() {
-  const [localMatter, setLocalMatter] = useState([]),
-    [textureEnabled, setTextureEnabled] = useState(true),
-    [textureStatus, setTextureStatus] = useState("loading");
+  const [selected, setSelected] = useState([]),
+    [inside, setInside] = useState(false),
+    [travel, setTravel] = useState(false),
+    [paused, setPaused] = useState(
+      matchMedia("(prefers-reduced-motion: reduce)").matches,
+    ),
+    [gyro, setGyro] = useState(false),
+    [recenter, setRecenter] = useState(0),
+    [localMatter, setLocalMatter] = useState([]),
+    [notice, setNotice] = useState(""),
+    [capturing, setCapturing] = useState(false);
+  const capture = useRef(null),
+    noticeTimer = useRef(0);
   useEffect(() => {
-    let active = true;
-    loadLocalTextures().then((matter) => {
-      if (active) {
-        setLocalMatter(matter);
-        setTextureStatus(localTextureStatus(matter));
-      }
+    document.title = "Squibble360 — Un monde à ressentir";
+    let alive = true;
+    loadLocalTextures().then((value) => {
+      if (alive) setLocalMatter(value);
     });
     return () => {
-      active = false;
+      alive = false;
+      clearTimeout(noticeTimer.current);
     };
+  }, []);
+  const notify = useCallback((text) => {
+    setNotice(text);
+    clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(""), 4500);
   }, []);
   const materials = useMemo(
     () =>
-      localMatter.length && textureEnabled
+      localMatter.length
         ? Object.fromEntries(
             SQUIGGLE_BRUSHES.map((b, i) => [
               b.id,
@@ -56,409 +71,236 @@ export default function SquiggleApp() {
             ]),
           )
         : {},
-    [localMatter, textureEnabled],
+    [localMatter],
   );
-  async function retryTexture() {
-    setTextureStatus("loading");
-    const matter = await loadLocalTextures({ retry: true });
-    setLocalMatter(matter);
-    setTextureStatus(localTextureStatus(matter));
+  const choices = useMemo(
+    () =>
+      selected.map((emoji) => EMOJI_INGREDIENTS.find((e) => e.emoji === emoji)),
+    [selected],
+  );
+  const strokes = useMemo(() => generateUniverse(choices), [choices]);
+  const onCapture = useCallback((fn) => {
+    capture.current = fn;
+  }, []);
+  function toggle(emoji) {
+    if (selected.includes(emoji))
+      setSelected(selected.filter((e) => e !== emoji));
+    else if (selected.length < 3) setSelected([...selected, emoji]);
+    else notify("Trois emojis au maximum · touche un choix pour le retirer.");
   }
-  const [erase, setErase] = useState(false),
-    [recenter, setRecenter] = useState(0);
-  const [strokes, setStrokes] = useState([]),
-    [brush, setBrush] = useState("anger"),
-    [size, setSize] = useState(48),
-    [opacity, setOpacity] = useState(0.85),
-    [mode, setMode] = useState("2d"),
-    [paint, setPaint] = useState(true),
-    [travel, setTravel] = useState(false),
-    [source, setSource] = useState(null),
-    [more, setMore] = useState(false),
-    [paused, setPaused] = useState(
-      matchMedia("(prefers-reduced-motion: reduce)").matches,
-    ),
-    [gyro, setGyro] = useState(false),
-    [error, setError] = useState(""),
-    [draft, setDraft] = useState(null);
-  const history = useRef([]),
-    future = useRef([]),
-    counter = useRef(1),
-    capture2d = useRef(null),
-    capture3d = useRef(null),
-    documentRef = useRef(strokes);
-  documentRef.current = strokes;
-  const tool = {
-    emotionId: brush,
-    color: SQUIGGLE_BRUSHES.find((b) => b.id === brush).color,
-    size,
-    opacity,
-    id: counter.current,
-    erase,
-  };
-  const onCapture2d = useCallback((fn) => {
-      capture2d.current = fn;
-    }, []),
-    onCapture3d = useCallback((fn) => {
-      capture3d.current = fn;
-    }, []),
-    onSource = useCallback((value) => setSource(value), []);
-  const commit = useCallback((stroke) => {
-    const current = documentRef.current;
-    if (current.length >= 120) {
-      setError("120 objets : retire un objet pour continuer.");
-      return;
-    }
-    history.current.push(current);
-    if (history.current.length > 60) history.current.shift();
-    future.current = [];
-    const next = [
-      ...current,
-      { ...stroke, points: [stroke.points.at(-1)], id: counter.current++ },
-    ];
-    documentRef.current = next;
-    setStrokes(next);
-  }, []);
-  const eraseAt = useCallback(
-    (p) => {
-      const current = documentRef.current;
-      let index = -1,
-        best = Infinity;
-      for (let i = 0; i < current.length; i++)
-        for (const q of current[i].points) {
-          const dx = Math.abs(q.x - p.x),
-            distance = Math.hypot(
-              mode === "360" ? Math.min(dx, 1 - dx) : dx,
-              q.y - p.y,
-            );
-          if (distance < best && distance < current[i].size / 768 + 0.018) {
-            best = distance;
-            index = i;
-          }
-        }
-      if (index < 0) return;
-      history.current.push(current);
-      if (history.current.length > 60) history.current.shift();
-      future.current = [];
-      const next = current.filter((_, i) => i !== index);
-      documentRef.current = next;
-      setStrokes(next);
-    },
-    [mode],
-  );
-  const undo = useCallback(() => {
-    if (!history.current.length) return;
-    future.current.push(documentRef.current);
-    const next = history.current.pop();
-    documentRef.current = next;
-    setStrokes(next);
-    setDraft(null);
-  }, []);
-  const redo = () => {
-    if (!future.current.length) return;
-    history.current.push(strokes);
-    const next = future.current.pop();
-    documentRef.current = next;
-    setStrokes(next);
-  };
-  useEffect(() => {
-    document.title = "Squiggle projectif 3D — Compose, entre, explore";
-    const key = (e) => {
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.key.toLowerCase() === "z" &&
-        !e.target.matches("input")
-      ) {
-        e.preventDefault();
-        undo();
-      }
-    };
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  }, [undo]);
-  const changeMode = () => {
+  function leave() {
+    setInside(false);
     setTravel(false);
-    setMode(mode === "2d" ? "360" : "2d");
     setGyro(false);
-    setDraft(null);
-  };
-  const png = async () => {
+    capture.current = null;
+    setNotice("");
+  }
+  async function photo() {
+    if (!capture.current || capturing) return;
+    setCapturing(true);
     try {
-      const fn = mode === "2d" ? capture2d.current : capture3d.current;
-      if (!fn) return;
-      downloadBlob(await fn(), "squiggle-360.png");
-    } catch (e) {
-      setError(e.message);
+      downloadBlob(
+        await capture.current(),
+        "squibble360-" + new Date().toISOString().replaceAll(":", "-") + ".png",
+      );
+      notify("Ta photo a été téléchargée.");
+    } catch {
+      notify("Photo indisponible. Réessaie dans un instant.");
+    } finally {
+      setCapturing(false);
     }
-  };
+  }
+  const world = (
+    <WorldBoundary>
+      <Suspense
+        fallback={
+          <div className="squibble-loading">Ton monde prend forme…</div>
+        }
+      >
+        <World
+          key={inside ? "inside" : "orb"}
+          strokes={strokes}
+          materials={materials}
+          draft={null}
+          preview={!inside}
+          paint={false}
+          travel={travel}
+          paused={paused}
+          gyro={gyro}
+          recenter={recenter}
+          tool={{ erase: false }}
+          onCapture={onCapture}
+          onGyroUnavailable={() => {
+            setGyro(false);
+            notify(
+              "Gyroscope indisponible · glisse pour regarder autour de toi.",
+            );
+          }}
+        />
+      </Suspense>
+    </WorldBoundary>
+  );
   return (
     <main
-      className={`squiggle-app is-${mode}`}
-      data-texture-status={textureStatus}
-      data-texture-count={localMatter.length}
+      className={
+        "squiggle-app squibble " + (inside ? "is-inside" : "is-choosing")
+      }
+      data-choices={selected.length}
     >
-      <SketchSurface
-        strokes={strokes}
-        materials={materials}
-        tool={tool}
-        active={mode === "2d"}
-        paused={paused}
-        onErase={eraseAt}
-        onStroke={commit}
-        onSource={onSource}
-        onCapture={onCapture2d}
-      />
-      {mode === "360" && source && (
-        <WorldBoundary>
-          <Suspense
-            fallback={
-              <div className="squiggle-fallback">Entrer dans le dessin…</div>
-            }
+      {!inside ? (
+        <>
+          <header className="squibble-intro">
+            <h1>
+              Squibble<span>360</span>
+            </h1>
+            <p>Un monde à ressentir, un regard à explorer.</p>
+          </header>
+          <section
+            className="squibble-selector"
+            aria-label="Composer sa bulle-monde"
           >
-            <World
-              strokes={strokes}
-              materials={materials}
-              draft={draft}
-              source={source}
-              paint={paint}
-              travel={travel}
-              tool={tool}
-              paused={paused}
-              gyro={gyro}
-              recenter={recenter}
-              onGyroUnavailable={() => {
-                setGyro(false);
-                setError(
-                  "Gyroscope indisponible : glisse pour regarder autour de toi.",
-                );
-              }}
-              onErase={eraseAt}
-              onStroke={commit}
-              onDraft={setDraft}
-              onCapture={onCapture3d}
-            />
-          </Suspense>
-        </WorldBoundary>
-      )}
-      <header className="squiggle-header">
-        <div>
-          <h1>
-            Squiggle <span>projectif 3D</span>
-          </h1>
-          <p>
-            {mode === "2d"
-              ? "Pose une matière · Glisse pour la placer."
-              : travel
-                ? "Glisse pour piloter · Maintiens pour accélérer."
-                : paint
-                  ? "Pose des objets dans ton univers."
-                  : "Glisse pour regarder autour de toi."}
-          </p>
-        </div>
-        <button
-          className="squiggle-switch"
-          onClick={changeMode}
-          disabled={!source}
-          aria-label={mode === "2d" ? "Entrer en 360" : "Revenir au dessin 2D"}
-        >
-          {mode === "2d" ? "360° ↗" : "← 2D"}
-        </button>
-      </header>
-      {mode === "360" && (
-        <div className="squiggle-view-tools">
-          <button
-            aria-pressed={paint}
-            onClick={() => {
-              setPaint(true);
-              setTravel(false);
-              setErase(false);
-              setGyro(false);
-            }}
-          >
-            ◈ Composer
-          </button>
-          <button
-            aria-pressed={!paint && !travel}
-            onClick={() => {
-              setPaint(false);
-              setTravel(false);
-            }}
-          >
-            ◉ Regarder
-          </button>
-          <button
-            aria-pressed={travel}
-            aria-label={travel ? "Arrêter le voyage FPV" : "Voyager en FPV"}
-            onClick={() => {
-              setPaint(false);
-              setTravel(!travel);
-            }}
-          >
-            {travel ? "Ⅱ Pause vol" : "➤ Voyager"}
-          </button>
-          {!paint && (
+            <div className="squibble-orb">{world}</div>
             <button
-              aria-pressed={gyro}
+              className="squibble-portal"
+              aria-label="Entrer dans mon monde"
+              disabled={!selected.length}
+              onClick={() => {
+                setInside(true);
+                setTravel(true);
+              }}
+            >
+              <span>{selected.length ? "Entrer ↗" : "Choisis tes emojis"}</span>
+            </button>
+            <div
+              className="squibble-ring"
+              role="group"
+              aria-label="Emojis de ton univers"
+            >
+              {EMOJI_INGREDIENTS.map((e, i) => {
+                const angle =
+                  (i * Math.PI * 2) / EMOJI_INGREDIENTS.length - Math.PI / 2;
+                return (
+                  <button
+                    key={e.emoji}
+                    aria-label={e.name}
+                    aria-pressed={selected.includes(e.emoji)}
+                    style={{
+                      "--x": Math.cos(angle),
+                      "--y": Math.sin(angle),
+                      "--tint": e.color,
+                    }}
+                    onClick={() => toggle(e.emoji)}
+                  >
+                    <span aria-hidden="true">{e.emoji}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <footer className="squibble-invitation">
+            <p>1 à 3 emojis. Laisse émerger un univers.</p>
+            <div className="squibble-chosen" aria-label="Tes choix">
+              {selected.length ? (
+                selected.map((e) => (
+                  <button
+                    key={e}
+                    aria-label={
+                      "Retirer " +
+                      EMOJI_INGREDIENTS.find((x) => x.emoji === e).name
+                    }
+                    onClick={() => toggle(e)}
+                  >
+                    {e}
+                    <small>×</small>
+                  </button>
+                ))
+              ) : (
+                <span>Tout commence par une rencontre.</span>
+              )}
+            </div>
+            <small>
+              Une exploration artistique et projective, sans interprétation de
+              tes choix.
+            </small>
+          </footer>
+        </>
+      ) : (
+        <>
+          {world}
+          <header className="squibble-flight-header">
+            <button aria-label="Revenir à ma bulle" onClick={leave}>
+              ← Bulle
+            </button>
+            <span aria-label="Emojis choisis">{selected.join(" ")}</span>
+          </header>
+          <nav
+            className="squibble-flight-tools"
+            aria-label="Explorer et photographier"
+          >
+            <button
+              aria-label={travel ? "Contempler" : "Voyager en FPV"}
+              aria-pressed={travel}
+              onClick={() => setTravel(!travel)}
+            >
+              {travel ? "Ⅱ Contempler" : "➤ Voyager"}
+            </button>
+            <button
               aria-label="Gyroscope 360"
+              aria-pressed={gyro}
               onClick={async () => {
+                if (gyro) {
+                  setGyro(false);
+                  return;
+                }
                 try {
-                  if (!gyro) await requestGyroscope();
-                  setGyro(!gyro);
-                } catch (e) {
-                  setError(e.message);
+                  await requestGyroscope();
+                  setGyro(true);
+                } catch {
+                  notify(
+                    "Gyroscope indisponible · le glissement tactile reste disponible.",
+                  );
                 }
               }}
             >
               ◎ Gyro
             </button>
-          )}
-          {gyro && (
-            <button
-              aria-label="Recentrer le regard"
-              onClick={() => setRecenter((n) => n + 1)}
-            >
-              ↺
-            </button>
-          )}
-        </div>
-      )}
-      <section className="squiggle-tools" aria-label="Outils de dessin">
-        <div
-          className="squiggle-brushes"
-          role="group"
-          aria-label="Matières abstraites"
-        >
-          {SQUIGGLE_BRUSHES.map((b) => (
-            <button
-              key={b.id}
-              title={b.name}
-              aria-label={b.name}
-              aria-pressed={brush === b.id && !erase}
-              onClick={() => {
-                setBrush(b.id);
-                setPaint(true);
-                setTravel(false);
-                setErase(false);
-                setGyro(false);
-              }}
-            >
-              <span aria-hidden="true">{b.emoji}</span>
-            </button>
-          ))}
-        </div>
-        <div className="squiggle-controls">
-          <label>
-            Taille
-            <input
-              aria-label="Taille des objets"
-              type="range"
-              min="18"
-              max="100"
-              value={size}
-              onChange={(e) => setSize(Number(e.target.value))}
-            />
-          </label>
-          <button
-            aria-label="Annuler le placement"
-            disabled={!history.current.length}
-            onClick={undo}
-          >
-            ↶
-          </button>
-          <button
-            aria-label="Autres outils"
-            aria-expanded={more}
-            onClick={() => setMore(!more)}
-          >
-            •••
-          </button>
-        </div>
-        {more && (
-          <div className="squiggle-more">
-            <button
-              aria-label="Textures locales"
-              title={materials[brush]?.name || "Alphas procéduraux"}
-              aria-pressed={textureEnabled && localMatter.length > 0}
-              disabled={!localMatter.length}
-              onClick={() => setTextureEnabled(!textureEnabled)}
-            >
-              Textures locales
-            </button>
-            {textureStatus !== "ready" && (
-              <span className="squiggle-texture-status" role="status">
-                {textureStatus === "loading"
-                  ? "Chargement des textures…"
-                  : textureStatus === "partial"
-                    ? "Une texture disponible sur deux"
-                    : "Textures indisponibles · alphas locaux actifs"}
-              </span>
+            {gyro && (
+              <button
+                aria-label="Recentrer le regard"
+                onClick={() => setRecenter((n) => n + 1)}
+              >
+                ↺
+              </button>
             )}
-            {["unavailable", "partial"].includes(textureStatus) && (
-              <button onClick={retryTexture}>Réessayer les textures</button>
-            )}
-            <label>
-              Opacité
-              <input
-                aria-label="Opacité des objets"
-                type="range"
-                min=".15"
-                max="1"
-                step=".05"
-                value={opacity}
-                onChange={(e) => setOpacity(Number(e.target.value))}
-              />
-            </label>
             <button
-              onClick={redo}
-              disabled={!future.current.length}
-              aria-label="Rétablir le placement"
+              aria-label="Photographier ce regard"
+              disabled={capturing}
+              onClick={photo}
             >
-              ↷
+              ▣ Photo
             </button>
             <button
-              onClick={() => setPaused(!paused)}
               aria-label={
                 paused
                   ? "Reprendre les animations"
                   : "Mettre les animations en pause"
               }
+              aria-pressed={paused}
+              onClick={() => setPaused(!paused)}
             >
-              {paused ? "▷" : "Ⅱ"}
+              {paused ? "▷" : "❚❚"}
             </button>
-            <button
-              aria-pressed={erase}
-              onClick={() => {
-                setErase(!erase);
-                setPaint(true);
-                setTravel(false);
-                setGyro(false);
-              }}
-            >
-              🧽 Retirer un objet
-            </button>
-            <button onClick={png}>PNG ↓</button>
-            <button
-              onClick={() => {
-                if (!strokes.length) return;
-                history.current.push(strokes);
-                future.current = [];
-                documentRef.current = [];
-                setStrokes([]);
-              }}
-            >
-              Effacer tout
-            </button>
-          </div>
-        )}
-      </section>
-      {error && (
-        <div role="alert" className="squiggle-error">
-          {error}
-          <button aria-label="Fermer le message" onClick={() => setError("")}>
-            ×
-          </button>
-        </div>
+          </nav>
+          <p className="squibble-flight-hint">
+            {travel
+              ? "Glisse pour tourner · Maintiens pour accélérer"
+              : "Glisse ou tourne ton téléphone pour contempler"}
+          </p>
+        </>
       )}
+      <div className="squibble-notice" role="status">
+        {notice}
+      </div>
     </main>
   );
 }
