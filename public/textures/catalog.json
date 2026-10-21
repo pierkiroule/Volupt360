@@ -43,21 +43,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/vague/01-base.png",
+          "path": "emojis/vague/Vaguebase01.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/vague/02-matiere.png",
+          "path": "emojis/vague/Vaguematiere01.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/vague/03-accent.png",
+          "path": "emojis/vague/Vagueaccent01.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
