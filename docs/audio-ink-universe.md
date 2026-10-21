@@ -14,3 +14,7 @@ Les bandes Web Audio sont lissées avec des interpolations indépendantes du fra
 La navigation est volumique, avec gyroscope ou glissement tactile et rappel vers l'intérieur de l'œuvre. Les calculs des trajectoires et les textures restent hors de la boucle de rendu. Maximum 80 voiles, 1 400 grains et 72 filaments sur petit écran ; ressources GPU libérées au démontage. Aucun post-traitement lourd ni dépendance supplémentaire.
 
 Limites : cette version ne contient ni simulation physique des fluides ni mode WebXR. Tests dans Chromium/SwiftShader, tactile et capteurs simulés ; fluidité et confort restent à vérifier sur téléphone réel. Les noms historiques des fichiers de disque sont conservés pour limiter les changements ; le moteur de terrain antérieur reste disponible dans le dépôt.
+
+## Images visibles dans la scène
+
+`createImageVeils.js` expose aussi les images locales comme des feuillets photographiques ouverts, aux bords diffus. Les originaux décodés depuis `public/textures` et les compositions des brosses sont réutilisés, sans nouveaux téléchargements dans la boucle de rendu. Maximum huit feuillets, une géométrie partagée, textures et matériaux libérés au remplacement et au démontage. Le centre conserve les couleurs et les détails des images ; seules les bordures et la courbure sont aquarellées. Aucun retour des bulles photo.

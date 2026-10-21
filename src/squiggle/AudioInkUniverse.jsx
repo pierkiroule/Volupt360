@@ -4,6 +4,7 @@ import { MathUtils } from "three";
 import { createLivingRibbons } from "./createLivingRibbons.js";
 import { createResonanceDust } from "./squibbleUniverse.js";
 import { LAND_BRUSHES } from "./landscapeModel.js";
+import { createImageVeils } from "./createImageVeils.js";
 import WatercolorPaper from "./WatercolorPaper.jsx";
 
 /** Shared drawing -> spatial ink; no terrain, no procedural replacement of the gesture. */
@@ -65,6 +66,9 @@ export default function AudioInkUniverse({
     () => createResonanceDust(items, innerWidth < 600),
     [items],
   );
+  const images = useMemo(() => createImageVeils(), []);
+  useEffect(() => () => images.dispose(), [images]);
+  useEffect(() => images.setMaterials(materials), [images, materials]);
   const clock = useRef(0),
     reaction = useRef({ energy: 0, bass: 0, mid: 0, treble: 0, pulse: 0 });
   useEffect(() => () => ribbons.dispose(), [ribbons]);
@@ -100,6 +104,8 @@ export default function AudioInkUniverse({
     }
     ribbons.update(clock.current, reaction.current);
     dust.update(clock.current, reaction.current);
+    images.update(clock.current, camera, reaction.current);
+    gl.domElement.dataset.imageVeils = String(images.count);
     gl.domElement.dataset.landscapeMode = "360";
     gl.domElement.dataset.universeStyle = "spatial-watercolor-audiovisualizer";
     gl.domElement.dataset.landscapeStrokes = String(strokes.length);
@@ -113,6 +119,7 @@ export default function AudioInkUniverse({
       <WatercolorPaper />
       <primitive object={ribbons.group} />
       <primitive object={dust.points} />
+      <primitive object={images.group} />
       <Navigator land={flatSpace} volume paused={paused} {...props} />
     </>
   );

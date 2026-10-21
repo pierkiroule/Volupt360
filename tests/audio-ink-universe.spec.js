@@ -106,6 +106,9 @@ test("enter an immersive universe without a ground plane, pause and export", asy
     "data-universe-style",
     "spatial-watercolor-audiovisualizer",
   );
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-image-veils")))
+    .toBeGreaterThan(0);
   await page
     .getByRole("button", { name: "Mettre les animations en pause" })
     .click();
