@@ -1,10 +1,10 @@
 # 🔥 Feu
 
-Placeholders issus de Text1.png et rezo.png, pas des photos thématiques originales.
+Image principale fournie pour Feu ; les deux autres couches restent des placeholders issus de Text1.png et rezo.png.
 
 Remplacer directement :
 
-- 01-base.jpg : image principale lisible.
+- 01-base.png : image principale lisible.
 - 02-matiere.jpg : détail, matière ou motif.
 - 03-accent.jpg : lumière, fragment ou contrepoint.
 

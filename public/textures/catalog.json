@@ -12,7 +12,7 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/feu/01-base.jpg",
+          "path": "emojis/feu/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
