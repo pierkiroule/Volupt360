@@ -17,7 +17,11 @@ initial : ces correspondances sont artistiques, sans analyse psychologique.
   impulsionnelle générée localement, échos filtrés, limiteur à −1 dB.
 - `MusicPanel.jsx` : interface et chargement différé du moteur ; destruction au
   démontage. Une interruption du contexte appelle une reprise explicite.
-- Les nuages et particules reçoivent une énergie RMS lissée. Aucun déplacement
+- `AudioFeatures.js` analyse le niveau RMS, trois bandes FFT et leurs variations
+  avec des enveloppes indépendantes. Les nuages se diluent selon les graves,
+  leurs courants suivent les médiums et les détails répondent aux aigus. Des
+  filaments fins et les particules ont des réponses locales différentes. La
+  pause visuelle fige ces réactions ; couper le son les laisse se dissiper. Aucun déplacement
   brusque de caméra n'est lié au son.
 
 Tous les instruments ont une enveloppe et une spatialisation stéréo. Aucun son,

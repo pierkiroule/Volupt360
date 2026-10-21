@@ -17,7 +17,8 @@ function Painting({
   audioRef,
 }) {
   const { gl, scene, camera } = useThree(),
-    time = useRef(0);
+    time = useRef(0),
+    reaction = useRef({ energy: 0, bass: 0, mid: 0, treble: 0, pulse: 0 });
   const objects = useMemo(
     () => createObjectField({ mobile: innerWidth < 600 }),
     [],
@@ -47,7 +48,12 @@ function Painting({
   }, [gl, scene, camera, onCapture]);
   useFrame((_, dt) => {
     if (!paused) time.current += Math.min(dt, 0.1);
-    const resonance = audioRef?.current?.getFeatures().energy || 0;
+    if (!paused) {
+      const sound = audioRef?.current?.getFeatures();
+      for (const key in reaction.current)
+        reaction.current[key] = sound?.[key] || 0;
+    }
+    const resonance = reaction.current;
     objects.update(time.current, resonance);
     dust.update(time.current, resonance);
     objects.group.rotation.y = preview ? time.current * 0.035 : 0;
@@ -55,6 +61,10 @@ function Painting({
     gl.domElement.dataset.externalMaterials = String(
       Object.keys(materials).length,
     );
+    gl.domElement.dataset.audioEnergy = resonance.energy.toFixed(3);
+    gl.domElement.dataset.audioBass = resonance.bass.toFixed(3);
+    gl.domElement.dataset.audioMid = resonance.mid.toFixed(3);
+    gl.domElement.dataset.audioTreble = resonance.treble.toFixed(3);
     gl.domElement.dataset.materialStyle = "projective-objects";
     gl.domElement.dataset.objects = String(objects.count);
     gl.domElement.dataset.strokes = String(strokes.length);

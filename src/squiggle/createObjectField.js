@@ -61,6 +61,8 @@ export function createObjectField({ mobile = false } = {}) {
             seed: { value: profile.seed },
             flow: { value: item.flow ?? 1 },
             resonance: { value: 0 },
+            bands: { value: new THREE.Vector3() },
+            transient: { value: 0 },
             tint: { value: new THREE.Color(item.color) },
             opacity: { value: item.opacity },
             layer: { value: 1 },
@@ -70,22 +72,25 @@ export function createObjectField({ mobile = false } = {}) {
           side: THREE.DoubleSide,
           forceSinglePass: true,
           blending: THREE.AdditiveBlending,
-          vertexShader: `uniform float time,seed,flow,resonance;varying vec2 U;varying vec3 N,V;
+          vertexShader: `uniform float time,seed,flow,resonance,transient;uniform vec3 bands;varying vec2 U;varying vec3 N,V;
           void main(){U=uv;
           float wave=sin(position.y*2.8+position.x*2.+time*.32*flow+seed)*.13
            +sin(position.z*3.2-position.y*1.7-time*.24*flow+seed)*.075;
-          vec3 p=position+normalize(position)*wave*(1.+resonance*.45);
+          float local=mix(bands.x,bands.y,.5+.5*sin(seed));
+          float ripple=sin(position.y*5.+position.z*3.-time*.65+seed)*bands.z*.055;
+          vec3 curl=vec3(sin(position.y*2.+time*.27+seed),cos(position.z*2.-time*.21+seed),sin(position.x*2.+time*.19+seed));
+          vec3 p=position+normalize(position)*(wave*(1.+local*.95)+ripple)+curl*local*.12;
           vec4 view=modelViewMatrix*vec4(p,1.);N=normalize(normalMatrix*normal);V=-view.xyz;gl_Position=projectionMatrix*view;}`,
-          fragmentShader: `uniform sampler2D surface;uniform vec3 tint;uniform float opacity,time,seed,layer;varying vec2 U;varying vec3 N,V;
+          fragmentShader: `uniform sampler2D surface;uniform vec3 tint;uniform float opacity,time,seed,layer,transient;uniform vec3 bands;varying vec2 U;varying vec3 N,V;
           void main(){
           vec3 n=normalize(N);
-          vec2 drift=vec2(sin(U.y*9.+time*.17+seed),cos(U.x*8.-time*.13+seed))*.035;
+          vec2 drift=vec2(sin(U.y*9.+time*.17+seed),cos(U.x*8.-time*.13+seed))*(.035+bands.y*.045);
           vec4 wash=texture2D(surface,U+drift);
           float facing=abs(dot(n,normalize(V)));
           float soft=pow(smoothstep(0.,.75,facing),1.4);
           float stream=.72+.28*sin(U.x*17.+U.y*11.+time*.23+seed);
-          float alpha=opacity*wash.a*soft*stream*.38*layer;
-          gl_FragColor=vec4(mix(wash.rgb,tint,.18)*(.88+facing*.16),alpha);
+          float alpha=opacity*wash.a*soft*stream*.38*layer*(1.+bands.x*.16+transient*.1);
+          gl_FragColor=vec4(mix(wash.rgb,tint,.18)*(.88+facing*.16+bands.z*.14),alpha);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
           }`,
@@ -138,7 +143,12 @@ export function createObjectField({ mobile = false } = {}) {
       entries.clear();
       sync();
     },
-    update(time, resonance = 0) {
+    update(time, sound = 0) {
+      const resonance = typeof sound === "number" ? sound : sound.energy;
+      const bass = typeof sound === "number" ? sound : sound.bass;
+      const mid = typeof sound === "number" ? sound : sound.mid;
+      const treble = typeof sound === "number" ? sound : sound.treble;
+      const pulse = typeof sound === "number" ? 0 : sound.pulse;
       for (const e of entries.values()) {
         const phase = time * 0.18 + e.profile.seed;
         e.mesh.position
@@ -149,9 +159,13 @@ export function createObjectField({ mobile = false } = {}) {
         e.mesh.rotateZ(Math.sin(phase) * 0.08);
         e.mesh.material.uniforms.time.value = time;
         e.mesh.material.uniforms.resonance.value = resonance;
+        e.mesh.material.uniforms.bands.value.set(bass, mid, treble);
+        e.mesh.material.uniforms.transient.value = pulse;
         for (const layer of e.mesh.children) {
           layer.material.uniforms.time.value = time;
           layer.material.uniforms.resonance.value = resonance;
+          layer.material.uniforms.bands.value.set(bass, mid, treble);
+          layer.material.uniforms.transient.value = pulse;
           layer.rotation.y = time * 0.035 + e.profile.seed;
           layer.rotation.z = Math.sin(phase * 0.8) * 0.14;
         }

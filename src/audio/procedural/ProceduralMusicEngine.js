@@ -1,4 +1,5 @@
 import * as Tone from "tone";
+import { AudioFeatures } from "./AudioFeatures.js";
 import {
   GenerativeScore,
   normalizeParameters,
@@ -35,7 +36,8 @@ export class ProceduralMusicEngine {
     this.instruments = {};
     this.panners = {};
     this.history = [];
-    this.features = { energy: 0, pulse: 0 };
+    this.audioFeatures = new AudioFeatures(this.context.sampleRate);
+    this.features = this.audioFeatures.value;
     this.featureTime = performance.now() / 1000;
     this.lastEvent = -100;
     const own = (node) => {
@@ -95,6 +97,15 @@ export class ProceduralMusicEngine {
       c.destination,
     );
     this.limiter.connect(this.analyser);
+    this.spectrum = own(
+      new Tone.Analyser({
+        context: c,
+        type: "fft",
+        size: 512,
+        smoothing: 0.65,
+      }),
+    );
+    this.limiter.connect(this.spectrum);
     // Seeded impulse and attack noise are generated locally, no sample downloads.
     let state = seedNumber("impulse");
     const random = () =>
@@ -398,25 +409,13 @@ export class ProceduralMusicEngine {
     const now = performance.now() / 1000,
       dt = Math.max(0, Math.min(0.15, now - this.featureTime));
     this.featureTime = now;
-    let rms = 0;
-    if (!this.disposed && this.status === "playing") {
-      const values = this.analyser.getValue();
-      let sum = 0;
-      for (let i = 0; i < values.length; i++) sum += values[i] * values[i];
-      rms = Math.min(1, Math.sqrt(sum / values.length) * 5);
-    }
-    const speed = rms > this.features.energy ? 4 : 1.8;
-    this.features.energy +=
-      (rms - this.features.energy) * (1 - Math.exp(-dt * speed));
-    const target =
-      !this.disposed && this.status === "playing"
-        ? Math.max(
-            0,
-            Math.min(1, 1 - (this.context.now() - this.lastEvent) / 1.8),
-          )
-        : 0;
-    this.features.pulse +=
-      (target - this.features.pulse) * (1 - Math.exp(-dt * 3));
+    if (this.disposed) return this.features;
+    this.audioFeatures.update(
+      this.analyser.getValue(),
+      this.spectrum.getValue(),
+      dt,
+      !this.disposed && this.status === "playing",
+    );
     return this.features;
   }
   get diagnostics() {
