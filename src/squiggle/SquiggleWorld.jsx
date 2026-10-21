@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { createPhotoBubbles } from "./createPhotoBubbles.js";
 import { createResonanceDust } from "./squibbleUniverse.js";
 import { createFlightBrushes } from "./createFlightBrushes.js";
 import { createLivingRibbons } from "./createLivingRibbons.js";
@@ -24,6 +25,11 @@ function Painting({
     () => createLivingRibbons({ mobile: innerWidth < 600 }),
     [],
   );
+  const photos = useMemo(() => createPhotoBubbles(), []);
+  useEffect(() => () => photos.dispose(), [photos]);
+  useEffect(() => {
+    photos.setMaterials(materials);
+  }, [materials, photos]);
   const dust = useMemo(
     () => createResonanceDust(strokes, innerWidth < 600),
     [strokes],
@@ -57,8 +63,10 @@ function Painting({
     const resonance = reaction.current;
     objects.update(time.current, resonance);
     dust.update(time.current, resonance);
+    photos.update(time.current, camera, resonance);
     objects.group.rotation.y = preview ? time.current * 0.035 : 0;
     dust.points.rotation.y = preview ? time.current * 0.035 : 0;
+    gl.domElement.dataset.photoBubbles = String(photos.count);
     gl.domElement.dataset.externalMaterials = String(
       Object.keys(materials).length,
     );
@@ -76,6 +84,7 @@ function Painting({
       <color attach="background" args={["#05070d"]} />
       <primitive object={objects.group} />
       <primitive object={dust.points} />
+      <primitive object={photos.group} />
       {preview && (
         <mesh>
           <sphereGeometry args={[9, 48, 32]} />
