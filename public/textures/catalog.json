@@ -12,21 +12,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/feu/01-base.jpg",
+          "path": "emojis/feu/Feubase01.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/feu/02-matiere.jpg",
+          "path": "emojis/feu/Feumatiere01.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/feu/03-accent.jpg",
+          "path": "emojis/feu/Feuaccent01.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -43,21 +43,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/vague/01-base.jpg",
+          "path": "emojis/vague/Vaguebase01.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/vague/02-matiere.jpg",
+          "path": "emojis/vague/Vaguematiere01.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/vague/03-accent.jpg",
+          "path": "emojis/vague/Vagueaccent01.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -74,21 +74,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/nuage/01-base.jpg",
+          "path": "emojis/nuage/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/nuage/02-matiere.jpg",
+          "path": "emojis/nuage/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/nuage/03-accent.jpg",
+          "path": "emojis/nuage/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -105,21 +105,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/etincelle/01-base.jpg",
+          "path": "emojis/etincelle/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/etincelle/02-matiere.jpg",
+          "path": "emojis/etincelle/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/etincelle/03-accent.jpg",
+          "path": "emojis/etincelle/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -136,21 +136,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/pluie/01-base.jpg",
+          "path": "emojis/pluie/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/pluie/02-matiere.jpg",
+          "path": "emojis/pluie/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/pluie/03-accent.jpg",
+          "path": "emojis/pluie/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -167,21 +167,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/spirale/01-base.jpg",
+          "path": "emojis/spirale/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/spirale/02-matiere.jpg",
+          "path": "emojis/spirale/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/spirale/03-accent.jpg",
+          "path": "emojis/spirale/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -198,21 +198,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/fleur/01-base.jpg",
+          "path": "emojis/fleur/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/fleur/02-matiere.jpg",
+          "path": "emojis/fleur/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/fleur/03-accent.jpg",
+          "path": "emojis/fleur/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -229,21 +229,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/soleil/01-base.jpg",
+          "path": "emojis/soleil/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/soleil/02-matiere.jpg",
+          "path": "emojis/soleil/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/soleil/03-accent.jpg",
+          "path": "emojis/soleil/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -260,21 +260,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/lune/01-base.jpg",
+          "path": "emojis/lune/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/lune/02-matiere.jpg",
+          "path": "emojis/lune/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/lune/03-accent.jpg",
+          "path": "emojis/lune/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -291,21 +291,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/souffle/01-base.jpg",
+          "path": "emojis/souffle/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/souffle/02-matiere.jpg",
+          "path": "emojis/souffle/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/souffle/03-accent.jpg",
+          "path": "emojis/souffle/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -322,21 +322,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/cristal/01-base.jpg",
+          "path": "emojis/cristal/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/cristal/02-matiere.jpg",
+          "path": "emojis/cristal/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/cristal/03-accent.jpg",
+          "path": "emojis/cristal/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
@@ -353,21 +353,21 @@
       "layers": [
         {
           "role": "base",
-          "path": "emojis/bulle/01-base.jpg",
+          "path": "emojis/bulle/01-base.png",
           "fallback": "Text1.png",
           "blend": "source-over",
           "opacity": 1
         },
         {
           "role": "matiere",
-          "path": "emojis/bulle/02-matiere.jpg",
+          "path": "emojis/bulle/02-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/bulle/03-accent.jpg",
+          "path": "emojis/bulle/03-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3

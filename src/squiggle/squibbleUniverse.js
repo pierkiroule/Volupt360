@@ -76,8 +76,16 @@ export function createResonanceDust(items, mobile) {
       y = 1 - 2 * ((i + 0.5) / count),
       r = 2.2 + (((i * 7919) % 1000) / 1000) * 6.1;
     const side = Math.sqrt(1 - y * y);
+    const ink = items.length ? items[i % items.length].worldPoints : null;
+    const anchor = ink?.[i % ink.length];
     positions.set(
-      [Math.cos(a) * side * r, y * r, Math.sin(a) * side * r],
+      anchor
+        ? [
+            anchor.x + Math.cos(a) * side * 0.85,
+            anchor.y + y * 0.85,
+            anchor.z + Math.sin(a) * side * 0.85,
+          ]
+        : [Math.cos(a) * side * r, y * r, Math.sin(a) * side * r],
       i * 3,
     );
     color.set(items[i % Math.max(1, items.length)]?.color || "#8a98b9");
@@ -97,7 +105,7 @@ export function createResonanceDust(items, mobile) {
     },
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     vertexColors: true,
     vertexShader: `attribute float seed;uniform float time,ratio,resonance;uniform vec3 bands;varying vec3 C;varying float A;
       void main(){vec3 p=position+vec3(sin(time*.12+seed*31.),cos(time*.15+seed*17.),sin(time*.09+seed*43.))*(.22+resonance*.32);
@@ -105,7 +113,7 @@ export function createResonanceDust(items, mobile) {
       p+=normalize(cross(position,vec3(.2,1.,.3)))*response*sin(seed*37.+time*.6)*.35;
       vec4 v=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*v;
       gl_PointSize=clamp((18.+seed*16.)*(1.+response*.7)*ratio/max(1.,-v.z),1.,8.);
-      C=color;A=(.25+.35*(.5+.5*sin(time*.23+seed*19.)))*(1.+response*.55);}`,
+      C=color*.56;A=(.18+.28*(.5+.5*sin(time*.23+seed*19.)))*(1.+response*.55);}`,
     fragmentShader: `varying vec3 C;varying float A;void main(){float r=length(gl_PointCoord-.5);
       float a=(1.-smoothstep(.05,.5,r))*A;gl_FragColor=vec4(C,a);
       #include <tonemapping_fragment>
@@ -126,6 +134,7 @@ export function createResonanceDust(items, mobile) {
       a = p.x * Math.PI * 2,
       t = (0.04 + p.y * 0.92) * Math.PI,
       r = item.radius || 7.1;
+    const ink = item.worldPoints?.[i % item.worldPoints.length];
     const cx = -Math.cos(a) * Math.sin(t) * r,
       cy = Math.cos(t) * r,
       cz = Math.sin(a) * Math.sin(t) * r;
@@ -136,9 +145,9 @@ export function createResonanceDust(items, mobile) {
           angle = u * 2.5 + i * 2.399;
         threads.set(
           [
-            cx + Math.cos(angle) * (0.3 + u * 0.4),
-            cy + (u - 0.5) * 1.1 + Math.sin(angle) * 0.2,
-            cz + Math.sin(angle) * 0.35,
+            (ink?.x ?? cx) + Math.cos(angle) * (0.3 + u * 0.4),
+            (ink?.y ?? cy) + (u - 0.5) * 1.1 + Math.sin(angle) * 0.2,
+            (ink?.z ?? cz) + Math.sin(angle) * 0.35,
           ],
           cursor,
         );
@@ -159,12 +168,12 @@ export function createResonanceDust(items, mobile) {
     uniforms: material.uniforms,
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     vertexColors: true,
     vertexShader: `uniform float time;uniform vec3 bands;varying vec3 C;varying float A;
     void main(){float lane=.5+.5*sin(position.x*.8+position.z*.7);float response=mix(bands.x,bands.y,lane);
     vec3 p=position+vec3(sin(position.y+time*.3),cos(position.z+time*.23),sin(position.x-time*.27))*(.035+response*.16);
-    C=color;A=.04+response*.13+bands.z*.04;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
+    C=color*.5;A=.12+response*.16+bands.z*.04;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
     fragmentShader: `varying vec3 C;varying float A;void main(){gl_FragColor=vec4(C,A);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>

@@ -79,7 +79,7 @@ test("seeded photomontages mix selected ingredients, are reproducible, cached an
 test("missing slots fall back and rapid selections cannot publish stale montages", async ({
   page,
 }) => {
-  await page.route("**/textures/emojis/feu/01-base.jpg", (r) =>
+  await page.route("**/textures/emojis/feu/Feubase01.png", (r) =>
     r.fulfill({ status: 404, body: "missing" }),
   );
   await page.goto("/");
@@ -117,7 +117,7 @@ test("missing slots fall back and rapid selections cannot publish stale montages
   });
   expect(result.sources).toBeLessThanOrEqual(16);
 });
-test("three emoji selections feed all their collages to the photo bubbles", async ({
+test("three emoji selections enrich watercolor without photo bubbles", async ({
   page,
 }) => {
   const errors = [];
@@ -131,14 +131,14 @@ test("three emoji selections feed all their collages to the photo bubbles", asyn
   );
   await expect(page.locator(".squibble-orb canvas")).toHaveAttribute(
     "data-photo-bubbles",
-    "8",
+    "0",
   );
   await page
     .getByRole("button", { name: "Entrer dans mon monde", exact: true })
     .click();
   await expect(page.locator(".squiggle-world canvas")).toHaveAttribute(
     "data-photo-bubbles",
-    "8",
+    "0",
   );
   expect(errors).toEqual([]);
 });
@@ -154,7 +154,7 @@ test("replacing a slot image changes the resulting photo without changing code",
     ctx.fillRect(0, 0, 32, 32);
     return c.toDataURL("image/png").split(",")[1];
   });
-  await page.route("**/textures/emojis/feu/01-base.jpg", (r) =>
+  await page.route("**/textures/emojis/feu/Feubase01.png", (r) =>
     r.fulfill({ contentType: "image/png", body: Buffer.from(data, "base64") }),
   );
   const pixel = await page.evaluate(async () => {

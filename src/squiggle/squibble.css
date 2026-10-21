@@ -1,13 +1,13 @@
 .squibble {
-  background: #05070d;
-  color: #e4e6f2;
+  background: #f6f1e5;
+  color: #344b51;
 }
 .squibble.is-choosing {
   background: radial-gradient(
     ellipse at 50% 46%,
-    #1a1830 0%,
-    #090c16 46%,
-    #05070d 78%
+    #edf1e8 0%,
+    #f4efe4 46%,
+    #f6f1e5 78%
   );
 }
 .squibble-intro {
@@ -28,11 +28,11 @@
   font-size: 0.55em;
   letter-spacing: 0.06em;
   margin-left: 5px;
-  color: #b6b7dd;
+  color: #776b89;
 }
 .squibble-intro p {
   font-size: 13px;
-  color: #a4aabd;
+  color: #637575;
   margin: 12px 0;
 }
 .squibble-selector {
@@ -68,11 +68,11 @@
   font-size: 13px !important;
 }
 .squibble-portal span {
-  background: #090d1b94;
+  background: #f8f4e5cc;
   padding: 9px 14px;
   border-radius: 20px;
   backdrop-filter: blur(5px);
-  color: #eef1ff;
+  color: #344b51;
 }
 .squibble-portal:disabled {
   opacity: 0.8 !important;
@@ -93,8 +93,8 @@
   min-width: 44px;
   border-radius: 50%;
   font-size: 25px;
-  background: #141827a6;
-  border-color: #b1c3ed1c;
+  background: #fffaf0bd;
+  border-color: #687e7333;
   pointer-events: auto;
   transition:
     background 0.25s,
@@ -102,7 +102,7 @@
     border-color 0.25s;
 }
 .squibble-ring button[aria-pressed="true"] {
-  background: #283148;
+  background: #e0e8de;
   border-color: var(--tint);
   box-shadow: 0 0 18px color-mix(in srgb, var(--tint) 28%, transparent);
 }
@@ -115,7 +115,7 @@
 }
 .squibble-invitation p {
   font-size: 13px;
-  color: #c9cbdc;
+  color: #506766;
   margin: 8px;
 }
 .squibble-chosen {
@@ -128,7 +128,7 @@
 }
 .squibble-chosen button {
   position: relative;
-  background: #24263880;
+  background: #e3e9ddaa;
   border-radius: 50%;
   font-size: 24px;
 }
@@ -142,7 +142,7 @@
 .squibble-invitation > small {
   font-size: 11px;
   line-height: 1.6;
-  color: #929aac;
+  color: #637575;
 }
 .squibble-flight-header {
   position: absolute;
@@ -160,7 +160,7 @@
 }
 .squibble-flight-header button {
   padding: 0 14px;
-  background: #131b2ca3;
+  background: #f8f4e5cc;
 }
 .squibble-flight-tools {
   position: absolute;
@@ -170,8 +170,8 @@
   display: flex;
   gap: 5px;
   padding: 6px;
-  border: 1px solid #d5dbff24;
-  background: #101726a8;
+  border: 1px solid #637c7338;
+  background: #faf5e8d9;
   border-radius: 24px;
   backdrop-filter: blur(12px);
   max-width: calc(100% - 20px);
@@ -184,7 +184,7 @@
   white-space: nowrap;
 }
 .squibble-flight-tools button[aria-pressed="true"] {
-  background: #334358a0;
+  background: #dce7ddcc;
 }
 .squibble-flight-hint {
   position: absolute;
@@ -193,7 +193,7 @@
   right: 12px;
   text-align: center;
   font-size: 11px;
-  color: #a8b4c8;
+  color: #506766;
   pointer-events: none;
 }
 .squibble-notice {
@@ -206,9 +206,9 @@
   text-align: center;
   font-size: 12px;
   border-radius: 14px;
-  color: #e7e4f5;
+  color: #344b51;
   pointer-events: none;
-  background: #1c233be8;
+  background: #faf5e8ed;
 }
 .squibble-notice:not(:empty) {
   padding: 12px 18px;
@@ -221,7 +221,7 @@
   place-content: center;
   text-align: center;
   padding: 25px;
-  color: #a8b7cf;
+  color: #506766;
   font-size: 12px;
 }
 @media (max-height: 650px) {
@@ -263,7 +263,7 @@
   transform: translateX(-50%);
   display: flex;
   gap: 5px;
-  background: #111a29a8;
+  background: #faf5e8d9;
   padding: 4px;
   border-radius: 20px;
   backdrop-filter: blur(10px);
@@ -274,6 +274,13 @@
   border: 1px solid transparent;
 }
 .squibble-flight-brushes button[aria-pressed="true"] {
-  background: #334358a0;
-  border-color: #bbd4ed55;
+  background: #dce7ddcc;
+  border-color: #627b7380;
 }
+
+/* Paper controls retain contrast over both pigment and empty reserves. */
+.squibble button { color: #344b51; border-color: #78897c40; }
+.squibble button:focus-visible { outline-color: #517e80; }
+.squibble .squibble-music .music-toggle, .squibble .squibble-music .music-quick, .squibble .music-body { background: #faf6eced; color: #344b51; box-shadow: 0 8px 32px #50675216; }
+.squibble .music-body button, .squibble .music-body select, .squibble .music-body input { color: #344b51; background-color: #e5ebdf; }
+.squibble .music-body header span, .squibble .music-body small { color: #617572; }
