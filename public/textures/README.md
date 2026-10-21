@@ -19,6 +19,9 @@ images. Ce sont des repères de composition, pas des photos thématiques origina
 | ❄️    | `emojis/cristal/`   | Givre, cristallisations, facettes          |
 | 🫧    | `emojis/bulle/`     | Irisations, reflets, membranes             |
 
+Le fichier `A_REMPLACER.csv` liste les 36 emplacements : vous pouvez l’ouvrir
+dans un tableur pour suivre le remplacement de vos images.
+
 ## Remplacer les images
 
 Dans chaque dossier, remplacer directement :
