@@ -346,3 +346,77 @@ test("horizon calibration remains finite across screen rotations, poles and head
   ).toBe(true);
   expect(result.wrap).toBeCloseTo((2 * Math.PI) / 180, 6);
 });
+test("emoji skydomes are deterministic, seamless and react to the composition", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const m = await import("/src/weather/skydomeTexture.ts");
+    const z = {
+      id: "sky",
+      kind: "sun",
+      x: 0.1,
+      y: -0.3,
+      size: 0.35,
+      opacity: 0.85,
+      seed: 123,
+    };
+    const a = m.createSkyCanvas([z], 512),
+      b = m.createSkyCanvas([z], 512),
+      c = m.createSkyCanvas([{ ...z, kind: "storm" }], 512),
+      d = m.createSkyCanvas([{ ...z, opacity: 0.15, size: 0.12 }], 512);
+    const pixels = (canvas) =>
+      canvas.getContext("2d").getImageData(0, 0, 512, 256).data;
+    const p = pixels(a),
+      q = pixels(b);
+    let seams = true;
+    for (let row = 0; row < 256; row++)
+      for (let channel = 0; channel < 4; channel++)
+        if (p[row * 512 * 4 + channel] !== p[(row * 512 + 511) * 4 + channel])
+          seams = false;
+    const hash = (canvas) => {
+      let value = 2166136261;
+      const bytes = pixels(canvas);
+      for (let i = 0; i < bytes.length; i += 17)
+        value = Math.imul(value ^ bytes[i], 16777619);
+      return value >>> 0;
+    };
+    return {
+      same: p.every((v, i) => v === q[i]),
+      seams,
+      hashes: [a, c, d].map(hash),
+      base: m.skyPaperColor([]).getHexString(),
+    };
+  });
+  expect(result.same).toBe(true);
+  expect(result.seams).toBe(true);
+  expect(new Set(result.hashes).size).toBe(3);
+  expect(result.base).toBe("eff1ec");
+});
+test("generated skydome renders in 360 and its drift stops on pause", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error" && /WebGL|shader|GL_INVALID|THREE/i.test(m.text()))
+      errors.push(m.text());
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await place(page, "Aurore imaginaire", 0.4, 0.32);
+  await place(page, "Crépuscule", 0.7, 0.6);
+  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-skydome",
+    "watercolor",
+  );
+  await page.waitForTimeout(200);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await page.waitForTimeout(100);
+  const t = await page.locator("canvas").getAttribute("data-sky-time");
+  await page.waitForTimeout(250);
+  expect(await page.locator("canvas").getAttribute("data-sky-time")).toBe(t);
+  await page.screenshot({ path: "test-results/weather-skydome.png" });
+  expect(errors).toEqual([]);
+});

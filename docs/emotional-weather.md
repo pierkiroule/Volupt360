@@ -51,3 +51,13 @@ La fonction `groundHeight` est partagée avec la caméra pour garantir une marge
 `HorizonGyro.ts` extrait le cap et l’élévation du regard depuis le capteur, puis les calibre séparément sur la vue actuelle. Le roulis du téléphone n’est pas appliqué à la caméra. L’interpolation s’effectue sur les deux angles, avec roulis nul, pour garder le sol horizontal même pendant un virage. Les passages de cap 359° → 0° suivent le chemin court ; les orientations proches de la verticale conservent le dernier cap exploitable. L’élévation est limitée à ±1,15 radian pour éviter le retournement. Les données capteur non finies sont ignorées.
 
 Les tests couvrent des événements capteur simulés avec téléphone incliné, les changements de cap et d’orientation d’écran, la stabilité de l’horizon et l’absence de translation en contemplation. Ces tests ne remplacent pas une vérification gyroscope sur téléphone réel.
+
+## Skydome aquarellé génératif
+
+`skydomeTexture.ts` compose localement une voûte panoramique à partir des zones : couleurs, graines, positions, proportion et opacité. Des lavis irréguliers et des filaments prolongent les météos choisies sans afficher d’émojis dans le ciel. La génération est réalisée à l’entrée en 3D, jamais dans la boucle de rendu. La texture mesure 512 × 256 sur petit écran, 1024 × 512 sur grand écran.
+
+`WatercolorSkydome.tsx` place cette texture sur une sphère intérieure centrée sur la caméra, sans reprendre sa rotation. Une déformation directionnelle très lente anime la matière ; la pause la fige. Les empreintes sont répétées autour de la couture panoramique, les texels de bord sont raccordés et les pôles sont estompés. La couleur du papier est partagée avec le brouillard et les shaders du terrain et de l’eau. Le skydome utilise un seul appel de rendu et ne remplace aucun objet volumique existant. Matériau, géométrie et texture sont libérés au démontage.
+
+Tests supplémentaires : texture reproductible, couleurs et étendues dépendantes de la composition, raccord de longitude, compilation WebGL et arrêt de la dérive à la pause. Il ne s’agit pas d’une génération par IA ni d’un téléchargement d’images. Les performances sur appareil réel restent à confirmer.
+
+Un cache LRU de 32 alphas CPU (environ 8 Mio) évite de recalculer les mêmes pigments pour le disque, les voiles et le skydome. Chaque consommateur reçoit une copie indépendante ; vider un Canvas ne corrompt donc pas une autre vue. Ce cache ne contient aucune ressource GPU.

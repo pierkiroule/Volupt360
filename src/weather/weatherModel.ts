@@ -110,8 +110,30 @@ export function skyPosition(z: Zone): [number, number, number] {
     -Math.cos(longitude) * Math.cos(latitude) * radius - 2,
   ];
 }
-/** Pigment alpha: deterministic dry edges, blooms and paper-sized granulation. */
+// CPU-only LRU templates: 32 × 256² (~8 MiB), never GPU resources.
+const pigmentTemplates = new Map<string, HTMLCanvasElement>();
 export function pigment(seed: number, color: string): HTMLCanvasElement {
+  const key = String(seed) + ":" + color;
+  let template = pigmentTemplates.get(key);
+  if (!template) {
+    template = buildPigment(seed, color);
+    pigmentTemplates.set(key, template);
+    if (pigmentTemplates.size > 32) {
+      const oldest = pigmentTemplates.keys().next().value!;
+      pigmentTemplates.delete(oldest);
+    }
+  } else {
+    pigmentTemplates.delete(key);
+    pigmentTemplates.set(key, template);
+  }
+  // Consumers own their copy and may release it without corrupting another view.
+  const copy = document.createElement("canvas");
+  copy.width = copy.height = 256;
+  copy.getContext("2d")!.drawImage(template, 0, 0);
+  return copy;
+}
+/** Pigment alpha: deterministic dry edges, blooms and paper-sized granulation. */
+function buildPigment(seed: number, color: string): HTMLCanvasElement {
   const c = document.createElement("canvas");
   c.width = c.height = 256;
   const ctx = c.getContext("2d")!,

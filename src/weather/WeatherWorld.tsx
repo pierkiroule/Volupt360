@@ -12,6 +12,7 @@ import { deviceQuaternion, requestGyroscope } from "../scene/gyroOrientation";
 import { ProjectiveVeil, InkBirds } from "./ProjectiveAtmosphere";
 import { WeatherLandscape, groundHeight } from "./WeatherLandscape";
 import { HorizonGyro, angleDelta } from "./HorizonGyro";
+import { WatercolorSkydome } from "./WatercolorSkydome";
 export { requestGyroscope };
 interface Navigation {
   x: number;
@@ -327,6 +328,7 @@ function Flight({
     <>
       <color attach="background" args={["#eff1ec"]} />
       <fog attach="fog" args={["#eff1ec", 13, 34]} />
+      <WatercolorSkydome zones={zones} paused={paused} />
       <WeatherLandscape zones={zones} paused={paused} />
       <InkBirds paused={paused} />
       {zones.map((z) => (

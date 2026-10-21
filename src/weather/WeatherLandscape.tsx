@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { skyPaperColor } from "./skydomeTexture";
 import { WEATHER, type Zone } from "./weatherModel";
 export function riverCenter(z: number) {
   return Math.sin(z * 0.13) * 2.8 + Math.sin(z * 0.31 + 0.6) * 0.75;
@@ -58,7 +59,7 @@ export function WeatherLandscape({
     geometry.computeBoundingSphere();
     const material = new THREE.ShaderMaterial({
       vertexColors: true,
-      uniforms: { paper: { value: new THREE.Color("#eff1ec") } },
+      uniforms: { paper: { value: skyPaperColor(zones) } },
       vertexShader: `varying vec3 world;varying vec3 wash;void main(){world=(modelMatrix*vec4(position,1.)).xyz;wash=color;gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);}`,
       fragmentShader: `uniform vec3 paper;varying vec3 world,wash;float grain(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){float g=grain(floor(world.xz*110.));float fold=.5+.5*sin(world.x*.9+sin(world.z*.35)*2.);float tide=1.-smoothstep(.025,.1,abs(sin((world.y+sin(world.x*.2)*.06)*15.)));vec3 c=wash*(.9+g*.1+fold*.07)-tide*.035;float fog=smoothstep(16.,46.,distance(cameraPosition,world));gl_FragColor=vec4(mix(c,paper,fog),1.);\n#include <colorspace_fragment>\n}`,
     });
@@ -95,7 +96,7 @@ export function WeatherLandscape({
       uniforms: {
         time: { value: 0 },
         color: { value: new THREE.Color("#9bbfbb") },
-        paper: { value: new THREE.Color("#eff1ec") },
+        paper: { value: skyPaperColor(zones) },
       },
       vertexShader: `varying vec2 U;varying vec3 W;void main(){U=uv;W=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(W,1.);}`,
       fragmentShader: `uniform float time;uniform vec3 color,paper;varying vec2 U;varying vec3 W;void main(){float rim=smoothstep(0.,.18,U.x)*smoothstep(0.,.18,1.-U.x);float flow=.5+.5*sin(U.y*180.-time*.38+sin(U.x*8.)*2.);vec3 c=mix(color,vec3(.93,.94,.82),flow*.3);float fog=smoothstep(16.,46.,distance(cameraPosition,W));gl_FragColor=vec4(mix(c,paper,fog),rim*.74*(1.-fog));\n#include <colorspace_fragment>\n}`,
