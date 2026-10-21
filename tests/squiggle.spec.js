@@ -9,7 +9,7 @@ async function stroke(page, selector = ".squiggle-paper", x = 0.3, y = 0.4) {
   });
   await page.mouse.up();
 }
-test("draw first, animated emoji brushes, shared 2D/360 gestures and history", async ({
+test("compose objects, shared 2.5D/360 gestures and history", async ({
   page,
 }) => {
   const errors = [];
@@ -20,14 +20,16 @@ test("draw first, animated emoji brushes, shared 2D/360 gestures and history", a
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Squiggle/ })).toBeVisible();
   await expect(
-    page.getByRole("group", { name: "Brosses émoji" }).getByRole("button"),
+    page
+      .getByRole("group", { name: "Matières abstraites" })
+      .getByRole("button"),
   ).toHaveCount(8);
   await stroke(page);
   await expect(page.locator(".squiggle-paper")).toHaveAttribute(
     "data-strokes",
     "1",
   );
-  await page.getByRole("button", { name: "Pluie", exact: true }).click();
+  await page.getByRole("button", { name: "Érosion", exact: true }).click();
   await stroke(page, ".squiggle-paper", 0.5, 0.35);
   await expect(page.locator(".squiggle-paper")).toHaveAttribute(
     "data-strokes",
@@ -60,14 +62,14 @@ test("draw first, animated emoji brushes, shared 2D/360 gestures and history", a
     "3",
   );
   await page
-    .getByRole("button", { name: "Annuler le tracé", exact: true })
+    .getByRole("button", { name: "Annuler le placement", exact: true })
     .click();
   await expect(page.locator(".squiggle-paper")).toHaveAttribute(
     "data-strokes",
     "2",
   );
   await page.getByRole("button", { name: "Autres outils" }).click();
-  await page.getByRole("button", { name: "Rétablir le tracé" }).click();
+  await page.getByRole("button", { name: "Rétablir le placement" }).click();
   await expect(page.locator(".squiggle-paper")).toHaveAttribute(
     "data-strokes",
     "3",
@@ -76,20 +78,20 @@ test("draw first, animated emoji brushes, shared 2D/360 gestures and history", a
   await page.getByRole("button", { name: "PNG ↓", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("squiggle-360.png");
   await page
-    .getByRole("button", { name: "Effacer un tracé", exact: false })
+    .getByRole("button", { name: "Retirer un objet", exact: false })
     .click();
-  await page.mouse.click(0.4 * 1280, 0.45 * 720);
+  await page.mouse.click(0.5 * 1280, 0.5 * 720);
   await expect(page.locator(".squiggle-paper")).toHaveAttribute(
     "data-strokes",
     "2",
   );
-  await page.getByRole("button", { name: "Feu", exact: true }).click();
+  await page.getByRole("button", { name: "Braise", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Feu", exact: true }),
+    page.getByRole("button", { name: "Braise", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(errors).toEqual([]);
 });
-test("mobile native touch creates continuous strokes and compact tools stay accessible", async ({
+test("mobile native touch places an object and compact tools stay accessible", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -121,7 +123,7 @@ test("mobile native touch creates continuous strokes and compact tools stay acce
     "1",
   );
   await expect(
-    page.getByRole("slider", { name: "Taille de la brosse" }),
+    page.getByRole("slider", { name: "Taille des objets" }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -156,21 +158,21 @@ test("mobile native touch creates continuous strokes and compact tools stay acce
   ).toBe(true);
   await context.close();
 });
-test("all brushes render ink without errors and opacity is adjustable", async ({
+test("all object families render without errors and opacity is adjustable", async ({
   page,
 }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
   for (const name of [
-    "Feu",
-    "Pluie",
-    "Ondes",
-    "Rayons",
-    "Tourbillons",
-    "Éclats",
-    "Énergie",
-    "Brume",
+    "Braise",
+    "Érosion",
+    "Galet",
+    "Pépite",
+    "Vestige",
+    "Éclat",
+    "Fragment",
+    "Porcelaine",
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
     await stroke(page);
@@ -180,7 +182,7 @@ test("all brushes render ink without errors and opacity is adjustable", async ({
     "8",
   );
   await page.getByRole("button", { name: "Autres outils" }).click();
-  await page.getByRole("slider", { name: "Opacité de la brosse" }).fill("0.2");
+  await page.getByRole("slider", { name: "Opacité des objets" }).fill("0.2");
   await page
     .getByRole("button", { name: "Mettre les animations en pause" })
     .click();
@@ -240,7 +242,7 @@ test("gyro permission, recenter and refusal retain tactile navigation", async ({
     "data-strokes",
     "0",
   );
-  await page.getByRole("button", { name: "Peindre", exact: false }).click();
+  await page.getByRole("button", { name: "Composer", exact: false }).click();
   await stroke(page, ".squiggle-world canvas");
   await expect(page.locator(".squiggle-world canvas")).toHaveAttribute(
     "data-strokes",
@@ -283,7 +285,7 @@ test("FPV voyage moves, steers, accelerates and stops without painting", async (
   const stopped = await canvas.getAttribute("data-position");
   await page.waitForTimeout(200);
   await expect(canvas).toHaveAttribute("data-position", stopped);
-  await page.getByRole("button", { name: "Peindre", exact: false }).click();
+  await page.getByRole("button", { name: "Composer", exact: false }).click();
   await stroke(page, ".squiggle-world canvas");
   await expect(canvas).toHaveAttribute("data-strokes", "1");
 });

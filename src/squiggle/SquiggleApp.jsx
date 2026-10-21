@@ -106,13 +106,16 @@ export default function SquiggleApp() {
   const commit = useCallback((stroke) => {
     const current = documentRef.current;
     if (current.length >= 120) {
-      setError("120 tracés : annule un geste pour continuer.");
+      setError("120 objets : retire un objet pour continuer.");
       return;
     }
     history.current.push(current);
     if (history.current.length > 60) history.current.shift();
     future.current = [];
-    const next = [...current, { ...stroke, id: counter.current++ }];
+    const next = [
+      ...current,
+      { ...stroke, points: [stroke.points.at(-1)], id: counter.current++ },
+    ];
     documentRef.current = next;
     setStrokes(next);
   }, []);
@@ -159,7 +162,7 @@ export default function SquiggleApp() {
     setStrokes(next);
   };
   useEffect(() => {
-    document.title = "Squiggle 360 — Dessine, entre, explore";
+    document.title = "Squiggle projectif 3D — Compose, entre, explore";
     const key = (e) => {
       if (
         (e.ctrlKey || e.metaKey) &&
@@ -240,15 +243,15 @@ export default function SquiggleApp() {
       <header className="squiggle-header">
         <div>
           <h1>
-            Squiggle <span>360</span>
+            Squiggle <span>projectif 3D</span>
           </h1>
           <p>
             {mode === "2d"
-              ? "Un geste. Une matière. Ton monde."
+              ? "Pose une matière · Glisse pour la placer."
               : travel
                 ? "Glisse pour piloter · Maintiens pour accélérer."
                 : paint
-                  ? "Dessine dans ton univers."
+                  ? "Pose des objets dans ton univers."
                   : "Glisse pour regarder autour de toi."}
           </p>
         </div>
@@ -272,7 +275,7 @@ export default function SquiggleApp() {
               setGyro(false);
             }}
           >
-            ✎ Peindre
+            ◈ Composer
           </button>
           <button
             aria-pressed={!paint && !travel}
@@ -323,7 +326,7 @@ export default function SquiggleApp() {
         <div
           className="squiggle-brushes"
           role="group"
-          aria-label="Brosses émoji"
+          aria-label="Matières abstraites"
         >
           {SQUIGGLE_BRUSHES.map((b) => (
             <button
@@ -347,7 +350,7 @@ export default function SquiggleApp() {
           <label>
             Taille
             <input
-              aria-label="Taille de la brosse"
+              aria-label="Taille des objets"
               type="range"
               min="18"
               max="100"
@@ -356,7 +359,7 @@ export default function SquiggleApp() {
             />
           </label>
           <button
-            aria-label="Annuler le tracé"
+            aria-label="Annuler le placement"
             disabled={!history.current.length}
             onClick={undo}
           >
@@ -396,7 +399,7 @@ export default function SquiggleApp() {
             <label>
               Opacité
               <input
-                aria-label="Opacité de la brosse"
+                aria-label="Opacité des objets"
                 type="range"
                 min=".15"
                 max="1"
@@ -408,7 +411,7 @@ export default function SquiggleApp() {
             <button
               onClick={redo}
               disabled={!future.current.length}
-              aria-label="Rétablir le tracé"
+              aria-label="Rétablir le placement"
             >
               ↷
             </button>
@@ -431,7 +434,7 @@ export default function SquiggleApp() {
                 setGyro(false);
               }}
             >
-              🧽 Effacer un tracé
+              🧽 Retirer un objet
             </button>
             <button onClick={png}>PNG ↓</button>
             <button

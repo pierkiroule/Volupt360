@@ -65,7 +65,7 @@ test("local alpha atlas is cached, deterministic and has eight distinct detailed
   expect(hashes).toEqual(result.masks.map((m) => m.hash));
 });
 
-test("offline watercolor works in 2D and 360 without external image requests", async ({
+test("offline object composition works in 2D and 360; legacy watercolor remains bounded", async ({
   page,
 }) => {
   const external = [],
@@ -86,14 +86,14 @@ test("offline watercolor works in 2D and 360 without external image requests", a
     page.getByRole("button", { name: "Sources des matières" }),
   ).toHaveCount(0);
   for (const [i, name] of [
-    "Feu",
-    "Pluie",
-    "Ondes",
-    "Rayons",
-    "Tourbillons",
-    "Éclats",
-    "Énergie",
-    "Brume",
+    "Braise",
+    "Érosion",
+    "Galet",
+    "Pépite",
+    "Vestige",
+    "Éclat",
+    "Fragment",
+    "Porcelaine",
   ].entries()) {
     await page.getByRole("button", { name, exact: true }).click();
     await page.mouse.move(300, 150 + i * 45);
@@ -111,7 +111,7 @@ test("offline watercolor works in 2D and 360 without external image requests", a
   const canvas = page.locator(".squiggle-world canvas");
   await expect(canvas).toHaveAttribute("data-strokes", "8");
   await expect
-    .poll(async () => Number(await canvas.getAttribute("data-veils")))
+    .poll(async () => Number(await canvas.getAttribute("data-objects")))
     .toBeGreaterThan(0);
   const stats = await page.evaluate(async () => {
     const { createWatercolorField } =

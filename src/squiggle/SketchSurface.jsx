@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
-import { createDiskPainter, DISK_SIZE } from "../emociel/emotionPainting.js";
-import { createWatercolorMotion } from "./drawAccents.js";
+import {
+  createObjectPainter,
+  OBJECT_SIZE as DISK_SIZE,
+} from "./objectMatter.js";
+
 export default function SketchSurface({
   strokes,
   materials,
@@ -17,12 +20,12 @@ export default function SketchSurface({
   live.current = { strokes, tool, active, paused, onStroke, onErase };
   const owner = useRef(null);
   useEffect(() => {
-    const painter = createDiskPainter({ clip: false }),
-      preview = createDiskPainter({ clip: false }),
+    const painter = createObjectPainter(),
+      preview = createObjectPainter(),
       canvas = ref.current,
       ctx = canvas.getContext("2d");
-    const motion = createWatercolorMotion({ mobile: innerWidth < 600 });
-    owner.current = { painter, motion, document: [] };
+
+    owner.current = { painter, preview, document: [] };
     let held = null,
       frame = 0,
       last = 0,
@@ -38,10 +41,11 @@ export default function SketchSurface({
       if (!live.current.active) return;
       ctx.fillStyle = "#05070d";
       ctx.fillRect(0, 0, DISK_SIZE, DISK_SIZE);
-      ctx.globalCompositeOperation = "screen";
+      painter.draw(time);
+      preview.draw(time);
       ctx.drawImage(painter.canvas, 0, 0);
       if (held) ctx.drawImage(preview.canvas, 0, 0);
-      motion.draw(ctx, time);
+
       ctx.globalCompositeOperation = "source-over";
       canvas.dataset.strokes = String(live.current.strokes.length);
       canvas.dataset.animationTime = time.toFixed(3);
@@ -58,23 +62,14 @@ export default function SketchSurface({
         stroke: { ...live.current.tool, points: [point(e)] },
       };
       preview.setDocument([held.stroke]);
-      motion.setDocument([...live.current.strokes, held.stroke]);
+
       draw();
     };
     const move = (e) => {
       if (held?.pointer !== e.pointerId) return;
-      for (const sample of e.getCoalescedEvents?.().length
-        ? e.getCoalescedEvents()
-        : [e]) {
-        const p = point(sample),
-          previous = held.stroke.points.at(-1);
-        if (Math.hypot(p.x - previous.x, p.y - previous.y) < 0.0015) continue;
-        if (held.stroke.points.length >= 512)
-          held.stroke.points = held.stroke.points.filter((_, i) => i % 2 === 0);
-        held.stroke.points.push(p);
-      }
+      held.stroke.points = [point(e)];
       preview.setDocument([held.stroke]);
-      motion.setDocument([...live.current.strokes, held.stroke]);
+
       draw();
     };
     const end = (e) => {
@@ -82,7 +77,7 @@ export default function SketchSurface({
       const stroke = held.stroke;
       held = null;
       preview.setDocument([]);
-      motion.setDocument(live.current.strokes);
+
       live.current.onStroke(stroke);
     };
     const tick = (now) => {
@@ -121,26 +116,21 @@ export default function SketchSurface({
         canvas.removeEventListener(key, end);
       canvas.removeEventListener("contextmenu", block);
       window.removeEventListener("blur", blur);
-      motion.dispose();
+
       painter.dispose();
       preview.dispose();
       owner.current = null;
     };
   }, []);
   useEffect(() => {
-    owner.current?.motion.setMaterials(materials);
+    owner.current?.painter.setMaterials(materials);
+    owner.current?.preview.setMaterials(materials);
   }, [materials]);
   useEffect(() => {
     if (!owner.current) return;
     const { painter, document } = owner.current;
-    if (
-      strokes.length === document.length + 1 &&
-      document.every((s, i) => s === strokes[i])
-    )
-      painter.stroke(strokes.at(-1));
-    else painter.setDocument(strokes);
+    painter.setDocument(strokes);
     owner.current.document = strokes;
-    owner.current.motion.setDocument(strokes);
     onSource({ canvas: painter.canvas, revision: strokes });
   }, [strokes]);
   return (
@@ -151,9 +141,9 @@ export default function SketchSurface({
       height={DISK_SIZE}
       hidden={!active}
       data-external-materials={Object.keys(materials).length}
-      data-material-style="abstract-watercolor"
+      data-material-style="projective-objects"
       role="img"
-      aria-label="Feuille de dessin animée"
+      aria-label="Canevas de composition d’objets"
     />
   );
 }

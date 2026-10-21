@@ -1,67 +1,24 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { createWatercolorField } from "./createWatercolorField.js";
+import { createObjectField } from "./createObjectField.js";
 import { deviceQuaternion } from "../scene/gyroOrientation.ts";
-import { createWatercolorMotion } from "./drawAccents.js";
+
 import { directionToPaper, SCULPT_RADIUS } from "./brushes.js";
 function Painting({ strokes, draft, source, paused, onCapture, materials }) {
   const { gl, scene, camera } = useThree(),
     time = useRef(0);
-  const weather = useMemo(
-      () =>
-        createWatercolorField({
-          mobile: innerWidth < 600 || matchMedia("(pointer: coarse)").matches,
-        }),
-      [],
-    ),
-    texture = useMemo(() => {
-      const t = new THREE.CanvasTexture(source.canvas);
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.repeat.y = 1 / 0.92;
-      t.offset.y = -0.04 / 0.92;
-      return t;
-    }, [source.canvas]);
-  const accents = useMemo(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 512;
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.repeat.y = 1 / 0.92;
-    texture.offset.y = -0.04 / 0.92;
-    return {
-      canvas,
-      ctx: canvas.getContext("2d"),
-      texture,
-      motion: createWatercolorMotion({ mobile: innerWidth < 600 }),
-      last: -1,
-    };
-  }, []);
-  useEffect(
-    () => () => {
-      accents.texture.dispose();
-      accents.motion.dispose();
-    },
-    [accents],
+  const objects = useMemo(
+    () => createObjectField({ mobile: innerWidth < 600 }),
+    [],
   );
+  useEffect(() => () => objects.dispose(), [objects]);
   useEffect(() => {
-    accents.motion.setMaterials(materials);
-    weather.setMaterials(materials);
-    accents.last = -1;
-  }, [materials, accents, weather]);
+    objects.setMaterials(materials);
+  }, [materials, objects]);
   useEffect(() => {
-    accents.last = -1;
-    accents.motion.setDocument(draft ? [...strokes, draft] : strokes);
-  }, [strokes, draft, accents]);
-  useEffect(() => () => weather.dispose(), [weather]);
-  useEffect(() => () => texture.dispose(), [texture]);
-  useEffect(() => {
-    texture.needsUpdate = true;
-  }, [source, texture]);
-  useEffect(() => {
-    weather.setDocument(draft ? [...strokes, draft] : strokes);
-  }, [strokes, draft, weather]);
+    objects.setDocument(draft ? [...strokes, draft] : strokes);
+  }, [strokes, draft, objects]);
   useEffect(() => {
     onCapture(
       () =>
@@ -75,46 +32,19 @@ function Painting({ strokes, draft, source, paused, onCapture, materials }) {
   }, [gl, scene, camera, onCapture]);
   useFrame((_, dt) => {
     if (!paused) time.current += Math.min(dt, 0.1);
-    weather.update(time.current, 1);
-    if (accents.last < 0 || time.current - accents.last > 1 / 15) {
-      accents.last = time.current;
-      accents.ctx.clearRect(0, 0, accents.canvas.width, accents.canvas.height);
-      accents.ctx.save();
-      accents.ctx.scale(
-        accents.canvas.width / 768,
-        accents.canvas.height / 768,
-      );
-      accents.motion.draw(accents.ctx, time.current);
-      accents.ctx.restore();
-      accents.texture.needsUpdate = true;
-    }
+    objects.update(time.current);
     gl.domElement.dataset.externalMaterials = String(
       Object.keys(materials).length,
     );
-    gl.domElement.dataset.materialStyle = "abstract-watercolor";
-    gl.domElement.dataset.reliefVertices = String(weather.stats.ribbonVertices);
-    gl.domElement.dataset.particles = String(weather.stats.particles);
-    gl.domElement.dataset.veils = String(weather.stats.veils);
+    gl.domElement.dataset.materialStyle = "projective-objects";
+    gl.domElement.dataset.objects = String(objects.count);
     gl.domElement.dataset.strokes = String(strokes.length);
     gl.domElement.dataset.animationTime = time.current.toFixed(3);
   });
   return (
     <>
       <color attach="background" args={["#05070d"]} />
-      <primitive object={weather.group} />
-      <mesh>
-        <sphereGeometry args={[8.98, 64, 40]} />
-        <meshBasicMaterial
-          map={accents.texture}
-          side={THREE.BackSide}
-          transparent
-          depthWrite={false}
-        />
-      </mesh>
-      <mesh>
-        <sphereGeometry args={[9, 64, 40]} />
-        <meshBasicMaterial map={texture} side={THREE.BackSide} transparent />
-      </mesh>
+      <primitive object={objects.group} />
     </>
   );
 }
@@ -252,14 +182,7 @@ function Interaction({
       if (!gesture || gesture.id !== e.pointerId) return;
       if (gesture.paint) {
         const p = point(e);
-        if (p && gesture.stroke.points.length < 512) {
-          const prev = gesture.stroke.points.at(-1);
-          if (prev && Math.abs(prev.x - p.x) > 0.5) {
-            if (gesture.stroke.points.length)
-              state.current.onStroke(gesture.stroke);
-            gesture.stroke = { ...state.current.tool, points: [p] };
-          } else gesture.stroke.points.push(p);
-        }
+        if (p) gesture.stroke.points = [p];
       } else {
         goal.current.yaw -= (e.clientX - gesture.x) * 0.003;
         goal.current.pitch = THREE.MathUtils.clamp(

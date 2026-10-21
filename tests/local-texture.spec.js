@@ -17,7 +17,7 @@ async function paint(page) {
   await page.mouse.move(650, 390, { steps: 20 });
   await page.mouse.up();
 }
-test("Both local images load once from the repository and visibly textures all brushes in 2D and 360 without external requests", async ({
+test("Both local images load once from the repository and adds visible patina to objects in 2D and 360 without external requests", async ({
   page,
 }) => {
   const png = await image(page),
@@ -56,7 +56,7 @@ test("Both local images load once from the repository and visibly textures all b
           a = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
         let count = 0;
         for (let i = 0; i < a.length; i += 4)
-          if (a[i + 2] > a[i] + 25 && a[i + 1] > a[i] + 20) count++;
+          if (Math.max(a[i], a[i + 1], a[i + 2]) > 80) count++;
         return count;
       }),
     )
@@ -157,7 +157,7 @@ test("both bundled PNGs are served unchanged and alternate between brushes in bo
   await expect(
     page.getByRole("button", { name: "Textures locales", exact: true }),
   ).toHaveAttribute("title", "Text1.png");
-  await page.getByRole("button", { name: "Pluie", exact: true }).click();
+  await page.getByRole("button", { name: "Érosion", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Textures locales", exact: true }),
   ).toHaveAttribute("title", "rezo.png");

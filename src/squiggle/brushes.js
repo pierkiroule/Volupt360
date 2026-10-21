@@ -1,13 +1,13 @@
 export const SCULPT_RADIUS = 7.1;
 export const SQUIGGLE_BRUSHES = [
-  { id: "anger", color: "#ff956b", emoji: "🔥", name: "Feu" },
-  { id: "sadness", color: "#80b8f0", emoji: "🌧️", name: "Pluie" },
-  { id: "peace", color: "#66cbd0", emoji: "🌊", name: "Ondes" },
-  { id: "joy", color: "#f3cc7e", emoji: "☀️", name: "Rayons" },
-  { id: "worry", color: "#b9a0e5", emoji: "🌀", name: "Tourbillons" },
-  { id: "wonder", color: "#f0dcb1", emoji: "✨", name: "Éclats" },
-  { id: "frustration", color: "#e895bd", emoji: "⚡", name: "Énergie" },
-  { id: "uncertainty", color: "#b6ccdc", emoji: "☁️", name: "Brume" },
+  { id: "anger", color: "#ff956b", emoji: "🔥", name: "Braise" },
+  { id: "sadness", color: "#80b8f0", emoji: "🌧️", name: "Érosion" },
+  { id: "peace", color: "#66cbd0", emoji: "🌊", name: "Galet" },
+  { id: "joy", color: "#f3cc7e", emoji: "☀️", name: "Pépite" },
+  { id: "worry", color: "#b9a0e5", emoji: "🌀", name: "Vestige" },
+  { id: "wonder", color: "#f0dcb1", emoji: "✨", name: "Éclat" },
+  { id: "frustration", color: "#e895bd", emoji: "⚡", name: "Fragment" },
+  { id: "uncertainty", color: "#b6ccdc", emoji: "☁️", name: "Porcelaine" },
 ];
 export function paperToDisk(p) {
   const radius = Math.max(0, Math.min(1, p.y)),
