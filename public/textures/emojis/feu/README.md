@@ -1,12 +1,12 @@
 # 🔥 Feu
 
-Image principale fournie pour Feu ; les deux autres couches restent des placeholders issus de Text1.png et rezo.png.
+Les trois couches utilisent les images PNG fournies pour Feu.
 
 Remplacer directement :
 
 - 01-base.png : image principale lisible.
-- 02-matiere.jpg : détail, matière ou motif.
-- 03-accent.jpg : lumière, fragment ou contrepoint.
+- 01-matiere.png : détail, matière ou motif.
+- 01-accent.png : lumière, fragment ou contrepoint.
 
 Pistes visuelles : braises, flammes floues, cendres.
 Garder ces noms ; préférer des images carrées de 512 à 1024 px.

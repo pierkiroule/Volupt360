@@ -19,14 +19,14 @@
         },
         {
           "role": "matiere",
-          "path": "emojis/feu/02-matiere.jpg",
+          "path": "emojis/feu/01-matiere.png",
           "fallback": "rezo.png",
           "blend": "soft-light",
           "opacity": 0.42
         },
         {
           "role": "accent",
-          "path": "emojis/feu/03-accent.jpg",
+          "path": "emojis/feu/01-accent.png",
           "fallback": "Text1.png",
           "blend": "screen",
           "opacity": 0.3
