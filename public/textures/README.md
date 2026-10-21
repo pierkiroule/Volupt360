@@ -1,9 +1,10 @@
-# Texture locale des brosses
+# Textures locales des brosses
 
-**Text1.png** est la texture de test, partagée par les huit brosses 2D/360.
-Elle est servie à `/textures/Text1.png` (casse exacte). Le fichier original fait
-96 × 96 px. Aucun service externe n’est utilisé et la préparation pour le GPU
-n’invente pas de détails supplémentaires.
+- **Text1.png** : 96 × 96 px (nom exact dans le dépôt).
+- **rezo.png** : 1254 × 1254 px.
 
-Le dessin reste disponible avec ses alphas procéduraux si l’image est absente ou
-illisible. Le bouton Texture Text1 permet de comparer les deux rendus.
+Les huit brosses utilisent ces deux sources en alternance, quatre par image,
+en 2D et en 360°. Le bouton Textures locales permet de comparer avec les alphas
+seuls ; son infobulle indique la source de la brosse active. Aucun service
+externe n’est utilisé. Si une source manque, la seconde reste disponible ;
+si les deux manquent, le dessin utilise les alphas procéduraux.

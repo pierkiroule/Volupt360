@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { loadLocalTexture } from "./localTexture.js";
+import { loadLocalTextures, localTextureStatus } from "./localTexture.js";
 import SketchSurface from "./SketchSurface.jsx";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
 import { requestGyroscope } from "../scene/gyroOrientation.ts";
@@ -31,15 +31,15 @@ class WorldBoundary extends Component {
   }
 }
 export default function SquiggleApp() {
-  const [localMatter, setLocalMatter] = useState(null),
+  const [localMatter, setLocalMatter] = useState([]),
     [textureEnabled, setTextureEnabled] = useState(true),
     [textureStatus, setTextureStatus] = useState("loading");
   useEffect(() => {
     let active = true;
-    loadLocalTexture().then((matter) => {
+    loadLocalTextures().then((matter) => {
       if (active) {
         setLocalMatter(matter);
-        setTextureStatus(matter ? "ready" : "unavailable");
+        setTextureStatus(localTextureStatus(matter));
       }
     });
     return () => {
@@ -48,16 +48,21 @@ export default function SquiggleApp() {
   }, []);
   const materials = useMemo(
     () =>
-      localMatter && textureEnabled
-        ? Object.fromEntries(SQUIGGLE_BRUSHES.map((b) => [b.id, localMatter]))
+      localMatter.length && textureEnabled
+        ? Object.fromEntries(
+            SQUIGGLE_BRUSHES.map((b, i) => [
+              b.id,
+              localMatter[i % localMatter.length],
+            ]),
+          )
         : {},
     [localMatter, textureEnabled],
   );
   async function retryTexture() {
     setTextureStatus("loading");
-    const matter = await loadLocalTexture({ retry: true });
+    const matter = await loadLocalTextures({ retry: true });
     setLocalMatter(matter);
-    setTextureStatus(matter ? "ready" : "unavailable");
+    setTextureStatus(localTextureStatus(matter));
   }
   const [erase, setErase] = useState(false),
     [recenter, setRecenter] = useState(0);
@@ -187,6 +192,7 @@ export default function SquiggleApp() {
     <main
       className={`squiggle-app is-${mode}`}
       data-texture-status={textureStatus}
+      data-texture-count={localMatter.length}
     >
       <SketchSurface
         strokes={strokes}
@@ -367,22 +373,25 @@ export default function SquiggleApp() {
         {more && (
           <div className="squiggle-more">
             <button
-              aria-label="Texture locale Text1"
-              aria-pressed={textureEnabled && Boolean(localMatter)}
-              disabled={!localMatter}
+              aria-label="Textures locales"
+              title={materials[brush]?.name || "Alphas procéduraux"}
+              aria-pressed={textureEnabled && localMatter.length > 0}
+              disabled={!localMatter.length}
               onClick={() => setTextureEnabled(!textureEnabled)}
             >
-              Texture Text1
+              Textures locales
             </button>
             {textureStatus !== "ready" && (
               <span className="squiggle-texture-status" role="status">
                 {textureStatus === "loading"
-                  ? "Chargement de Text1.png…"
-                  : "Text1.png indisponible · alphas locaux actifs"}
+                  ? "Chargement des textures…"
+                  : textureStatus === "partial"
+                    ? "Une texture disponible sur deux"
+                    : "Textures indisponibles · alphas locaux actifs"}
               </span>
             )}
-            {textureStatus === "unavailable" && (
-              <button onClick={retryTexture}>Réessayer la texture</button>
+            {["unavailable", "partial"].includes(textureStatus) && (
+              <button onClick={retryTexture}>Réessayer les textures</button>
             )}
             <label>
               Opacité

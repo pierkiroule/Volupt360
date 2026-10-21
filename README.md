@@ -68,28 +68,30 @@ reproductibilité des huit alphas ; le dessin, le rendu 360° et le PNG fonction
 aussi avec les requêtes externes bloquées. Le pilotage FPV, le gyro, la pause et
 l’historique restent couverts par les tests du parcours Squiggle.
 
-## Texture locale Text1.png
+## Textures locales Text1.png et rezo.png
 
-Poly Haven, son API et sa galerie sont retirés de Squiggle. La texture du dépôt
-`public/textures/Text1.png` (casse exacte) est chargée automatiquement, une seule
-fois par session, et partagée par les huit brosses. Elle enrichit les empreintes
-2D et les voiles 3D, avec les alphas aquarellés et le bruit organique existants.
-Les couleurs et la transparence PNG sont conservées ; une hauteur douce est
-dérivée de la luminance, sans transformer les voiles en volumes pleins.
+Aucune API de texture n’est utilisée. Les deux fichiers réels du dépôt,
+`public/textures/Text1.png` et `public/textures/rezo.png`, sont récupérés depuis
+`main` sans fusion de branche. Le premier fichier s’appelle bien **Text1.png**,
+et non Texture1.png. Ils sont répartis en alternance entre les huit brosses :
+quatre utilisent Text1 et quatre rezo, dans les deux vues.
 
-`localTexture.js` utilise uniquement l’URL locale issue de la base Vite. La source
-est ramenée à 256 px pour les atlas mobiles ; limite de téléchargement 16 Mo,
-délai de dix secondes, fermeture du bitmap après décodage et aucun appel externe.
-Le bouton **Texture Text1**, dans les outils dépliés, permet de comparer avec les
-alphas seuls. Un fichier absent ou illisible laisse le dessin disponible et un
-bouton **Réessayer la texture** permet de le recharger. Les ressources GPU sont
-libérées au changement de matière et à la sortie.
+`localTexture.js` charge chaque source une seule fois par session, en parallèle,
+avec cache HTTP, limite de 16 Mo et délai de dix secondes par image. Chaque
+bitmap est fermé après préparation des cartes couleur et hauteur à 256 px.
+Les transparences PNG, alphas aquarellés et bruits organiques sont conservés.
+Le bouton **Textures locales**, dans les outils dépliés, permet de comparer avec
+les alphas seuls ; son infobulle indique la source de la brosse sélectionnée.
 
-Le fichier réel `Text1.png`, récupéré depuis `origin/main` sans fusion de branche,
-est inclus dans ce changement. La source de test fait 96 × 96 px : le transfert
-vers les atlas GPU n’ajoute pas de détails à cette résolution native. Les tests
-contrôlent son service effectif depuis `public`, son chargement et son rendu
-2D/360, ainsi que le cache, l’export PNG et la reprise après un fichier absent.
+Si une image manque, toutes les brosses utilisent temporairement celle qui est
+disponible. Si les deux manquent, les alphas locaux restent actifs. La relance ne
+retélécharge que les sources en échec et conserve les tracés. Les ressources GPU
+remplacées sont libérées. Aucun appel externe n’est nécessaire.
+
+Les sources font 96 × 96 px pour Text1 et 1254 × 1254 px pour rezo ; le transfert
+vers les atlas n’invente pas de détails supplémentaires. Les tests vérifient les
+deux vrais fichiers servis depuis `public`, l’alternance des brosses en 2D/360,
+le chargement unique, les erreurs partielles ou totales, la relance et le PNG.
 
 ---
 

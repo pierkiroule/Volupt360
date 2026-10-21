@@ -17,7 +17,7 @@ async function paint(page) {
   await page.mouse.move(650, 390, { steps: 20 });
   await page.mouse.up();
 }
-test("Text1 loads once from the repository and visibly textures all brushes in 2D and 360 without external requests", async ({
+test("Both local images load once from the repository and visibly textures all brushes in 2D and 360 without external requests", async ({
   page,
 }) => {
   const png = await image(page),
@@ -32,7 +32,7 @@ test("Text1 loads once from the repository and visibly textures all brushes in 2
     external.push(r.request().url());
     return r.abort();
   });
-  await page.route("**/textures/Text1.png", (r) => {
+  await page.route(/\/textures\/(?:Text1|rezo)\.png$/, (r) => {
     requests++;
     return r.fulfill({
       contentType: "image/png",
@@ -67,7 +67,7 @@ test("Text1 loads once from the repository and visibly textures all brushes in 2
   const world = page.locator(".squiggle-world canvas");
   await expect(world).toHaveAttribute("data-external-materials", "8");
   await page.getByRole("button", { name: "Autres outils" }).click();
-  const toggle = page.getByRole("button", { name: "Texture locale Text1" });
+  const toggle = page.getByRole("button", { name: "Textures locales" });
   await toggle.click();
   await expect(world).toHaveAttribute("data-external-materials", "0");
   await toggle.click();
@@ -82,7 +82,7 @@ test("Text1 loads once from the repository and visibly textures all brushes in 2
     "data-strokes",
     "1",
   );
-  expect(requests).toBe(1);
+  expect(requests).toBe(2);
   expect(external).toEqual([]);
   expect(errors).toEqual([]);
 });
@@ -94,7 +94,7 @@ test("missing Text1 preserves drawing and can be retried after the file becomes 
   page.on("pageerror", (e) => errors.push(e.message));
   let available = false,
     requests = 0;
-  await page.route("**/textures/Text1.png", (r) => {
+  await page.route(/\/textures\/(?:Text1|rezo)\.png$/, (r) => {
     requests++;
     return available
       ? r.fulfill({
@@ -112,7 +112,7 @@ test("missing Text1 preserves drawing and can be retried after the file becomes 
   await page.getByRole("button", { name: "Autres outils" }).click();
   await expect(page.getByRole("status")).toContainText("alphas locaux actifs");
   available = true;
-  await page.getByRole("button", { name: "Réessayer la texture" }).click();
+  await page.getByRole("button", { name: "Réessayer les textures" }).click();
   await expect(page.locator(".squiggle-app")).toHaveAttribute(
     "data-texture-status",
     "ready",
@@ -125,11 +125,11 @@ test("missing Text1 preserves drawing and can be retried after the file becomes 
     "data-external-materials",
     "8",
   );
-  expect(requests).toBe(2);
+  expect(requests).toBe(4);
   expect(errors).toEqual([]);
 });
 
-test("bundled Text1 is served as the real PNG and renders in both dimensions", async ({
+test("both bundled PNGs are served unchanged and alternate between brushes in both dimensions", async ({
   page,
 }) => {
   const errors = [];
@@ -139,14 +139,28 @@ test("bundled Text1 is served as the real PNG and renders in both dimensions", a
     "data-texture-status",
     "ready",
   );
-  const response = await page.request.get("/textures/Text1.png");
-  expect(response.ok()).toBe(true);
-  const data = await response.body();
-  expect(data.subarray(0, 8)).toEqual(
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-  );
   const { readFile } = await import("node:fs/promises");
-  expect(data).toEqual(await readFile("public/textures/Text1.png"));
+  for (const name of ["Text1.png", "rezo.png"]) {
+    const response = await page.request.get(`/textures/${name}`);
+    expect(response.ok()).toBe(true);
+    const data = await response.body();
+    expect(data.subarray(0, 8)).toEqual(
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    );
+    expect(data).toEqual(await readFile(`public/textures/${name}`));
+  }
+  await expect(page.locator(".squiggle-app")).toHaveAttribute(
+    "data-texture-count",
+    "2",
+  );
+  await page.getByRole("button", { name: "Autres outils" }).click();
+  await expect(
+    page.getByRole("button", { name: "Textures locales", exact: true }),
+  ).toHaveAttribute("title", "Text1.png");
+  await page.getByRole("button", { name: "Pluie", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Textures locales", exact: true }),
+  ).toHaveAttribute("title", "rezo.png");
   await expect(page.locator(".squiggle-paper")).toHaveAttribute(
     "data-external-materials",
     "8",
@@ -160,4 +174,51 @@ test("bundled Text1 is served as the real PNG and renders in both dimensions", a
     "8",
   );
   expect(errors).toEqual([]);
+});
+
+test("one missing image keeps every brush usable and retry downloads only the missing source", async ({
+  page,
+}) => {
+  const png = await image(page);
+  let rezoAvailable = false;
+  const requests = { Text1: 0, rezo: 0 };
+  await page.route(/\/textures\/(?:Text1|rezo)\.png$/, (route) => {
+    const id = route.request().url().includes("Text1") ? "Text1" : "rezo";
+    requests[id]++;
+    return id === "rezo" && !rezoAvailable
+      ? route.fulfill({ status: 404, body: "missing" })
+      : route.fulfill({
+          contentType: "image/png",
+          body: Buffer.from(png, "base64"),
+        });
+  });
+  await page.goto("/");
+  await expect(page.locator(".squiggle-app")).toHaveAttribute(
+    "data-texture-status",
+    "partial",
+  );
+  await expect(page.locator(".squiggle-paper")).toHaveAttribute(
+    "data-external-materials",
+    "8",
+  );
+  await paint(page);
+  await page.getByRole("button", { name: "Autres outils" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Une texture disponible sur deux",
+  );
+  rezoAvailable = true;
+  await page.getByRole("button", { name: "Réessayer les textures" }).click();
+  await expect(page.locator(".squiggle-app")).toHaveAttribute(
+    "data-texture-status",
+    "ready",
+  );
+  await expect(page.locator(".squiggle-app")).toHaveAttribute(
+    "data-texture-count",
+    "2",
+  );
+  await expect(page.locator(".squiggle-paper")).toHaveAttribute(
+    "data-strokes",
+    "1",
+  );
+  expect(requests).toEqual({ Text1: 1, rezo: 2 });
 });
