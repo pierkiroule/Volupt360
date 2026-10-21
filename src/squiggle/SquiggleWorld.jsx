@@ -15,6 +15,7 @@ function Painting({
   paused,
   onCapture,
   materials,
+  photoMaterials = materials,
   preview = false,
   audioRef,
 }) {
@@ -28,8 +29,8 @@ function Painting({
   const photos = useMemo(() => createPhotoBubbles(), []);
   useEffect(() => () => photos.dispose(), [photos]);
   useEffect(() => {
-    photos.setMaterials(materials);
-  }, [materials, photos]);
+    photos.setMaterials(photoMaterials);
+  }, [photoMaterials, photos]);
   const dust = useMemo(
     () => createResonanceDust(strokes, innerWidth < 600),
     [strokes],

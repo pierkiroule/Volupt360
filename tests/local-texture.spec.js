@@ -27,8 +27,10 @@ test("unavailable local images keep procedural worlds accessible", async ({
 }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.route("**/textures/*.png", (r) =>
-    r.fulfill({ status: 404, body: "missing" }),
+  await page.route("**/textures/**", (r) =>
+    new URL(r.request().url()).pathname.startsWith("/textures/")
+      ? r.fulfill({ status: 404, body: "missing" })
+      : r.continue(),
   );
   await page.goto("/");
   await page.getByRole("button", { name: "Spirale", exact: true }).click();

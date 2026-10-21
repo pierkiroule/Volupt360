@@ -8,6 +8,7 @@ import {
   useState,
   useCallback,
 } from "react";
+import { TextureLibraryFactory } from "./textures/TextureLibraryFactory.js";
 import { loadLocalTextures } from "./localTexture.js";
 import { EMOJI_INGREDIENTS, generateUniverse } from "./squibbleUniverse.js";
 import { SQUIGGLE_BRUSHES } from "./brushes.js";
@@ -44,9 +45,12 @@ export default function SquiggleApp() {
     [gyro, setGyro] = useState(false),
     [recenter, setRecenter] = useState(0),
     [localMatter, setLocalMatter] = useState([]),
+    [montage, setMontage] = useState(null),
+    [libraryState, setLibraryState] = useState("idle"),
     [notice, setNotice] = useState(""),
     [capturing, setCapturing] = useState(false);
-  const audioRef = useRef(null);
+  const audioRef = useRef(null),
+    textureLibrary = useRef(null);
   const capture = useRef(null),
     noticeTimer = useRef(0);
   useEffect(() => {
@@ -55,12 +59,14 @@ export default function SquiggleApp() {
       navigator.serviceWorker
         .register(import.meta.env.BASE_URL + "sw.js")
         .catch(() => {});
+    textureLibrary.current = new TextureLibraryFactory();
     let alive = true;
     loadLocalTextures().then((value) => {
       if (alive) setLocalMatter(value);
     });
     return () => {
       alive = false;
+      textureLibrary.current?.dispose();
       clearTimeout(noticeTimer.current);
     };
   }, []);
@@ -69,7 +75,7 @@ export default function SquiggleApp() {
     clearTimeout(noticeTimer.current);
     noticeTimer.current = setTimeout(() => setNotice(""), 4500);
   }, []);
-  const materials = useMemo(
+  const fallbackMaterials = useMemo(
     () =>
       localMatter.length
         ? Object.fromEntries(
@@ -86,6 +92,25 @@ export default function SquiggleApp() {
       selected.map((emoji) => EMOJI_INGREDIENTS.find((e) => e.emoji === emoji)),
     [selected],
   );
+  useEffect(() => {
+    let active = true;
+    if (!choices.length) {
+      setMontage(null);
+      setLibraryState("idle");
+      return;
+    }
+    setLibraryState("loading");
+    textureLibrary.current.compose(choices).then((result) => {
+      if (active) {
+        setMontage(result);
+        setLibraryState(result ? "ready" : "fallback");
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [choices]);
+  const materials = montage?.materials || fallbackMaterials;
   const strokes = useMemo(() => generateUniverse(choices), [choices]);
   const onCapture = useCallback((fn) => {
     capture.current = fn;
@@ -130,6 +155,7 @@ export default function SquiggleApp() {
           strokes={strokes}
           audioRef={audioRef}
           materials={materials}
+          photoMaterials={montage?.photos || fallbackMaterials}
           draft={null}
           preview={!inside}
           paint={false}
@@ -156,6 +182,7 @@ export default function SquiggleApp() {
         "squiggle-app squibble " + (inside ? "is-inside" : "is-choosing")
       }
       data-choices={selected.length}
+      data-texture-library={libraryState}
     >
       {!inside ? (
         <>
@@ -229,8 +256,9 @@ export default function SquiggleApp() {
               )}
             </div>
             <small>
-              Une exploration artistique et projective, sans interprétation de
-              tes choix.
+              {libraryState === "loading"
+                ? "Les images se rencontrent…"
+                : "Une exploration artistique et projective, sans interprétation de tes choix."}
             </small>
           </footer>
         </>

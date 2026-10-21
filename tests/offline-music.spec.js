@@ -24,6 +24,10 @@ test("production cache reopens the bubble and plays procedural music offline", a
     page.getByRole("heading", { name: "Squibble360" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Lune", exact: true }).click();
+  await expect(page.locator("main")).toHaveAttribute(
+    "data-texture-library",
+    "ready",
+  );
   await expect(page.locator(".squibble-orb canvas")).toHaveAttribute(
     "data-objects",
     "36",

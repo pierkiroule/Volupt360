@@ -17,7 +17,7 @@ export function createPhotoBubbles() {
     clear();
     const sources = [
       ...new Set(Object.values(materials).filter(Boolean)),
-    ].slice(0, 4);
+    ].slice(0, 6);
     if (!sources.length) return;
     geometry = new THREE.SphereGeometry(1, 32, 24);
     for (const source of sources) {

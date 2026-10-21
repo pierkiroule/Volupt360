@@ -1,20 +1,43 @@
 import { createHash } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 /** Cache the built application, never the MP3 archive or external requests. */
 export function offlinePlugin() {
-  let base = "/";
+  let base = "/",
+    publicDir = "public";
   return {
     name: "squibble-offline",
     apply: "build",
     enforce: "post",
     configResolved(config) {
       base = config.base;
+      publicDir = config.publicDir;
     },
     generateBundle(_, bundle) {
       const files = Object.keys(bundle).filter((file) =>
         /\.(js|css|html)$/.test(file),
       );
+      const textureFiles = [];
+      const scan = (dir) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const path = join(dir, entry.name);
+          if (entry.isDirectory()) scan(path);
+          else if (/\.(png|jpe?g|webp|avif|json)$/i.test(entry.name))
+            textureFiles.push(path);
+        }
+      };
+      scan(resolve(publicDir, "textures"));
+      textureFiles.sort();
+      const textureHash = createHash("sha256");
+      for (const path of textureFiles)
+        textureHash
+          .update(relative(publicDir, path))
+          .update(readFileSync(path));
+      const textureUrls = textureFiles.map(
+        (path) => base + relative(publicDir, path).split("\\").join("/"),
+      );
       const version = createHash("sha256")
-        .update(files.sort().join("|"))
+        .update(files.sort().join("|") + textureHash.digest("hex"))
         .digest("hex")
         .slice(0, 12);
       const urls = [
@@ -24,7 +47,7 @@ export function offlinePlugin() {
       ];
       const source = `const CACHE="squibble-${version}";
 const CORE=${JSON.stringify([...new Set(urls)])};
-const TEXTURES=${JSON.stringify([base + "textures/Text1.png", base + "textures/rezo.png", base + "favicon.svg"])};
+const TEXTURES=${JSON.stringify([...textureUrls, base + "favicon.svg"])};
 self.addEventListener("install",event=>event.waitUntil((async()=>{
  const cache=await caches.open(CACHE);await cache.addAll(CORE);
  await Promise.allSettled(TEXTURES.map(url=>cache.add(url)));await self.skipWaiting();

@@ -1,0 +1,378 @@
+{
+  "version": 1,
+  "description": "Placeholders dérivés des deux images locales ; remplacer les fichiers par des photos thématiques choisies.",
+  "entries": [
+    {
+      "emoji": "🔥",
+      "id": "feu",
+      "label": "Feu",
+      "brush": "anger",
+      "color": "#ff956b",
+      "suggestions": "braises, flammes floues, cendres",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/feu/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/feu/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/feu/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "🌊",
+      "id": "vague",
+      "label": "Vague",
+      "brush": "peace",
+      "color": "#66cbd0",
+      "suggestions": "eau, vagues, reflets",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/vague/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/vague/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/vague/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "☁️",
+      "id": "nuage",
+      "label": "Nuage",
+      "brush": "uncertainty",
+      "color": "#b6ccdc",
+      "suggestions": "brume, voiles, transparences",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/nuage/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/nuage/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/nuage/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "✨",
+      "id": "etincelle",
+      "label": "Étincelle",
+      "brush": "wonder",
+      "color": "#f0dcb1",
+      "suggestions": "éclats doux, poussière dorée, bokeh",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/etincelle/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/etincelle/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/etincelle/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "🌧️",
+      "id": "pluie",
+      "label": "Pluie",
+      "brush": "sadness",
+      "color": "#80b8f0",
+      "suggestions": "gouttes, ruissellements, vitre humide",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/pluie/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/pluie/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/pluie/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "🌀",
+      "id": "spirale",
+      "label": "Spirale",
+      "brush": "worry",
+      "color": "#b9a0e5",
+      "suggestions": "courants, tourbillons, spirales naturelles",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/spirale/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/spirale/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/spirale/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "🌸",
+      "id": "fleur",
+      "label": "Fleur",
+      "brush": "frustration",
+      "color": "#e895bd",
+      "suggestions": "pétales, nervures, floraisons abstraites",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/fleur/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/fleur/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/fleur/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "☀️",
+      "id": "soleil",
+      "label": "Soleil",
+      "brush": "joy",
+      "color": "#f3cc7e",
+      "suggestions": "lumière chaude, horizons, sable",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/soleil/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/soleil/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/soleil/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "🌙",
+      "id": "lune",
+      "label": "Lune",
+      "brush": "sadness",
+      "color": "#a6b4ef",
+      "suggestions": "pierres pâles, ciel nocturne, reflets froids",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/lune/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/lune/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/lune/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "🍃",
+      "id": "souffle",
+      "label": "Souffle",
+      "brush": "peace",
+      "color": "#a1d4b4",
+      "suggestions": "fibres, feuillage flou, traces légères",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/souffle/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/souffle/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/souffle/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "❄️",
+      "id": "cristal",
+      "label": "Cristal",
+      "brush": "uncertainty",
+      "color": "#c1e5f1",
+      "suggestions": "givre, cristallisations, facettes",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/cristal/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/cristal/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/cristal/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    },
+    {
+      "emoji": "🫧",
+      "id": "bulle",
+      "label": "Bulle",
+      "brush": "wonder",
+      "color": "#d0b6eb",
+      "suggestions": "irisations, reflets, membranes",
+      "layers": [
+        {
+          "role": "base",
+          "path": "emojis/bulle/01-base.jpg",
+          "fallback": "Text1.png",
+          "blend": "source-over",
+          "opacity": 1
+        },
+        {
+          "role": "matiere",
+          "path": "emojis/bulle/02-matiere.jpg",
+          "fallback": "rezo.png",
+          "blend": "soft-light",
+          "opacity": 0.42
+        },
+        {
+          "role": "accent",
+          "path": "emojis/bulle/03-accent.jpg",
+          "fallback": "Text1.png",
+          "blend": "screen",
+          "opacity": 0.3
+        }
+      ]
+    }
+  ]
+}
