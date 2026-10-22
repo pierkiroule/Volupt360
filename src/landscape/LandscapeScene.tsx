@@ -10,6 +10,10 @@ import type { ComposedLandscape } from "./LandscapeComposer";
 import type { Placement } from "./types";
 import { deviceQuaternion, requestGyroscope } from "../scene/gyroOrientation";
 import { HorizonGyro, angleDelta } from "../weather/HorizonGyro";
+import { WatercolorSkydome } from "../weather/WatercolorSkydome";
+import { Phenomenon } from "../weather/WeatherWorld";
+import { InkBirds } from "../weather/ProjectiveAtmosphere";
+import { WEATHER, type Zone } from "../weather/weatherModel";
 import { surfaceGrain } from "./SurfaceMaterials";
 export { requestGyroscope };
 export interface Steering {
@@ -18,6 +22,8 @@ export interface Steering {
   active: boolean;
 }
 interface Props {
+  weatherZones?: Zone[];
+  moving?: boolean;
   world: ComposedLandscape;
   exploring: boolean;
   paused: boolean;
@@ -32,7 +38,9 @@ function Instances({
   kind,
   world,
   distant = false,
+  weatherZones,
 }: {
+  weatherZones?: Zone[];
   distant?: boolean;
   items: Placement[];
   kind: "tree" | "rock" | "plant";
@@ -144,6 +152,14 @@ function Instances({
         a.current!.setMatrixAt(i, dummy.matrix);
       }
       color.setScalar(0.8 + (i % 7) * 0.045);
+      if (weatherZones) {
+        for (const zone of weatherZones) {
+          const distance = Math.hypot(p.x - zone.x * 28, p.z - zone.y * 28);
+          const weight = Math.exp(-distance * distance / ((5 + zone.size * 30) ** 2)) * zone.opacity;
+          const pigment = WEATHER.find(w => w.id === zone.kind)!;
+          color.lerp(new THREE.Color(pigment.secondary), weight * .45);
+        }
+      }
       a.current!.setColorAt(kind === "tree" ? i * 2 : i, color);
       if (kind === "tree") a.current!.setColorAt(i * 2 + 1, color);
     });
@@ -154,7 +170,7 @@ function Instances({
       b.current.instanceMatrix.needsUpdate = true;
       b.current.computeBoundingSphere();
     }
-  }, [items, world, kind]);
+  }, [items, world, kind, weatherZones]);
   return (
     <>
       <instancedMesh
@@ -183,9 +199,11 @@ function Instances({
 function ObjectLayers({
   world,
   model,
+  weatherZones,
 }: {
   world: ComposedLandscape;
   model: ModelAsset | null;
+  weatherZones?: Zone[];
 }) {
   const [split, setSplit] = useState(() => ({
     near: world.objects.filter(
@@ -226,6 +244,7 @@ function ObjectLayers({
         <Instances
           key={kind}
           kind={kind}
+          weatherZones={weatherZones}
           world={world}
           items={split.near.filter(
             (p) => p.kind === kind && !external.includes(p),
@@ -236,6 +255,7 @@ function ObjectLayers({
         <Instances
           key={"far" + kind}
           kind={kind}
+          weatherZones={weatherZones}
           distant
           world={world}
           items={split.far.filter(
@@ -287,7 +307,9 @@ function RemoteObjects({
 function Atmosphere({
   world,
   environment,
+  watercolor = false,
 }: {
+  watercolor?: boolean;
   world: ComposedLandscape;
   environment: THREE.DataTexture | null;
 }) {
@@ -336,10 +358,10 @@ function Atmosphere({
     <>
       <color attach="background" args={[preset.sky]} />
       <fog attach="fog" args={[preset.fog, 26, 68]} />
-      <mesh ref={dome} material={sky} renderOrder={-1000}>
+      {!watercolor && <mesh ref={dome} material={sky} renderOrder={-1000}>
         <sphereGeometry args={[85, 32, 16]} />
-      </mesh>
-      <hemisphereLight args={[preset.horizon, "#626e65", preset.ambient]} />
+      </mesh>}
+      <hemisphereLight args={[preset.horizon, "#626e65", preset.ambient * (watercolor ? 1.3 : 1)]} />
       <directionalLight
         color={preset.sun}
         intensity={preset.intensity}
@@ -361,6 +383,8 @@ function Atmosphere({
   );
 }
 function World({
+  weatherZones,
+  moving = true,
   world,
   exploring,
   paused,
@@ -420,6 +444,7 @@ function World({
     const s = state.current;
     s.sensor = null;
     s.horizon.reset();
+    gl.domElement.dataset.gyro = gyro ? "waiting" : "off";
     if (!gyro) return;
     let received = false;
     const timer = setTimeout(() => {
@@ -441,13 +466,16 @@ function World({
         screen.orientation?.angle || 0,
         s.sensor || new THREE.Quaternion(),
       );
+      // Calibrate on the first sensor event, even when a heavy frame is pending.
+      if (!steering.current.active) s.horizon.update(s.sensor, s.viewYaw, s.viewPitch);
+      gl.domElement.dataset.gyro = "tracking";
     };
     window.addEventListener("deviceorientation", handler);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("deviceorientation", handler);
     };
-  }, [gyro, onGyroError]);
+  }, [gyro, onGyroError, gl, steering]);
   useFrame((_, raw) => {
     const dt = Math.min(raw, 0.05),
       s = state.current;
@@ -466,14 +494,25 @@ function World({
         const look = s.horizon.update(s.sensor, s.viewYaw, s.viewPitch);
         s.yaw = look.yaw;
         s.pitch = look.pitch;
+      } else if (weatherZones && moving) {
+        // An unpiloted bird follows the river into the composition.
+        const targetZ = Math.sin(time.current * .065) * 15;
+        s.target.set(world.terrain.river(targetZ),
+          Math.max(world.terrain.height(world.terrain.river(targetZ), targetZ) + 5, 5), targetZ);
+        s.forward.copy(s.target).sub(camera.position);
+        if (s.forward.lengthSq() > 9) {
+          s.yaw = Math.atan2(-s.forward.x, -s.forward.z);
+          s.pitch = Math.atan2(s.forward.y, Math.hypot(s.forward.x, s.forward.z));
+        } else s.yaw += dt * .16;
       }
       s.viewYaw += angleDelta(s.yaw - s.viewYaw) * (1 - Math.exp(-dt * 4));
       s.viewPitch = THREE.MathUtils.damp(s.viewPitch, s.pitch, 4, dt);
       camera.quaternion.setFromEuler(
         s.euler.set(s.viewPitch, s.viewYaw, 0, "YXZ"),
       );
+      if (moving) {
       camera.getWorldDirection(s.forward);
-      s.forward.y = 0;
+      if (!weatherZones) s.forward.y = 0;
       s.forward.normalize();
       const radius = Math.hypot(camera.position.x, camera.position.z);
       if (radius > 35) {
@@ -488,12 +527,17 @@ function World({
       camera.position.y = Math.max(
         THREE.MathUtils.damp(
           camera.position.y,
-          Math.max(floor, world.terrain.waterLevel + 2.8),
+          Math.max(floor, world.terrain.waterLevel + 2.8, weatherZones ? camera.position.y : -Infinity),
           0.8,
           dt,
         ),
         floor,
       );
+      }
+    }
+    if (weatherZones) {
+      gl.domElement.dataset.zones = String(weatherZones.length);
+      gl.domElement.dataset.landscape = "composed-weather";
     }
     gl.domElement.dataset.heading = camera.quaternion
       .toArray()
@@ -508,7 +552,18 @@ function World({
   });
   return (
     <>
-      <Atmosphere world={world} environment={environment} />
+      <Atmosphere world={world} environment={environment} watercolor={!!weatherZones} />
+      {weatherZones && <>
+        <WatercolorSkydome zones={weatherZones} paused={paused} />
+        <InkBirds paused={paused} />
+        {weatherZones.map(zone => {
+          const x = zone.x * 28, z = zone.y * 28;
+          const height = Math.max(world.terrain.height(x,z), world.terrain.waterLevel) + 9 + zone.size * 8;
+          return <group key={zone.id} position={[x, height, z]} scale={3}>
+            <Phenomenon zone={zone} paused={paused} position={[0,0,0]} />
+          </group>;
+        })}
+      </>}
       <mesh geometry={terrain} receiveShadow>
         <meshStandardMaterial
           vertexColors
@@ -536,7 +591,7 @@ function World({
           />
         </mesh>
       )}
-      <ObjectLayers key={world.settings.seed} world={world} model={model} />
+      <ObjectLayers key={world.settings.seed} world={world} model={model} weatherZones={weatherZones} />
       {!exploring && (
         <OrbitControls
           target={world.target}

@@ -9,7 +9,7 @@ test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/?meteo");
   await expect(
-    page.getByRole("button", { name: "Entrer dans mon ciel ↗" }),
+    page.getByRole("button", { name: "Entrer dans mon monde ↗" }),
   ).toBeDisabled();
   await place(page, "Pluie", 0.32, 0.45);
   await place(page, "Rayonnement", 0.67, 0.4);
@@ -31,15 +31,13 @@ test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
   await expect(page.locator("main")).toHaveAttribute("data-zones", "2");
   await page.getByRole("button", { name: "Annuler" }).click();
   await expect(page.locator("main")).toHaveAttribute("data-zones", "3");
-  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "3");
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Contempler", exact: true })).toBeVisible();
   await page.waitForTimeout(300);
   const before = await page.locator("canvas").getAttribute("data-position");
   await page.waitForTimeout(400);
-  expect(await page.locator("canvas").getAttribute("data-position")).not.toBe(
-    before,
-  );
+  await expect.poll(() => page.locator("canvas").getAttribute("data-position")).not.toBe(before);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.waitForTimeout(100);
   const frozen = await page.locator("canvas").getAttribute("data-position");
@@ -142,7 +140,7 @@ test("all weather materials stay finite and malformed saved data is rejected", a
       0.35 + Math.floor(index / 4) * 0.3,
     );
   }
-  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "8");
 });
 test("imaginary weather compiles its watercolor shaders, pauses and preserves the scene", async ({
@@ -173,7 +171,7 @@ test("imaginary weather compiles its watercolor shaders, pauses and preserves th
   });
   expect(textures.reproducible).toBe(true);
   expect(textures.alphas).toBeGreaterThan(80);
-  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-birds", "5");
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "3");
   await page.waitForTimeout(500);
@@ -200,10 +198,11 @@ test("watercolor ground renders and flight keeps clearance above hills", async (
   await page.goto("/?meteo");
   await place(page, "Rayonnement", 0.5, 0.5);
   await place(page, "Pluie", 0.3, 0.4);
-  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", {name:"Enregistrer",exact:true}).click();
+  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-landscape",
-    "watercolor",
+    "composed-weather",
   );
   const ranges = await page.evaluate(async () => {
     const m = await import("/src/weather/WeatherLandscape.tsx");
@@ -229,15 +228,17 @@ test("watercolor ground renders and flight keeps clearance above hills", async (
   await page.mouse.move(600, 430, { steps: 5 });
   await page.waitForTimeout(650);
   await page.mouse.up();
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Contempler", exact: true })).toBeVisible();
   await page.waitForTimeout(600);
   const clearance = await page.evaluate(async () => {
-    const m = await import("/src/weather/WeatherLandscape.tsx");
+    const m = await import("/src/weather/WeatherWorldComposer.ts");
+    const wm = await import("/src/weather/weatherModel.ts");
+    const terrain = new m.WeatherTerrain(wm.readSaved());
     const [x, y, z] = document
       .querySelector("canvas")
       .dataset.position.split(",")
       .map(Number);
-    return y - m.groundHeight(x, z);
+    return y - terrain.height(x, z);
   });
   expect(clearance).toBeGreaterThanOrEqual(1.29);
   await page.screenshot({ path: "test-results/weather-ground.png" });
@@ -258,12 +259,13 @@ test("tilted-phone gyro turns preserve a level horizon and fixed contemplation p
   });
   await page.goto("/?meteo");
   await place(page, "Rayonnement", 0.5, 0.5);
-  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
+  await page.getByRole("button", { name: "Contempler", exact: true }).click();
   await page.getByRole("button", { name: "360°", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "360°", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await page.waitForTimeout(100);
+  await expect(page.locator("canvas")).toHaveAttribute("data-gyro", "waiting");
   const pose = async (alpha, beta, gamma) =>
     page.evaluate(
       (p) => {
@@ -277,12 +279,11 @@ test("tilted-phone gyro turns preserve a level horizon and fixed contemplation p
     .locator("canvas")
     .getAttribute("data-position");
   await pose(20, 45, 25);
-  await page.waitForTimeout(100);
+  await expect(page.locator("canvas")).toHaveAttribute("data-gyro", "tracking");
   const before = await page.locator("canvas").getAttribute("data-heading");
   await pose(110, 45, 25);
   await page.waitForTimeout(450);
-  const after = await page.locator("canvas").getAttribute("data-heading");
-  expect(after).not.toBe(before);
+  await expect.poll(() => page.locator("canvas").getAttribute("data-heading")).not.toBe(before);
   const roll = await page.evaluate(async () => {
     const { Euler, Quaternion } =
       await import("/node_modules/three/build/three.module.js");
@@ -406,7 +407,7 @@ test("generated skydome renders in 360 and its drift stops on pause", async ({
   await page.goto("/?meteo");
   await place(page, "Aurore imaginaire", 0.4, 0.32);
   await place(page, "Crépuscule", 0.7, 0.6);
-  await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-skydome",
     "watercolor",
