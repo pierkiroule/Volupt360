@@ -33,3 +33,11 @@ Le tournesol se balance et déploie davantage ses pétales à l'approche. Sa lib
 Un mot de la famille émerge à proximité après quelques secondes, dérive et disparaît en sept secondes. Les réapparitions sont espacées ; les mots ne proposent ni interprétation psychologique ni consigne. L'intégralité de ces mouvements, interactions et apparitions est suspendue en pause. Les textures, géométries et matériaux sont libérés au démontage. Pas de police distante, nouveau package ou appel réseau supplémentaire.
 
 Tests dédiés : sélection par famille, reproductibilité, repos des surprises, trajectoires de graines finies ; rendu des trois présences, absence d'erreurs WebGL/JavaScript, pause et réentrée sans perte de composition. Le test de rendu ne prétend pas valider la qualité perceptive ou les performances sur téléphone physique.
+
+## Stabilité 360°
+
+L'activation du gyro passe d'abord en contemplation fixe : aucun déplacement tant que Voyager n'est pas choisi explicitement. Le tactile reste disponible. Le cap est conservé aux passages proches du zénith/nadir et recalibré à la sortie de cette zone, pour éviter l'inversion de 180° de la projection horizontale. Un changement portrait/paysage recale le cap sur le regard actuel ; les variations de caméra sont lissées et bornées en vitesse. La désactivation du capteur conserve le regard atteint.
+
+Le culling CPU est désactivé uniquement pour les voiles/rubans déformés dans les shaders, dont les bornes géométriques initiales ne couvrent pas toujours la forme animée. Les autres objets conservent leur mécanisme de visibilité.
+
+Deux tests de régression ont échoué avant correction : vol encore actif en entrant en 360° et inversion de cap de π lors d'un passage au pôle. Ils passent après correction. Les contrôles couvrent aussi le changement d'orientation écran, l'horizon, la conservation de position et la limitation des sauts de cap. Validation gyro sur appareil physique toujours nécessaire.

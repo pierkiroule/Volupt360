@@ -57,6 +57,7 @@ export function ProjectiveVeil({
   return (
     <mesh
       name={"PigmentVeil_" + zone.id}
+      frustumCulled={false}
       geometry={assets.geometry}
       material={assets.material}
       rotation={[

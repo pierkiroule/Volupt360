@@ -9,7 +9,7 @@ import { BIOME_RULES } from "./BiomeComposer";
 import type { ComposedLandscape } from "./LandscapeComposer";
 import type { Placement } from "./types";
 import { deviceQuaternion, requestGyroscope } from "../scene/gyroOrientation";
-import { HorizonGyro, angleDelta } from "../weather/HorizonGyro";
+import { HorizonGyro, angleDelta, smoothGyroHeading } from "../weather/HorizonGyro";
 import { CosmoMatter, cosmoAnchor } from "../weather/CosmoMatter";
 import { WatercolorSkydome } from "../weather/WatercolorSkydome";
 import { Phenomenon } from "../weather/WeatherWorld";
@@ -415,6 +415,7 @@ function World({
     target: new THREE.Vector3(),
     forward: new THREE.Vector3(),
     sensor: null as THREE.Quaternion | null,
+    sensorScreen: 0,
     horizon: new HorizonGyro(),
   });
   const texture = useMemo(() => surfaceGrain(world.settings.seed, 24), [world]);
@@ -457,6 +458,9 @@ function World({
   useEffect(() => {
     const s = state.current;
     s.sensor = null;
+    s.yaw = s.viewYaw;
+    s.pitch = s.viewPitch;
+    s.sensorScreen = screen.orientation?.angle || 0;
     s.horizon.reset();
     gl.domElement.dataset.gyro = gyro ? "waiting" : "off";
     if (!gyro) return;
@@ -473,6 +477,11 @@ function World({
       )
         return;
       received = true;
+      const orientation = screen.orientation?.angle || 0;
+      if (orientation !== s.sensorScreen) {
+        s.horizon.reset();
+        s.sensorScreen = orientation;
+      }
       s.sensor = deviceQuaternion(
         e.alpha!,
         e.beta!,
@@ -520,8 +529,11 @@ function World({
           s.pitch = Math.atan2(s.forward.y, Math.hypot(s.forward.x, s.forward.z));
         } else s.yaw += dt * .16;
       }
-      s.viewYaw += angleDelta(s.yaw - s.viewYaw) * (1 - Math.exp(-dt * 4));
-      s.viewPitch = THREE.MathUtils.damp(s.viewPitch, s.pitch, 4, dt);
+      s.viewYaw = gyro && !input.active
+        ? smoothGyroHeading(s.viewYaw, s.yaw, dt)
+        : s.viewYaw + angleDelta(s.yaw - s.viewYaw) * (1 - Math.exp(-dt * 4));
+      const pitchStep = THREE.MathUtils.damp(s.viewPitch, s.pitch, 4, dt)-s.viewPitch;
+      s.viewPitch += gyro ? THREE.MathUtils.clamp(pitchStep,-1.5*dt,1.5*dt) : pitchStep;
       camera.quaternion.setFromEuler(
         s.euler.set(s.viewPitch, s.viewYaw, 0, "YXZ"),
       );
