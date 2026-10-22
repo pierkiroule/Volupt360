@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { LivingPhenomena } from "./LivingPhenomena";
 import { ProjectiveVeil } from "./ProjectiveAtmosphere";
 import { WEATHER, pigment, random, type Zone } from "./weatherModel";
 import { getLandscapeMusic } from "../landscape/StrudelMusicEngine";
@@ -136,6 +137,7 @@ export function CosmoMatter({zones, paused}:{zones:Zone[];paused:boolean}) {
     gl.domElement.dataset.cosmoTime=t.toFixed(3);
   });
   return <group name="Sensory_cosmos">
+    <LivingPhenomena zones={zones} paused={paused}/>
     {selected.slice(0,4).map((z,i)=><DreamRibbon key={z.id} zone={z} index={i} paused={paused}/>)}
     {selected.map(z=><Island key={z.id} zone={z} paused={paused}/>)}
     {selected.slice(0,6).map((z,i)=>{
