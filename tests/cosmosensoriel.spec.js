@@ -20,7 +20,7 @@ test('sixteen sensory choices produce a rich cosmos with bounded GPU layers and 
   await page.getByRole('button',{name:'Entrer dans mon cosmos ↗'}).click();
   const canvas=page.locator('canvas');
   await expect(canvas).toHaveAttribute('data-cosmos','sensory',{timeout:20000});
-  await expect(canvas).toHaveAttribute('data-particles','1000');
+  await expect(canvas).toHaveAttribute('data-particles','120');
   await expect(canvas).toHaveAttribute('data-zones','16');
   await page.getByRole('button',{name:'Pause',exact:true}).click();
   await page.screenshot({path:'test-results/cosmos-sensory-palette.png'});

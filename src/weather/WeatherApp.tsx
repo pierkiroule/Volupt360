@@ -10,8 +10,6 @@ import {
   type Zone,
   type WeatherId,
 } from "./weatherModel";
-import { getLandscapeMusic, releaseLandscapeMusic } from "../landscape/StrudelMusicEngine";
-import { weatherScore } from "./weatherScore";
 import type { Steering } from "./navigationInput";
 import "./weather.css";
 export default function WeatherApp() {
@@ -34,31 +32,6 @@ export default function WeatherApp() {
     history = useRef<Zone[][]>([]),
     future = useRef<Zone[][]>([]),
     [revision, setRevision] = useState(0);
-  const [sound, setSound] = useState(false), [soundBusy, setSoundBusy] = useState(false);
-  const score = weatherScore(zones);
-  useEffect(() => {
-    if (sound) void getLandscapeMusic().update(score).catch(() => {
-      setSound(false); setNotice("La musique peut être relancée avec ♪.");
-    });
-  }, [zones, sound]);
-  useEffect(() => {
-    void getLandscapeMusic().setPaused(paused || !inside).catch(() => setNotice("La musique est suspendue."));
-  }, [paused, inside]);
-  useEffect(() => () => { void releaseLandscapeMusic(); }, []);
-  async function toggleSound() {
-    if (soundBusy) return;
-    setSoundBusy(true);
-    try {
-      if (sound) { await getLandscapeMusic().stop(); setSound(false); }
-      else {
-        setPaused(false);
-        await getLandscapeMusic().setPaused(false);
-        await getLandscapeMusic().start(score);
-        setSound(true);
-      }
-    } catch { setNotice("Le son n’a pas démarré. Touche ♪ pour réessayer."); }
-    finally { setSoundBusy(false); }
-  }
   const current = useRef(zones);
   current.current = zones;
   const resetInput = useCallback(() => {
@@ -362,8 +335,6 @@ export default function WeatherApp() {
               ? "Glisse pour explorer ton cosmos, ou laisse-toi porter."
               : "Glisse pour regarder autour de toi."}
           </p>
-          <button className="meteo-sound" disabled={soundBusy} aria-label={sound ? "Couper la musique" : "Écouter mon paysage"} aria-pressed={sound} onClick={() => void toggleSound()}>{soundBusy ? "…" : sound ? "♪ Son" : "♪ Écouter"}</button>
-          <a className="meteo-music-credit" href={import.meta.env.BASE_URL + "licenses/strudel.txt"} target="_blank" rel="noreferrer">Strudel · licence et sources</a>
           <nav
             className="meteo-flight-controls"
             aria-label="Contempler mon ciel"

@@ -3,7 +3,6 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { AssetLibrary, type ModelAsset } from "./AssetLibrary";
 import { ATMOSPHERE } from "./AtmosphereEngine";
 import { BIOME_RULES } from "./BiomeComposer";
 import type { ComposedLandscape } from "./LandscapeComposer";
@@ -29,8 +28,6 @@ interface Props {
   gyro: boolean;
   gyroRevision?: number;
   steering: React.RefObject<Steering>;
-  model: ModelAsset | null;
-  environment: THREE.DataTexture | null;
   onGyroError: (message: string) => void;
 }
 function Instances({
@@ -106,7 +103,7 @@ function Instances({
       assets.trunk.dispose();
       assets.material.dispose();
       assets.bark.dispose();
-      assets.texture.dispose();
+      assets.texture?.dispose();
     },
     [assets],
   );
@@ -198,11 +195,9 @@ function Instances({
 }
 function ObjectLayers({
   world,
-  model,
   weatherZones,
 }: {
   world: ComposedLandscape;
-  model: ModelAsset | null;
   weatherZones?: Zone[];
 }) {
   const [split, setSplit] = useState(() => ({
@@ -235,9 +230,6 @@ function ObjectLayers({
       setSplit({ near, far });
     }
   });
-  const external = model
-    ? world.objects.filter((p) => p.kind === model.kind).slice(0, 3)
-    : [];
   return (
     <>
       {(["tree", "rock", "plant"] as const).map((kind) => (
@@ -247,7 +239,7 @@ function ObjectLayers({
           weatherZones={weatherZones}
           world={world}
           items={split.near.filter(
-            (p) => p.kind === kind && !external.includes(p),
+            (p) => p.kind === kind,
           )}
         />
       ))}
@@ -259,66 +251,19 @@ function ObjectLayers({
           distant
           world={world}
           items={split.far.filter(
-            (p) => p.kind === kind && !external.includes(p),
+            (p) => p.kind === kind,
           )}
         />
       ))}
-      {model && <RemoteObjects model={model} items={external} />}
     </>
   );
-}
-function RemoteObjects({
-  model,
-  items,
-}: {
-  model: ModelAsset;
-  items: Placement[];
-}) {
-  const clones = useMemo(
-    () =>
-      items.slice(0, 3).map((p) => {
-        const group = new THREE.Group();
-        group.add(model.scene.clone(true));
-        group.position.set(p.x, p.y, p.z);
-        group.scale.setScalar(p.scale * 1.7);
-        group.rotation.y = p.yaw;
-        group.traverse((o) => {
-          if (o instanceof THREE.Mesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-          }
-        });
-        return group;
-      }),
-    [model, items],
-  );
-  const { gl } = useThree();
-  useEffect(() => {
-    gl.shadowMap.needsUpdate = true;
-  }, [clones, gl]);
-  return (
-    <>
-      {clones.map((clone, i) => (
-        <primitive key={i} object={clone} dispose={null} />
-      ))}
-    </>
-  );
-}
-function FloatingAssets({world,model,paused}:{world:ComposedLandscape;model:ModelAsset;paused:boolean}) {
-  const root=useRef<THREE.Group>(null), time=useRef(0);
-  const items=useMemo(()=>world.objects.filter(p=>p.kind===model.kind).slice(0,3).map((p,i)=>({...p,
-    x:Math.sin(i*2.1+world.settings.seed)*14,y:Math.sin(i*1.7)*5,z:Math.cos(i*2.1+world.settings.seed)*14,scale:p.scale*.65})),[world,model]);
-  useFrame((_,dt)=>{if(!paused)time.current+=Math.min(dt,.05);if(root.current){root.current.position.y=Math.sin(time.current*.15)*.8;root.current.rotation.y=Math.sin(time.current*.06)*.1;}});
-  return <group ref={root}><RemoteObjects model={model} items={items}/></group>;
 }
 function Atmosphere({
   world,
-  environment,
   watercolor = false,
 }: {
   watercolor?: boolean;
   world: ComposedLandscape;
-  environment: THREE.DataTexture | null;
 }) {
   const { scene, gl } = useThree(),
     preset = ATMOSPHERE[world.settings.atmosphere];
@@ -342,11 +287,10 @@ function Atmosphere({
   );
   const dome = useRef<THREE.Mesh>(null);
   useEffect(() => {
+    if(watercolor) return () => sky.dispose();
     const room = new RoomEnvironment(),
       pmrem = new THREE.PMREMGenerator(gl),
-      target = environment
-        ? pmrem.fromEquirectangular(environment)
-        : pmrem.fromScene(room, 0.04);
+      target = pmrem.fromScene(room, 0.04);
     scene.environment = target.texture;
     gl.shadowMap.autoUpdate = false;
     gl.shadowMap.needsUpdate = true;
@@ -357,7 +301,7 @@ function Atmosphere({
       room.dispose();
       sky.dispose();
     };
-  }, [gl, scene, sky, environment]);
+  }, [gl, scene, sky, watercolor]);
   useFrame(({ camera }) => {
     dome.current?.position.copy(camera.position);
   });
@@ -373,7 +317,7 @@ function Atmosphere({
         color={preset.sun}
         intensity={preset.intensity}
         position={[-20, Math.max(6, preset.elevation * 40), -24]}
-        castShadow
+        castShadow={!watercolor}
         shadow-mapSize={[
           innerWidth < 700 ? 1024 : 2048,
           innerWidth < 700 ? 1024 : 2048,
@@ -399,8 +343,6 @@ function World({
   gyro,
   gyroRevision = 0,
   steering,
-  model,
-  environment,
   onGyroError,
 }: Props) {
   const { camera, gl } = useThree();
@@ -420,21 +362,13 @@ function World({
     calibrationPitch: null as number | null,
     horizon: new HorizonGyro(),
   });
-  const texture = useMemo(() => surfaceGrain(world.settings.seed, 24), [world]);
-  useEffect(() => () => texture.dispose(), [texture]);
+  const texture = useMemo(() => surreal ? null : surfaceGrain(world.settings.seed, 24), [world,surreal]);
+  useEffect(() => () => texture?.dispose(), [texture]);
   const terrain = useMemo(
-    () => world.terrain.geometry(innerWidth < 700),
-    [world],
+    () => surreal ? null : world.terrain.geometry(innerWidth < 700),
+    [world,surreal],
   );
-  useEffect(() => () => terrain.dispose(), [terrain]);
-  const groups = useMemo(
-    () => ({
-      tree: world.objects.filter((p) => p.kind === "tree"),
-      rock: world.objects.filter((p) => p.kind === "rock"),
-      plant: world.objects.filter((p) => p.kind === "plant"),
-    }),
-    [world],
-  );
+  useEffect(() => () => terrain?.dispose(), [terrain]);
   useEffect(() => {
     camera.position.fromArray(world.camera);
     camera.lookAt(...world.target);
@@ -606,7 +540,7 @@ function World({
   });
   return (
     <>
-      <Atmosphere world={world} environment={environment} watercolor={!!weatherZones} />
+      <Atmosphere world={world} watercolor={!!weatherZones} />
       {weatherZones && <>
         <WatercolorSkydome zones={weatherZones} paused={paused} />
         <InkBirds paused={paused} />
@@ -619,7 +553,7 @@ function World({
         })}
       </>}
       {surreal && weatherZones && <CosmoMatter zones={weatherZones} paused={paused} />}
-      {!surreal && <mesh geometry={terrain} receiveShadow>
+      {!surreal && <mesh geometry={terrain!} receiveShadow>
         <meshStandardMaterial
           vertexColors
           roughness={0.94}
@@ -646,8 +580,7 @@ function World({
           />
         </mesh>
       )}
-      {!surreal && <ObjectLayers key={world.settings.seed} world={world} model={model} weatherZones={weatherZones} />}
-      {surreal && model && <FloatingAssets world={world} model={model} paused={paused} />}
+      {!surreal && <ObjectLayers key={world.settings.seed} world={world} weatherZones={weatherZones} />}
       {!exploring && (
         <OrbitControls
           target={world.target}
@@ -665,9 +598,9 @@ function World({
 export function LandscapeScene(props: Props) {
   return (
     <Canvas
-      shadows
+      shadows={!props.surreal}
       camera={{ fov: 66, near: 0.1, far: 120 }}
-      dpr={[1, 1.4]}
+      dpr={[1, props.surreal ? 1.25 : 1.4]}
       gl={{ antialias: true }}
       onCreated={({ gl }) => {
         gl.shadowMap.type = THREE.PCFSoftShadowMap;

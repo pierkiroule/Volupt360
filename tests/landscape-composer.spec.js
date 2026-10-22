@@ -81,7 +81,7 @@ test("offline assets do not block generation, flight, regeneration or local rest
   await expect(page.locator("canvas")).toHaveAttribute("data-biome", "forest", {
     timeout: 20000,
   });
-  await expect(page.locator(".landscape-source")).toContainText("procéduraux");
+  await expect(page.locator(".landscape-source")).toContainText("procédurales");
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("landscape-composer.saved.v1")),
@@ -123,90 +123,7 @@ test("offline assets do not block generation, flight, regeneration or local rest
   });
   expect(errors).toEqual([]);
 });
-test("GLTF dependency manifests are loaded from declared URLs and released (synthetic fixture)", async ({
-  page,
-}) => {
-  const headers = { "access-control-allow-origin": "*" };
-  const data = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
-  await page.route("https://api.polyhaven.com/**", async (r) => {
-    const u = new URL(r.request().url());
-    let value = {};
-    if (u.pathname === "/assets" && u.searchParams.get("type") === "models")
-      value = { test_rock: { name: "Test rock", categories: ["rock"] } };
-    if (u.pathname === "/files/test_rock")
-      value = {
-        gltf: {
-          "1k": {
-            gltf: {
-              url: "https://dl.polyhaven.org/test-fixtures/test.gltf",
-              size: 1000,
-              include: {
-                "data.bin": {
-                  url: "https://dl.polyhaven.org/test-fixtures/data.bin",
-                  size: 36,
-                },
-              },
-            },
-          },
-        },
-      };
-    await r.fulfill({
-      contentType: "application/json",
-      headers,
-      body: JSON.stringify(value),
-    });
-  });
-  await page.route("https://dl.polyhaven.org/test-fixtures/**", async (r) => {
-    if (r.request().url().endsWith(".bin"))
-      return r.fulfill({ headers, body: Buffer.from(data.buffer) });
-    return r.fulfill({
-      headers,
-      contentType: "model/gltf+json",
-      body: JSON.stringify({
-        asset: { version: "2.0" },
-        scene: 0,
-        scenes: [{ nodes: [0] }],
-        nodes: [{ mesh: 0 }],
-        meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
-        buffers: [{ uri: "data.bin", byteLength: 36 }],
-        bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 36 }],
-        accessors: [
-          {
-            bufferView: 0,
-            componentType: 5126,
-            count: 3,
-            type: "VEC3",
-            min: [0, 0, 0],
-            max: [1, 1, 0],
-          },
-        ],
-      }),
-    });
-  });
-  await page.goto("/?paysage");
-  const result = await page.evaluate(async () => {
-    const { AssetLibrary, inspectFiles } =
-      await import("/src/landscape/AssetLibrary.ts");
-    const library = new AssetLibrary();
-    const model = await library.loadModel("test_rock");
-    let meshes = 0,
-      disposed = 0;
-    model.scene.traverse((o) => {
-      if (o.isMesh) {
-        meshes++;
-        o.geometry.addEventListener("dispose", () => disposed++);
-      }
-    });
-    library.dispose();
-    return {
-      meshes,
-      disposed,
-      bad: inspectFiles({ x: { url: "https://evil.example/model.glb" } })
-        .length,
-    };
-  });
-  expect(result).toEqual({ meshes: 1, disposed: 1, bad: 0 });
-});
+
 test("all five biomes and four atmospheres render with a local asset budget", async ({
   page,
 }) => {

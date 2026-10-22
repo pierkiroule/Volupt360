@@ -33,9 +33,6 @@ export function offlinePlugin() {
         textureHash
           .update(relative(publicDir, path))
           .update(readFileSync(path));
-      textureHash.update(
-        readFileSync(resolve(publicDir, "licenses/strudel.txt")),
-      );
       const textureUrls = textureFiles.map(
         (path) => base + relative(publicDir, path).split("\\").join("/"),
       );
@@ -50,10 +47,10 @@ export function offlinePlugin() {
       ];
       const source = `const CACHE="squibble-${version}";
 const CORE=${JSON.stringify([...new Set(urls)])};
-const TEXTURES=${JSON.stringify([...textureUrls, base + "favicon.svg", base + "licenses/strudel.txt"])};
+const TEXTURES=${JSON.stringify([...textureUrls, base + "favicon.svg"])};
 self.addEventListener("install",event=>event.waitUntil((async()=>{
  const cache=await caches.open(CACHE);await cache.addAll(CORE);
- await Promise.allSettled(TEXTURES.map(url=>cache.add(url)));await self.skipWaiting();
+ await Promise.allSettled(TEXTURES.filter(url=>url.endsWith("favicon.svg")).map(url=>cache.add(url)));await self.skipWaiting();
 })()));
 self.addEventListener("activate",event=>event.waitUntil((async()=>{
  for(const key of await caches.keys())if(key.startsWith("squibble-")&&key!==CACHE)await caches.delete(key);
@@ -66,7 +63,7 @@ self.addEventListener("fetch",event=>{
  event.respondWith(fetch(event.request).catch(()=>caches.match(${JSON.stringify(base + "index.html")},{ignoreVary:true})));return;
  }
  if(!CORE.includes(url.pathname)&&!TEXTURES.includes(url.pathname))return;
- event.respondWith((async()=>{const cached=await caches.match(event.request,{ignoreVary:true});return cached||fetch(event.request);})());
+ event.respondWith((async()=>{const cached=await caches.match(event.request,{ignoreVary:true});if(cached)return cached;const response=await fetch(event.request);if(response.ok){try{const cache=await caches.open(CACHE);await cache.put(event.request,response.clone());}catch{}}return response;})());
 });`;
       this.emitFile({ type: "asset", fileName: "sw.js", source });
     },

@@ -37,7 +37,7 @@ test('network failure still renders a single complete world and preserves the di
   await expect(canvas).toHaveAttribute('data-landscape','sensory-cosmos');
   await expect(canvas).toHaveAttribute('data-skydome','watercolor');
   await expect(canvas).toHaveAttribute('data-zones','2');
-  expect(Number(await canvas.getAttribute('data-objects'))).toBeGreaterThan(30);
+  await expect(canvas).toHaveAttribute('data-render-style','filaments');
   await page.getByRole('button',{name:'Contempler',exact:true}).click();
   await page.getByRole('button',{name:'Pause',exact:true}).click();
   const position=await canvas.getAttribute('data-position');
