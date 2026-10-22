@@ -33,13 +33,11 @@ test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
   await expect(page.locator("main")).toHaveAttribute("data-zones", "3");
   await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "3");
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Contempler", exact: true })).toBeVisible();
   await page.waitForTimeout(300);
   const before = await page.locator("canvas").getAttribute("data-position");
   await page.waitForTimeout(400);
-  expect(await page.locator("canvas").getAttribute("data-position")).not.toBe(
-    before,
-  );
+  await expect.poll(() => page.locator("canvas").getAttribute("data-position")).not.toBe(before);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.waitForTimeout(100);
   const frozen = await page.locator("canvas").getAttribute("data-position");
@@ -229,7 +227,7 @@ test("watercolor ground renders and flight keeps clearance above hills", async (
   await page.mouse.move(600, 430, { steps: 5 });
   await page.waitForTimeout(650);
   await page.mouse.up();
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Contempler", exact: true })).toBeVisible();
   await page.waitForTimeout(600);
   const clearance = await page.evaluate(async () => {
     const m = await import("/src/weather/WeatherLandscape.tsx");
@@ -259,6 +257,7 @@ test("tilted-phone gyro turns preserve a level horizon and fixed contemplation p
   await page.goto("/?meteo");
   await place(page, "Rayonnement", 0.5, 0.5);
   await page.getByRole("button", { name: "Entrer dans mon ciel ↗" }).click();
+  await page.getByRole("button", { name: "Contempler", exact: true }).click();
   await page.getByRole("button", { name: "360°", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "360°", exact: true }),

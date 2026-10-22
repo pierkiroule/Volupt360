@@ -9,6 +9,8 @@ import {
   type Zone,
   type WeatherId,
 } from "./weatherModel";
+import { getLandscapeMusic, releaseLandscapeMusic } from "../landscape/StrudelMusicEngine";
+import { weatherScore } from "./weatherScore";
 import "./weather.css";
 export default function WeatherApp() {
   const [zones, setZones] = useState<Zone[]>(readSaved),
@@ -29,6 +31,31 @@ export default function WeatherApp() {
     history = useRef<Zone[][]>([]),
     future = useRef<Zone[][]>([]),
     [revision, setRevision] = useState(0);
+  const [sound, setSound] = useState(false), [soundBusy, setSoundBusy] = useState(false);
+  const score = weatherScore(zones);
+  useEffect(() => {
+    if (sound) void getLandscapeMusic().update(score).catch(() => {
+      setSound(false); setNotice("La musique peut être relancée avec ♪.");
+    });
+  }, [zones, sound]);
+  useEffect(() => {
+    void getLandscapeMusic().setPaused(paused || !inside).catch(() => setNotice("La musique est suspendue."));
+  }, [paused, inside]);
+  useEffect(() => () => { void releaseLandscapeMusic(); }, []);
+  async function toggleSound() {
+    if (soundBusy) return;
+    setSoundBusy(true);
+    try {
+      if (sound) { await getLandscapeMusic().stop(); setSound(false); }
+      else {
+        setPaused(false);
+        await getLandscapeMusic().setPaused(false);
+        await getLandscapeMusic().start(score);
+        setSound(true);
+      }
+    } catch { setNotice("Le son n’a pas démarré. Touche ♪ pour réessayer."); }
+    finally { setSoundBusy(false); }
+  }
   const current = useRef(zones);
   current.current = zones;
   const resetInput = useCallback(() => {
@@ -188,20 +215,12 @@ export default function WeatherApp() {
             }
           />
         )}
-        {!inside && zones.length === 0 && (
-          <p className="meteo-empty">
-            Un peu de soleil, un passage de pluie…
-            <br />
-            Choisis un émoji, puis touche le disque.
-          </p>
-        )}
-      </section>
-      {!inside ? (
-        <section className="meteo-tools" aria-label="Composer ma météo">
-          <div className="meteo-palette">
-            {WEATHER.map((w) => (
+        {!inside && (
+          <div className="meteo-palette meteo-ring" aria-label="Palette météo autour du disque">
+            {WEATHER.map((w, i) => (
               <button
                 key={w.id}
+                style={{ left: `${50 + 59 * Math.sin(i / WEATHER.length * Math.PI * 2)}%`, top: `${50 - 59 * Math.cos(i / WEATHER.length * Math.PI * 2)}%` }}
                 aria-label={w.label}
                 aria-pressed={kind === w.id}
                 onClick={() => {
@@ -213,6 +232,17 @@ export default function WeatherApp() {
               </button>
             ))}
           </div>
+        )}
+        {!inside && zones.length === 0 && (
+          <p className="meteo-empty">
+            Un peu de soleil, un passage de pluie…
+            <br />
+            Choisis un émoji, puis touche le disque.
+          </p>
+        )}
+      </section>
+      {!inside ? (
+        <section className="meteo-tools" aria-label="Composer ma météo">
           <div className="meteo-sliders">
             <label>
               Proportion <output>{Math.round(size * 100)} %</output>
@@ -278,7 +308,7 @@ export default function WeatherApp() {
               onClick={() => {
                 setInside(true);
                 setPaused(false);
-                setTravel(false);
+                setTravel(true);
                 resetInput();
               }}
             >
@@ -319,9 +349,11 @@ export default function WeatherApp() {
           </div>
           <p className="meteo-flight-hint">
             {travel
-              ? "Un voyage doux autour et au cœur de tes nuances."
+              ? "Vue d’oiseau · glisse pour guider ton vol, ou active le gyro."
               : "Glisse pour regarder autour de toi."}
           </p>
+          <button className="meteo-sound" disabled={soundBusy} aria-label={sound ? "Couper la musique" : "Écouter mon paysage"} aria-pressed={sound} onClick={() => void toggleSound()}>{soundBusy ? "…" : sound ? "♪ Son" : "♪ Écouter"}</button>
+          <a className="meteo-music-credit" href={import.meta.env.BASE_URL + "licenses/strudel.txt"} target="_blank" rel="noreferrer">Strudel · licence et sources</a>
           <nav
             className="meteo-flight-controls"
             aria-label="Contempler mon ciel"

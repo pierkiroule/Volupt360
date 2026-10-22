@@ -269,3 +269,30 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+/* The palette belongs to the circumference, leaving the painting unobstructed. */
+.meteo:not(.meteo-immersed) .meteo-stage {
+  width: min(65vw, 44dvh, 440px);
+  margin: 48px 0;
+}
+.meteo-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.meteo-ring button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  width: 44px;
+  height: 44px;
+  box-shadow: 0 3px 18px #56746312;
+}
+.meteo-sound {
+  position: absolute;
+  right: 18px;
+  top: max(20px, env(safe-area-inset-top));
+  background: #fffaf0d9 !important;
+  font-size: 13px;
+}
+.meteo-music-credit { position: absolute; right: 18px; top: 74px; color: #6d837c; font: 10px system-ui; opacity: .7; }

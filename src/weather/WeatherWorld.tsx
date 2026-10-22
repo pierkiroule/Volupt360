@@ -268,14 +268,18 @@ function Flight({
     s.time += dt;
     const input = navigation.current;
     if (travel) {
-      const t = s.time * 0.075;
-      const radius = 4.5 + Math.sin(t * 0.61) * 2.1;
-      s.target.set(
-        Math.sin(t) * radius,
-        Math.sin(t * 0.7) * 1.2,
-        Math.cos(t) * radius - 2,
-      );
-      camera.position.lerp(s.target, 1 - Math.exp(-dt * 0.6));
+      // Bird POV: advance along the actual gaze, never slide sideways on a rail.
+      camera.getWorldDirection(s.forward);
+      const edge = Math.hypot(camera.position.x, camera.position.z + 2);
+      const speed = 0.85 + Math.sin(s.time * 0.19) * 0.12;
+      camera.position.addScaledVector(s.forward, speed * dt);
+      // Soft bounded world; automatic orientation below anticipates the boundary.
+      if (edge > 11) {
+        const inward = Math.min(1, (edge - 11) / 5) * dt;
+        camera.position.x *= 1 - inward;
+        camera.position.z = -2 + (camera.position.z + 2) * (1 - inward);
+      }
+      camera.position.y = THREE.MathUtils.clamp(camera.position.y, -1, 5);
     }
     camera.position.y = Math.max(
       camera.position.y,
@@ -297,9 +301,9 @@ function Flight({
       s.desired.setFromEuler(s.euler.set(s.pitch, s.yaw, 0, "YXZ"));
     } else if (travel) {
       s.target.set(
-        Math.sin(s.time * 0.04) * 1.3,
-        Math.sin(s.time * 0.06) * 0.35,
-        -2,
+        Math.sin(s.time * 0.11) * 3,
+        0.5 + Math.sin(s.time * 0.13) * 0.8,
+        -2 + Math.cos(s.time * 0.09) * 2,
       );
       s.matrix.lookAt(camera.position, s.target, s.up);
       s.desired.setFromRotationMatrix(s.matrix);

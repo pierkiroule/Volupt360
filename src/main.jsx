@@ -46,8 +46,10 @@ createRoot(document.getElementById("root")).render(
         <ColibriApp />
       ) : new URLSearchParams(location.search).has("meteo") ? (
         <WeatherApp />
-      ) : (
+      ) : new URLSearchParams(location.search).has("paysage") ? (
         <LandscapeApp />
+      ) : (
+        <WeatherApp />
       )}
     </Suspense>
   </React.StrictMode>,
