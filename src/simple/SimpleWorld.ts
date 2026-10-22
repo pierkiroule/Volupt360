@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { NUANCES } from "./palette";
+import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
 import { HorizonGyro, smoothGyroHeading } from "../weather/HorizonGyro";
 import { deviceQuaternion } from "../scene/gyroOrientation";
@@ -67,11 +67,13 @@ export class SimpleWorld {
           paper: { value: this.texture },
           time: { value: 0 },
           phase: { value: i * 1.73 },
+          motion: { value: new THREE.Vector4(0.5, 0.5, 0.5, 0.1) },
+          presence: { value: 0.6 },
           tint: { value: new THREE.Color() },
           accent: { value: new THREE.Color() },
         },
-        vertexShader: `uniform float time,phase;varying vec2 vUv;varying float fold;void main(){vUv=uv;vec3 p=position;float t=time*.19+phase;float a=p.x*.48+t,b=p.y*.6-t*.63;p.z+=sin(a)*1.1+cos(b)*.45;p.y+=sin(a*.7)*.55;p.x+=sin(b+t*.3)*.38;fold=.5+.5*cos(a)*cos(b);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent;varying vec2 vUv;varying float fold;void main(){vec4 p=texture2D(paper,vUv);float edge=smoothstep(0.,.18,vUv.x)*smoothstep(0.,.18,1.-vUv.x)*smoothstep(0.,.2,vUv.y)*smoothstep(0.,.2,1.-vUv.y);vec3 c=mix(tint,accent,fold*.55+p.r*.2);c*=.78+p.r*.22;gl_FragColor=vec4(c,p.a*edge*.63);\n#include <colorspace_fragment>\n}`,
+        vertexShader: `uniform float time,phase;uniform vec4 motion;varying vec2 vUv;varying float fold;void main(){vUv=uv;vec3 p=position;float t=time*.19*motion.x+phase;float a=p.x*(.25+motion.z*.7)+t,b=p.y*.6-t*.63;p.z+=sin(a)*(0.4+motion.z)+cos(b)*.45;p.y+=sin(a*.7)*(.25+motion.w*.8);p.x+=sin(b+t*.3)*(.25+motion.w);fold=.5+.5*cos(a)*cos(b);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
+        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent;uniform vec4 motion;uniform float presence;varying vec2 vUv;varying float fold;void main(){vec4 p=texture2D(paper,vUv);float edge=smoothstep(0.,.18,vUv.x)*smoothstep(0.,.18,1.-vUv.x)*smoothstep(0.,.2,vUv.y)*smoothstep(0.,.2,1.-vUv.y);vec3 c=mix(tint,accent,fold*.55+p.r*.2);c*=.78+p.r*.22;gl_FragColor=vec4(c,p.a*edge*presence);\n#include <colorspace_fragment>\n}`,
       });
       material.forceSinglePass = true;
       const sheet = new THREE.Mesh(this.geometry, material);
@@ -110,16 +112,33 @@ export class SimpleWorld {
     this.frame = requestAnimationFrame(this.tick);
   }
   setPalette(ids: string[]) {
-    const palette = ids
-      .map((id) => NUANCES.find((n) => n.id === id))
-      .filter((n) => !!n);
-    this.atmosphere.setPalette(palette.map((p) => p.color));
+    const score = composeWeather(ids);
+    this.atmosphere.setPalette(ids);
+    this.renderer.domElement.dataset.composition = score.entries.join(",");
+    this.renderer.domElement.dataset.interaction = score.rainbow
+      ? "sun-rain"
+      : score.slant
+        ? "wind-rain"
+        : "layered";
     this.sheets.forEach((sheet, i) => {
-      const p = palette[i % palette.length] || NUANCES[1];
+      const index = i % score.entries.length,
+        p = score.palettes[index];
       sheet.material.uniforms.tint.value.set(p.color);
       sheet.material.uniforms.accent.value.set(p.secondary);
+      sheet.material.uniforms.motion.value.fromArray(
+        PHENOMENA[score.entries[index]].motion,
+      );
+      const veil = PHENOMENA[score.entries[index]].veil;
+      sheet.material.uniforms.presence.value = veil[2];
+      sheet.scale.set(veil[0], veil[1], 1);
+      sheet.rotation.z =
+        veil[3] +
+        (score.kinds[index] === 1
+          ? -0.35 * score.slant
+          : Math.sin(i * 2) * 0.08);
     });
   }
+
   setGyro(active: boolean) {
     this.gyro = active;
     this.horizon.reset();

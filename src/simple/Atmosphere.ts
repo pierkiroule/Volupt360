@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { composeWeather } from "./composition";
 
 /** One sky draw and one particle draw. No frame allocations, remote assets or bloom. */
 export class Atmosphere {
@@ -13,23 +14,42 @@ export class Atmosphere {
       uniforms: {
         paper: { value: texture },
         time: { value: 0 },
+        weather: { value: new THREE.Vector4() },
+        climate: { value: new THREE.Vector4() },
+        magic: { value: new THREE.Vector4() },
+        kinds: { value: new THREE.Vector3() },
+        layers: { value: 1 },
         a: { value: new THREE.Color("#519b9e") },
         b: { value: new THREE.Color("#c77868") },
         c: { value: new THREE.Color("#a49bb9") },
       },
       vertexShader: `varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader: `uniform sampler2D paper;uniform float time;uniform vec3 a,b,c;varying vec3 direction;
+      fragmentShader: `uniform sampler2D paper;uniform float time;uniform vec3 a,b,c;uniform vec4 weather,climate,magic;varying vec3 direction;
       void main(){vec3 d=normalize(direction);float t=time*.008;
-        // Continuous 3D coordinates projected onto two planes: no longitude seam.
-        vec2 uv=d.xz*.24+vec2(d.y*.18,t);
+        vec2 uv=d.xz*.24+vec2(d.y*.18,t*(1.+weather.z*2.));
         vec4 wash=texture2D(paper,uv+vec2(.5));
         vec4 grain=texture2D(paper,d.xy*.21+vec2(.5-t*.3,.5));
         float clouds=smoothstep(.19,.79,wash.a)*(.65+grain.a*.35);
         float veil=.5+.5*sin(d.x*3.+d.z*2.+sin(d.y*4.+t)*1.5+t);
         vec3 pigment=mix(a,b,veil);pigment=mix(pigment,c,smoothstep(-.3,.8,d.y)*.4);
         vec3 ivory=vec3(.91,.90,.86);
-        vec3 color=mix(ivory,pigment,.18+clouds*.4);
-        color+=vec3(.035)*grain.r;
+        float dark=climate.x*.4+climate.z*.55;
+        vec3 base=mix(ivory,vec3(.11,.15,.25),min(.75,dark));
+        vec3 color=mix(base,pigment,.18+clouds*(.25+magic.w*.15));
+        color=mix(color,vec3(.33,.43,.57),weather.y*clouds*.28);
+        color=mix(color,ivory,weather.w*(.28+grain.a*.25));
+        vec3 sunDir=normalize(vec3(-.6,.5,-.8));float sun=pow(max(0.,dot(d,sunDir)),7.);
+        color=mix(color,vec3(1.,.85,.54),weather.x*sun*.78*(1.-clouds*.45));
+        float arc=exp(-pow((length(d.xy-vec2(0.,-.25))-.78)*24.,2.));
+        vec3 rainbow=.64+.22*cos(vec3(0.,2.,4.)+d.y*18.);
+        color=mix(color,rainbow,arc*max(magic.x,weather.x*weather.y*.75)*.4);
+        float aurora=exp(-pow((d.y-.3-sin(d.x*4.+t)*.13)*14.,2.));
+        color=mix(color,mix(vec3(.48,.73,.65),vec3(.69,.56,.78),veil),magic.z*aurora*.4);
+        float moon=smoothstep(.995,.999,dot(d,normalize(vec3(.45,.5,-.7))));
+        float cut=smoothstep(.995,.999,dot(d,normalize(vec3(.475,.515,-.68))));
+        color=mix(color,vec3(.97,.94,.82),climate.z*moon*(1.-cut)*.8);
+        float stars=step(.995,grain.r)*smoothstep(.15,.7,d.y);
+        color+=climate.z*stars*.15+vec3(.025)*grain.r;
         gl_FragColor=vec4(color,1.);\n#include <colorspace_fragment>\n}`,
     });
     this.sky = new THREE.Mesh(
@@ -62,36 +82,67 @@ export class Atmosphere {
       depthWrite: false,
       uniforms: {
         time: { value: 0 },
+        weather: { value: new THREE.Vector4() },
+        climate: { value: new THREE.Vector4() },
+        magic: { value: new THREE.Vector4() },
+        kinds: { value: new THREE.Vector3() },
+        layers: { value: 1 },
         ratio: { value: 1 },
         a: { value: new THREE.Color() },
         b: { value: new THREE.Color() },
         c: { value: new THREE.Color() },
       },
-      vertexShader: `uniform float time,ratio;attribute vec3 seed;varying vec3 particle;varying float fade;
-      void main(){particle=seed;float t=time*(.025+seed.y*.025)+seed.x*6.28318;vec3 p=position;
-        p.x+=sin(t+p.y*.3)*1.6;p.y+=sin(t*.71+p.z*.2)*1.2;p.z+=cos(t*.82+p.x*.16)*1.5;
+      vertexShader: `uniform float time,ratio,layers;uniform vec3 kinds;uniform vec4 weather,climate,magic;attribute vec3 seed;varying vec3 particle;varying float fade,kind,group;
+      void main(){particle=seed;group=min(floor(seed.x*layers),layers-1.);kind=group<.5?kinds.x:group<1.5?kinds.y:kinds.z;
+        float t=time*(.025+seed.y*.025)+seed.x*6.28318;vec3 p=position;float edge=1.;
+        if(kind<.5){p.y=mod(position.y+time*(.18+seed.y*.2)+10.,20.)-10.;p.x+=sin(t)*1.4;}
+        else if(kind<1.5){p.y=mod(position.y-time*(1.3+seed.y)+10.,20.)-10.;p.x+=weather.z*sin(time*.13+seed.z)*2.+weather.z*time*.08; p.x=mod(p.x+22.,44.)-22.;}
+        else if(kind<2.5){p.x=mod(position.x+time*(.7+seed.y)+22.,44.)-22.;p.y+=sin(p.x*.3+t)*1.8;}
+        else if(kind<3.5){p.x+=sin(t*.3)*2.;p.y+=cos(t*.4+seed.z)*.7;}
+        else if(kind<4.5){p.x+=sin(t*2.+p.y)*1.3;p.y+=sin(t*1.7+p.z)*1.1;}
+        else if(kind<5.5){p.y=mod(position.y+time*(.5+seed.y*.5)+10.,20.)-10.;p.x+=sin(p.y*.5+t)*.7;}
+        else if(kind<6.5){p.x+=sin(t)*1.5;p.y+=cos(t+seed.z*6.)*1.1;}
+        else if(kind<7.5){p.y=mod(position.y-time*(.2+seed.y*.2)+10.,20.)-10.;p.x+=sin(time*.18+seed.z*8.)*1.5;}
+        else if(kind<8.5){p.y+=sin(p.x*.4+t)*2.;p.z+=cos(p.x*.4+t)*1.5;}
+        else if(kind<9.5){p.x+=sin(t*.2)*.3;}
+        else if(kind<10.5){p.x+=sin(t*.5)*1.2;p.y+=cos(t*.4)*.4;}
+        else{p.y+=sin(p.x*.45-time*.35)*1.8;p.z+=cos(p.x*.3-time*.25);}
+        edge=smoothstep(0.,2.,10.-abs(p.y))*smoothstep(0.,3.,22.-abs(p.x));
         vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
-        gl_PointSize=clamp((48.+seed.z*90.)*ratio/max(2.,-view.z),2.,18.*ratio);
-        fade=smoothstep(.4,2.,-view.z)*(.45+.25*sin(t*.7+seed.z*6.));}`,
-      fragmentShader: `uniform vec3 a,b,c;varying vec3 particle;varying float fade;
-      void main(){vec2 p=gl_PointCoord-.5;float theta=particle.x*6.28318;mat2 rotation=mat2(cos(theta),-sin(theta),sin(theta),cos(theta));p=rotation*p;
-        float kind=particle.y;
-        float r=kind<.65?length(p*vec2(1.,2.7)):length(p);
-        float alpha=1.-smoothstep(.05,.48,r);
-        if(kind>.87){float cross=exp(-abs(p.x)*32.)*exp(-abs(p.y)*6.)+exp(-abs(p.y)*32.)*exp(-abs(p.x)*6.);alpha=min(1.,cross)*.5;}
-        if(alpha<.015)discard;
-        vec3 color=mix(a,b,particle.z);color=mix(color,c,particle.y*.35);
-        gl_FragColor=vec4(color,alpha*fade*.75);\n#include <colorspace_fragment>\n}`,
+        float size=kind>2.5&&kind<3.5?1.7:kind>9.5&&kind<10.5?1.7:1.;
+        gl_PointSize=clamp((58.+seed.z*100.)*ratio*size/max(2.,-view.z),2.,20.*ratio);
+        fade=edge*smoothstep(.4,2.,-view.z)*(.55+.12*sin(t*.7+seed.z*6.));}`,
+      fragmentShader: `uniform vec3 a,b,c;uniform vec4 weather;varying vec3 particle;varying float fade,kind,group;
+      void main(){vec2 p=gl_PointCoord-.5;float alpha=0.;vec3 color=group<.5?a:group<1.5?b:c;
+        if(kind>.5&&kind<1.5){p.x+=p.y*weather.z*.7;alpha=(1.-smoothstep(.025,.1,abs(p.x)))*(1.-smoothstep(.08,.48,abs(p.y)));color=mix(color,vec3(.9,.8,.52),weather.x*.35*particle.z);}
+        else if(kind>1.5&&kind<2.5){alpha=exp(-abs(p.y)*24.)*(1.-smoothstep(.1,.49,abs(p.x)));}
+        else if((kind>2.5&&kind<3.5)||(kind>9.5&&kind<10.5)){alpha=(1.-smoothstep(0.,.5,length(p)))*.26;}
+        else if(kind>6.5&&kind<7.5){float r=length(p);float arms=.7+.3*cos(atan(p.y,p.x)*6.);alpha=(1.-smoothstep(.05,.45,r/arms))*.7;color=mix(color,vec3(.9,.95,1.),.65);}
+        else if(kind>10.5){float r=length(p*vec2(1.,2.));alpha=exp(-abs(r-.3)*25.)*.6;}
+        else if(kind>8.5&&kind<9.5){alpha=exp(-length(p)*15.);color=vec3(.94,.92,.8);}
+        else{float angle=particle.z*6.28;mat2 rotate=mat2(cos(angle),-sin(angle),sin(angle),cos(angle));p=rotate*p;alpha=1.-smoothstep(.04,.46,length(p*vec2(1.,2.4)));}
+        if(alpha<.01)discard;gl_FragColor=vec4(color,alpha*fade*.85);\n#include <colorspace_fragment>\n}`,
     });
     this.particles = new THREE.Points(geometry, material);
     this.particles.frustumCulled = false;
   }
-  setPalette(colors: string[]) {
-    const values = colors.length ? colors : ["#519b9e"];
+  setPalette(ids: string[]) {
+    const score = composeWeather(ids);
     for (const material of [this.sky.material, this.particles.material]) {
       ["a", "b", "c"].forEach((name, i) =>
-        material.uniforms[name].value.set(values[i % values.length]),
+        material.uniforms[name].value.set(
+          score.palettes[i % score.palettes.length].color,
+        ),
       );
+      material.uniforms.weather.value.fromArray(score.weather);
+      material.uniforms.climate.value.fromArray(score.climate);
+      material.uniforms.magic.value.fromArray(score.magic);
+      material.uniforms.kinds.value.set(
+        score.kinds[0],
+        score.kinds[1] ?? score.kinds[0],
+        score.kinds[2] ?? score.kinds[0],
+      );
+      material.uniforms.layers.value = score.entries.length;
     }
   }
   update(time: number, camera: THREE.Camera, ratio: number) {

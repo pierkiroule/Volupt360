@@ -134,7 +134,7 @@ export default function SimpleApp() {
             <div
               className="simple-ring"
               role="group"
-              aria-label="Choisir une à trois nuances"
+              aria-label="Choisir une à trois météos"
             >
               {NUANCES.map((n, index) => (
                 <button
@@ -185,7 +185,7 @@ export default function SimpleApp() {
       </div>
       {!inside && (
         <footer className="simple-footer">
-          <p>Choisis une à trois émotions. Puis entre.</p>
+          <p>Choisis la météo de ton ciel. Puis entre.</p>
           <small>Des couleurs à explorer, sans interprétation.</small>
         </footer>
       )}
