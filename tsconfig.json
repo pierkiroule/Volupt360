@@ -28,6 +28,8 @@
     "src/colibri/**/*.tsx",
     "src/studio/**/*.ts",
     "src/studio/**/*.tsx",
+    "src/simple/**/*.ts",
+    "src/simple/**/*.tsx",
     "src/vite-env.d.ts"
   ]
 }
