@@ -6,7 +6,7 @@ import { composeWeatherWorld, WeatherTerrain } from "./WeatherWorldComposer";
 import { weatherScore } from "./weatherScore";
 import type { Zone } from "./weatherModel";
 interface Props {
-  zones: Zone[]; paused: boolean; travel: boolean; gyro: boolean;
+  zones: Zone[]; paused: boolean; travel: boolean; gyro: boolean; gyroRevision?:number;
   navigation: React.RefObject<Steering>;
   onGyroError: (text: string) => void;
 }
@@ -51,7 +51,7 @@ export function UnifiedWeatherWorld(props: Props) {
   if (!world) return <p className="meteo-world-loading" role="status">{failed ? "Le cosmos n’a pas pu être composé. Reviens au disque pour réessayer." : "Tes sensations deviennent un cosmos…"}</p>;
   return <>
     <LandscapeScene surreal world={world} weatherZones={props.zones} moving={props.travel}
-      exploring paused={props.paused} gyro={props.gyro} steering={props.navigation}
+      exploring paused={props.paused} gyro={props.gyro} gyroRevision={props.gyroRevision} steering={props.navigation}
       onGyroError={props.onGyroError} model={model} environment={null} />
     {model && <a className="meteo-asset-credit" href={"https://polyhaven.com/a/"+model.id} target="_blank" rel="noreferrer">{model.name} · Poly Haven / CC0</a>}
   </>;
