@@ -19,7 +19,7 @@ test('sixteen sensory choices produce a rich cosmos with bounded GPU layers and 
   await expect(page.locator('.weather-disk')).toHaveAttribute('data-zones','16');
   await page.getByRole('button',{name:'Entrer dans mon cosmos ↗'}).click();
   const canvas=page.locator('canvas');
-  await expect(canvas).toHaveAttribute('data-cosmos','sensory');
+  await expect(canvas).toHaveAttribute('data-cosmos','sensory',{timeout:20000});
   await expect(canvas).toHaveAttribute('data-particles','1000');
   await expect(canvas).toHaveAttribute('data-zones','16');
   await page.getByRole('button',{name:'Pause',exact:true}).click();

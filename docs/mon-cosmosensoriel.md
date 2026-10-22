@@ -23,3 +23,13 @@ L'accès réel à Poly Haven est bloqué depuis l'environnement de développemen
 ## Son et limites
 
 Le moteur Strudel existant réutilise le mélange pondéré des zones pour choisir harmonies, densité et timbre. Le démarrage reste volontaire, et le retour au disque suspend la musique. Musique stéréo, sans sources sonores positionnelles. Les textures aquarellées sont procédurales. Les validations Chromium ne remplacent pas l'écoute et le contrôle gyroscope sur téléphone physique ; aucun FPS réel n'est annoncé.
+
+## Rencontres vivantes
+
+`LivingPhenomena.tsx` ajoute trois présences procédurales à la scène commune, sans téléchargement nécessaire : tournesol (36 pétales et 72 graines instanciés), courant liquide (deux tubes texturés et 48 gouttes) et pierres-plumes (7 pierres et 64 fragments effilés). `phenomenaConfig.ts` centralise leurs associations aux sensations et les mots évocateurs. Une présence par famille au maximum ; le choix le plus présent de chaque famille détermine sa palette, sa graine et sa position.
+
+Le tournesol se balance et déploie davantage ses pétales à l'approche. Sa libération de graines possède un temps de repos d'au moins 24 secondes ; les graines s'élèvent, se dispersent doucement puis dérivent vers le courant liquide s'il existe. Ce couplage est géométrique, sans nouvelle simulation physique ou moteur audio. Le courant se dilate à proximité et anime des gouttes remontant son parcours. Les pierres alternent contraction et déploiement de fragments plumeux ; l'approche infléchit cette transformation. Pas de flash ou d'explosion sonore.
+
+Un mot de la famille émerge à proximité après quelques secondes, dérive et disparaît en sept secondes. Les réapparitions sont espacées ; les mots ne proposent ni interprétation psychologique ni consigne. L'intégralité de ces mouvements, interactions et apparitions est suspendue en pause. Les textures, géométries et matériaux sont libérés au démontage. Pas de police distante, nouveau package ou appel réseau supplémentaire.
+
+Tests dédiés : sélection par famille, reproductibilité, repos des surprises, trajectoires de graines finies ; rendu des trois présences, absence d'erreurs WebGL/JavaScript, pause et réentrée sans perte de composition. Le test de rendu ne prétend pas valider la qualité perceptive ou les performances sur téléphone physique.
