@@ -194,7 +194,7 @@ test("cosmos flight moves among floating matter and pauses without a ground plan
   await page.getByRole("button",{name:"Entrer dans mon cosmos ↗"}).click();
   const canvas=page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-cosmos","sensory");
-  await expect(canvas).toHaveAttribute("data-particles","1000");
+  await expect(canvas).toHaveAttribute("data-particles","120");
   const before=await canvas.getAttribute("data-position");
   await expect.poll(()=>canvas.getAttribute("data-position")).not.toBe(before);
   await page.getByRole("button",{name:"Pause",exact:true}).click();

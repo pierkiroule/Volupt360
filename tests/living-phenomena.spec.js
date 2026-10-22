@@ -17,7 +17,7 @@ test('phenomena follow choices, surprises rest and seed paths remain finite',asy
   expect(result.first).toBe(true);expect(result.repeated).toBe(false);expect(result.second).toBe(true);expect(result.events).toBe(2);
   expect(result.finite).toBe(true);expect(result.maximum).toBeLessThan(15);
 });
-test('three real 3D presences render, freeze and clean up across re-entry',async({page})=>{
+test('three sensations render as filaments, freeze and survive re-entry',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.route('https://api.polyhaven.com/**',r=>r.abort());
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -32,11 +32,10 @@ test('three real 3D presences render, freeze and clean up across re-entry',async
   for(let i=0;i<2;i++){
     await page.getByRole('button',{name:'Entrer dans mon cosmos ↗'}).click();
     const canvas=page.locator('canvas');
-    await expect(canvas).toHaveAttribute('data-phenomena','sunflower,current,stone-feathers');
-    await expect(canvas).toHaveAttribute('data-stone-unfold',/\d/);
+    await expect(canvas).toHaveAttribute('data-render-style','filaments');
     await page.getByRole('button',{name:'Pause',exact:true}).click();
-    const state=await canvas.getAttribute('data-stone-unfold');
-    await page.waitForTimeout(250);expect(await canvas.getAttribute('data-stone-unfold')).toBe(state);
+    const state=await canvas.getAttribute('data-cosmo-time');
+    await page.waitForTimeout(250);expect(await canvas.getAttribute('data-cosmo-time')).toBe(state);
     if(i===0)await page.screenshot({path:'test-results/living-phenomena.png'});
     await page.getByRole('button',{name:'← Disque',exact:true}).click();
     await expect(page.locator('.weather-disk')).toHaveAttribute('data-zones','3');

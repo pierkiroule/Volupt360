@@ -1,8 +1,6 @@
-import * as THREE from "three";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { composeLandscape, type ComposedLandscape } from "./LandscapeComposer";
 import { LandscapeScene, requestGyroscope } from "./LandscapeScene";
-import { AssetLibrary, type ModelAsset } from "./AssetLibrary";
 import {
   BIOMES,
   ATMOSPHERES,
@@ -32,14 +30,6 @@ export default function LandscapeApp() {
     [exploring, setExploring] = useState(false),
     [paused, setPaused] = useState(false),
     [gyro, setGyro] = useState(false),
-    [model, setModel] = useState<ModelAsset | null>(null),
-    [environment, setEnvironment] = useState<{
-      id: string;
-      texture: THREE.DataTexture;
-    } | null>(null),
-    [assetState, setAssetState] = useState<"loading" | "local" | "remote">(
-      "local",
-    ),
     [notice, setNotice] = useState(""),
     [stored, setStored] = useState(saved);
   const [musicOpen, setMusicOpen] = useState(false),
@@ -139,41 +129,6 @@ export default function LandscapeApp() {
       document.removeEventListener("visibilitychange", hide);
     };
   }, [release]);
-  useEffect(() => {
-    if (!world) return;
-    const library = new AssetLibrary();
-    let active = true;
-    setAssetState("loading");
-    setEnvironment(null);
-    const pins = world.settings.assetIds;
-    if (!pins || pins.environment)
-      library
-        .loadEnvironment(world.settings.seed, pins?.environment || undefined)
-        .then((value) => {
-          if (active) setEnvironment(value);
-        })
-        .catch(() => {});
-    setModel(null);
-    if (pins && pins.model === null) setAssetState("local");
-    else
-      (pins?.model
-        ? library.loadModel(pins.model)
-        : library.selectModel(world.settings.biome, world.settings.seed)
-      )
-        .then((model) => {
-          if (active) {
-            setModel(model);
-            setAssetState("remote");
-          }
-        })
-        .catch(() => {
-          if (active) setAssetState("local");
-        });
-    return () => {
-      active = false;
-      library.dispose();
-    };
-  }, [world]);
   function generate(reuse?: LandscapeSettings) {
     if (busy) return;
     setBusy(true);
@@ -193,8 +148,6 @@ export default function LandscapeApp() {
       if (token !== generation.current) return;
       setDraft(settings);
       setWorld(next);
-      setModel(null);
-      setEnvironment(null);
       setPanel(false);
       setBusy(false);
       worker.current?.terminate();
@@ -283,8 +236,6 @@ export default function LandscapeApp() {
             paused={paused}
             gyro={gyro}
             steering={steering}
-            model={model}
-            environment={environment?.texture || null}
             onGyroError={gyroError}
           />
         </div>
@@ -537,16 +488,16 @@ export default function LandscapeApp() {
                     JSON.stringify({
                       ...world.settings,
                       assetIds: {
-                        model: model?.id || null,
-                        environment: environment?.id || null,
+                        model: null,
+                        environment: null,
                       },
                     }),
                   );
                   setStored({
                     ...world.settings,
                     assetIds: {
-                      model: model?.id || null,
-                      environment: environment?.id || null,
+                      model: null,
+                      environment: null,
                     },
                   });
                   setNotice(
@@ -560,31 +511,7 @@ export default function LandscapeApp() {
               Enregistrer
             </button>
           </nav>
-          <p className="landscape-source">
-            {assetState === "loading" ? (
-              "Le paysage est prêt. Les détails arrivent…"
-            ) : assetState === "local" ? (
-              "Objets procéduraux · création locale"
-            ) : (
-              <a
-                href={"https://polyhaven.com/a/" + model?.id}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {model?.name} · Poly Haven / CC0
-              </a>
-            )}
-          </p>
-          {environment && (
-            <a
-              className="landscape-hdri"
-              href={"https://polyhaven.com/a/" + environment.id}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Lumière : {environment.id} · Poly Haven / CC0
-            </a>
-          )}
+          <p className="landscape-source">Matières procédurales · création locale</p>
         </>
       )}
       {!world && (
