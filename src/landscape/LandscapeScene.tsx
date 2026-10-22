@@ -15,13 +15,10 @@ import { WatercolorSkydome } from "../weather/WatercolorSkydome";
 import { Phenomenon } from "../weather/WeatherWorld";
 import { InkBirds } from "../weather/ProjectiveAtmosphere";
 import { WEATHER, type Zone } from "../weather/weatherModel";
+import { isManualSteering, type Steering } from "../weather/navigationInput";
 import { surfaceGrain } from "./SurfaceMaterials";
 export { requestGyroscope };
-export interface Steering {
-  x: number;
-  y: number;
-  active: boolean;
-}
+export type { Steering } from "../weather/navigationInput";
 interface Props {
   weatherZones?: Zone[];
   surreal?: boolean;
@@ -30,6 +27,7 @@ interface Props {
   exploring: boolean;
   paused: boolean;
   gyro: boolean;
+  gyroRevision?: number;
   steering: React.RefObject<Steering>;
   model: ModelAsset | null;
   environment: THREE.DataTexture | null;
@@ -399,6 +397,7 @@ function World({
   exploring,
   paused,
   gyro,
+  gyroRevision = 0,
   steering,
   model,
   environment,
@@ -418,6 +417,7 @@ function World({
     forward: new THREE.Vector3(),
     sensor: null as THREE.Quaternion | null,
     sensorScreen: 0,
+    calibrationPitch: null as number | null,
     horizon: new HorizonGyro(),
   });
   const texture = useMemo(() => surfaceGrain(world.settings.seed, 24), [world]);
@@ -461,7 +461,8 @@ function World({
     const s = state.current;
     s.sensor = null;
     s.yaw = s.viewYaw;
-    s.pitch = s.viewPitch;
+    s.pitch = gyro ? 0 : s.viewPitch;
+    s.calibrationPitch = gyro ? 0 : null;
     s.sensorScreen = screen.orientation?.angle || 0;
     s.horizon.reset();
     gl.domElement.dataset.gyroController = "incremental-v3";
@@ -504,8 +505,11 @@ function World({
         s.sensor || new THREE.Quaternion(),
       );
       // Calibrate on the first sensor event, even when a heavy frame is pending.
-      if (steering.current.active || activity.current.paused) s.horizon.reset();
-      else s.horizon.update(s.sensor, s.viewYaw, s.viewPitch, now);
+      if (isManualSteering(steering.current, now) || activity.current.paused) s.horizon.reset();
+      else {
+        s.horizon.update(s.sensor, s.viewYaw, s.calibrationPitch ?? s.viewPitch, now);
+        if(s.horizon.calibrated) s.calibrationPitch=null;
+      }
       gl.domElement.dataset.gyro = "tracking";
     };
     window.addEventListener("deviceorientation", handler);
@@ -515,21 +519,24 @@ function World({
       window.removeEventListener("deviceorientation", handler);
       window.removeEventListener("deviceorientationabsolute", handler as EventListener);
     };
-  }, [gyro, onGyroError, gl, steering]);
+  }, [gyro, gyroRevision, onGyroError, gl, steering]);
   useFrame((_, raw) => {
     const dt = Math.min(raw, 0.05),
       s = state.current;
     if (!paused) time.current += dt;
     if (exploring && !paused) {
       const input = steering.current;
-      if (input.active) {
+      const manual = isManualSteering(input, performance.now());
+      if (manual) {
         s.horizon.reset();
-        s.yaw -= input.x * dt * 0.85;
+        const gestureTime = input.mode === "drag" ? 1 : dt;
+        s.yaw -= input.x * gestureTime * 0.85;
         s.pitch = THREE.MathUtils.clamp(
-          s.pitch - input.y * dt * 0.6,
+          s.pitch - input.y * gestureTime * 0.6,
           -1.1,
           1.1,
         );
+        if (input.mode === "drag") { input.x = 0; input.y = 0; }
       } else if (s.sensor && s.horizon.calibrated) {
         const look = s.horizon;
         s.yaw = look.yaw;
@@ -546,7 +553,7 @@ function World({
           s.pitch = Math.atan2(s.forward.y, Math.hypot(s.forward.x, s.forward.z));
         } else s.yaw += dt * .16;
       }
-      s.viewYaw = gyro && !input.active
+      s.viewYaw = gyro && !manual
         ? smoothGyroHeading(s.viewYaw, s.yaw, dt)
         : s.viewYaw + angleDelta(s.yaw - s.viewYaw) * (1 - Math.exp(-dt * 4));
       const pitchStep = THREE.MathUtils.damp(s.viewPitch, s.pitch, 4, dt)-s.viewPitch;

@@ -12,6 +12,7 @@ import {
 } from "./weatherModel";
 import { getLandscapeMusic, releaseLandscapeMusic } from "../landscape/StrudelMusicEngine";
 import { weatherScore } from "./weatherScore";
+import type { Steering } from "./navigationInput";
 import "./weather.css";
 export default function WeatherApp() {
   const [zones, setZones] = useState<Zone[]>(readSaved),
@@ -25,8 +26,9 @@ export default function WeatherApp() {
     ),
     [travel, setTravel] = useState(false),
     [gyro, setGyro] = useState(false),
+    [gyroRevision, setGyroRevision] = useState(0),
     [notice, setNotice] = useState("");
-  const navigation = useRef({ x: 0, y: 0, active: false }),
+  const navigation = useRef<Steering>({ x: 0, y: 0, active: false }),
     pointer = useRef<number | null>(null),
     origin = useRef({ x: 0, y: 0 }),
     history = useRef<Zone[][]>([]),
@@ -80,9 +82,13 @@ export default function WeatherApp() {
       }
     };
     window.addEventListener("blur", resetInput);
+    window.addEventListener("resize", resetInput);
+    window.addEventListener("orientationchange", resetInput);
     document.addEventListener("visibilitychange", hide);
     return () => {
       window.removeEventListener("blur", resetInput);
+      window.removeEventListener("resize", resetInput);
+      window.removeEventListener("orientationchange", resetInput);
       document.removeEventListener("visibilitychange", hide);
     };
   }, [resetInput]);
@@ -168,19 +174,20 @@ export default function WeatherApp() {
               if (!e.isPrimary || paused || pointer.current !== null) return;
               pointer.current = e.pointerId;
               origin.current = { x: e.clientX, y: e.clientY };
-              navigation.current.active = true;
+              navigation.current = { x:0, y:0, active:true, mode:travel ? "steer" : "drag", lastGestureAt:performance.now() };
               e.currentTarget.setPointerCapture(e.pointerId);
             }}
             onPointerMove={(e) => {
               if (pointer.current !== e.pointerId) return;
-              navigation.current.x = Math.max(
-                -1,
-                Math.min(1, (e.clientX - origin.current.x) / 90),
-              );
-              navigation.current.y = Math.max(
-                -1,
-                Math.min(1, (e.clientY - origin.current.y) / 90),
-              );
+              if (navigation.current.mode === "drag") {
+                navigation.current.x += (e.clientX-origin.current.x)/Math.max(180,e.currentTarget.clientWidth)*2.8;
+                navigation.current.y += (e.clientY-origin.current.y)/Math.max(180,e.currentTarget.clientHeight)*2.8;
+                origin.current = {x:e.clientX,y:e.clientY};
+              } else {
+                navigation.current.x = Math.max(-1,Math.min(1,(e.clientX-origin.current.x)/90));
+                navigation.current.y = Math.max(-1,Math.min(1,(e.clientY-origin.current.y)/90));
+              }
+              navigation.current.lastGestureAt = performance.now();
             }}
             onPointerUp={(e) => {
               if (pointer.current === e.pointerId) resetInput();
@@ -197,6 +204,7 @@ export default function WeatherApp() {
               paused={paused}
               travel={travel}
               gyro={gyro}
+              gyroRevision={gyroRevision}
               navigation={navigation}
               onGyroError={gyroError}
             />
@@ -372,6 +380,7 @@ export default function WeatherApp() {
             <button
               aria-pressed={travel}
               onClick={() => {
+                resetInput();
                 setTravel(!travel);
                 setPaused(false);
               }}
@@ -397,6 +406,7 @@ export default function WeatherApp() {
             >
               360°
             </button>
+            {gyro && <button aria-label="Recentrer l’horizon" title="Recentrer l’horizon" disabled={paused} onClick={()=>{resetInput();setGyroRevision(n=>n+1);}}>⟲</button>}
             <button onClick={() => setPaused(!paused)}>
               {paused ? "Reprendre" : "Pause"}
             </button>
