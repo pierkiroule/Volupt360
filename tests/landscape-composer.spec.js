@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("terrain, biomes and clustered placements are deterministic and bounded", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?paysage");
   const result = await page.evaluate(async () => {
     const { composeLandscape } =
       await import("/src/landscape/LandscapeComposer.ts");
@@ -74,7 +74,7 @@ test("offline assets do not block generation, flight, regeneration or local rest
   });
   await page.route("https://api.polyhaven.com/**", (r) => r.abort());
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?paysage");
   await page
     .getByRole("button", { name: "Générer un paysage", exact: true })
     .click();
@@ -183,7 +183,7 @@ test("GLTF dependency manifests are loaded from declared URLs and released (synt
       }),
     });
   });
-  await page.goto("/");
+  await page.goto("/?paysage");
   const result = await page.evaluate(async () => {
     const { AssetLibrary, inspectFiles } =
       await import("/src/landscape/AssetLibrary.ts");
@@ -218,7 +218,7 @@ test("all five biomes and four atmospheres render with a local asset budget", as
       errors.push(m.text());
   });
   await page.route("https://api.polyhaven.com/**", (r) => r.abort());
-  await page.goto("/");
+  await page.goto("/?paysage");
   for (const [i, biome] of [
     "forest",
     "mountain",
@@ -254,7 +254,7 @@ test("exploration preserves the view chosen in orbit mode", async ({
   page,
 }) => {
   await page.route("https://api.polyhaven.com/**", (r) => r.abort());
-  await page.goto("/");
+  await page.goto("/?paysage");
   await page
     .getByRole("button", { name: "Générer un paysage", exact: true })
     .click();

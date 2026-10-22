@@ -25,7 +25,7 @@ test('default mobile disk palette, bird flight, voluntary music and return', asy
   await page.getByRole('button',{name:'Pluie',exact:true}).click();
   const b=await page.locator('.weather-disk').boundingBox();
   await page.mouse.click(b.x+b.width*.5,b.y+b.height*.5);
-  await page.getByRole('button',{name:'Entrer dans mon ciel ↗'}).click();
+  await page.getByRole('button',{name:'Entrer dans mon monde ↗'}).click();
   await expect(page.locator('canvas')).toHaveAttribute('data-zones','1');
   const position=await page.locator('canvas').getAttribute('data-position');
   await expect.poll(()=>page.locator('canvas').getAttribute('data-position')).not.toBe(position);

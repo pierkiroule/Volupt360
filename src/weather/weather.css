@@ -296,3 +296,5 @@
   font-size: 13px;
 }
 .meteo-music-credit { position: absolute; right: 18px; top: 74px; color: #6d837c; font: 10px system-ui; opacity: .7; }
+.meteo-world-loading { position:absolute; inset:44% 15% auto; text-align:center; line-height:1.7; }
+.meteo-asset-credit { position:absolute; left:16px; bottom:82px; font:10px system-ui; color:#52716a; background:#fff9; border-radius:12px; padding:5px 9px; }

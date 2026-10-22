@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WeatherDisk } from "./WeatherDisk";
-import { WeatherWorld, requestGyroscope } from "./WeatherWorld";
+import { requestGyroscope } from "./WeatherWorld";
+import { UnifiedWeatherWorld } from "./UnifiedWeatherWorld";
 import {
   WEATHER,
   MAX_ZONES,
@@ -151,13 +152,13 @@ export default function WeatherApp() {
           <h1>
             Ma météo émotionnelle <span>•°</span>
           </h1>
-          <p>Pose les nuances de ton ciel. Laisse-les se rencontrer.</p>
+          <p>Compose ta météo. Elle devient un monde à traverser.</p>
         </header>
       )}
       <section
         className="meteo-stage"
         aria-label={
-          inside ? "Mon ciel en trois dimensions" : "Composition de mon ciel"
+          inside ? "Mon paysage météo en trois dimensions" : "Composition de mon ciel"
         }
       >
         {inside ? (
@@ -191,7 +192,7 @@ export default function WeatherApp() {
               if (pointer.current === e.pointerId) resetInput();
             }}
           >
-            <WeatherWorld
+            <UnifiedWeatherWorld
               zones={zones}
               paused={paused}
               travel={travel}
@@ -312,7 +313,7 @@ export default function WeatherApp() {
                 resetInput();
               }}
             >
-              Entrer dans mon ciel ↗
+              Entrer dans mon monde ↗
             </button>
           </div>
           <div className="meteo-secondary">

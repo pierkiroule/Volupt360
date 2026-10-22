@@ -27,7 +27,7 @@ interface Props {
   navigation: React.RefObject<Navigation>;
   onGyroError: (text: string) => void;
 }
-function Phenomenon({ zone, paused }: { zone: Zone; paused: boolean }) {
+export function Phenomenon({ zone, paused, position }: { zone: Zone; paused: boolean; position?: [number, number, number] }) {
   const root = useRef<THREE.Group>(null),
     particles = useRef<THREE.Points>(null),
     time = useRef(0);
@@ -122,7 +122,7 @@ function Phenomenon({ zone, paused }: { zone: Zone; paused: boolean }) {
   });
   const scale = zone.size * 5;
   return (
-    <group position={skyPosition(zone)} scale={scale}>
+    <group position={position || skyPosition(zone)} scale={scale}>
       <ProjectiveVeil zone={zone} paused={paused} />
       <group ref={root}>
         {layouts.map((l, i) => (

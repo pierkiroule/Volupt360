@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("music scores are seeded, distinct, harmonious and restrained", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?paysage");
   const result = await page.evaluate(async () => {
     const { musicScore } = await import("/src/landscape/musicComposition.ts");
     const { DEFAULT_SETTINGS, BIOMES } =
@@ -55,7 +55,7 @@ test("Strudel starts voluntarily, produces audio, follows pause and stops cleanl
     };
   });
   await page.route("https://api.polyhaven.com/**", (r) => r.abort());
-  await page.goto("/");
+  await page.goto("/?paysage");
   await page
     .getByRole("button", { name: "Générer un paysage", exact: true })
     .click();
