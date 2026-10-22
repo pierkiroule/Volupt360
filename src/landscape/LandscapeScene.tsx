@@ -406,6 +406,8 @@ function World({
 }: Props) {
   const { camera, gl } = useThree();
   const time = useRef(0);
+  const activity = useRef({paused});
+  activity.current.paused = paused;
   const state = useRef({
     yaw: 0,
     pitch: 0,
@@ -462,6 +464,7 @@ function World({
     s.pitch = s.viewPitch;
     s.sensorScreen = screen.orientation?.angle || 0;
     s.horizon.reset();
+    gl.domElement.dataset.gyroController = "incremental-v3";
     gl.domElement.dataset.gyro = gyro ? "waiting" : "off";
     if (!gyro) return;
     let received = false;
@@ -501,7 +504,8 @@ function World({
         s.sensor || new THREE.Quaternion(),
       );
       // Calibrate on the first sensor event, even when a heavy frame is pending.
-      if (!steering.current.active) s.horizon.update(s.sensor, s.viewYaw, s.viewPitch);
+      if (steering.current.active || activity.current.paused) s.horizon.reset();
+      else s.horizon.update(s.sensor, s.viewYaw, s.viewPitch, now);
       gl.domElement.dataset.gyro = "tracking";
     };
     window.addEventListener("deviceorientation", handler);
@@ -526,11 +530,11 @@ function World({
           -1.1,
           1.1,
         );
-      } else if (s.sensor) {
-        const look = s.horizon.update(s.sensor, s.viewYaw, s.viewPitch);
+      } else if (s.sensor && s.horizon.calibrated) {
+        const look = s.horizon;
         s.yaw = look.yaw;
         s.pitch = look.pitch;
-      } else if (weatherZones && moving) {
+      } else if (!gyro && weatherZones && moving) {
         // An unpiloted bird follows the river into the composition.
         const targetZ = Math.sin(time.current * .065) * 15;
         s.target.set(world.terrain.river(targetZ),
