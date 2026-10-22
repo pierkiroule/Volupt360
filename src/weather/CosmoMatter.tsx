@@ -54,7 +54,7 @@ function DreamRibbon({zone,index,paused}:{zone:Zone;index:number;paused:boolean}
   },[zone.kind,zone.seed,zone.opacity]);
   useEffect(()=>()=>{assets.geometry.dispose();assets.material.dispose();},[assets]);
   useFrame((_,dt)=>{if(!paused)time.current+=Math.min(dt,.05);assets.material.uniforms.time.value=time.current;});
-  return <mesh geometry={assets.geometry} material={assets.material}
+  return <mesh geometry={assets.geometry} material={assets.material} frustumCulled={false}
     position={[Math.sin(index*2.3)*3,Math.cos(index*1.8)*2,-3-index*1.5]}
     rotation={[index*.23,index*.28,(index-1.5)*.6]} />;
 }
