@@ -240,7 +240,7 @@ test("tilted-phone gyro turns preserve a level horizon and fixed contemplation p
   await pose(20, 45, 25);
   await expect(page.locator("canvas")).toHaveAttribute("data-gyro", "tracking");
   const before = await page.locator("canvas").getAttribute("data-heading");
-  await pose(110, 45, 25);
+  for (let alpha=35;alpha<=110;alpha+=15) { await pose(alpha,45,25); await page.waitForTimeout(40); }
   await page.waitForTimeout(450);
   await expect.poll(() => page.locator("canvas").getAttribute("data-heading")).not.toBe(before);
   const roll = await page.evaluate(async () => {
