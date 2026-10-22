@@ -385,6 +385,8 @@ export default function WeatherApp() {
                   setGyro(false);
                   return;
                 }
+                resetInput();
+                setTravel(false);
                 try {
                   await requestGyroscope();
                   setGyro(true);
