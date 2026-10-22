@@ -17,15 +17,15 @@ test('default mobile disk palette, bird flight, voluntary music and return', asy
   await page.setViewportSize({width:390,height:844});
   const errors=[]; page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/');
-  await expect(page.locator('.meteo-ring button')).toHaveCount(11);
+  await expect(page.locator('.meteo-ring button')).toHaveCount(16);
   for (const button of await page.locator('.meteo-ring button').all()) {
     const b=await button.boundingBox(); expect(b.x).toBeGreaterThanOrEqual(0);
     expect(b.x+b.width).toBeLessThanOrEqual(390);
   }
-  await page.getByRole('button',{name:'Pluie',exact:true}).click();
+  await page.getByRole('button',{name:'Ruissellement',exact:true}).click();
   const b=await page.locator('.weather-disk').boundingBox();
   await page.mouse.click(b.x+b.width*.5,b.y+b.height*.5);
-  await page.getByRole('button',{name:'Entrer dans mon monde ↗'}).click();
+  await page.getByRole('button',{name:'Entrer dans mon cosmos ↗'}).click();
   await expect(page.locator('canvas')).toHaveAttribute('data-zones','1');
   const position=await page.locator('canvas').getAttribute('data-position');
   await expect.poll(()=>page.locator('canvas').getAttribute('data-position')).not.toBe(position);

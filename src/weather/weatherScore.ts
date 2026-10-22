@@ -8,6 +8,9 @@ const voices: Record<WeatherId, [Biome, Atmosphere, number, number]> = {
   snow: ["mountain", "day", .25, .4], dusk: ["coast", "dusk", .35, .25],
   aurora: ["dream", "night", .46, .6], dream: ["dream", "dusk", .3, .35],
   prism: ["forest", "day", .55, .5],
+  fire: ["desert", "dusk", .65, .55], stone: ["mountain", "dusk", .28, .65],
+  spark: ["coast", "day", .6, .35], wave: ["coast", "dawn", .5, .45],
+  space: ["dream", "night", .24, .4],
 };
 export function weatherScore(zones: Zone[]): LandscapeSettings {
   const biomes = new Map<Biome, number>(), atmospheres = new Map<Atmosphere, number>();

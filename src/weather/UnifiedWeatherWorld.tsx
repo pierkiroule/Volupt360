@@ -48,9 +48,9 @@ export function UnifiedWeatherWorld(props: Props) {
       .then(value => { if (live) setModel(value); }).catch(() => {});
     return () => { live = false; library.dispose(); };
   }, [props.zones]);
-  if (!world) return <p className="meteo-world-loading" role="status">{failed ? "Le paysage n’a pas pu être composé. Reviens au disque pour réessayer." : "Tes nuances deviennent un monde…"}</p>;
+  if (!world) return <p className="meteo-world-loading" role="status">{failed ? "Le cosmos n’a pas pu être composé. Reviens au disque pour réessayer." : "Tes sensations deviennent un cosmos…"}</p>;
   return <>
-    <LandscapeScene world={world} weatherZones={props.zones} moving={props.travel}
+    <LandscapeScene surreal world={world} weatherZones={props.zones} moving={props.travel}
       exploring paused={props.paused} gyro={props.gyro} steering={props.navigation}
       onGyroError={props.onGyroError} model={model} environment={null} />
     {model && <a className="meteo-asset-credit" href={"https://polyhaven.com/a/"+model.id} target="_blank" rel="noreferrer">{model.name} · Poly Haven / CC0</a>}

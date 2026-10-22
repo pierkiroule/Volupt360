@@ -1,3 +1,13 @@
+# Mon CosmoSensoriel •°
+
+L’accueil ouvre un disque de composition sensorielle : 16 émojis, des zones à déposer, une proportion et une opacité à ajuster. Ces choix font émerger un cosmos aquarellé de voiles, de courants pigmentaires, de particules, de filaments et de fragments flottants. Exploration tactile ou gyro, musique Strudel volontaire, sauvegarde locale conservée, sans interprétation psychologique.
+
+Poly Haven peut enrichir ce monde de quelques assets flottants ; les matières procédurales restent disponibles sans réseau. L’accès réel à l’API est bloqué dans cet environnement. Le compositeur de paysages indépendant est conservé avec **`?paysage`**.
+
+[Architecture, palette, performance et limites](docs/mon-cosmosensoriel.md).
+
+---
+
 # Paysages •° — LandscapeComposer
 
 Un compositeur de paysages 3D : cinq biomes, quatre atmosphères, relief et densité réglables, génération par graine, exploration 360° et sauvegarde locale. La bibliothèque procédurale fonctionne lorsque les ressources distantes sont indisponibles.
@@ -14,7 +24,7 @@ Le bouton **♪** active une composition Strudel locale, harmonisée selon le bi
 
 Pose des émojis météo sur un disque aquarellé animé, ajuste la proportion et l’opacité de chaque zone, puis entre dans le même ciel en 3D pour le contempler ou y voyager. Un outil de composition libre, sans interprétation automatique.
 
-L’accueil utilise ce nouveau parcours. Les expériences précédentes restent accessibles : **`?colibri`**, **`?studio`**. L’enregistrement du ciel est local et volontaire. Voir [l’architecture et le fonctionnement](docs/emotional-weather.md).
+Cette ancienne étape météo est remplacée à l’accueil par Mon CosmoSensoriel. Les expériences précédentes restent accessibles : **`?colibri`**, **`?studio`**. L’enregistrement du ciel est local et volontaire. Voir [l’architecture et le fonctionnement](docs/emotional-weather.md).
 
 ---
 

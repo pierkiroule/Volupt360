@@ -10,6 +10,7 @@ import type { ComposedLandscape } from "./LandscapeComposer";
 import type { Placement } from "./types";
 import { deviceQuaternion, requestGyroscope } from "../scene/gyroOrientation";
 import { HorizonGyro, angleDelta } from "../weather/HorizonGyro";
+import { CosmoMatter, cosmoAnchor } from "../weather/CosmoMatter";
 import { WatercolorSkydome } from "../weather/WatercolorSkydome";
 import { Phenomenon } from "../weather/WeatherWorld";
 import { InkBirds } from "../weather/ProjectiveAtmosphere";
@@ -23,6 +24,7 @@ export interface Steering {
 }
 interface Props {
   weatherZones?: Zone[];
+  surreal?: boolean;
   moving?: boolean;
   world: ComposedLandscape;
   exploring: boolean;
@@ -304,6 +306,13 @@ function RemoteObjects({
     </>
   );
 }
+function FloatingAssets({world,model,paused}:{world:ComposedLandscape;model:ModelAsset;paused:boolean}) {
+  const root=useRef<THREE.Group>(null), time=useRef(0);
+  const items=useMemo(()=>world.objects.filter(p=>p.kind===model.kind).slice(0,3).map((p,i)=>({...p,
+    x:Math.sin(i*2.1+world.settings.seed)*14,y:Math.sin(i*1.7)*5,z:Math.cos(i*2.1+world.settings.seed)*14,scale:p.scale*.65})),[world,model]);
+  useFrame((_,dt)=>{if(!paused)time.current+=Math.min(dt,.05);if(root.current){root.current.position.y=Math.sin(time.current*.15)*.8;root.current.rotation.y=Math.sin(time.current*.06)*.1;}});
+  return <group ref={root}><RemoteObjects model={model} items={items}/></group>;
+}
 function Atmosphere({
   world,
   environment,
@@ -383,6 +392,7 @@ function Atmosphere({
   );
 }
 function World({
+  surreal = false,
   weatherZones,
   moving = true,
   world,
@@ -425,13 +435,17 @@ function World({
   useEffect(() => {
     camera.position.fromArray(world.camera);
     camera.lookAt(...world.target);
+    if (surreal) {
+      camera.position.set(0,1,10);
+      camera.lookAt(...(weatherZones?.[0] ? cosmoAnchor(weatherZones[0]) : [0,0,0] as [number,number,number]));
+    }
     const s = state.current;
     s.euler.setFromQuaternion(camera.quaternion, "YXZ");
     s.yaw = s.viewYaw = s.euler.y;
     s.pitch = s.viewPitch = s.euler.x;
     s.horizon.reset();
     gl.shadowMap.needsUpdate = true;
-  }, [world, camera, gl]);
+  }, [world, camera, gl, surreal, weatherZones]);
   useEffect(() => {
     if (!exploring) return;
     const s = state.current;
@@ -499,6 +513,7 @@ function World({
         const targetZ = Math.sin(time.current * .065) * 15;
         s.target.set(world.terrain.river(targetZ),
           Math.max(world.terrain.height(world.terrain.river(targetZ), targetZ) + 5, 5), targetZ);
+        if (surreal) s.target.set(Math.sin(time.current*.09)*10,Math.sin(time.current*.13)*4,Math.cos(time.current*.075)*10-3);
         s.forward.copy(s.target).sub(camera.position);
         if (s.forward.lengthSq() > 9) {
           s.yaw = Math.atan2(-s.forward.x, -s.forward.z);
@@ -522,6 +537,8 @@ function World({
           .normalize();
       }
       camera.position.addScaledVector(s.forward, dt * 1.6);
+      if (surreal) camera.position.y = THREE.MathUtils.clamp(camera.position.y, -16, 16);
+      else {
       const floor =
         world.terrain.height(camera.position.x, camera.position.z) + 2.3;
       camera.position.y = Math.max(
@@ -534,10 +551,11 @@ function World({
         floor,
       );
       }
+      }
     }
     if (weatherZones) {
       gl.domElement.dataset.zones = String(weatherZones.length);
-      gl.domElement.dataset.landscape = "composed-weather";
+      gl.domElement.dataset.landscape = surreal ? "sensory-cosmos" : "composed-weather";
     }
     gl.domElement.dataset.heading = camera.quaternion
       .toArray()
@@ -556,7 +574,7 @@ function World({
       {weatherZones && <>
         <WatercolorSkydome zones={weatherZones} paused={paused} />
         <InkBirds paused={paused} />
-        {weatherZones.map(zone => {
+        {!surreal && weatherZones.map(zone => {
           const x = zone.x * 28, z = zone.y * 28;
           const height = Math.max(world.terrain.height(x,z), world.terrain.waterLevel) + 9 + zone.size * 8;
           return <group key={zone.id} position={[x, height, z]} scale={3}>
@@ -564,7 +582,8 @@ function World({
           </group>;
         })}
       </>}
-      <mesh geometry={terrain} receiveShadow>
+      {surreal && weatherZones && <CosmoMatter zones={weatherZones} paused={paused} />}
+      {!surreal && <mesh geometry={terrain} receiveShadow>
         <meshStandardMaterial
           vertexColors
           roughness={0.94}
@@ -574,8 +593,8 @@ function World({
           bumpScale={0.09}
           envMapIntensity={0.5}
         />
-      </mesh>
-      {world.settings.biome !== "desert" && (
+      </mesh>}
+      {!surreal && world.settings.biome !== "desert" && (
         <mesh
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, world.terrain.waterLevel, 0]}
@@ -591,7 +610,8 @@ function World({
           />
         </mesh>
       )}
-      <ObjectLayers key={world.settings.seed} world={world} model={model} weatherZones={weatherZones} />
+      {!surreal && <ObjectLayers key={world.settings.seed} world={world} model={model} weatherZones={weatherZones} />}
+      {surreal && model && <FloatingAssets world={world} model={model} paused={paused} />}
       {!exploring && (
         <OrbitControls
           target={world.target}

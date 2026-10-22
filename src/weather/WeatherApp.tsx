@@ -68,7 +68,7 @@ export default function WeatherApp() {
     setNotice(text);
   }, []);
   useEffect(() => {
-    document.title = "Ma météo émotionnelle •°";
+    document.title = "Mon CosmoSensoriel •°";
     if (import.meta.env.PROD && "serviceWorker" in navigator)
       navigator.serviceWorker
         .register(import.meta.env.BASE_URL + "sw.js")
@@ -147,18 +147,18 @@ export default function WeatherApp() {
       {!inside && (
         <header>
           <p className="meteo-kicker">
-            Un paysage à composer, sans rien à expliquer
+            Un cosmos à ressentir, sans rien à expliquer
           </p>
           <h1>
-            Ma météo émotionnelle <span>•°</span>
+            Mon CosmoSensoriel <span>•°</span>
           </h1>
-          <p>Compose ta météo. Elle devient un monde à traverser.</p>
+          <p>Compose les nuances de tes sensations. Entre dans leur imaginaire.</p>
         </header>
       )}
       <section
         className="meteo-stage"
         aria-label={
-          inside ? "Mon paysage météo en trois dimensions" : "Composition de mon ciel"
+          inside ? "Mon cosmos sensoriel en trois dimensions" : "Composition de mon ciel"
         }
       >
         {inside ? (
@@ -217,11 +217,12 @@ export default function WeatherApp() {
           />
         )}
         {!inside && (
-          <div className="meteo-palette meteo-ring" aria-label="Palette météo autour du disque">
+          <div className="meteo-palette meteo-ring" aria-label="Palette sensorielle autour du disque">
             {WEATHER.map((w, i) => (
               <button
                 key={w.id}
                 style={{ left: `${50 + 59 * Math.sin(i / WEATHER.length * Math.PI * 2)}%`, top: `${50 - 59 * Math.cos(i / WEATHER.length * Math.PI * 2)}%` }}
+                title={w.label}
                 aria-label={w.label}
                 aria-pressed={kind === w.id}
                 onClick={() => {
@@ -236,14 +237,14 @@ export default function WeatherApp() {
         )}
         {!inside && zones.length === 0 && (
           <p className="meteo-empty">
-            Un peu de soleil, un passage de pluie…
+            Chaleur, souffle, légèreté…
             <br />
-            Choisis un émoji, puis touche le disque.
+            Choisis une sensation, puis touche le disque.
           </p>
         )}
       </section>
       {!inside ? (
-        <section className="meteo-tools" aria-label="Composer ma météo">
+        <section className="meteo-tools" aria-label="Composer mon univers sensoriel">
           <div className="meteo-sliders">
             <label>
               Proportion <output>{Math.round(size * 100)} %</output>
@@ -313,7 +314,7 @@ export default function WeatherApp() {
                 resetInput();
               }}
             >
-              Entrer dans mon monde ↗
+              Entrer dans mon cosmos ↗
             </button>
           </div>
           <div className="meteo-secondary">
@@ -346,11 +347,11 @@ export default function WeatherApp() {
       ) : (
         <>
           <div className="meteo-flight-name">
-            Ma météo <span>•°</span>
+            Mon CosmoSensoriel <span>•°</span>
           </div>
           <p className="meteo-flight-hint">
             {travel
-              ? "Vue d’oiseau · glisse pour guider ton vol, ou active le gyro."
+              ? "Glisse pour explorer ton cosmos, ou laisse-toi porter."
               : "Glisse pour regarder autour de toi."}
           </p>
           <button className="meteo-sound" disabled={soundBusy} aria-label={sound ? "Couper la musique" : "Écouter mon paysage"} aria-pressed={sound} onClick={() => void toggleSound()}>{soundBusy ? "…" : sound ? "♪ Son" : "♪ Écouter"}</button>
