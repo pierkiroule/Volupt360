@@ -6,6 +6,8 @@ Un compositeur de paysages 3D : cinq biomes, quatre atmosphères, relief et dens
 
 Les expériences existantes sont conservées sous `?meteo`, `?studio` et `?colibri`.
 
+Le bouton **♪** active une composition Strudel locale, harmonisée selon le biome et l’ambiance, avec volume et silence. Aucun sample distant. [Architecture et licence musicale](docs/strudel-landscape-music.md).
+
 ---
 
 # Ma météo émotionnelle •°
