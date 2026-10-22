@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+const LandscapeApp = lazy(() => import("./landscape/LandscapeApp.tsx"));
 const WeatherApp = lazy(() => import("./weather/WeatherApp.tsx"));
 const ColibriApp = lazy(() => import("./colibri/ColibriApp.tsx"));
 const StudioApp = lazy(() => import("./studio/StudioApp.tsx"));
@@ -43,8 +44,10 @@ createRoot(document.getElementById("root")).render(
         <StudioApp />
       ) : new URLSearchParams(location.search).has("colibri") ? (
         <ColibriApp />
-      ) : (
+      ) : new URLSearchParams(location.search).has("meteo") ? (
         <WeatherApp />
+      ) : (
+        <LandscapeApp />
       )}
     </Suspense>
   </React.StrictMode>,
