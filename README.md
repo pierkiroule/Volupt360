@@ -2,7 +2,7 @@
 
 **Compose ton ciel émotionnel et traverse-le tranquillement en 360°.**
 
-Une petite palette de six émotions colore un monde de voiles aquarellés. Choisis une à trois nuances, entre, contemple ou laisse-toi porter par un voyage lent. Navigation tactile et gyroscope facultatif ; pause accessible à tout moment.
+Une petite palette de douze émotions colore un monde de voiles aquarellés, de ciels pigmentaires et de particules nacrées. Choisis une à trois nuances, entre, contemple ou laisse-toi porter par un voyage lent. Navigation tactile et gyroscope facultatif ; pause accessible à tout moment.
 
 React, Vite, TypeScript et Three.js. Aucun backend, moteur musical, modèle distant ou interprétation des émotions. Les choix restent sur l’appareil.
 
