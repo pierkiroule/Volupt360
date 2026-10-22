@@ -9,11 +9,11 @@ test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/?meteo");
   await expect(
-    page.getByRole("button", { name: "Entrer dans mon monde ↗" }),
+    page.getByRole("button", { name: "Entrer dans mon cosmos ↗" }),
   ).toBeDisabled();
-  await place(page, "Pluie", 0.32, 0.45);
-  await place(page, "Rayonnement", 0.67, 0.4);
-  await place(page, "Vent", 0.55, 0.7);
+  await place(page, "Ruissellement", 0.32, 0.45);
+  await place(page, "Chaleur douce", 0.67, 0.4);
+  await place(page, "Souffle", 0.55, 0.7);
   await expect(page.locator("main")).toHaveAttribute("data-zones", "3");
   await page
     .getByRole("slider", { name: "Proportion", exact: true })
@@ -31,7 +31,7 @@ test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
   await expect(page.locator("main")).toHaveAttribute("data-zones", "2");
   await page.getByRole("button", { name: "Annuler" }).click();
   await expect(page.locator("main")).toHaveAttribute("data-zones", "3");
-  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon cosmos ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "3");
   await expect(page.getByRole("button", { name: "Contempler", exact: true })).toBeVisible();
   await page.waitForTimeout(300);
@@ -56,8 +56,8 @@ test("compose, adjust, move, undo and visit the same sky", async ({ page }) => {
 test("explicit local save, reload and mobile tools fit", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?meteo");
-  await place(page, "Orage", 0.4, 0.4);
-  await place(page, "Crépuscule", 0.7, 0.65);
+  await place(page, "Tension", 0.4, 0.4);
+  await place(page, "Enveloppement", 0.7, 0.65);
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.locator(".meteo-notice")).toContainText("cet appareil");
   await page.reload();
@@ -124,14 +124,14 @@ test("all weather materials stay finite and malformed saved data is rejected", a
   expect(directions[0][2]).toBeLessThan(0);
   expect(directions[1][2]).toBeGreaterThan(0);
   for (const [index, name] of [
-    "Rayonnement",
-    "Nuages",
-    "Pluie",
-    "Orage",
-    "Vent",
-    "Brume",
-    "Neige",
-    "Crépuscule",
+    "Chaleur douce",
+    "Cotonneux",
+    "Ruissellement",
+    "Tension",
+    "Souffle",
+    "Flou",
+    "Fraîcheur",
+    "Enveloppement",
   ].entries()) {
     await place(
       page,
@@ -140,7 +140,7 @@ test("all weather materials stay finite and malformed saved data is rejected", a
       0.35 + Math.floor(index / 4) * 0.3,
     );
   }
-  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon cosmos ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "8");
 });
 test("imaginary weather compiles its watercolor shaders, pauses and preserves the scene", async ({
@@ -154,9 +154,9 @@ test("imaginary weather compiles its watercolor shaders, pauses and preserves th
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?meteo");
-  await place(page, "Aurore imaginaire", 0.28, 0.35);
-  await place(page, "Pluie suspendue", 0.7, 0.38);
-  await place(page, "Reflets irisés", 0.5, 0.72);
+  await place(page, "Vibration", 0.28, 0.35);
+  await place(page, "Légèreté", 0.7, 0.38);
+  await place(page, "Foisonnement", 0.5, 0.72);
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   const textures = await page.evaluate(async () => {
     const m = await import("/src/weather/weatherModel.ts");
@@ -171,7 +171,7 @@ test("imaginary weather compiles its watercolor shaders, pauses and preserves th
   });
   expect(textures.reproducible).toBe(true);
   expect(textures.alphas).toBeGreaterThan(80);
-  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
+  await page.getByRole("button", { name: "Entrer dans mon cosmos ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-birds", "5");
   await expect(page.locator("canvas")).toHaveAttribute("data-zones", "3");
   await page.waitForTimeout(500);
@@ -186,63 +186,22 @@ test("imaginary weather compiles its watercolor shaders, pauses and preserves th
   await page.reload();
   await expect(page.locator("main")).toHaveAttribute("data-zones", "3");
 });
-test("watercolor ground renders and flight keeps clearance above hills", async ({
-  page,
-}) => {
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => {
-    if (m.type() === "error" && /WebGL|shader|GL_INVALID|THREE/i.test(m.text()))
-      errors.push(m.text());
-  });
+test("cosmos flight moves among floating matter and pauses without a ground plane", async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
   await page.goto("/?meteo");
-  await place(page, "Rayonnement", 0.5, 0.5);
-  await place(page, "Pluie", 0.3, 0.4);
-  await page.getByRole("button", {name:"Enregistrer",exact:true}).click();
-  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
-  await expect(page.locator("canvas")).toHaveAttribute(
-    "data-landscape",
-    "composed-weather",
-  );
-  const ranges = await page.evaluate(async () => {
-    const m = await import("/src/weather/WeatherLandscape.tsx");
-    let min = Infinity,
-      max = -Infinity;
-    for (let x = -12; x <= 12; x += 0.5)
-      for (let z = -12; z <= 12; z += 0.5) {
-        const h = m.groundHeight(x, z);
-        if (!Number.isFinite(h)) throw Error("nonfinite ground");
-        min = Math.min(min, h);
-        max = Math.max(max, h);
-      }
-    return {
-      min,
-      max,
-      river: Array.from({ length: 12 }, (_, i) => m.riverCenter(i - 6)),
-    };
-  });
-  expect(ranges.max - ranges.min).toBeGreaterThan(0.5);
-  expect(ranges.river.every(Number.isFinite)).toBe(true);
-  await page.mouse.move(600, 300);
-  await page.mouse.down();
-  await page.mouse.move(600, 430, { steps: 5 });
-  await page.waitForTimeout(650);
-  await page.mouse.up();
-  await expect(page.getByRole("button", { name: "Contempler", exact: true })).toBeVisible();
-  await page.waitForTimeout(600);
-  const clearance = await page.evaluate(async () => {
-    const m = await import("/src/weather/WeatherWorldComposer.ts");
-    const wm = await import("/src/weather/weatherModel.ts");
-    const terrain = new m.WeatherTerrain(wm.readSaved());
-    const [x, y, z] = document
-      .querySelector("canvas")
-      .dataset.position.split(",")
-      .map(Number);
-    return y - terrain.height(x, z);
-  });
-  expect(clearance).toBeGreaterThanOrEqual(1.29);
-  await page.screenshot({ path: "test-results/weather-ground.png" });
-  expect(errors).toEqual([]);
+  await place(page,"Fluidité",.4,.4);
+  await place(page,"Chaleur vive",.7,.6);
+  await page.getByRole("button",{name:"Entrer dans mon cosmos ↗"}).click();
+  const canvas=page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-cosmos","sensory");
+  await expect(canvas).toHaveAttribute("data-particles","1000");
+  const before=await canvas.getAttribute("data-position");
+  await expect.poll(()=>canvas.getAttribute("data-position")).not.toBe(before);
+  await page.getByRole("button",{name:"Pause",exact:true}).click();
+  const time=await canvas.getAttribute("data-cosmo-time");
+  await page.waitForTimeout(350);
+  expect(await canvas.getAttribute("data-cosmo-time")).toBe(time);
+  await page.screenshot({path:"test-results/cosmos-flight.png"});
 });
 test("tilted-phone gyro turns preserve a level horizon and fixed contemplation position", async ({
   page,
@@ -258,8 +217,8 @@ test("tilted-phone gyro turns preserve a level horizon and fixed contemplation p
     });
   });
   await page.goto("/?meteo");
-  await place(page, "Rayonnement", 0.5, 0.5);
-  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
+  await place(page, "Chaleur douce", 0.5, 0.5);
+  await page.getByRole("button", { name: "Entrer dans mon cosmos ↗" }).click();
   await page.getByRole("button", { name: "Contempler", exact: true }).click();
   await page.getByRole("button", { name: "360°", exact: true }).click();
   await expect(
@@ -405,9 +364,9 @@ test("generated skydome renders in 360 and its drift stops on pause", async ({
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?meteo");
-  await place(page, "Aurore imaginaire", 0.4, 0.32);
-  await place(page, "Crépuscule", 0.7, 0.6);
-  await page.getByRole("button", { name: "Entrer dans mon monde ↗" }).click();
+  await place(page, "Vibration", 0.4, 0.32);
+  await place(page, "Enveloppement", 0.7, 0.6);
+  await page.getByRole("button", { name: "Entrer dans mon cosmos ↗" }).click();
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-skydome",
     "watercolor",

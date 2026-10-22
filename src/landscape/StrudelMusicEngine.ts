@@ -175,6 +175,14 @@ export class StrudelMusicEngine {
       this.fade(this.volume);
     }
   }
+  /** Caller-owned buffer: no allocations and no implicit audio activation. */
+  sampleEnergy(samples: Float32Array<ArrayBuffer>) {
+    if (!this.analyser || !this.enabled || this.paused) return 0;
+    this.analyser.getFloatTimeDomainData(samples);
+    let sum = 0;
+    for (const value of samples) sum += value * value;
+    return Math.sqrt(sum / samples.length);
+  }
   inspect() {
     const samples = new Float32Array(512);
     this.analyser?.getFloatTimeDomainData(samples);

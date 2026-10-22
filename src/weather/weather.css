@@ -298,3 +298,7 @@
 .meteo-music-credit { position: absolute; right: 18px; top: 74px; color: #6d837c; font: 10px system-ui; opacity: .7; }
 .meteo-world-loading { position:absolute; inset:44% 15% auto; text-align:center; line-height:1.7; }
 .meteo-asset-credit { position:absolute; left:16px; bottom:82px; font:10px system-ui; color:#52716a; background:#fff9; border-radius:12px; padding:5px 9px; }
+.meteo h1 { font-size:clamp(25px,6vw,40px); letter-spacing:-.04em; }
+.meteo-flight-name { font-size:clamp(17px,4vw,24px); }
+.meteo-ring button { background:radial-gradient(circle at 35% 25%,#fffdf8ee,#f2ecdfb3); border-color:#8d9c912b; }
+.meteo:not(.meteo-immersed) { background:radial-gradient(ellipse at 20% 30%,#c6d4d635,transparent 55%),radial-gradient(ellipse at 85% 65%,#d7bfd132,transparent 60%),#f5f1e8; }

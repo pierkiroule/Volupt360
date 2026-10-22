@@ -204,7 +204,7 @@ export function WeatherDisk({
     <canvas
       className="weather-disk"
       ref={canvas}
-      aria-label="Disque de météo émotionnelle"
+      aria-label="Disque de sensations"
       onPointerDown={(e) => {
         if (!e.isPrimary || drag.current) return;
         const p = position(e);

@@ -26,15 +26,15 @@ test('network failure still renders a single complete world and preserves the di
   await page.route('https://api.polyhaven.com/**',r=>r.abort());
   await page.setViewportSize({width:390,height:844});
   await page.goto('/');
-  for(const [kind,x,y] of [['Nuages',.3,.4],['Pluie',.7,.6]]) {
+  for(const [kind,x,y] of [['Cotonneux',.3,.4],['Ruissellement',.7,.6]]) {
     await page.getByRole('button',{name:kind,exact:true}).click();
     const b=await page.locator('.weather-disk').boundingBox();
     await page.mouse.click(b.x+b.width*x,b.y+b.height*y);
   }
-  await page.getByRole('button',{name:'Entrer dans mon monde ↗'}).click();
+  await page.getByRole('button',{name:'Entrer dans mon cosmos ↗'}).click();
   const canvas=page.locator('canvas');
   await expect(canvas).toHaveCount(1);
-  await expect(canvas).toHaveAttribute('data-landscape','composed-weather');
+  await expect(canvas).toHaveAttribute('data-landscape','sensory-cosmos');
   await expect(canvas).toHaveAttribute('data-skydome','watercolor');
   await expect(canvas).toHaveAttribute('data-zones','2');
   expect(Number(await canvas.getAttribute('data-objects'))).toBeGreaterThan(30);
