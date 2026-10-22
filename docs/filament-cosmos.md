@@ -20,3 +20,7 @@ Les anciens phénomènes pleins restent dans le dépôt mais ne sont plus monté
 Tests des buffers déterministes, des bornes mémoire et géométriques, du nombre d'appels de dessin, de l'absence de requêtes Poly Haven, de la réentrée et des sauvegardes, ainsi que du geste tactile précédemment responsable de la plongée. Le test glTF synthétique de l'intégration supprimée a été retiré. La validation esthétique et la fluidité sur le téléphone réel restent à confirmer.
 
 Le service worker ne précharge plus les 31 Mo du dossier de textures historique. Les images sont mises en cache au premier usage ; les scripts et styles de l'application restent précachés. Un test sur le build de production vérifie l'absence de téléchargement massif, la mise en cache d'une image demandée, la restauration du disque et l'entrée dans le cosmos hors ligne.
+
+## Retrait de Strudel
+
+Le moteur musical Strudel, son analyse audio et ses commandes sont supprimés. Les voiles et filaments conservent leur mouvement autonome. Aucun moteur de remplacement n’est ajouté.

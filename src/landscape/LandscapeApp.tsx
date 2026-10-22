@@ -11,7 +11,6 @@ import {
   type Atmosphere,
 } from "./types";
 import { TerrainGenerator } from "./TerrainGenerator";
-import { getLandscapeMusic, releaseLandscapeMusic } from "./StrudelMusicEngine";
 import "./landscape.css";
 const KEY = "landscape-composer.saved.v1";
 function saved() {
@@ -32,68 +31,7 @@ export default function LandscapeApp() {
     [gyro, setGyro] = useState(false),
     [notice, setNotice] = useState(""),
     [stored, setStored] = useState(saved);
-  const [musicOpen, setMusicOpen] = useState(false),
-    [musicOn, setMusicOn] = useState(false),
-    [musicBusy, setMusicBusy] = useState(false),
-    [musicVolume, setMusicVolume] = useState(55);
   const worker = useRef<Worker | null>(null);
-  useEffect(() => {
-    void getLandscapeMusic()
-      .setPaused(paused)
-      .catch(() =>
-        setNotice(
-          "La musique est suspendue. Utilise le bouton Musique pour réessayer.",
-        ),
-      );
-  }, [paused]);
-  useEffect(() => {
-    if (world)
-      void getLandscapeMusic()
-        .update(world.settings)
-        .catch(() => {
-          setMusicOn(false);
-          setNotice("La musique n’a pas pu évoluer. Tu peux la relancer.");
-          void getLandscapeMusic().stop();
-        });
-  }, [world]);
-  useEffect(
-    () => () => {
-      void releaseLandscapeMusic();
-    },
-    [],
-  );
-  async function toggleMusic() {
-    if (!world || musicBusy) return;
-    if (musicOn && paused) {
-      await getLandscapeMusic().setPaused(false);
-      setPaused(false);
-      return;
-    }
-    if (musicOn) {
-      await getLandscapeMusic().stop();
-      setMusicOn(false);
-      return;
-    }
-    setMusicBusy(true);
-    try {
-      const engine = getLandscapeMusic();
-      if (paused) {
-        void engine.setPaused(false);
-        setPaused(false);
-      }
-      engine.setVolume((musicVolume / 100) * 0.85);
-      await engine.start(world.settings);
-      setMusicOn(true);
-    } catch {
-      setNotice(
-        "La musique n’a pas pu démarrer. Réessaie après avoir touché l’écran.",
-      );
-      setMusicOn(false);
-    } finally {
-      setMusicBusy(false);
-    }
-  }
-
   const steering = useRef({ x: 0, y: 0, active: false }),
     pointer = useRef<number | null>(null),
     origin = useRef({ x: 0, y: 0 }),
@@ -363,79 +301,6 @@ export default function LandscapeApp() {
       )}
       {world && (
         <>
-          <button
-            className="landscape-music-toggle"
-            aria-label="Musique"
-            aria-expanded={musicOpen}
-            onClick={() => setMusicOpen(!musicOpen)}
-          >
-            ♪
-          </button>
-          {musicOpen && (
-            <section
-              className="landscape-music-panel"
-              aria-label="Musique du paysage"
-            >
-              <h2>La voix du paysage</h2>
-              <p>
-                {musicOn
-                  ? paused
-                    ? "La musique est en pause."
-                    : "Une composition qui évolue avec ce lieu."
-                  : "Des harmonies à faire apparaître."}
-              </p>
-              <button disabled={musicBusy} onClick={() => void toggleMusic()}>
-                {musicBusy
-                  ? "Accorder les instruments…"
-                  : musicOn
-                    ? paused
-                      ? "Reprendre la musique"
-                      : "Couper le son"
-                    : paused
-                      ? "Écouter et reprendre"
-                      : "Écouter"}
-              </button>
-              {musicOn && paused && (
-                <button
-                  onClick={() => {
-                    void getLandscapeMusic().stop();
-                    setMusicOn(false);
-                  }}
-                >
-                  Silence
-                </button>
-              )}
-              <label>
-                Volume <output>{musicVolume} %</output>
-                <input
-                  aria-label="Volume musical"
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={musicVolume}
-                  onChange={(e) => {
-                    const value = +e.target.value;
-                    setMusicVolume(value);
-                    getLandscapeMusic().setVolume((value / 100) * 0.85);
-                  }}
-                />
-              </label>
-              <small>
-                Musique locale avec{" "}
-                <a href="https://strudel.cc" target="_blank" rel="noreferrer">
-                  Strudel
-                </a>{" "}
-                ·{" "}
-                <a
-                  href={import.meta.env.BASE_URL + "licenses/strudel.txt"}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  licence et sources
-                </a>
-              </small>
-            </section>
-          )}
           <p className="landscape-hint">
             {exploring
               ? "Glisse pour orienter le vol. Le voyage reste proche du paysage."

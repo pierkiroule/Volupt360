@@ -4,11 +4,10 @@ import * as THREE from "three";
 import {buildFilaments} from "./FilamentGeometry";
 import {SilkVeil} from "./SilkVeil";
 import {random,type Zone} from "./weatherModel";
-import {getLandscapeMusic} from "../landscape/StrudelMusicEngine";
 export {cosmoAnchor} from "./cosmoPosition";
 /** Two shared draw calls plus at most two pigment membranes. No per-frame buffer writes. */
 export function CosmoMatter({zones,paused}:{zones:Zone[];paused:boolean}){
-  const {gl}=useThree(),clock=useRef(0),energy=useRef(0),audioTimer=useRef(0),samples=useRef(new Float32Array(512));
+  const {gl}=useThree(),clock=useRef(0);
   const assets=useMemo(()=>{
     const mobile=innerWidth<700, field=buildFilaments(zones,mobile);
     const geometry=new THREE.BufferGeometry();
@@ -30,9 +29,7 @@ export function CosmoMatter({zones,paused}:{zones:Zone[];paused:boolean}){
   useEffect(()=>()=>{assets.geometry.dispose();assets.material.dispose();assets.dust.dispose();assets.dustMaterial.dispose();},[assets]);
   useFrame((_,raw)=>{
     const dt=Math.min(raw,.05);if(!paused)clock.current+=dt;
-    audioTimer.current+=dt;
-    if(!paused&&audioTimer.current>.1){energy.current=THREE.MathUtils.damp(energy.current,Math.min(1,getLandscapeMusic().sampleEnergy(samples.current)*5),2,audioTimer.current);audioTimer.current=0;}
-    assets.material.uniforms.time.value=clock.current;assets.material.uniforms.energy.value=energy.current;assets.dustMaterial.uniforms.time.value=clock.current;
+    assets.material.uniforms.time.value=clock.current;assets.dustMaterial.uniforms.time.value=clock.current;
     gl.domElement.dataset.cosmos='sensory';gl.domElement.dataset.renderStyle='filaments';
     gl.domElement.dataset.particles=String(assets.count);gl.domElement.dataset.cosmoTime=clock.current.toFixed(3);
     gl.domElement.dataset.filamentZones=String(assets.selected.length);

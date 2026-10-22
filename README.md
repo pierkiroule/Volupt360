@@ -1,6 +1,6 @@
 # Mon CosmoSensoriel •°
 
-L’accueil ouvre un disque de composition sensorielle : 16 émojis, des zones à déposer, une proportion et une opacité à ajuster. Ces choix font émerger un cosmos aquarellé de voiles, de courants pigmentaires, de quelques particules et de filaments courbes. Exploration tactile ou gyro, musique Strudel volontaire, sauvegarde locale conservée, sans interprétation psychologique.
+L’accueil ouvre un disque de composition sensorielle : 16 émojis, des zones à déposer, une proportion et une opacité à ajuster. Ces choix font émerger un cosmos aquarellé de voiles, de courants pigmentaires, de quelques particules et de filaments courbes. Exploration tactile ou gyro, sauvegarde locale conservée, sans interprétation psychologique.
 
 Le cosmos utilise deux membranes de tissu aquarellé souple, des contours filaires et un rendu mobile borné. **L’API Poly Haven et ses chargements ont été supprimés** : toutes les matières sont procédurales. Le compositeur local de paysages est conservé avec **`?paysage`**. Voir [le rendu léger et ses limites](docs/filament-cosmos.md).
 
@@ -16,7 +16,6 @@ Le chargement externe de modèles et de HDRI a été retiré. Les cinq biomes em
 
 Les expériences existantes sont conservées sous `?meteo`, `?studio` et `?colibri`.
 
-Le bouton **♪** active une composition Strudel locale, harmonisée selon le biome et l’ambiance, avec volume et silence. Aucun sample distant. [Architecture et licence musicale](docs/strudel-landscape-music.md).
 
 ---
 
@@ -77,3 +76,5 @@ Vercel conserve la configuration existante (`dist`, framework Vite). Après char
 Voir [la documentation du studio](docs/squiggle-studio.md). Les matières sont procédurales ; la transduction associe calques pigmentaires et géométries spécifiques, sans simulation physique complète des fluides. Le WebM ne contient pas de piste sonore. La fluidité sur un appareil réel, notamment le Galaxy S24 Ultra, reste à mesurer.
 
 L’ancienne expérience est conservée sous `?squibble` et les autres routes historiques restent accessibles. Leurs fichiers publics et leurs stockages ne sont pas supprimés. [Documentation historique](docs/README-history.md).
+
+Le moteur Strudel et ses commandes ont été retirés. Le cosmos fonctionne désormais sans musique générative.

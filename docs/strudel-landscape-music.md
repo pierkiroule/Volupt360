@@ -1,3 +1,5 @@
+> Archive : Strudel, son interface et sa dépendance ont été retirés. Cette page décrit une ancienne version.
+
 # Musique de paysage — Strudel
 
 Le bouton ♪ ouvre un lecteur discret : Écouter / Couper le son et volume. Aucun AudioContext n’est créé avant une activation volontaire. Le son suit la pause du voyage et les interruptions d’arrière-plan. Les changements de paysage passent par un fondu avant l’installation du nouveau motif.

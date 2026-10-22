@@ -13,7 +13,7 @@ test('weather score uses weighted choices and stays reproducible', async ({ page
   expect(result.mix).toEqual(result.reverse);
   expect(result.mix.seed).not.toBe(result.sun.seed);
 });
-test('default mobile disk palette, bird flight, voluntary music and return', async ({ page }) => {
+test('default mobile disk palette, bird flight, silent exploration and return', async ({ page }) => {
   await page.setViewportSize({width:390,height:844});
   const errors=[]; page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/');
@@ -29,11 +29,7 @@ test('default mobile disk palette, bird flight, voluntary music and return', asy
   await expect(page.locator('canvas')).toHaveAttribute('data-zones','1');
   const position=await page.locator('canvas').getAttribute('data-position');
   await expect.poll(()=>page.locator('canvas').getAttribute('data-position')).not.toBe(position);
-  await page.getByRole('button',{name:'Écouter mon paysage'}).click();
-  await expect(page.getByRole('button',{name:'Couper la musique'})).toBeVisible({timeout:20000});
-  const signal=await page.evaluate(async()=> (await import('/src/landscape/StrudelMusicEngine.ts')).getLandscapeMusic().inspect());
-  expect(signal.enabled).toBe(true);
-  await expect.poll(()=>page.evaluate(async()=> (await import('/src/landscape/StrudelMusicEngine.ts')).getLandscapeMusic().inspect().rms)).toBeGreaterThan(.0001);
+  await expect(page.locator('.meteo-sound')).toHaveCount(0);
   await page.getByRole('button',{name:'← Disque'}).click();
   await expect(page.locator('.weather-disk')).toHaveAttribute('data-zones','1');
   expect(errors).toEqual([]);
