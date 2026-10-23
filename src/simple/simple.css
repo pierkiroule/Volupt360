@@ -123,9 +123,50 @@ button:focus-visible {
   line-height: 1;
 }
 .simple-nuance[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--ink) 16%, #faf6ee);
-  border-color: var(--ink);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 9%, transparent);
+  background: color-mix(in srgb, var(--ink) 20%, #fffdf5);
+  border: 2px solid #3c6558;
+  box-shadow:
+    0 0 0 3px #fffaf0,
+    0 0 0 5px #608276,
+    0 5px 18px color-mix(in srgb, var(--ink) 30%, transparent);
+}
+.simple-weather-symbol {
+  transition: transform 0.2s ease;
+}
+.simple-nuance[aria-pressed="true"] .simple-weather-symbol {
+  transform: scale(1.13);
+  animation: weather-select 0.22s ease-out;
+}
+.simple-selection-check {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  width: 16px;
+  height: 16px;
+  color: #365f51;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #fffaf0;
+  pointer-events: none;
+}
+.simple-footer .simple-selected-names {
+  display: block;
+  color: #3f6255;
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 16px;
+}
+@keyframes weather-select {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1.13);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .simple-nuance[aria-pressed="true"] .simple-weather-symbol {
+    animation: none;
+  }
 }
 .simple-enter {
   position: absolute;

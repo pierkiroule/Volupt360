@@ -150,7 +150,26 @@ export default function SimpleApp() {
                   aria-pressed={selected.includes(n.id)}
                   onClick={() => choose(n.id)}
                 >
-                  <span>{n.emoji}</span>
+                  <span className="simple-weather-symbol" aria-hidden="true">
+                    {n.emoji}
+                  </span>
+                  {selected.includes(n.id) && (
+                    <svg
+                      className="simple-selection-check"
+                      viewBox="0 0 16 16"
+                      aria-hidden="true"
+                    >
+                      <circle cx="8" cy="8" r="8" fill="currentColor" />
+                      <path
+                        d="m4.5 8 2.3 2.3 4.7-4.6"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
                 </button>
               ))}
             </div>
@@ -186,7 +205,11 @@ export default function SimpleApp() {
       {!inside && (
         <footer className="simple-footer">
           <p>Choisis la météo de ton ciel. Puis entre.</p>
-          <small>Des couleurs à explorer, sans interprétation.</small>
+          <small className="simple-selected-names" aria-live="polite">
+            {selected
+              .map((id) => NUANCES.find((n) => n.id === id)?.label)
+              .join(" · ")}
+          </small>
         </footer>
       )}
       {inside && (

@@ -33,7 +33,7 @@ Un seul `Points` anime les particules au GPU. Pétales abstraits, poussières et
 
 ## Composition météorologique
 
-`composition.ts` centralise douze signatures : soleil, pluie, vent, brume, orage sans flash, braises, arc-en-ciel, neige, aurore, lune, nuages et vagues. Chaque signature règle la vitesse et l’amplitude des voiles, leur silhouette et leur transparence. Le shader de particules conserve des groupes distincts pour chaque symbole : chute verticale ou oblique, ascension, transport horizontal, flottement, ondulations ou étoiles lentes.
+`composition.ts` centralise douze signatures : soleil, pluie, vent, brume, orage sans flash, éclaircies, arc-en-ciel, neige, aurore, lune, nuages et averses. Chaque signature règle la vitesse et l’amplitude des voiles, leur silhouette et leur transparence. Le shader de particules conserve des groupes distincts pour chaque symbole : chute verticale ou oblique, ascension, transport horizontal, flottement, ondulations ou étoiles lentes.
 
 Les interactions sont explicites : soleil + pluie réchauffe certaines gouttes et fait émerger une irisation ; vent + pluie incline les averses. Le ciel prend également en compte les éclaircies, la profondeur nocturne, les nuages, la brume, les aurores et une lune discrète. Aucun éclair clignotant. La composition est indépendante de l’ordre de sélection, sans reconstruire les buffers ni ajouter d’appels de dessin. Les anciens identifiants de sélection sont conservés, avec un vocabulaire désormais météorologique ; ils ne sont pas interprétés psychologiquement.
 
@@ -48,3 +48,5 @@ Le monde de nuages et la caméra sont portés à 18 unités d’altitude. Le voy
 `DistantBirds.ts` ajoute cinq silhouettes articulées dans un seul lot de segments. Leur passage dure une partie d’un cycle d’environ deux minutes, sans apparition d’objets ni allocations par frame. Les silhouettes, le ciel, les pigments et les particules se figent ensemble sur pause. Nettoyage des buffers et matériaux au démontage.
 
 Deux contrôles supplémentaires vérifient la diversité/reproductibilité des quatre textures, le maintien en altitude, la pause des nouveaux éléments et le budget total de sept appels de dessin. Captures inspectées ; pas de nouvel essai sur téléphone physique.
+
+La sélection météo utilise un double contour contrasté, une coche, un halo fixe et un symbole légèrement agrandi. Une animation brève accompagne le choix et est désactivée lorsque le mouvement réduit est demandé. Les noms des météos choisies sont rappelés sous le disque ; les cibles tactiles restent à 44 pixels. Les pictogrammes de feu et de vagues sont remplacés par éclaircies et averses, sans modifier les identifiants des sauvegardes.

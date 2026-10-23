@@ -36,8 +36,8 @@ export const NUANCES = [
   },
   {
     id: "spark",
-    emoji: "🔥",
-    label: "Braises",
+    emoji: "🌤️",
+    label: "Éclaircies",
     color: "#ca9479",
     secondary: "#d5bd84",
   },
@@ -78,8 +78,8 @@ export const NUANCES = [
   },
   {
     id: "longing",
-    emoji: "🌊",
-    label: "Vagues",
+    emoji: "🌦️",
+    label: "Averses",
     color: "#b78e9c",
     secondary: "#d1b197",
   },
