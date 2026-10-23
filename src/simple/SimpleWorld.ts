@@ -2,8 +2,7 @@ import { sampleTravel } from "./TravelPath";
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
-import { NatureDiscs } from "./NatureDiscs";
-import type { NaturePhoto } from "./naturePhotos";
+import { AbstractResonances } from "./AbstractResonances";
 import { ResonantWords } from "./ResonantWords";
 import { WeatherAccents } from "./WeatherAccents";
 import { PigmentDynamics } from "./PigmentDynamics";
@@ -22,7 +21,7 @@ export class SimpleWorld {
   private texture = makeWatercolorAtlas();
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
-  private nature = new NatureDiscs(this.texture);
+  private resonances = new AbstractResonances(this.texture);
   private words = new ResonantWords();
   private sheets: THREE.InstancedMesh<
     THREE.PlaneGeometry,
@@ -204,7 +203,7 @@ export class SimpleWorld {
       this.cloudLayer,
       this.birds.mesh,
       this.words.mesh,
-      this.nature.mesh,
+      this.resonances.mesh,
     );
     this.observer = new ResizeObserver(this.resize);
     this.observer.observe(host);
@@ -230,7 +229,7 @@ export class SimpleWorld {
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
-    this.nature.setPalette(ids);
+    this.resonances.setPalette(ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
       ? "sun-rain"
@@ -281,9 +280,6 @@ export class SimpleWorld {
     this.dynamics.configure(this.sheets, score.entries);
   }
 
-  setNaturePhotos(photos: NaturePhoto[]) {
-    this.nature.setPhotos(photos);
-  }
   setGyro(active: boolean) {
     this.gyro = active;
     this.horizon.reset();
@@ -478,14 +474,14 @@ export class SimpleWorld {
     this.accents.update(this.time, this.pixelRatio, this.contact);
     this.birds.update(this.time);
     this.words.update(this.time, dt, this.camera, this.paused, this.inside);
-    this.nature.update(this.time, dt, this.camera, this.paused, this.inside);
+    this.resonances.update(this.time, dt, this.paused, this.inside);
     this.renderer.render(this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
       const d = this.renderer.domElement.dataset;
       d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
-      d.photos = String(this.nature.size);
+      d.resonances = this.inside ? "6" : "0";
       const reading = this.words.inspect();
       d.word = reading.focused ?? "";
       d.wordApproach = reading.approach.toFixed(3);
@@ -530,7 +526,7 @@ export class SimpleWorld {
     this.sheets.forEach((s) => s.material.dispose());
     this.atmosphere.dispose();
     this.birds.dispose();
-    this.nature.dispose();
+    this.resonances.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();

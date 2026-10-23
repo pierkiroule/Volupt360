@@ -143,3 +143,11 @@ Le filtre ajoute des lectures de texture, mais aucun lot, matériau ou texture s
 - `composeWeather().encounters` décrit trois rencontres indépendantes et combinables : soleil/pluie, vent/neige et brume/lune. Les shaders des lavis traduisent ces associations en ouvertures dorées, stries claires et nuances argentées, sans supprimer les identités individuelles.
 - `TravelPath` fournit un parcours fermé analytique et un point de regard intérieur, sans allocation par frame. Le voyage alterne proximité et recul ; le regard tactile/gyro reste relatif et indépendant. Le bouton Voyager permet toujours d'arrêter la translation et Pause suspend l'animation.
 - Aucun nouvel asset, dépendance ni appel de rendu. Les empreintes photographiques sont plus grandes : leur coût de transparence doit encore être évalué sur téléphone physique. Les photographies des tests sont des fixtures, pas une validation du service Commons réel.
+
+### Remplacement des photographies par des résonances abstraites
+
+Cette section remplace les descriptions photographiques précédentes : Commons, le chargement d’images et les crédits ont été retirés de l’expérience active. Les modules et tests photographiques ont été supprimés.
+
+`AbstractResonances` compose six membranes spatiales dans une géométrie unique (6 144 triangles, une passe recto-verso). Un shader reconstruit les plis depuis une grille immuable ; aucune simulation cumulative ni allocation par frame. Les profils météo dessinent des rubans solaires, des coulures verticales, des tissus étirés par le vent, des membranes brumeuses et des voiles d’aurore. Le grain partagé, les réserves et les auréoles évitent les surfaces pleines et lisses. Les associations météo modulent aussi les pigments. La rotation du regard révèle de vrais volumes ouverts, pas des images face caméra.
+
+Pause et réduction du mouvement utilisent l’horloge existante. Le module libère sa géométrie et son matériau sans détruire l’atlas partagé. Les contrôles, le voyage, les mots et le gyroscope sont conservés. Budget : 9 passes en aperçu, 11 en immersion. Aucune dépendance supplémentaire. Les performances sur téléphone physique restent à mesurer.
