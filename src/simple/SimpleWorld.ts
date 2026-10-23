@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
+import { ResonantWords } from "./ResonantWords";
 import { WeatherAccents } from "./WeatherAccents";
 import { PigmentDynamics } from "./PigmentDynamics";
 import { MATERIAL_IDENTITIES } from "./materialIdentity";
@@ -18,6 +19,7 @@ export class SimpleWorld {
   private texture = makeWatercolorAtlas();
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
+  private words = new ResonantWords();
   private sheets: THREE.InstancedMesh<
     THREE.PlaneGeometry,
     THREE.ShaderMaterial
@@ -184,7 +186,12 @@ export class SimpleWorld {
       this.accents.seeds,
     );
     this.cloudLayer.position.y = 18;
-    this.scene.add(this.atmosphere.sky, this.cloudLayer, this.birds.mesh);
+    this.scene.add(
+      this.atmosphere.sky,
+      this.cloudLayer,
+      this.birds.mesh,
+      this.words.mesh,
+    );
     this.observer = new ResizeObserver(this.resize);
     this.observer.observe(host);
     this.resize();
@@ -208,6 +215,7 @@ export class SimpleWorld {
     const score = composeWeather(ids);
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
+    this.words.setPalette(ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
       ? "sun-rain"
@@ -444,12 +452,16 @@ export class SimpleWorld {
     this.atmosphere.particles.material.uniforms.resonance.value = this.contact;
     this.accents.update(this.time, this.pixelRatio, this.contact);
     this.birds.update(this.time);
+    this.words.update(this.time, dt, this.camera, this.paused, this.inside);
     this.renderer.render(this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
       const d = this.renderer.domElement.dataset;
       d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
+      const reading = this.words.inspect();
+      d.word = reading.focused ?? "";
+      d.wordApproach = reading.approach.toFixed(3);
       d.accents = String(this.accents.seeds.geometry.drawRange.count);
       d.streams = "12";
       d.islands = "12";
@@ -491,6 +503,7 @@ export class SimpleWorld {
     this.sheets.forEach((s) => s.material.dispose());
     this.atmosphere.dispose();
     this.birds.dispose();
+    this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();

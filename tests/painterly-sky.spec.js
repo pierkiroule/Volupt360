@@ -73,6 +73,6 @@ test("viewpoint remains above the landscape and all animated layers freeze on pa
   await page.waitForTimeout(250);
   expect(await canvas.getAttribute("data-bird-time")).toBe(time);
   expect(await canvas.getAttribute("data-position")).toBe(fixed);
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(9);
+  expect(Number(await canvas.getAttribute("data-calls"))).toBe(10);
   expect(errors).toEqual([]);
 });

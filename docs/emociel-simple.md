@@ -10,7 +10,7 @@ L’entrée principale charge uniquement `src/simple`. Les anciens ateliers rest
 
 ## Rendu borné
 
-`SimpleWorld.ts` utilise Three.js directement : douze îlots répartis dans quatre lots instanciés et déformés au GPU, une géométrie et un atlas procédural 512² partagées, 480 particules mobiles (800 sur ordinateur), un skydome intérieur. Neuf appels de dessin, environ 14 000 triangles et cinq silhouettes d’oiseaux, aucun modèle externe, ombre ou post-traitement. Ratio de pixels plafonné à 1,25, abaissé à 0,8 lors de ralentissements prolongés. Les diagnostics DOM sont limités à environ huit actualisations/seconde.
+`SimpleWorld.ts` utilise Three.js directement : douze îlots répartis dans quatre lots instanciés et déformés au GPU, une géométrie et un atlas procédural 512² partagées, 480 particules mobiles (800 sur ordinateur), un skydome intérieur. Neuf appels de dessin dans l’aperçu, dix dans l’immersion avec les mots, environ 14 000 triangles et cinq silhouettes d’oiseaux, aucun modèle externe, ombre ou post-traitement. Ratio de pixels plafonné à 1,25, abaissé à 0,8 lors de ralentissements prolongés. Les diagnostics DOM sont limités à environ huit actualisations/seconde.
 
 Le voyage suit une ellipse fermée au milieu de la composition. Le glissement et le capteur règlent le regard séparément de la position. Le contrôleur d’horizon existant est réutilisé : pas de roulis, calibration relative, changements d’orientation d’écran et source absolue Android pris en charge. Quatre secondes sans signal rendent la main au tactile. L’autorisation est demandée uniquement au toucher du bouton Gyro.
 
@@ -80,3 +80,13 @@ Leur contraste et leur taille dépassent ceux des poussières atmosphériques : 
 Coût : deux appels supplémentaires (neuf au total), environ 1 150 triangles de rubans et un nombre fixe de particules. Aucun objet n’est créé au cours d’une émission ; buffers et matériaux sont réutilisés, puis libérés au démontage. La qualité réduite retire 35 % des particules de ces grappes. Ce budget est plus élevé que la version précédente : le rendu sur téléphone physique reste à mesurer.
 
 Les neuf tests existants sont réexécutés avec le nouveau budget, notamment les douze météos, le gyro simulé, la pause et la restauration WebGL ; captures mobiles inspectées.
+
+## Mots en résonance et regard
+
+`ResonantWords.ts` contient un vocabulaire éditable associé aux douze météos. Six mots au maximum se répartissent dans l’espace : deux par météo si trois sont choisies, davantage de nuances d’un même vocabulaire si une seule est choisie. Aucun mot n’interprète le visiteur et aucune consigne psychologique n’est générée.
+
+Les mots flottent lentement et font face au regard. Un centrage pendant environ 320 ms sélectionne un seul mot ; il se rapproche progressivement, avec une distance minimale de 2,8 unités. Quand le regard s’éloigne, il retrouve doucement sa place. Une zone de maintien plus large évite le tremblement de sélection. La caméra ne bouge pas en réponse aux mots. Leur largeur apparente est plafonnée pour rester dans le champ sur mobile.
+
+Un atlas texte 1024×512, douze triangles et un lot de rendu sont partagés par les six mots. Le texte est sombre avec un contour ivoire. Il apparaît seulement dans l’immersion : dix appels de dessin au total, neuf dans l’aperçu. Pause et mouvement réduit conservent le texte lisible mais suspendent le rapprochement et la dérive. L’atlas n’est redessiné qu’à la composition ; ressources libérées au démontage.
+
+Deux tests vérifient le rapprochement, le retour, le gel en pause, le maintien de la caméra, le vocabulaire et la disparition sur retour à la palette, en complément des neuf contrôles existants. Capture inspectée ; téléphone physique toujours non testé.
