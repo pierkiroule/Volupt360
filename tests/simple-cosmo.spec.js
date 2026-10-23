@@ -11,7 +11,7 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await expect(page.locator(".simple-nuance")).toHaveCount(12);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-renderer", "simple-silk");
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(6);
+  expect(Number(await canvas.getAttribute("data-calls"))).toBe(7);
   await page.getByRole("button", { name: "Orage", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Orage", exact: true }),
@@ -189,6 +189,6 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
   expect(
     Number(await canvas.getAttribute("data-particles")),
   ).toBeLessThanOrEqual(480);
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(6);
+  expect(Number(await canvas.getAttribute("data-calls"))).toBe(7);
   expect(errors).toEqual([]);
 });

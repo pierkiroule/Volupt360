@@ -60,7 +60,7 @@ test("all twelve weather worlds render without shader errors within the same GPU
     const canvas = page.locator("canvas");
     await expect(canvas).toHaveAttribute("data-composition", id);
     await expect(canvas).toHaveAttribute("data-sky", "watercolor");
-    await expect(canvas).toHaveAttribute("data-calls", "6");
+    await expect(canvas).toHaveAttribute("data-calls", "7");
     if (["warm", "water", "tired"].includes(id))
       await page.screenshot({ path: `test-results/weather-${id}.png` });
   }

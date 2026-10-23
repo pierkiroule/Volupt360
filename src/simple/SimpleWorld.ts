@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
+import { makeWatercolorAtlas } from "./WatercolorAtlas";
+import { DistantBirds } from "./DistantBirds";
 import { HorizonGyro, smoothGyroHeading } from "../weather/HorizonGyro";
 import { deviceQuaternion } from "../scene/gyroOrientation";
 
@@ -10,7 +12,9 @@ export class SimpleWorld {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(56, 1, 0.1, 80);
   private geometry = new THREE.PlaneGeometry(10, 6, 32, 16);
-  private texture = this.makeTexture();
+  private texture = makeWatercolorAtlas();
+  private cloudLayer = new THREE.Group();
+  private birds = new DistantBirds();
   private sheets: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private atmosphere: Atmosphere;
   private observer: ResizeObserver;
@@ -69,11 +73,21 @@ export class SimpleWorld {
           phase: { value: i * 1.73 },
           motion: { value: new THREE.Vector4(0.5, 0.5, 0.5, 0.1) },
           presence: { value: 0.6 },
+          tile: { value: new THREE.Vector2(i % 2, Math.floor(i / 2)) },
           tint: { value: new THREE.Color() },
           accent: { value: new THREE.Color() },
         },
         vertexShader: `uniform float time,phase;uniform vec4 motion;varying vec2 vUv;varying float fold;void main(){vUv=uv;vec3 p=position;float t=time*.19*motion.x+phase;float a=p.x*(.25+motion.z*.7)+t,b=p.y*.6-t*.63;p.z+=sin(a)*(0.4+motion.z)+cos(b)*.45;p.y+=sin(a*.7)*(.25+motion.w*.8);p.x+=sin(b+t*.3)*(.25+motion.w);fold=.5+.5*cos(a)*cos(b);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent;uniform vec4 motion;uniform float presence;varying vec2 vUv;varying float fold;void main(){vec4 p=texture2D(paper,vUv);float edge=smoothstep(0.,.18,vUv.x)*smoothstep(0.,.18,1.-vUv.x)*smoothstep(0.,.2,vUv.y)*smoothstep(0.,.2,1.-vUv.y);vec3 c=mix(tint,accent,fold*.55+p.r*.2);c*=.78+p.r*.22;gl_FragColor=vec4(c,p.a*edge*presence);\n#include <colorspace_fragment>\n}`,
+        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent;uniform vec4 motion;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold;
+        void main(){float t=time*.025+phase;vec2 drift=vec2(sin(vUv.y*4.+t),cos(vUv.x*5.-t*.7))*.025;
+          vec2 uv=clamp(vUv+drift,.005,.995);vec4 p=texture2D(paper,(uv+tile)*.5);
+          vec4 q=texture2D(paper,(clamp(vUv*.83+.08-drift,.005,.995)+tile)*.5);
+          vec2 outline=(vUv-.5)*vec2(1.75,1.9);float radius=length(outline);
+          float edge=1.-smoothstep(.32,.98,radius+(q.b-.5)*.22);
+          float bloom=smoothstep(.1,.65,p.a*.65+q.a*.35);
+          vec3 c=mix(tint,accent,fold*.35+p.b*.3);c*=.85+p.r*.14+(p.g-.5)*.09;
+          float alpha=edge*bloom*presence*(.75+q.a*.25);
+          gl_FragColor=vec4(c,alpha);\n#include <colorspace_fragment>\n}`,
       });
       material.forceSinglePass = true;
       const sheet = new THREE.Mesh(this.geometry, material);
@@ -84,14 +98,16 @@ export class SimpleWorld {
       );
       sheet.rotation.set(i * 0.16, (i - 1.5) * 0.4, Math.sin(i * 2) * 0.4);
       sheet.frustumCulled = false;
-      this.scene.add(sheet);
+      this.cloudLayer.add(sheet);
       this.sheets.push(sheet);
     }
     this.atmosphere = new Atmosphere(
       this.texture,
       matchMedia("(max-width: 700px), (pointer: coarse)").matches,
     );
-    this.scene.add(this.atmosphere.sky, this.atmosphere.particles);
+    this.cloudLayer.add(this.atmosphere.particles);
+    this.cloudLayer.position.y = 18;
+    this.scene.add(this.atmosphere.sky, this.cloudLayer, this.birds.mesh);
     this.observer = new ResizeObserver(this.resize);
     this.observer.observe(host);
     this.resize();
@@ -147,37 +163,6 @@ export class SimpleWorld {
     this.sensorAt = 0;
     this.gyroStarted = performance.now();
     this.sensorScreen = screen.orientation?.angle || 0;
-  }
-  private makeTexture() {
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 256;
-    const ctx = canvas.getContext("2d")!;
-    const data = ctx.createImageData(256, 256);
-    let seed = 9182;
-    for (let y = 0; y < 256; y++)
-      for (let x = 0; x < 256; x++) {
-        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-        const grain = seed / 4294967296;
-        const wave =
-          0.5 +
-          0.25 * Math.sin(x * 0.043 + Math.sin(y * 0.037) * 2) +
-          0.25 * Math.cos(y * 0.071 + x * 0.014);
-        const ring = Math.abs(Math.sin(wave * 19 + Math.sin(x * 0.02))) ** 12;
-        const index = (y * 256 + x) * 4;
-        data.data[index] =
-          data.data[index + 1] =
-          data.data[index + 2] =
-            150 + grain * 105;
-        data.data[index + 3] = Math.min(
-          225,
-          55 + wave * 92 + grain * 22 + ring * 56,
-        );
-      }
-    ctx.putImageData(data, 0, 0);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.generateMipmaps = false;
-    texture.minFilter = THREE.LinearFilter;
-    return texture;
   }
   private resize = () => {
     const { width, height } = this.host.getBoundingClientRect();
@@ -320,7 +305,7 @@ export class SimpleWorld {
       const t = this.journey * 0.065;
       this.camera.position.set(
         Math.sin(t) * 6 * blend,
-        Math.sin(t * 2) * 1.2 * blend,
+        18 + Math.sin(t * 2) * 1.2 * blend,
         THREE.MathUtils.lerp(12, 2 + (Math.cos(t) - 1) * 5, blend),
       );
       if (!this.paused) {
@@ -333,7 +318,7 @@ export class SimpleWorld {
         );
       }
       // Relative gaze stays separate from the gentle travel direction.
-      this.camera.lookAt(this.look.set(0, 0, -5));
+      this.camera.lookAt(this.look.set(0, 18, -5));
       this.rotation.setFromQuaternion(this.camera.quaternion, "YXZ");
       this.rotation.set(
         this.rotation.x + this.viewPitch,
@@ -349,16 +334,20 @@ export class SimpleWorld {
         );
       }
     } else {
-      this.camera.position.set(0, 0, 12);
-      this.camera.lookAt(0, 0, -5);
+      this.camera.position.set(0, 18, 12);
+      this.camera.lookAt(0, 18, -5);
     }
     this.atmosphere.update(this.time, this.camera, this.pixelRatio);
+    this.birds.update(this.time);
     this.renderer.render(this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
       const d = this.renderer.domElement.dataset;
       d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
+      d.altitude = this.camera.position.y.toFixed(2);
+      d.horizon = "painted-landscape";
+      d.birdTime = this.time.toFixed(3);
       d.renderer = "simple-silk";
       d.time = this.time.toFixed(3);
       d.calls = String(this.renderer.info.render.calls);
@@ -392,6 +381,7 @@ export class SimpleWorld {
     this.texture.dispose();
     this.sheets.forEach((s) => s.material.dispose());
     this.atmosphere.dispose();
+    this.birds.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     c.remove();

@@ -13,6 +13,7 @@ export class Atmosphere {
       depthTest: false,
       uniforms: {
         paper: { value: texture },
+        eye: { value: new THREE.Vector3(0, 18, 12) },
         time: { value: 0 },
         weather: { value: new THREE.Vector4() },
         climate: { value: new THREE.Vector4() },
@@ -24,7 +25,7 @@ export class Atmosphere {
         c: { value: new THREE.Color("#a49bb9") },
       },
       vertexShader: `varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader: `uniform sampler2D paper;uniform float time;uniform vec3 a,b,c;uniform vec4 weather,climate,magic;varying vec3 direction;
+      fragmentShader: `uniform sampler2D paper;uniform vec3 eye;uniform float time;uniform vec3 a,b,c;uniform vec4 weather,climate,magic;varying vec3 direction;
       void main(){vec3 d=normalize(direction);float t=time*.008;
         vec2 uv=d.xz*.24+vec2(d.y*.18,t*(1.+weather.z*2.));
         vec4 wash=texture2D(paper,uv+vec2(.5));
@@ -38,8 +39,10 @@ export class Atmosphere {
         vec3 color=mix(base,pigment,.18+clouds*(.25+magic.w*.15));
         color=mix(color,vec3(.33,.43,.57),weather.y*clouds*.28);
         color=mix(color,ivory,weather.w*(.28+grain.a*.25));
-        vec3 sunDir=normalize(vec3(-.6,.5,-.8));float sun=pow(max(0.,dot(d,sunDir)),7.);
+        vec3 sunDir=normalize(vec3(-.6,.09,-.8));float sun=pow(max(0.,dot(d,sunDir)),7.);
         color=mix(color,vec3(1.,.85,.54),weather.x*sun*.78*(1.-clouds*.45));
+        float sunCore=smoothstep(.9975,.9995,dot(d,sunDir));
+        color=mix(color,vec3(1.,.9,.64),sunCore*weather.x*.7*(1.-clouds*.45));
         float arc=exp(-pow((length(d.xy-vec2(0.,-.25))-.78)*24.,2.));
         vec3 rainbow=.64+.22*cos(vec3(0.,2.,4.)+d.y*18.);
         color=mix(color,rainbow,arc*max(magic.x,weather.x*weather.y*.75)*.4);
@@ -50,6 +53,27 @@ export class Atmosphere {
         color=mix(color,vec3(.97,.94,.82),climate.z*moon*(1.-cut)*.8);
         float stars=step(.995,grain.r)*smoothstep(.15,.7,d.y);
         color+=climate.z*stars*.15+vec3(.025)*grain.r;
+        // Watercolored dusk and distant, fog-softened terrain, continuous over 360 degrees.
+        float dusk=(1.-climate.z*.85)*(1.-climate.x*.35);
+        float glow=exp(-abs(d.y+.025)*9.);
+        color=mix(color,vec3(.91,.61,.48),glow*dusk*.32);
+        float ridge=-.09+sin(d.x*5.+d.z*3.)*.018+sin(d.z*9.-d.x*4.)*.01;
+        float hills=1.-smoothstep(ridge-.028,ridge+.028,d.y);
+        vec3 hillColor=mix(vec3(.57,.61,.65),a,.13);
+        color=mix(color,hillColor,hills*.5);
+        float nearRidge=-.17+sin(d.x*7.-d.z*5.)*.025;
+        float foothills=1.-smoothstep(nearRidge-.035,nearRidge+.035,d.y);
+        color=mix(color,mix(vec3(.39,.47,.48),a,.15),foothills*.25);
+        float land=1.-smoothstep(-.26,-.095,d.y);
+        vec2 ground=eye.xz+d.xz*(eye.y+14.)/max(.025,-d.y);
+        vec2 landUv=clamp(ground*.0017+.5,.01,.99);
+        vec4 earth=texture2D(paper,landUv);
+        vec3 terrain=mix(vec3(.36,.45,.42),vec3(.51,.40,.35),earth.b);
+        terrain=mix(terrain,c,.12);terrain*=.85+earth.r*.15;
+        terrain=mix(terrain,vec3(.27,.32,.42),climate.z*.48);
+        float haze=smoothstep(-.9,-.15,d.y);
+        terrain=mix(terrain,mix(vec3(.82,.78,.73),a,.1),haze*.28);
+        color=mix(color,terrain,land*.78);
         gl_FragColor=vec4(color,1.);\n#include <colorspace_fragment>\n}`,
     });
     this.sky = new THREE.Mesh(
@@ -147,6 +171,7 @@ export class Atmosphere {
   }
   update(time: number, camera: THREE.Camera, ratio: number) {
     this.sky.position.copy(camera.position);
+    this.sky.material.uniforms.eye.value.copy(camera.position);
     this.sky.material.uniforms.time.value = time;
     this.particles.material.uniforms.time.value = time;
     this.particles.material.uniforms.ratio.value = ratio;
