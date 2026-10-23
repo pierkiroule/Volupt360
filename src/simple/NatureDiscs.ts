@@ -63,7 +63,7 @@ export class NatureDiscs {
         },
         vertexShader: `attribute vec2 local;varying vec2 vUv,disc;void main(){vUv=uv;disc=local;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
         fragmentShader: `uniform sampler2D map,paper;uniform float presence,time;uniform vec3 tint;varying vec2 vUv,disc;
-        void main(){vec4 grain=texture2D(paper,disc*.47+vec2(.015,.51));float radius=length(disc-.5)*2.;
+        void main(){vec4 grain=texture2D(paper,disc*.47+vec2(.015,.51));
           vec4 poolGrain=texture2D(paper,disc*.41+vec2(.51,.015));
           float reveal=.5+.5*sin(time*.032+floor(vUv.x*3.)*2.1+floor(vUv.y*2.)*1.7);
           float contour=length((disc-.5)*vec2(1.72,2.08))+(grain.b-.5)*.5+(poolGrain.b-.5)*.28;
@@ -79,14 +79,14 @@ export class NatureDiscs {
           vec3 top=texture2D(map,uv+vec2(0.,texel.y*1.8)).rgb,bottom=texture2D(map,uv-vec2(0.,texel.y*1.8)).rgb;
           vec3 wash=center*.5+(left+right+top+bottom)*.125;
           vec3 bands=floor(wash*8.+.5)/8.;wash=mix(wash,bands,.32);
-          float contour=clamp(length(left-right)+length(top-bottom),0.,1.);
+          float imageEdge=clamp(length(left-right)+length(top-bottom),0.,1.);
           float pool=exp(-abs(grain.b-.5)*30.);
-          vec3 image=wash*(1.-contour*.25-pool*.07+(grain.g-.5)*.1);
+          vec3 image=wash*(1.-imageEdge*.25-pool*.07+(grain.g-.5)*.1);
           float light=dot(image,vec3(.2126,.7152,.0722));image=mix(vec3(light),image,.88);
           image=mix(image,vec3(.88,.84,.74),.08+(1.-grain.a)*.07);
           // Keep recognizable details in the wet heart, dissolve the edges into pigment.
-          float heart=(1.-smoothstep(.12,.75,contour))*(.46+reveal*.42);
-          vec3 pigment=mix(tint,image,.48);
+          float heart=(1.-smoothstep(.28,.85,contour))*(.78+reveal*.18);
+          vec3 pigment=mix(tint,image,.68);
           image=mix(pigment,image,heart);
           float tide=exp(-abs(contour-.64-(grain.b-.5)*.15)*26.);
           image*=1.-tide*.12;
@@ -141,8 +141,8 @@ export class NatureDiscs {
     this.mesh.material.uniforms.time.value = time;
     const presence = this.mesh.material.uniforms.presence;
     presence.value = paused
-      ? 0.52
-      : THREE.MathUtils.damp(presence.value, 0.52, 1.1, dt);
+      ? 0.68
+      : THREE.MathUtils.damp(presence.value, 0.68, 1.1, dt);
     this.right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     this.up.set(0, 1, 0).applyQuaternion(camera.quaternion);
     const buffer = this.mesh.geometry.attributes
