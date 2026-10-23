@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
+import { MATERIAL_IDENTITIES } from "./materialIdentity";
 import { makeWatercolorAtlas } from "./WatercolorAtlas";
 import { DistantBirds } from "./DistantBirds";
 import { HorizonGyro, smoothGyroHeading } from "../weather/HorizonGyro";
@@ -73,20 +74,35 @@ export class SimpleWorld {
           phase: { value: i * 1.73 },
           motion: { value: new THREE.Vector4(0.5, 0.5, 0.5, 0.1) },
           presence: { value: 0.6 },
+          identity: { value: new THREE.Vector4(0, 1, 0.6, 0) },
           tile: { value: new THREE.Vector2(i % 2, Math.floor(i / 2)) },
           tint: { value: new THREE.Color() },
           accent: { value: new THREE.Color() },
         },
         vertexShader: `uniform float time,phase;uniform vec4 motion;varying vec2 vUv;varying float fold;void main(){vUv=uv;vec3 p=position;float t=time*.19*motion.x+phase;float a=p.x*(.25+motion.z*.7)+t,b=p.y*.6-t*.63;p.z+=sin(a)*(0.4+motion.z)+cos(b)*.45;p.y+=sin(a*.7)*(.25+motion.w*.8);p.x+=sin(b+t*.3)*(.25+motion.w);fold=.5+.5*cos(a)*cos(b);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent;uniform vec4 motion;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold;
-        void main(){float t=time*.025+phase;vec2 drift=vec2(sin(vUv.y*4.+t),cos(vUv.x*5.-t*.7))*.025;
-          vec2 uv=clamp(vUv+drift,.005,.995);vec4 p=texture2D(paper,(uv+tile)*.5);
-          vec4 q=texture2D(paper,(clamp(vUv*.83+.08-drift,.005,.995)+tile)*.5);
-          vec2 outline=(vUv-.5)*vec2(1.75,1.9);float radius=length(outline);
-          float edge=1.-smoothstep(.32,.98,radius+(q.b-.5)*.22);
-          float bloom=smoothstep(.1,.65,p.a*.65+q.a*.35);
-          vec3 c=mix(tint,accent,fold*.35+p.b*.3);c*=.85+p.r*.14+(p.g-.5)*.09;
-          float alpha=edge*bloom*presence*(.75+q.a*.25);
+        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent;uniform vec4 motion,identity;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold;
+        vec4 ink(vec2 p){return texture2D(paper,(clamp(p,.005,.995)+tile)*.5);}
+        void main(){float t=time*.018*motion.x+phase;
+          vec2 drift=vec2(sin(vUv.y*3.+t),cos(vUv.x*4.-t*.61))*.045;
+          vec4 p=ink(vUv+drift),q=ink(vUv*.73+.12-drift),r=ink(vUv*1.65-.3+drift*.4);
+          vec2 center=vUv-.5;float shape=identity.x;
+          float contour=length(center*vec2(1.7,1.85));
+          if(shape>.5&&shape<1.5)contour=length(center*vec2(2.6,1.25))+(q.b-.5)*.27;
+          else if(shape>1.5&&shape<2.5)contour=abs(center.y+sin(vUv.x*6.+t)*.12)*3.4+abs(center.x)*.55;
+          else if(shape>2.5&&shape<3.5)contour=length(center*vec2(1.4,1.5))*.9;
+          else if(shape>3.5&&shape<4.5)contour=length(center*vec2(1.9,1.8))+(q.b-.5)*.55;
+          else if(shape>4.5)contour=abs(length(center*vec2(1.2,2.2))-.35)*2.2;
+          float edge=1.-smoothstep(.25,1.,contour+(q.b-.5)*.32+(p.b-.5)*.18);
+          edge*=smoothstep(0.,.12,vUv.x)*smoothstep(0.,.12,1.-vUv.x)*smoothstep(0.,.12,vUv.y)*smoothstep(0.,.12,1.-vUv.y);
+          float pool=smoothstep(.18,.7,p.a*.5+q.a*.35+r.a*.15);
+          float drying=exp(-abs(p.b-.47-sin(t*.21)*.025)*32.)*identity.z;
+          float granule=(r.g-.5)*.18;
+          float gradient=smoothstep(.1,.9,vUv.y*.55+q.b*.45+fold*.18);
+          vec3 c=mix(tint,accent,gradient*.75);
+          float deposit=clamp(pool*identity.y+drying*.3,0.,1.);
+          c*=1.-deposit*.35-drying*.1+granule;
+          c=mix(c,vec3(.94,.91,.84),smoothstep(.66,.92,r.g)*.16);
+          float alpha=edge*(.22+pool*.7+drying*.16)*presence;
           gl_FragColor=vec4(c,alpha);\n#include <colorspace_fragment>\n}`,
       });
       material.forceSinglePass = true;
@@ -145,10 +161,32 @@ export class SimpleWorld {
         PHENOMENA[score.entries[index]].motion,
       );
       const veil = PHENOMENA[score.entries[index]].veil;
-      sheet.material.uniforms.presence.value = veil[2];
+      const material = MATERIAL_IDENTITIES[score.entries[index]];
+      const family = (material.family + (i === 3 ? 1 : 0)) % 4;
+      sheet.material.uniforms.tile.value.set(
+        family % 2,
+        Math.floor(family / 2),
+      );
+      sheet.material.uniforms.identity.value.set(
+        material.shape,
+        material.contrast,
+        material.pooling,
+        0,
+      );
+      sheet.material.uniforms.presence.value = Math.min(
+        0.88,
+        veil[2] * 1.2 + 0.1,
+      );
       sheet.scale.set(veil[0], veil[1], 1);
+      sheet.position.set(
+        Math.sin(i * 2.2 + material.twist) * 3.6 * material.spread,
+        Math.cos(i * 1.9) * 1.5 + material.lift,
+        -3 - i * 2.7 * material.depth,
+      );
+      sheet.rotation.y = (i - 1.5) * 0.35 + material.twist * 0.3;
       sheet.rotation.z =
         veil[3] +
+        material.twist * 0.2 +
         (score.kinds[index] === 1
           ? -0.35 * score.slant
           : Math.sin(i * 2) * 0.08);

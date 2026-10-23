@@ -35,22 +35,34 @@ export function watercolorPixels(seed = 9182, tile = 256) {
         const field = broad * 0.6 + medium * 0.28 + fine * 0.12;
         const tide = Math.exp(-Math.abs(field - 0.49) * 55);
         const fiber = noise(u * 8, v * 70 + warp, salt + 71);
+        // Secondary pools and small capillary breaks enrich the dry pigment.
+        const cells = noise(u * 10 + medium * 2, v * 10 - broad, salt + 149);
+        const speck = noise(u * 110, v * 110, salt + 173);
+        const blooms = Math.exp(-Math.abs(cells - 0.47) * 24);
+        const fissure = Math.exp(-Math.abs(medium - 0.51) * 85);
         const density =
           family === 0
-            ? field
+            ? broad * 0.6 + cells * 0.25 + fine * 0.15
             : family === 1
-              ? field * 0.7 + tide * 0.3
+              ? field * 0.55 + tide * 0.28 + blooms * 0.17
               : family === 2
-                ? medium * 0.35 + fiber * 0.45 + field * 0.2
-                : field * 0.65 + fine * 0.35;
+                ? fiber * 0.5 + medium * 0.3 + fine * 0.2
+                : cells * 0.45 + fine * 0.2 + speck * 0.2 + broad * 0.15;
         const index =
           (((family >> 1) * tile + y) * size + (family % 2) * tile + x) * 4;
-        pixels[index] = Math.min(255, 120 + field * 90 + tide * 28);
-        pixels[index + 1] = Math.round(grain * 255);
-        pixels[index + 2] = Math.round(medium * 255);
+        pixels[index] = Math.min(
+          255,
+          65 + field * 125 + tide * 42 + blooms * 22,
+        );
+        pixels[index + 1] = Math.round(
+          (grain * 0.5 + speck * 0.3 + fine * 0.2) * 255,
+        );
+        pixels[index + 2] = Math.round(
+          Math.min(1, cells * 0.55 + blooms * 0.3 + fissure * 0.15) * 255,
+        );
         pixels[index + 3] = Math.max(
           0,
-          Math.min(245, (density - 0.15) * 310 + (grain - 0.5) * 25),
+          Math.min(245, (density - 0.19) * 390 + (grain - 0.5) * 32),
         );
       }
   return { pixels, size };

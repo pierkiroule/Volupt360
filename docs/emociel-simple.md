@@ -50,3 +50,11 @@ Le monde de nuages et la caméra sont portés à 18 unités d’altitude. Le voy
 Deux contrôles supplémentaires vérifient la diversité/reproductibilité des quatre textures, le maintien en altitude, la pause des nouveaux éléments et le budget total de sept appels de dessin. Captures inspectées ; pas de nouvel essai sur téléphone physique.
 
 La sélection météo utilise un double contour contrasté, une coche, un halo fixe et un symbole légèrement agrandi. Une animation brève accompagne le choix et est désactivée lorsque le mouvement réduit est demandé. Les noms des météos choisies sont rappelés sous le disque ; les cibles tactiles restent à 44 pixels. Les pictogrammes de feu et de vagues sont remplacés par éclaircies et averses, sans modifier les identifiants des sauvegardes.
+
+## Transduction picturale de la météo émotionnelle
+
+`materialIdentity.ts` sépare l’identité plastique du simple choix de couleur. Douze recettes définissent une famille de pigments, une silhouette ambiguë, un contraste, un dépôt de pigment, un étalement spatial, une hauteur, une profondeur et une torsion. Les pluies deviennent des nappes verticales denses, le vent des fibres étirées, la brume des espaces diffus, les aurores des voiles courbes et la neige des réserves granuleuses. Chaque composante choisie reste une couche identifiable dans les mélanges.
+
+L’atlas ajoute cellules humides, auréoles, fissures capillaires, fibres et micro-granulation. Trois lectures de la même texture animent lentement des taches et des dégradés internes ; le pigment s’accumule en contours irréguliers. Les six silhouettes ne sont pas des illustrations : elles laissent place aux associations du visiteur. Aucune émotion n’est inférée ni interprétée à partir des choix.
+
+Le nombre de textures, de voiles et d’appels de dessin reste identique. Les lectures de texture supplémentaires augmentent toutefois le coût du fragment shader : la fluidité sur téléphone physique reste à mesurer. Les huit tests du parcours, des douze météos, de l’atlas et du paysage sont réexécutés, avec captures inspectées.

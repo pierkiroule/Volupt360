@@ -1,0 +1,135 @@
+/** Pictorial recipes: silhouette, stain family, pigment pooling and spatial gesture. */
+export const MATERIAL_IDENTITIES: Record<
+  string,
+  {
+    family: number;
+    shape: number;
+    contrast: number;
+    pooling: number;
+    spread: number;
+    lift: number;
+    depth: number;
+    twist: number;
+  }
+> = {
+  warm: {
+    family: 0,
+    shape: 0,
+    contrast: 0.8,
+    pooling: 0.5,
+    spread: 1.1,
+    lift: 0.4,
+    depth: 1,
+    twist: 0.3,
+  },
+  water: {
+    family: 1,
+    shape: 1,
+    contrast: 1.2,
+    pooling: 0.9,
+    spread: 0.7,
+    lift: -0.3,
+    depth: 1.3,
+    twist: 0.08,
+  },
+  air: {
+    family: 2,
+    shape: 2,
+    contrast: 0.9,
+    pooling: 0.45,
+    spread: 1.5,
+    lift: 0.2,
+    depth: 0.8,
+    twist: -0.5,
+  },
+  soft: {
+    family: 0,
+    shape: 3,
+    contrast: 0.5,
+    pooling: 0.2,
+    spread: 1.25,
+    lift: 0.6,
+    depth: 1.5,
+    twist: 0.08,
+  },
+  night: {
+    family: 1,
+    shape: 4,
+    contrast: 1.6,
+    pooling: 1.2,
+    spread: 1.1,
+    lift: -0.4,
+    depth: 1.2,
+    twist: -0.25,
+  },
+  spark: {
+    family: 3,
+    shape: 2,
+    contrast: 1.05,
+    pooling: 0.7,
+    spread: 0.8,
+    lift: 1.2,
+    depth: 1,
+    twist: 0.7,
+  },
+  wonder: {
+    family: 0,
+    shape: 5,
+    contrast: 1,
+    pooling: 0.6,
+    spread: 1.3,
+    lift: 0.9,
+    depth: 1,
+    twist: 0.18,
+  },
+  surprise: {
+    family: 3,
+    shape: 4,
+    contrast: 1.15,
+    pooling: 0.9,
+    spread: 1,
+    lift: 1.1,
+    depth: 1.4,
+    twist: -0.12,
+  },
+  confused: {
+    family: 2,
+    shape: 5,
+    contrast: 1.1,
+    pooling: 0.65,
+    spread: 1.5,
+    lift: 1.2,
+    depth: 0.9,
+    twist: 0.38,
+  },
+  tired: {
+    family: 1,
+    shape: 3,
+    contrast: 1.3,
+    pooling: 0.8,
+    spread: 0.85,
+    lift: 0.8,
+    depth: 1.6,
+    twist: 0.2,
+  },
+  trust: {
+    family: 0,
+    shape: 0,
+    contrast: 0.7,
+    pooling: 0.5,
+    spread: 1.35,
+    lift: 0.1,
+    depth: 1.25,
+    twist: -0.08,
+  },
+  longing: {
+    family: 3,
+    shape: 1,
+    contrast: 1.2,
+    pooling: 1,
+    spread: 1.2,
+    lift: -0.6,
+    depth: 0.9,
+    twist: -0.3,
+  },
+};
