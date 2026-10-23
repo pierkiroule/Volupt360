@@ -87,7 +87,7 @@ Les neuf tests existants sont réexécutés avec le nouveau budget, notamment le
 
 Les mots flottent lentement et font face au regard. Un centrage pendant environ 320 ms sélectionne un seul mot ; il se rapproche progressivement, avec une distance minimale de 2,8 unités. Quand le regard s’éloigne, il retrouve doucement sa place. Une zone de maintien plus large évite le tremblement de sélection. La caméra ne bouge pas en réponse aux mots. Leur largeur apparente est plafonnée pour rester dans le champ sur mobile.
 
-Un atlas texte 1024×512, douze triangles et un lot de rendu sont partagés par les six mots. Le texte est sombre avec un contour ivoire. Il apparaît seulement dans l’immersion : dix appels de dessin au total, neuf dans l’aperçu. Pause et mouvement réduit conservent le texte lisible mais suspendent le rapprochement et la dérive. L’atlas n’est redessiné qu’à la composition ; ressources libérées au démontage.
+Un atlas texte 1024×512, douze triangles et un lot de rendu sont partagés par les six mots. Le texte est sombre avec un contour ivoire. Il apparaît seulement dans l’immersion : dix appels de dessin au total, neuf dans l’aperçu. Pause et mouvement réduit conservent le texte lisible mais suspendent le rapprochement et la dérive. L’atlas est redessiné à la composition et seule la case du mot renouvelé est repeinte après son effacement ; ressources libérées au démontage.
 
 Deux tests vérifient le rapprochement, le retour, le gel en pause, le maintien de la caméra, le vocabulaire et la disparition sur retour à la palette, en complément des neuf contrôles existants. Capture inspectée ; téléphone physique toujours non testé.
 
@@ -102,3 +102,11 @@ Le fragment shader calcule l’étincelle la plus proche au lieu de parcourir le
 Les traînées et particules distinguent maintenant explicitement les filets de pluie (et averses), les flocons à six branches, les courants horizontaux du vent et les arcs-en-ciel multicolores en 3D. Vent + pluie incline aussi les gouttes des grappes. Soleil + pluie réserve deux traînées aux arcs-en-ciel, tout en conservant les autres phénomènes. La neige utilise une palette froide et des particules blanchies. Même nombre de buffers et d’appels de dessin.
 
 Les captures des douze météos incluent pluie, vent, neige et arc-en-ciel. Le halo des mots épouse la largeur réelle du texte pour rester proche des lettres, quelle que soit la longueur du mot.
+
+### Vocabulaire évolutif
+
+`weatherWords.ts` centralise 192 mots (16 par météo), éditables indépendamment du rendu. Les six positions se renouvellent à des rythmes décalés : premier changement après 22 à 42 secondes de présence, puis 24 à 42 secondes entre transitions. Chaque emplacement reste associé à sa météo.
+
+Un mot s’efface pendant environ 1,6 seconde, sa case d’atlas est repeinte une fois quand il est invisible, puis le nouveau mot apparaît sur 2,2 secondes. Texte et halo partagent le fondu. Le parcours circulaire du vocabulaire évite les répétitions immédiates et les doublons parmi les six mots visibles. Aucun nouveau matériau, texture ou lot de rendu n’est créé.
+
+Un mot ciblé par le regard ou encore en retour vers sa position est protégé du renouvellement. Pause, mouvement réduit et retour à la palette suspendent les compteurs. Un test simule plus de 110 secondes pour vérifier renouvellement, fondu, échange invisible, stabilité du mot regardé, diversité et absence de modification d’atlas pendant la pause. Les tests de rapprochement et des douze météos sont également exécutés ; aucun test prolongé sur téléphone physique.

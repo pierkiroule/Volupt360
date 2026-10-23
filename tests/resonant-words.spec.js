@@ -90,3 +90,74 @@ test("words appear in immersion and disappear on return to the palette", async (
   await page.getByRole("button", { name: "Revenir à la palette" }).click();
   await expect(canvas).toHaveAttribute("data-calls", "9");
 });
+
+test("words renew over time without replacing a focused word, and pause freezes renewal", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/three/build/three.module.js");
+    const { ResonantWords, WEATHER_WORDS } =
+      await import("/src/simple/ResonantWords.ts");
+    const words = new ResonantWords();
+    words.setPalette(["warm", "water"]);
+    const camera = new THREE.PerspectiveCamera(68, 0.5, 0.1, 80);
+    camera.position.set(0, 18, 2);
+    camera.lookAt(0, 18, -10);
+    const original = words.inspect().words;
+    let fading = false,
+      hiddenSwap = false,
+      previous = [...original],
+      t = 0;
+    for (let i = 0; i < 1600; i++) {
+      t += 0.04;
+      words.update(t, 0.04, camera, false, true);
+      const state = words.inspect();
+      if (state.fades.some((f) => f > 0 && f < 1)) fading = true;
+      for (let j = 0; j < 6; j++)
+        if (state.words[j] !== previous[j] && state.fades[j] === 0)
+          hiddenSwap = true;
+      previous = state.words;
+    }
+    const running = words.inspect(),
+      version = words.mesh.material.uniforms.map.value.version;
+    for (let i = 0; i < 100; i++) words.update(t, 0.04, camera, true, true);
+    const paused = words.inspect(),
+      unchangedTexture =
+        version === words.mesh.material.uniforms.map.value.version;
+    camera.lookAt(10, 18, 2);
+    for (let i = 0; i < 1300; i++) {
+      t += 0.04;
+      words.update(t, 0.04, camera, false, true);
+    }
+    const released = words.inspect();
+    words.dispose();
+    return {
+      total: Object.values(WEATHER_WORDS).reduce(
+        (n, list) => n + list.length,
+        0,
+      ),
+      distinct: Object.values(WEATHER_WORDS).every(
+        (list) => new Set(list).size === list.length,
+      ),
+      original,
+      running,
+      paused,
+      released,
+      fading,
+      hiddenSwap,
+      unchangedTexture,
+    };
+  });
+  expect(result.total).toBeGreaterThanOrEqual(192);
+  expect(result.distinct).toBe(true);
+  expect(result.running.words[0]).toBe(result.original[0]);
+  expect(result.running.focused).toBe(result.original[0]);
+  expect(result.running.words.slice(1)).not.toEqual(result.original.slice(1));
+  expect(new Set(result.running.words).size).toBe(6);
+  expect(result.paused).toEqual(result.running);
+  expect(result.unchangedTexture).toBe(true);
+  expect(result.released.words[0]).not.toBe(result.original[0]);
+  expect(result.fading).toBe(true);
+  expect(result.hiddenSwap).toBe(true);
+});
