@@ -52,8 +52,8 @@ export const NUANCES = [
     id: "surprise",
     emoji: "❄️",
     label: "Neige",
-    color: "#c68d95",
-    secondary: "#b1a1bf",
+    color: "#94b6cb",
+    secondary: "#d9e4e9",
   },
   {
     id: "confused",

@@ -90,3 +90,15 @@ Les mots flottent lentement et font face au regard. Un centrage pendant environ 
 Un atlas texte 1024×512, douze triangles et un lot de rendu sont partagés par les six mots. Le texte est sombre avec un contour ivoire. Il apparaît seulement dans l’immersion : dix appels de dessin au total, neuf dans l’aperçu. Pause et mouvement réduit conservent le texte lisible mais suspendent le rapprochement et la dérive. L’atlas n’est redessiné qu’à la composition ; ressources libérées au démontage.
 
 Deux tests vérifient le rapprochement, le retour, le gel en pause, le maintien de la caméra, le vocabulaire et la disparition sur retour à la palette, en complément des neuf contrôles existants. Capture inspectée ; téléphone physique toujours non testé.
+
+### Halos pétillants des mots
+
+Le matériau du texte compose un halo coloré diffus et six petites étincelles orbitales, renforcés par le rapprochement du mot. La variation de brillance est lente et continue, sans flash. Le texte sombre et son contour ivoire restent au premier plan. Les bords du halo sont estompés pour éviter un rectangle visible.
+
+Le fragment shader calcule l’étincelle la plus proche au lieu de parcourir les six, et utilise le même atlas et le même lot de texte : aucun appel de dessin ou ressource GPU supplémentaire. Le temps commun fige aussi les halos en pause et en mouvement réduit. Build et huit tests du texte, du parcours, du gyro simulé et des douze météos sont exécutés ; performance physique mobile non mesurée.
+
+### Météos reconnaissables dans les accents
+
+Les traînées et particules distinguent maintenant explicitement les filets de pluie (et averses), les flocons à six branches, les courants horizontaux du vent et les arcs-en-ciel multicolores en 3D. Vent + pluie incline aussi les gouttes des grappes. Soleil + pluie réserve deux traînées aux arcs-en-ciel, tout en conservant les autres phénomènes. La neige utilise une palette froide et des particules blanchies. Même nombre de buffers et d’appels de dessin.
+
+Les captures des douze météos incluent pluie, vent, neige et arc-en-ciel. Le halo des mots épouse la largeur réelle du texte pour rester proche des lettres, quelle que soit la longueur du mot.

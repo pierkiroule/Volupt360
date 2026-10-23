@@ -45,7 +45,7 @@ export const WEATHER_WORDS: Record<string, readonly string[]> = {
 };
 /** Six billboards, one atlas and one draw. Gaze moves words, never the camera. */
 export class ResonantWords {
-  readonly mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+  readonly mesh: THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>;
   private texture: THREE.CanvasTexture;
   private canvas = document.createElement("canvas");
   private labels: string[] = [];
@@ -89,16 +89,79 @@ export class ResonantWords {
       ),
     );
     geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    geometry.setAttribute(
+      "local",
+      new THREE.BufferAttribute(
+        new Float32Array(
+          Array.from({ length: 6 }, () => [0, 0, 1, 0, 0, 1, 1, 1]).flat(),
+        ),
+        2,
+      ),
+    );
+    geometry.setAttribute(
+      "glow",
+      new THREE.BufferAttribute(new Float32Array(24), 1).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    geometry.setAttribute(
+      "inkTint",
+      new THREE.BufferAttribute(new Float32Array(72), 3),
+    );
+    geometry.setAttribute(
+      "wordIndex",
+      new THREE.BufferAttribute(
+        new Float32Array(
+          Array.from({ length: 6 }, (_, i) => [i, i, i, i]).flat(),
+        ),
+        1,
+      ),
+    );
+    geometry.setAttribute(
+      "wordSpan",
+      new THREE.BufferAttribute(new Float32Array(24), 1),
+    );
     geometry.setIndex(indices);
     this.mesh = new THREE.Mesh(
       geometry,
-      new THREE.MeshBasicMaterial({
-        map: this.texture,
+      new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
         depthTest: false,
         toneMapped: false,
         opacity: 0,
+        uniforms: {
+          map: { value: this.texture },
+          time: { value: 0 },
+          opacity: { value: 0 },
+        },
+        vertexShader: `attribute vec2 local;attribute float glow,wordIndex,wordSpan;attribute vec3 inkTint;varying vec2 vUv,vLocal;varying float focus,index,span;varying vec3 tint;
+        void main(){vUv=uv;vLocal=local;focus=glow;index=wordIndex;span=wordSpan;tint=inkTint;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+        fragmentShader: `uniform sampler2D map;uniform float time,opacity;varying vec2 vUv,vLocal;varying float focus,index,span;varying vec3 tint;
+        void main(){vec4 text=texture2D(map,vUv);vec2 p=vLocal-.5;
+          float reach=span*.5+.065;float radius=length(p/vec2(reach,.14));
+          float halo=exp(-radius*radius*1.8)*(.1+focus*.16);
+          halo+=exp(-pow((radius-.85)*5.,2.))*(.05+focus*.12);
+          // Evaluate the nearest of six orbiting sparks, instead of a six-pass loop.
+          float turn=time*.055+index*.73;
+          float angleAt=atan(p.y/.13,p.x/reach+.00001);
+          float slot=mod(floor((angleAt-turn)/1.04719755+.5),6.);
+          float seed=slot*1.04719755+index*.73;
+          float angle=seed+time*.055;
+          vec2 star=vec2(cos(angle)*reach,sin(angle)*.13);
+          vec2 delta=p-star;float breathe=.3+.7*pow(.5+.5*sin(time*.8+seed*2.3),2.);
+          float size=max(.0055,fwidth(vLocal.x)*1.2);
+          float core=exp(-dot(delta,delta)/(size*size));
+          float cross=exp(-abs(delta.x)/size)*exp(-abs(delta.y)/(size*2.8))+exp(-abs(delta.y)/size)*exp(-abs(delta.x)/(size*2.8));
+          float sparkle=(core+cross*.3)*breathe;
+          float aura=exp(-dot(delta,delta)/.0008)*breathe;
+          float alphaHalo=clamp(halo+aura*(.07+focus*.08)+sparkle*(.4+focus*.35),0.,.85);
+          alphaHalo*=smoothstep(0.,.07,vLocal.x)*smoothstep(0.,.07,1.-vLocal.x)*smoothstep(0.,.07,vLocal.y)*smoothstep(0.,.07,1.-vLocal.y);
+          vec3 haloColor=mix(tint*.65,vec3(.85,.56,.21),.45);
+          haloColor=mix(haloColor,vec3(1.,.94,.72),min(1.,sparkle));
+          float alpha=text.a+(1.-text.a)*alphaHalo;
+          vec3 color=(text.rgb*text.a+haloColor*alphaHalo*(1.-text.a))/max(alpha,.0001);
+          gl_FragColor=vec4(color,alpha*opacity);\n#include <colorspace_fragment>\n}`,
       }),
     );
     this.mesh.frustumCulled = false;
@@ -123,8 +186,19 @@ export class ResonantWords {
       ];
     });
     this.labels.forEach((word, i) => {
+      const color = new THREE.Color(
+        score.palettes[i % score.palettes.length].color,
+      );
+      const tint = this.mesh.geometry.attributes
+        .inkTint as THREE.BufferAttribute;
+      for (let j = 0; j < 4; j++)
+        tint.setXYZ(i * 4 + j, color.r, color.g, color.b);
       const x = (((i % 3) + 0.5) * 1024) / 3,
         y = (Math.floor(i / 3) + 0.5) * 256;
+      const span = Math.min(300, ctx.measureText(word).width) / (1024 / 3);
+      const spanBuffer = this.mesh.geometry.attributes
+        .wordSpan as THREE.BufferAttribute;
+      for (let j = 0; j < 4; j++) spanBuffer.setX(i * 4 + j, span);
       ctx.strokeText(word, x, y, 300);
       ctx.fillText(word, x, y, 300);
       const angle = (i * Math.PI) / 3;
@@ -135,6 +209,8 @@ export class ResonantWords {
       );
       this.positions[i].copy(this.anchors[i]);
     });
+    this.mesh.geometry.attributes.inkTint.needsUpdate = true;
+    this.mesh.geometry.attributes.wordSpan.needsUpdate = true;
     this.texture.needsUpdate = true;
     this.approach.fill(0);
     this.focused = -1;
@@ -162,6 +238,8 @@ export class ResonantWords {
     if (paused && this.alpha === 0) this.alpha = 0.85;
     this.alpha = THREE.MathUtils.damp(this.alpha, 0.85, 2, step);
     this.mesh.material.opacity = this.alpha;
+    this.mesh.material.uniforms.opacity.value = this.alpha;
+    this.mesh.material.uniforms.time.value = time;
     camera.getWorldDirection(this.forward);
     let best = -1,
       bestDot = 0.994;
@@ -226,9 +304,14 @@ export class ResonantWords {
           .addScaledVector(this.right, ((j % 2) - 0.5) * width)
           .addScaledVector(this.up, (Math.floor(j / 2) - 0.5) * height);
         buffer.setXYZ(i * 4 + j, this.corner.x, this.corner.y, this.corner.z);
+        (this.mesh.geometry.attributes.glow as THREE.BufferAttribute).setX(
+          i * 4 + j,
+          this.approach[i],
+        );
       }
     }
     buffer.needsUpdate = true;
+    this.mesh.geometry.attributes.glow.needsUpdate = true;
   }
   inspect() {
     return {
