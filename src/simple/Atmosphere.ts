@@ -112,11 +112,12 @@ export class Atmosphere {
         kinds: { value: new THREE.Vector3() },
         layers: { value: 1 },
         ratio: { value: 1 },
+        resonance: { value: 0 },
         a: { value: new THREE.Color() },
         b: { value: new THREE.Color() },
         c: { value: new THREE.Color() },
       },
-      vertexShader: `uniform float time,ratio,layers;uniform vec3 kinds;uniform vec4 weather,climate,magic;attribute vec3 seed;varying vec3 particle;varying float fade,kind,group;
+      vertexShader: `uniform float time,ratio,layers,resonance;uniform vec3 kinds;uniform vec4 weather,climate,magic;attribute vec3 seed;varying vec3 particle;varying float fade,kind,group;
       void main(){particle=seed;group=min(floor(seed.x*layers),layers-1.);kind=group<.5?kinds.x:group<1.5?kinds.y:kinds.z;
         float t=time*(.025+seed.y*.025)+seed.x*6.28318;vec3 p=position;float edge=1.;
         if(kind<.5){p.y=mod(position.y+time*(.18+seed.y*.2)+10.,20.)-10.;p.x+=sin(t)*1.4;}
@@ -132,6 +133,7 @@ export class Atmosphere {
         else if(kind<10.5){p.x+=sin(t*.5)*1.2;p.y+=cos(t*.4)*.4;}
         else{p.y+=sin(p.x*.45-time*.35)*1.8;p.z+=cos(p.x*.3-time*.25);}
         edge=smoothstep(0.,2.,10.-abs(p.y))*smoothstep(0.,3.,22.-abs(p.x));
+        p+=vec3(sin(t+p.y),cos(t*.6+p.z),sin(t*.7+p.x))*resonance*.4;
         vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
         float size=kind>2.5&&kind<3.5?1.7:kind>9.5&&kind<10.5?1.7:1.;
         gl_PointSize=clamp((58.+seed.z*100.)*ratio*size/max(2.,-view.z),2.,20.*ratio);

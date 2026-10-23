@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
+import { PigmentDynamics } from "./PigmentDynamics";
 import { MATERIAL_IDENTITIES } from "./materialIdentity";
 import { makeWatercolorAtlas } from "./WatercolorAtlas";
 import { DistantBirds } from "./DistantBirds";
@@ -16,7 +17,12 @@ export class SimpleWorld {
   private texture = makeWatercolorAtlas();
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
-  private sheets: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
+  private sheets: THREE.InstancedMesh<
+    THREE.PlaneGeometry,
+    THREE.ShaderMaterial
+  >[] = [];
+  private dynamics = new PigmentDynamics();
+  private contact = 0;
   private atmosphere: Atmosphere;
   private observer: ResizeObserver;
   private frame = 0;
@@ -63,6 +69,10 @@ export class SimpleWorld {
     const canvas = this.renderer.domElement;
     canvas.setAttribute("aria-label", "Voiles aquarellés en mouvement");
     host.appendChild(canvas);
+    this.geometry.setAttribute(
+      "island",
+      new THREE.InstancedBufferAttribute(new Float32Array([0, 1, 2]), 1),
+    );
     for (let i = 0; i < 4; i++) {
       const material = new THREE.ShaderMaterial({
         side: THREE.DoubleSide,
@@ -72,6 +82,11 @@ export class SimpleWorld {
           paper: { value: this.texture },
           time: { value: 0 },
           phase: { value: i * 1.73 },
+          reaction: { value: new THREE.Vector3() },
+          meetingWeather: { value: new THREE.Vector4() },
+          neighbor0: { value: new THREE.Color() },
+          neighbor1: { value: new THREE.Color() },
+          neighbor2: { value: new THREE.Color() },
           motion: { value: new THREE.Vector4(0.5, 0.5, 0.5, 0.1) },
           presence: { value: 0.6 },
           identity: { value: new THREE.Vector4(0, 1, 0.6, 0) },
@@ -79,34 +94,70 @@ export class SimpleWorld {
           tint: { value: new THREE.Color() },
           accent: { value: new THREE.Color() },
         },
-        vertexShader: `uniform float time,phase;uniform vec4 motion;varying vec2 vUv;varying float fold;void main(){vUv=uv;vec3 p=position;float t=time*.19*motion.x+phase;float a=p.x*(.25+motion.z*.7)+t,b=p.y*.6-t*.63;p.z+=sin(a)*(0.4+motion.z)+cos(b)*.45;p.y+=sin(a*.7)*(.25+motion.w*.8);p.x+=sin(b+t*.3)*(.25+motion.w);fold=.5+.5*cos(a)*cos(b);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent;uniform vec4 motion,identity;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold;
+        vertexShader: `uniform float time,phase;uniform vec4 motion;attribute float island;varying vec2 vUv;varying float fold,islet,detail;
+        void main(){vUv=uv;islet=island;vec3 p=position;float seed=phase+island*1.37;float t=time*.19*motion.x+seed;
+          float a=p.x*(.25+motion.z*.7)+t,b=p.y*.6-t*.63;
+          p.z+=sin(a)*(.4+motion.z)+cos(b)*.45;p.y+=sin(a*.7)*(.25+motion.w*.8);p.x+=sin(b+t*.3)*(.25+motion.w);
+          fold=.5+.5*cos(a)*cos(b);p=(instanceMatrix*vec4(p,1.)).xyz;
+          p+=vec3(sin(time*.031+seed),cos(time*.023+seed*.8),sin(time*.019+seed*1.1))*.65;
+          vec4 view=modelViewMatrix*vec4(p,1.);detail=1.-smoothstep(5.,20.,-view.z);gl_Position=projectionMatrix*view;}`,
+
+        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent,reaction,neighbor0,neighbor1,neighbor2;uniform vec4 motion,identity,meetingWeather;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold,islet,detail;
         vec4 ink(vec2 p){return texture2D(paper,(clamp(p,.005,.995)+tile)*.5);}
-        void main(){float t=time*.018*motion.x+phase;
-          vec2 drift=vec2(sin(vUv.y*3.+t),cos(vUv.x*4.-t*.61))*.045;
-          vec4 p=ink(vUv+drift),q=ink(vUv*.73+.12-drift),r=ink(vUv*1.65-.3+drift*.4);
+        void main(){float seed=phase+islet*1.37;float contact=islet<.5?reaction.x:islet<1.5?reaction.y:reaction.z;vec3 other=islet<.5?neighbor0:islet<1.5?neighbor1:neighbor2;float t=time*.018*motion.x+seed;
+          vec2 drift=vec2(sin(vUv.y*3.+t),cos(vUv.x*4.-t*.61))*(.035+contact*(.035+meetingWeather.y*.03));
+          float symmetry=step(.5,islet)*(1.-step(1.5,islet))*.86;
+          vec2 folded=vec2(.5+abs(vUv.x-.5+sin(vUv.y*3.+seed)*.015),vUv.y);
+          vec2 pigmentUV=mix(vUv,folded,symmetry);
+          pigmentUV.x+=sin(vUv.y*5.+t)*meetingWeather.z*contact*.045;
+          vec4 p=ink(pigmentUV+drift),q=ink(pigmentUV*.73+.12-drift),r=ink(vUv*(1.3+detail*1.2)-.3+drift*.4);
           vec2 center=vUv-.5;float shape=identity.x;
           float contour=length(center*vec2(1.7,1.85));
           if(shape>.5&&shape<1.5)contour=length(center*vec2(2.6,1.25))+(q.b-.5)*.27;
           else if(shape>1.5&&shape<2.5)contour=abs(center.y+sin(vUv.x*6.+t)*.12)*3.4+abs(center.x)*.55;
           else if(shape>2.5&&shape<3.5)contour=length(center*vec2(1.4,1.5))*.9;
           else if(shape>3.5&&shape<4.5)contour=length(center*vec2(1.9,1.8))+(q.b-.5)*.55;
-          else if(shape>4.5)contour=abs(length(center*vec2(1.2,2.2))-.35)*2.2;
-          float edge=1.-smoothstep(.25,1.,contour+(q.b-.5)*.32+(p.b-.5)*.18);
+          else if(shape>4.5)contour=length(center*vec2(1.8,1.5))+sin(vUv.y*6.+t)*.15+(q.b-.5)*.2;
+          float tide=.5+.5*sin(time*.011+seed);
+          contour+=(q.b-.5)*(.32+tide*.12)+(p.b-.5)*.18;
+          float edge=1.-smoothstep(.25,1.,contour);
+          // A slow, local reserve opens then closes, without a scene-wide pulse.
+          float cycle=fract(time/(39.+islet*7.)+fract(seed*.173));
+          float event=smoothstep(.24,.43,cycle)*(1.-smoothstep(.57,.78,cycle));
+          vec2 well=vec2(.5+sin(seed*2.)*.17,.5+cos(seed*1.3)*.14);
+          float opening=(1.-smoothstep(.025,.18,length((vUv-well)*vec2(1.,1.4))))*event;
+          edge*=1.-opening*.72;
           edge*=smoothstep(0.,.12,vUv.x)*smoothstep(0.,.12,1.-vUv.x)*smoothstep(0.,.12,vUv.y)*smoothstep(0.,.12,1.-vUv.y);
           float pool=smoothstep(.18,.7,p.a*.5+q.a*.35+r.a*.15);
           float drying=exp(-abs(p.b-.47-sin(t*.21)*.025)*32.)*identity.z;
           float granule=(r.g-.5)*.18;
           float gradient=smoothstep(.1,.9,vUv.y*.55+q.b*.45+fold*.18);
           vec3 c=mix(tint,accent,gradient*.75);
-          float deposit=clamp(pool*identity.y+drying*.3,0.,1.);
+          float meeting=contact*smoothstep(.2,.75,q.b)*.32;
+          c=mix(c,other,meeting);
+          float deposit=clamp(pool*identity.y+drying*.3+contact*.15,0.,1.);
           c*=1.-deposit*.35-drying*.1+granule;
+          float sumi=smoothstep(.48,.8,p.a)*smoothstep(.3,.75,q.b)*min(1.,identity.y);
+          c=mix(c,mix(tint*.24,vec3(.07,.09,.12),.35),sumi*.6);
           c=mix(c,vec3(.94,.91,.84),smoothstep(.66,.92,r.g)*.16);
           float alpha=edge*(.22+pool*.7+drying*.16)*presence;
           gl_FragColor=vec4(c,alpha);\n#include <colorspace_fragment>\n}`,
       });
       material.forceSinglePass = true;
-      const sheet = new THREE.Mesh(this.geometry, material);
+      const sheet = new THREE.InstancedMesh(this.geometry, material, 3);
+      const matrix = new THREE.Matrix4();
+      const positions = [
+        [-3.4, 0.7, -1.5],
+        [0.8, -0.8, -3.5],
+        [3.6, 0.9, 1.5],
+      ];
+      for (let slot = 0; slot < 3; slot++) {
+        const size = [0.46, 0.57, 0.38][slot];
+        matrix.makeScale(size, size, size);
+        matrix.setPosition(...(positions[slot] as [number, number, number]));
+        sheet.setMatrixAt(slot, matrix);
+      }
+      sheet.instanceMatrix.needsUpdate = true;
       sheet.position.set(
         Math.sin(i * 2.2) * 3,
         Math.cos(i * 1.9) * 1.8,
@@ -157,6 +208,7 @@ export class SimpleWorld {
         p = score.palettes[index];
       sheet.material.uniforms.tint.value.set(p.color);
       sheet.material.uniforms.accent.value.set(p.secondary);
+      sheet.material.uniforms.meetingWeather.value.fromArray(score.weather);
       sheet.material.uniforms.motion.value.fromArray(
         PHENOMENA[score.entries[index]].motion,
       );
@@ -191,6 +243,7 @@ export class SimpleWorld {
           ? -0.35 * score.slant
           : Math.sin(i * 2) * 0.08);
     });
+    this.dynamics.configure(this.sheets, score.entries);
   }
 
   setGyro(active: boolean) {
@@ -375,7 +428,9 @@ export class SimpleWorld {
       this.camera.position.set(0, 18, 12);
       this.camera.lookAt(0, 18, -5);
     }
+    this.contact = this.dynamics.update(this.time, this.paused ? 0 : dt);
     this.atmosphere.update(this.time, this.camera, this.pixelRatio);
+    this.atmosphere.particles.material.uniforms.resonance.value = this.contact;
     this.birds.update(this.time);
     this.renderer.render(this.scene, this.camera);
     if (now - this.debugAt > 120) {
@@ -383,6 +438,8 @@ export class SimpleWorld {
       const d = this.renderer.domElement.dataset;
       d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
+      d.islands = "12";
+      d.contact = this.contact.toFixed(4);
       d.altitude = this.camera.position.y.toFixed(2);
       d.horizon = "painted-landscape";
       d.birdTime = this.time.toFixed(3);

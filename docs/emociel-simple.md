@@ -10,7 +10,7 @@ L’entrée principale charge uniquement `src/simple`. Les anciens ateliers rest
 
 ## Rendu borné
 
-`SimpleWorld.ts` utilise Three.js directement : quatre membranes déformées au GPU, une géométrie et un atlas procédural 512² partagées, 480 particules mobiles (800 sur ordinateur), un skydome intérieur. Sept appels de dessin, environ 4 600 triangles et cinq silhouettes d’oiseaux, aucun modèle externe, ombre ou post-traitement. Ratio de pixels plafonné à 1,25, abaissé à 0,8 lors de ralentissements prolongés. Les diagnostics DOM sont limités à environ huit actualisations/seconde.
+`SimpleWorld.ts` utilise Three.js directement : douze îlots répartis dans quatre lots instanciés et déformés au GPU, une géométrie et un atlas procédural 512² partagées, 480 particules mobiles (800 sur ordinateur), un skydome intérieur. Sept appels de dessin, environ 12 800 triangles et cinq silhouettes d’oiseaux, aucun modèle externe, ombre ou post-traitement. Ratio de pixels plafonné à 1,25, abaissé à 0,8 lors de ralentissements prolongés. Les diagnostics DOM sont limités à environ huit actualisations/seconde.
 
 Le voyage suit une ellipse fermée au milieu de la composition. Le glissement et le capteur règlent le regard séparément de la position. Le contrôleur d’horizon existant est réutilisé : pas de roulis, calibration relative, changements d’orientation d’écran et source absolue Android pris en charge. Quatre secondes sans signal rendent la main au tactile. L’autorisation est demandée uniquement au toucher du bouton Gyro.
 
@@ -58,3 +58,15 @@ La sélection météo utilise un double contour contrasté, une coche, un halo f
 L’atlas ajoute cellules humides, auréoles, fissures capillaires, fibres et micro-granulation. Trois lectures de la même texture animent lentement des taches et des dégradés internes ; le pigment s’accumule en contours irréguliers. Les six silhouettes ne sont pas des illustrations : elles laissent place aux associations du visiteur. Aucune émotion n’est inférée ni interprétée à partir des choix.
 
 Le nombre de textures, de voiles et d’appels de dessin reste identique. Les lectures de texture supplémentaires augmentent toutefois le coût du fragment shader : la fluidité sur téléphone physique reste à mesurer. Les huit tests du parcours, des douze météos, de l’atlas et du paysage sont réexécutés, avec captures inspectées.
+
+## Archipels d’encre et métamorphoses locales
+
+Les quatre matériaux instancient chacun trois îlots de tailles différentes. Géométrie et atlas sont partagés ; les matrices sont écrites seulement à la composition. Les intervalles vides font partie du paysage, avec de la parallaxe pendant le voyage. Le détail de granulation est modulé par la distance au regard.
+
+Une partie des îlots possède un repli partiellement symétrique, volontairement imparfait. Dépôts sombres d’encre sumi-e, lavis colorés, réserves claires et dégradés internes produisent des taches ambiguës sans silhouette figurative imposée. Des ouvertures locales évoluent sur des cycles différents, de plusieurs dizaines de secondes, indépendamment de la dérive générale et du séchage.
+
+`PigmentDynamics.ts` conserve douze centres de référence et mesure leur proximité en 3D, en tenant compte de la dérive des instances. Deux matières de météo différente qui se rapprochent provoquent un mélange local de couleur, une densification et une diffusion douce. La pluie renforce la diffusion, le vent étire le mélange. Les particules existantes réagissent modestement à ces rencontres ; aucun émetteur supplémentaire n’est créé.
+
+Les contacts utilisent une représentation simplifiée des centres, pas une simulation de fluides ou de collision exacte entre surfaces. Le coût géométrique augmente à environ 12 800 triangles, mais les îlots sont plus petits et le nombre d’appels de dessin reste à sept. Aucune allocation de géométrie ou nouvelle texture dans la boucle ; la qualité adaptative est conservée. Les animations et mélanges se figent en pause.
+
+Un test dédié vérifie l’absence de rencontre entre matières superposées à l’écran mais éloignées en profondeur, la montée progressive et bornée de la réaction, et son gel en pause. Les parcours existants sont également réexécutés. Essai sur téléphone physique et performance prolongée restent à effectuer.
