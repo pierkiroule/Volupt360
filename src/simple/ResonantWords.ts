@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { composeWeather } from "./composition";
 
-import { WEATHER_WORDS } from "./weatherWords";
-export { WEATHER_WORDS } from "./weatherWords";
+import { fragmentsFor } from "./poeticFragments";
 /** Six billboards, one atlas and one draw. Gaze moves words, never the camera. */
 export class ResonantWords {
   readonly mesh: THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>;
   private texture: THREE.CanvasTexture;
   private canvas = document.createElement("canvas");
   private labels: string[] = [];
-  private slotIds: string[] = [];
-  private cursors: Record<string, number> = {};
+  private pool: string[] = [];
+  private cursor = 6;
+  private active = 0;
+  private elapsed = 0;
+  private lineLayouts: string[][] = [];
   private wordFade = new Float32Array(6).fill(1);
-  private stage = new Uint8Array(6);
-  private countdown = new Float32Array(6);
   private anchors = Array.from({ length: 6 }, () => new THREE.Vector3());
   private positions = Array.from({ length: 6 }, () => new THREE.Vector3());
   private approach = new Float32Array(6);
@@ -143,31 +143,22 @@ export class ResonantWords {
     const score = composeWeather(ids),
       ctx = this.canvas.getContext("2d")!;
     ctx.clearRect(0, 0, 1024, 512);
-    ctx.font = "48px Georgia, serif";
+    ctx.font = "26px Georgia, serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.lineJoin = "round";
     ctx.lineWidth = 5;
     ctx.strokeStyle = "rgba(255,251,239,.82)";
     ctx.fillStyle = "#253d3a";
-    this.cursors = {};
-    this.stage.fill(0);
-    this.wordFade.fill(1);
-    this.slotIds = Array.from(
+    this.pool = fragmentsFor(score.entries);
+    this.cursor = 6;
+    this.active = 0;
+    this.elapsed = 0;
+    this.wordFade.fill(0);
+    this.labels = Array.from(
       { length: 6 },
-      (_, i) => score.entries[i % score.entries.length],
+      (_, i) => this.pool[i % this.pool.length],
     );
-    for (let i = 0; i < 6; i++) {
-      this.countdown[i] = 22 + i * 4;
-      const id = this.slotIds[i];
-      this.cursors[id] = (this.cursors[id] ?? 0) + 1;
-    }
-    this.labels = Array.from({ length: 6 }, (_, i) => {
-      const id = score.entries[i % score.entries.length];
-      return WEATHER_WORDS[id][
-        Math.floor(i / score.entries.length) % WEATHER_WORDS[id].length
-      ];
-    });
     this.labels.forEach((word, i) => {
       const color = new THREE.Color(
         score.palettes[i % score.palettes.length].color,
@@ -200,57 +191,63 @@ export class ResonantWords {
     ctx.clearRect(((i % 3) * 1024) / 3, Math.floor(i / 3) * 256, 1024 / 3, 256);
     const x = (((i % 3) + 0.5) * 1024) / 3,
       y = (Math.floor(i / 3) + 0.5) * 256;
-    const span = Math.min(300, ctx.measureText(word).width) / (1024 / 3);
+    const words = word.split(" ");
+    let lines = [word],
+      best = Infinity;
+    for (let split = 1; split < words.length; split++) {
+      const candidate = [
+        words.slice(0, split).join(" "),
+        words.slice(split).join(" "),
+      ];
+      const width = Math.max(
+        ...candidate.map((line) => ctx.measureText(line).width),
+      );
+      if (width < best) {
+        best = width;
+        lines = candidate;
+      }
+    }
+    if (ctx.measureText(word).width <= 280) lines = [word];
+    this.lineLayouts[i] = lines;
+    const measured = Math.max(
+      ...lines.map((line) => ctx.measureText(line).width),
+    );
+    const fontSize = Math.min(26, (26 * 280) / Math.max(1, measured));
+    ctx.font = `${fontSize}px Georgia, serif`;
+    const span =
+      Math.min(
+        280,
+        Math.max(...lines.map((line) => ctx.measureText(line).width)),
+      ) /
+      (1024 / 3);
     const buffer = this.mesh.geometry.attributes
       .wordSpan as THREE.BufferAttribute;
     for (let j = 0; j < 4; j++) buffer.setX(i * 4 + j, span);
     buffer.needsUpdate = true;
-    ctx.strokeText(word, x, y, 300);
-    ctx.fillText(word, x, y, 300);
+    lines.forEach((line, j) => {
+      const baseline = y + (j - (lines.length - 1) / 2) * 36;
+      ctx.strokeText(line, x, baseline);
+      ctx.fillText(line, x, baseline);
+    });
+    ctx.font = "26px Georgia, serif";
     this.texture.needsUpdate = true;
   }
   private renewWords(dt: number) {
     if (dt <= 0) return;
-    for (let i = 0; i < 6; i++) {
-      // Do not replace a word being read or still returning to its anchor.
-      if (
-        i === this.focused ||
-        i === this.candidate ||
-        this.approach[i] > 0.03
-      ) {
-        this.wordFade[i] = Math.min(1, this.wordFade[i] + dt / 1.4);
-        this.stage[i] = 0;
-        this.countdown[i] = Math.max(5, this.countdown[i]);
-        continue;
-      }
-      if (this.stage[i] === 0) {
-        this.countdown[i] -= dt;
-        if (this.countdown[i] <= 0) this.stage[i] = 1;
-      }
-      if (this.stage[i] === 1) {
-        this.wordFade[i] = Math.max(0, this.wordFade[i] - dt / 1.6);
-        if (this.wordFade[i] === 0) {
-          const id = this.slotIds[i],
-            pool = WEATHER_WORDS[id];
-          let next = this.labels[i];
-          for (let attempt = 0; attempt < pool.length; attempt++) {
-            const word = pool[this.cursors[id]++ % pool.length];
-            if (!this.labels.includes(word)) {
-              next = word;
-              break;
-            }
-          }
-          this.labels[i] = next;
-          this.paintWord(i);
-          this.stage[i] = 2;
-        }
-      } else if (this.stage[i] === 2) {
-        this.wordFade[i] = Math.min(1, this.wordFade[i] + dt / 2.2);
-        if (this.wordFade[i] === 1) {
-          this.stage[i] = 0;
-          this.countdown[i] = 24 + ((i * 7) % 19);
-        }
-      }
+    this.elapsed += dt;
+    // Three-second arrival, twelve seconds to read, three-second departure,
+    // then fourteen seconds of empty sky. Never more than one fragment.
+    const t = this.elapsed;
+    this.wordFade.fill(0);
+    this.wordFade[this.active] =
+      Math.min(1, t / 3) * (1 - THREE.MathUtils.smoothstep(t, 15, 18));
+    if (t >= 32) {
+      this.active = (this.active + 1) % 6;
+      this.labels[this.active] = this.pool[this.cursor++ % this.pool.length];
+      this.paintWord(this.active);
+      this.elapsed = 0;
+      this.focused = this.candidate = -1;
+      this.dwell = 0;
     }
   }
   update(
@@ -271,6 +268,7 @@ export class ResonantWords {
     }
     this.mesh.visible = true;
     const step = paused ? 0 : dt;
+    if (paused && this.elapsed === 0) this.wordFade[this.active] = 1;
     if (paused && this.alpha === 0) this.alpha = 0.85;
     this.alpha = THREE.MathUtils.damp(this.alpha, 0.85, 2, step);
     this.mesh.material.opacity = this.alpha;
@@ -286,7 +284,12 @@ export class ResonantWords {
       this.ray.copy(this.positions[i]).sub(camera.position);
       const distance = this.ray.length();
       const dot = this.ray.normalize().dot(this.forward);
-      if (distance > 2.3 && dot > bestDot) {
+      if (
+        i === this.active &&
+        this.wordFade[i] > 0.15 &&
+        distance > 2.3 &&
+        dot > bestDot
+      ) {
         bestDot = dot;
         best = i;
       }
@@ -298,7 +301,8 @@ export class ResonantWords {
         .sub(camera.position)
         .normalize()
         .dot(this.forward);
-      if (dot > 0.982) best = this.focused;
+      if (dot > 0.982 && this.wordFade[this.focused] > 0.15)
+        best = this.focused;
     }
     if (!paused) {
       if (best !== this.candidate) {
@@ -361,6 +365,7 @@ export class ResonantWords {
       approach: this.focused < 0 ? 0 : this.approach[this.focused],
       words: [...this.labels],
       fades: Array.from(this.wordFade),
+      lines: this.lineLayouts.map((lines) => [...lines]),
     };
   }
   dispose() {

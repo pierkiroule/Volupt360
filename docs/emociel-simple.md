@@ -151,3 +151,9 @@ Cette section remplace les descriptions photographiques précédentes : Commons,
 `AbstractResonances` compose six membranes spatiales dans une géométrie unique (6 144 triangles, une passe recto-verso). Un shader reconstruit les plis depuis une grille immuable ; aucune simulation cumulative ni allocation par frame. Les profils météo dessinent des rubans solaires, des coulures verticales, des tissus étirés par le vent, des membranes brumeuses et des voiles d’aurore. Le grain partagé, les réserves et les auréoles évitent les surfaces pleines et lisses. Les associations météo modulent aussi les pigments. La rotation du regard révèle de vrais volumes ouverts, pas des images face caméra.
 
 Pause et réduction du mouvement utilisent l’horloge existante. Le module libère sa géométrie et son matériau sans détruire l’atlas partagé. Les contrôles, le voyage, les mots et le gyroscope sont conservés. Budget : 9 passes en aperçu, 11 en immersion. Aucune dépendance supplémentaire. Les performances sur téléphone physique restent à mesurer.
+
+### Fragments poétiques
+
+`poeticFragments.ts` remplace le lexique de mots : 72 fragments originaux (six par météo), plus neuf fragments d’associations. La sélection est indépendante de l’ordre des émojis et privilégie d’abord les rencontres disponibles. Aucune interprétation psychologique n’est produite.
+
+Le même atlas contient six emplacements, mais un seul est visible : apparition sur trois secondes, lecture jusqu’à quinze secondes, disparition jusqu’à dix-huit secondes, puis quatorze secondes sans texte. Le prochain fragment est peint uniquement lorsqu’il est invisible. Composition typographique en une ou deux lignes, ajustement réel de la taille sans compression horizontale. Le regard rapproche le fragment ; la caméra reste indépendante. Pause suspend le cycle ; en réduction du mouvement, un fragment reste lisible et immobile. Ressources et nombre de passes inchangés.

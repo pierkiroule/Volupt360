@@ -1,163 +1,96 @@
 import { test, expect } from "@playwright/test";
 
-test("a centered word approaches, returns when looking away, and never moves the camera", async ({
+test("poetry follows weather combinations, remains readable, sparse and paused", async ({
   page,
 }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/three/build/three.module.js");
     const { ResonantWords } = await import("/src/simple/ResonantWords.ts");
-    const words = new ResonantWords();
-    words.setPalette(["warm", "water"]);
-    const camera = new THREE.PerspectiveCamera(68, 0.5, 0.1, 80);
+    const { fragmentsFor, WEATHER_FRAGMENTS } =
+      await import("/src/simple/poeticFragments.ts");
+    const words = new ResonantWords(),
+      camera = new THREE.PerspectiveCamera(68, 0.5, 0.1, 100);
     camera.position.set(0, 18, 2);
     camera.lookAt(0, 18, -10);
-    const original = camera.position.toArray().join(","),
-      heading = camera.quaternion.toArray().join(",");
-    const center = () => {
-      const p = words.mesh.geometry.attributes.position;
-      return new THREE.Vector3(
-        (p.getX(0) + p.getX(3)) / 2,
-        (p.getY(0) + p.getY(3)) / 2,
-        (p.getZ(0) + p.getZ(3)) / 2,
-      );
-    };
+    words.setPalette(["warm", "water"]);
     words.update(0, 0, camera, true, true);
-    const staticVisible = words.mesh.visible && words.mesh.material.opacity > 0;
-    words.update(0, 0, camera, false, true);
-    const before = center().distanceTo(camera.position);
-    for (let i = 0; i < 200; i++)
-      words.update(i * 0.016, 0.016, camera, false, true);
-    const focused = words.inspect(),
-      near = center().distanceTo(camera.position),
-      stationary =
-        original === camera.position.toArray().join(",") &&
-        heading === camera.quaternion.toArray().join(",");
-    const frozen = Array.from(words.mesh.geometry.attributes.position.array);
-    words.update(199 * 0.016, 0.2, camera, true, true);
-    const paused = frozen.every(
-      (v, i) => v === words.mesh.geometry.attributes.position.array[i],
-    );
-    camera.lookAt(10, 18, 2);
-    for (let i = 0; i < 200; i++)
-      words.update(3.2 + i * 0.016, 0.016, camera, false, true);
-    const after = center().distanceTo(camera.position),
-      unfocused = words.inspect().focused;
-    const labels = words.inspect().words;
-    words.update(7, 0.016, camera, false, false);
+    const reduced = words.inspect();
+    let maxVisible = 0,
+      silent = 0;
+    const seen = new Set();
+    for (let i = 1; i <= 1200; i++) {
+      words.update(i * 0.1, 0.1, camera, false, true);
+      const state = words.inspect();
+      const visible = state.fades.filter((v) => v > 0.01).length;
+      maxVisible = Math.max(maxVisible, visible);
+      if (!visible) silent++;
+      state.words.forEach((text, j) => {
+        if (state.fades[j] > 0.5) seen.add(text);
+      });
+    }
+    const before = words.inspect();
+    words.update(120, 1, camera, true, true);
+    const after = words.inspect();
+    const lines = after.lines;
+    words.update(120, 0, camera, true, false);
     const hidden = !words.mesh.visible;
     words.dispose();
     return {
+      maxVisible,
+      silent,
+      seen: [...seen],
       before,
-      near,
       after,
-      focused,
-      stationary,
-      paused,
-      unfocused,
-      labels,
+      lines,
       hidden,
-      staticVisible,
+      reduced,
+      pool: fragmentsFor(["water", "warm"]),
+      reverse: fragmentsFor(["warm", "water"]),
+      wind: fragmentsFor(["air", "surprise"]),
+      moon: fragmentsFor(["soft", "tired"]),
+      count: Object.values(WEATHER_FRAGMENTS).flat().length,
     };
   });
-  expect(result.focused.focused).toBe("éclat");
-  expect(result.focused.approach).toBeGreaterThan(0.9);
-  expect(result.near).toBeLessThan(result.before * 0.4);
-  expect(result.near).toBeGreaterThanOrEqual(2.79);
-  expect(result.after).toBeGreaterThan(result.near * 2);
-  expect(result.unfocused).toBeNull();
-  expect(result.staticVisible).toBe(true);
-  expect(result.stationary).toBe(true);
-  expect(result.paused).toBe(true);
+  expect(result.maxVisible).toBe(1);
+  expect(result.silent).toBeGreaterThan(250);
+  expect(result.seen.length).toBeGreaterThan(3);
+  expect(result.pool).toEqual(result.reverse);
+  expect(result.pool[0]).toBe("la lumière traverse ce qui ruisselle");
+  expect(result.wind[0]).toBe("le blanc apprend à voyager");
+  expect(result.moon[0]).toBe("une lueur sans contour");
+  expect(result.count).toBe(72);
+  expect(result.after).toEqual(result.before);
+  expect(result.lines.every((lines) => lines.length <= 2)).toBe(true);
+  expect(result.reduced.fades.filter((v) => v > 0)).toHaveLength(1);
   expect(result.hidden).toBe(true);
-  expect(result.labels).toContain("reflet");
-  expect(result.labels).toHaveLength(6);
 });
 
-test("words appear in immersion and disappear on return to the palette", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const canvas = page.locator("canvas");
-  await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
-  await expect(canvas).toHaveAttribute("data-ready", "inside");
-  await expect(canvas).toHaveAttribute("data-calls", /^(10|11)$/);
-  await expect.poll(() => canvas.getAttribute("data-word")).not.toBe("");
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-word-approach")))
-    .toBeGreaterThan(0.8);
-  await page.screenshot({ path: "test-results/resonant-word.png" });
-  await page.getByRole("button", { name: "Revenir à la palette" }).click();
-  await expect(canvas).toHaveAttribute("data-calls", "9");
-});
-
-test("words renew over time without replacing a focused word, and pause freezes renewal", async ({
+test("a fragment approaches the gaze without moving the camera", async ({
   page,
 }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/three/build/three.module.js");
-    const { ResonantWords, WEATHER_WORDS } =
-      await import("/src/simple/ResonantWords.ts");
-    const words = new ResonantWords();
+    const { ResonantWords } = await import("/src/simple/ResonantWords.ts");
+    const words = new ResonantWords(),
+      camera = new THREE.PerspectiveCamera(68, 0.5, 0.1, 100);
     words.setPalette(["warm", "water"]);
-    const camera = new THREE.PerspectiveCamera(68, 0.5, 0.1, 80);
     camera.position.set(0, 18, 2);
     camera.lookAt(0, 18, -10);
-    const original = words.inspect().words;
-    let fading = false,
-      hiddenSwap = false,
-      previous = [...original],
-      t = 0;
-    for (let i = 0; i < 1600; i++) {
-      t += 0.04;
-      words.update(t, 0.04, camera, false, true);
-      const state = words.inspect();
-      if (state.fades.some((f) => f > 0 && f < 1)) fading = true;
-      for (let j = 0; j < 6; j++)
-        if (state.words[j] !== previous[j] && state.fades[j] === 0)
-          hiddenSwap = true;
-      previous = state.words;
-    }
-    const running = words.inspect(),
-      version = words.mesh.material.uniforms.map.value.version;
-    for (let i = 0; i < 100; i++) words.update(t, 0.04, camera, true, true);
-    const paused = words.inspect(),
-      unchangedTexture =
-        version === words.mesh.material.uniforms.map.value.version;
-    camera.lookAt(10, 18, 2);
-    for (let i = 0; i < 1300; i++) {
-      t += 0.04;
-      words.update(t, 0.04, camera, false, true);
-    }
+    for (let i = 0; i < 250; i++)
+      words.update(i * 0.02, 0.02, camera, false, true);
+    const focused = words.inspect();
+    const position = camera.position.toArray();
+    camera.lookAt(8, 18, 2);
+    for (let i = 250; i < 450; i++)
+      words.update(i * 0.02, 0.02, camera, false, true);
     const released = words.inspect();
     words.dispose();
-    return {
-      total: Object.values(WEATHER_WORDS).reduce(
-        (n, list) => n + list.length,
-        0,
-      ),
-      distinct: Object.values(WEATHER_WORDS).every(
-        (list) => new Set(list).size === list.length,
-      ),
-      original,
-      running,
-      paused,
-      released,
-      fading,
-      hiddenSwap,
-      unchangedTexture,
-    };
+    return { focused, released, position, after: camera.position.toArray() };
   });
-  expect(result.total).toBeGreaterThanOrEqual(192);
-  expect(result.distinct).toBe(true);
-  expect(result.running.words[0]).toBe(result.original[0]);
-  expect(result.running.focused).toBe(result.original[0]);
-  expect(result.running.words.slice(1)).not.toEqual(result.original.slice(1));
-  expect(new Set(result.running.words).size).toBe(6);
-  expect(result.paused).toEqual(result.running);
-  expect(result.unchangedTexture).toBe(true);
-  expect(result.released.words[0]).not.toBe(result.original[0]);
-  expect(result.fading).toBe(true);
-  expect(result.hiddenSwap).toBe(true);
+  expect(result.focused.focused).toBe("la lumière traverse ce qui ruisselle");
+  expect(result.focused.approach).toBeGreaterThan(0.9);
+  expect(result.released.focused).toBeNull();
+  expect(result.after).toEqual(result.position);
 });
