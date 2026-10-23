@@ -193,6 +193,11 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
   expect(
     Number(await canvas.getAttribute("data-particles")),
   ).toBeLessThanOrEqual(480);
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(10);
+  expect(
+    Number(await canvas.getAttribute("data-calls")),
+  ).toBeGreaterThanOrEqual(10);
+  expect(Number(await canvas.getAttribute("data-calls"))).toBeLessThanOrEqual(
+    11,
+  );
   expect(errors).toEqual([]);
 });

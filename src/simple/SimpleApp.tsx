@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NUANCES, readPalette, SIMPLE_KEY } from "./palette";
 import { SimpleWorld } from "./SimpleWorld";
+import { loadNaturePhotos, type PhotoCredit } from "./naturePhotos";
 import { requestGyroscope } from "../scene/gyroOrientation";
 import "./simple.css";
 
@@ -16,6 +17,11 @@ export default function SimpleApp() {
   const [failure, setFailure] = useState(false);
   const [retry, setRetry] = useState(0);
   const [permissionBusy, setPermissionBusy] = useState(false);
+  const [photoSources, setPhotoSources] = useState<PhotoCredit[]>([]);
+  const [photoState, setPhotoState] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [photoRetry, setPhotoRetry] = useState(0);
   const host = useRef<HTMLDivElement>(null);
   const world = useRef<SimpleWorld | null>(null);
   const current = useRef({ selected, inside, travel, paused });
@@ -70,6 +76,33 @@ export default function SimpleApp() {
     document.addEventListener("visibilitychange", hide);
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
+  useEffect(() => {
+    if (!inside) return;
+    const controller = new AbortController();
+    let active = true;
+    setPhotoState("loading");
+    setPhotoSources([]);
+    world.current?.setNaturePhotos([]);
+    void loadNaturePhotos(selected, controller.signal)
+      .then((photos) => {
+        try {
+          if (active && world.current) {
+            world.current.setNaturePhotos(photos);
+            setPhotoSources(photos.map((p) => p.credit));
+            setPhotoState("ready");
+          }
+        } finally {
+          for (const photo of photos) photo.bitmap.close();
+        }
+      })
+      .catch(() => {
+        if (active) setPhotoState("error");
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [selected, inside, photoRetry, retry]);
   function choose(id: string) {
     setNotice("");
     if (selected.includes(id)) {
@@ -263,6 +296,46 @@ export default function SimpleApp() {
             </button>
           </nav>
         </>
+      )}
+      {inside && (
+        <aside className="simple-photo-sources">
+          {photoState === "loading" && <span>Photos…</span>}
+          {photoState === "error" && (
+            <button onClick={() => setPhotoRetry((n) => n + 1)}>
+              Photos indisponibles · Réessayer
+            </button>
+          )}
+          {photoSources.length > 0 && (
+            <details>
+              <summary>Sources des images</summary>
+              <section aria-label="Crédits des photographies">
+                <p>
+                  Photographies · Wikimedia Commons
+                  <br />
+                  Recadrage en disque et transparence.
+                </p>
+                <ul>
+                  {photoSources.map((photo) => (
+                    <li key={photo.source}>
+                      <a href={photo.source} target="_blank" rel="noreferrer">
+                        {photo.title}
+                      </a>
+                      <br />
+                      {photo.author} ·{" "}
+                      <a
+                        href={photo.licenseUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {photo.license}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </details>
+          )}
+        </aside>
       )}
       {notice && (
         <p className="simple-notice" role="status">

@@ -81,7 +81,7 @@ test("words appear in immersion and disappear on return to the palette", async (
   const canvas = page.locator("canvas");
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   await expect(canvas).toHaveAttribute("data-ready", "inside");
-  await expect(canvas).toHaveAttribute("data-calls", "10");
+  await expect(canvas).toHaveAttribute("data-calls", /^(10|11)$/);
   await expect.poll(() => canvas.getAttribute("data-word")).not.toBe("");
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-word-approach")))
