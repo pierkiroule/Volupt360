@@ -10,7 +10,7 @@ L’entrée principale charge uniquement `src/simple`. Les anciens ateliers rest
 
 ## Rendu borné
 
-`SimpleWorld.ts` utilise Three.js directement : douze îlots répartis dans quatre lots instanciés et déformés au GPU, une géométrie et un atlas procédural 512² partagées, 480 particules mobiles (800 sur ordinateur), un skydome intérieur. Sept appels de dessin, environ 12 800 triangles et cinq silhouettes d’oiseaux, aucun modèle externe, ombre ou post-traitement. Ratio de pixels plafonné à 1,25, abaissé à 0,8 lors de ralentissements prolongés. Les diagnostics DOM sont limités à environ huit actualisations/seconde.
+`SimpleWorld.ts` utilise Three.js directement : douze îlots répartis dans quatre lots instanciés et déformés au GPU, une géométrie et un atlas procédural 512² partagées, 480 particules mobiles (800 sur ordinateur), un skydome intérieur. Neuf appels de dessin, environ 14 000 triangles et cinq silhouettes d’oiseaux, aucun modèle externe, ombre ou post-traitement. Ratio de pixels plafonné à 1,25, abaissé à 0,8 lors de ralentissements prolongés. Les diagnostics DOM sont limités à environ huit actualisations/seconde.
 
 Le voyage suit une ellipse fermée au milieu de la composition. Le glissement et le capteur règlent le regard séparément de la position. Le contrôleur d’horizon existant est réutilisé : pas de roulis, calibration relative, changements d’orientation d’écran et source absolue Android pris en charge. Quatre secondes sans signal rendent la main au tactile. L’autorisation est demandée uniquement au toucher du bouton Gyro.
 
@@ -70,3 +70,13 @@ Une partie des îlots possède un repli partiellement symétrique, volontairemen
 Les contacts utilisent une représentation simplifiée des centres, pas une simulation de fluides ou de collision exacte entre surfaces. Le coût géométrique augmente à environ 12 800 triangles, mais les îlots sont plus petits et le nombre d’appels de dessin reste à sept. Aucune allocation de géométrie ou nouvelle texture dans la boucle ; la qualité adaptative est conservée. Les animations et mélanges se figent en pause.
 
 Un test dédié vérifie l’absence de rencontre entre matières superposées à l’écran mais éloignées en profondeur, la montée progressive et bornée de la réaction, et son gel en pause. Les parcours existants sont également réexécutés. Essai sur téléphone physique et performance prolongée restent à effectuer.
+
+## Accents visibles et phénomènes groupés
+
+`WeatherAccents.ts` ajoute deux lots GPU : douze traînées pigmentaires courbes et 384 particules groupées sur mobile (640 sur ordinateur). Les trajectoires suivent les météos choisies : ascendantes, descendantes, transportées par le vent ou en orbites lentes. Les fragments prennent des formes de pétales abstraits, taches et membranes d’encre, texturées avec le même atlas. Ils se déploient en grappes puis se dissipent, avec des cycles désynchronisés de 19 à 36 secondes.
+
+Leur contraste et leur taille dépassent ceux des poussières atmosphériques : sprites plafonnés à 32 pixels multipliés par le ratio de rendu. Les traînées sont des bandes étroites, translucides et effilées, sans bloom ni flash. Les pauses et le mouvement réduit figent également ces deux nouvelles couches. Les rencontres de pigments influencent légèrement le mouvement des grappes.
+
+Coût : deux appels supplémentaires (neuf au total), environ 1 150 triangles de rubans et un nombre fixe de particules. Aucun objet n’est créé au cours d’une émission ; buffers et matériaux sont réutilisés, puis libérés au démontage. La qualité réduite retire 35 % des particules de ces grappes. Ce budget est plus élevé que la version précédente : le rendu sur téléphone physique reste à mesurer.
+
+Les neuf tests existants sont réexécutés avec le nouveau budget, notamment les douze météos, le gyro simulé, la pause et la restauration WebGL ; captures mobiles inspectées.

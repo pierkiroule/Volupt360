@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
+import { WeatherAccents } from "./WeatherAccents";
 import { PigmentDynamics } from "./PigmentDynamics";
 import { MATERIAL_IDENTITIES } from "./materialIdentity";
 import { makeWatercolorAtlas } from "./WatercolorAtlas";
@@ -24,6 +25,7 @@ export class SimpleWorld {
   private dynamics = new PigmentDynamics();
   private contact = 0;
   private atmosphere: Atmosphere;
+  private accents: WeatherAccents;
   private observer: ResizeObserver;
   private frame = 0;
   private last = 0;
@@ -172,7 +174,15 @@ export class SimpleWorld {
       this.texture,
       matchMedia("(max-width: 700px), (pointer: coarse)").matches,
     );
-    this.cloudLayer.add(this.atmosphere.particles);
+    this.accents = new WeatherAccents(
+      this.texture,
+      matchMedia("(max-width: 700px), (pointer: coarse)").matches,
+    );
+    this.cloudLayer.add(
+      this.atmosphere.particles,
+      this.accents.ribbons,
+      this.accents.seeds,
+    );
     this.cloudLayer.position.y = 18;
     this.scene.add(this.atmosphere.sky, this.cloudLayer, this.birds.mesh);
     this.observer = new ResizeObserver(this.resize);
@@ -197,6 +207,7 @@ export class SimpleWorld {
   setPalette(ids: string[]) {
     const score = composeWeather(ids);
     this.atmosphere.setPalette(ids);
+    this.accents.setPalette(ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
       ? "sun-rain"
@@ -431,6 +442,7 @@ export class SimpleWorld {
     this.contact = this.dynamics.update(this.time, this.paused ? 0 : dt);
     this.atmosphere.update(this.time, this.camera, this.pixelRatio);
     this.atmosphere.particles.material.uniforms.resonance.value = this.contact;
+    this.accents.update(this.time, this.pixelRatio, this.contact);
     this.birds.update(this.time);
     this.renderer.render(this.scene, this.camera);
     if (now - this.debugAt > 120) {
@@ -438,6 +450,8 @@ export class SimpleWorld {
       const d = this.renderer.domElement.dataset;
       d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
+      d.accents = String(this.accents.seeds.geometry.drawRange.count);
+      d.streams = "12";
       d.islands = "12";
       d.contact = this.contact.toFixed(4);
       d.altitude = this.camera.position.y.toFixed(2);
@@ -477,6 +491,7 @@ export class SimpleWorld {
     this.sheets.forEach((s) => s.material.dispose());
     this.atmosphere.dispose();
     this.birds.dispose();
+    this.accents.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     c.remove();

@@ -11,7 +11,12 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await expect(page.locator(".simple-nuance")).toHaveCount(12);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-renderer", "simple-silk");
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(7);
+  expect(Number(await canvas.getAttribute("data-calls"))).toBe(9);
+  await expect(canvas).toHaveAttribute("data-streams", "12");
+  expect(Number(await canvas.getAttribute("data-accents"))).toBeGreaterThan(0);
+  expect(Number(await canvas.getAttribute("data-accents"))).toBeLessThanOrEqual(
+    384,
+  );
   await page.getByRole("button", { name: "Orage", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Orage", exact: true }),
@@ -31,7 +36,8 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
     .poll(() => canvas.getAttribute("data-position"))
     .not.toBe(position);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await page.waitForTimeout(100);
+  // Diagnostics update every 120 ms; allow the final pre-pause sample to settle.
+  await page.waitForTimeout(250);
   const time = await canvas.getAttribute("data-time");
   await page.waitForTimeout(300);
   expect(await canvas.getAttribute("data-time")).toBe(time);
@@ -168,9 +174,7 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
       ).toBe(true);
     }
   const before = await canvas.screenshot();
-  await page
-    .getByRole("button", { name: "Arc-en-ciel", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Arc-en-ciel", exact: true }).click();
   await page.waitForTimeout(150);
   expect(before.equals(await canvas.screenshot())).toBe(false);
   const selected = await page
@@ -189,6 +193,6 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
   expect(
     Number(await canvas.getAttribute("data-particles")),
   ).toBeLessThanOrEqual(480);
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(7);
+  expect(Number(await canvas.getAttribute("data-calls"))).toBe(9);
   expect(errors).toEqual([]);
 });
