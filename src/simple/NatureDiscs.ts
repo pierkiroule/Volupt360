@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { composeWeather } from "./composition";
 import type { NaturePhoto } from "./naturePhotos";
 /** Six cropped photographs, one modest atlas, one draw, no external scene assets. */
 export class NatureDiscs {
@@ -57,11 +58,19 @@ export class NatureDiscs {
           map: { value: this.texture },
           paper: { value: paper },
           presence: { value: 0 },
+          time: { value: 0 },
+          tint: { value: new THREE.Color("#a69f98") },
         },
         vertexShader: `attribute vec2 local;varying vec2 vUv,disc;void main(){vUv=uv;disc=local;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader: `uniform sampler2D map,paper;uniform float presence;varying vec2 vUv,disc;
+        fragmentShader: `uniform sampler2D map,paper;uniform float presence,time;uniform vec3 tint;varying vec2 vUv,disc;
         void main(){vec4 grain=texture2D(paper,disc*.47+vec2(.015,.51));float radius=length(disc-.5)*2.;
-          float mask=1.-smoothstep(.7,.99,radius+(grain.b-.5)*.09);if(mask<.01)discard;
+          vec4 poolGrain=texture2D(paper,disc*.41+vec2(.51,.015));
+          float reveal=.5+.5*sin(time*.032+floor(vUv.x*3.)*2.1+floor(vUv.y*2.)*1.7);
+          float contour=length((disc-.5)*vec2(1.72,2.08))+(grain.b-.5)*.5+(poolGrain.b-.5)*.28;
+          float mask=1.-smoothstep(.38,.96,contour);
+          mask*=smoothstep(.08,.32,grain.a+poolGrain.a*.48);
+          mask*=smoothstep(0.,.1,disc.x)*smoothstep(0.,.1,1.-disc.x)*smoothstep(0.,.1,disc.y)*smoothstep(0.,.1,1.-disc.y);
+          if(mask<.01)discard;
           vec2 texel=vec2(1./768.,1./512.);
           vec2 cellOrigin=vUv-disc*vec2(1./3.,.5);
           vec2 uv=clamp(vUv+(grain.gb-.5)*texel*1.6,cellOrigin+texel*3.,cellOrigin+vec2(1./3.,.5)-texel*3.);
@@ -75,11 +84,24 @@ export class NatureDiscs {
           vec3 image=wash*(1.-contour*.25-pool*.07+(grain.g-.5)*.1);
           float light=dot(image,vec3(.2126,.7152,.0722));image=mix(vec3(light),image,.88);
           image=mix(image,vec3(.88,.84,.74),.08+(1.-grain.a)*.07);
-          gl_FragColor=vec4(image,mask*presence*(.82+grain.a*.18));\n#include <colorspace_fragment>\n}`,
+          // Keep recognizable details in the wet heart, dissolve the edges into pigment.
+          float heart=(1.-smoothstep(.12,.75,contour))*(.46+reveal*.42);
+          vec3 pigment=mix(tint,image,.48);
+          image=mix(pigment,image,heart);
+          float tide=exp(-abs(contour-.64-(grain.b-.5)*.15)*26.);
+          image*=1.-tide*.12;
+          gl_FragColor=vec4(image,mask*presence*(.72+grain.a*.28)*(.68+reveal*.32));\n#include <colorspace_fragment>\n}`,
       }),
     );
     this.mesh.frustumCulled = false;
     this.mesh.visible = false;
+  }
+  setPalette(ids: string[]) {
+    const score = composeWeather(ids);
+    const tint = this.mesh.material.uniforms.tint.value as THREE.Color;
+    tint.set(score.palettes[0].color);
+    for (let i = 1; i < score.palettes.length; i++)
+      tint.lerp(new THREE.Color(score.palettes[i].color), 1 / (i + 1));
   }
   get size() {
     return this.count;
@@ -116,10 +138,11 @@ export class NatureDiscs {
   ) {
     this.mesh.visible = inside && this.count > 0;
     if (!this.mesh.visible) return;
+    this.mesh.material.uniforms.time.value = time;
     const presence = this.mesh.material.uniforms.presence;
     presence.value = paused
-      ? 0.4
-      : THREE.MathUtils.damp(presence.value, 0.4, 1.1, dt);
+      ? 0.52
+      : THREE.MathUtils.damp(presence.value, 0.52, 1.1, dt);
     this.right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     this.up.set(0, 1, 0).applyQuaternion(camera.quaternion);
     const buffer = this.mesh.geometry.attributes
@@ -131,7 +154,7 @@ export class NatureDiscs {
         18 + Math.sin(time * 0.08 + i * 1.7) * 1.5,
         -5 - Math.cos(angle) * (5 + i * 0.4),
       );
-      const size = 2.2 + (i % 3) * 0.5;
+      const size = 3.2 + (i % 3) * 0.65;
       for (let j = 0; j < 4; j++) {
         this.corner
           .copy(this.center)

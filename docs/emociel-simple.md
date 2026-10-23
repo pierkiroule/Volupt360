@@ -136,3 +136,10 @@ Deux nouveaux tests simulés vérifient une recherche initiale vide suivie d’u
 Le matériau des disques applique une diffusion locale des couleurs, des paliers chromatiques légèrement fondus, une accumulation de pigment sur les contours et une granulation issue de l’atlas du ciel. Les limites du disque sont irrégulières et estompées. Les échantillons restent à l’intérieur de leur case d’atlas pour éviter les débordements d’une photo sur une autre. Les sources restent reconnaissables ; aucun nouveau fichier modifié n’est enregistré.
 
 Le filtre ajoute des lectures de texture, mais aucun lot, matériau ou texture supplémentaire. Les crédits indiquent aussi l’application du filtre. Validation : build TypeScript/Vite et six tests des images (réponses réseau simulées), sans mesure sur téléphone physique.
+
+### Rencontres picturales et voyage — évolution
+
+- `NatureDiscs` conserve son atlas de six photographies et une seule passe GPU. Le masque rond est remplacé par une empreinte pigmentaire irrégulière : réserves de papier, bord capillaire, auréole et mélange avec la palette météo. Un cycle lent fait émerger les détails photographiques sans flash. Les crédits et les contrôles réseau restent inchangés.
+- `composeWeather().encounters` décrit trois rencontres indépendantes et combinables : soleil/pluie, vent/neige et brume/lune. Les shaders des lavis traduisent ces associations en ouvertures dorées, stries claires et nuances argentées, sans supprimer les identités individuelles.
+- `TravelPath` fournit un parcours fermé analytique et un point de regard intérieur, sans allocation par frame. Le voyage alterne proximité et recul ; le regard tactile/gyro reste relatif et indépendant. Le bouton Voyager permet toujours d'arrêter la translation et Pause suspend l'animation.
+- Aucun nouvel asset, dépendance ni appel de rendu. Les empreintes photographiques sont plus grandes : leur coût de transparence doit encore être évalué sur téléphone physique. Les photographies des tests sont des fixtures, pas une validation du service Commons réel.

@@ -12,12 +12,17 @@ test("weather combinations retain distinct phenomena, independent of selection o
       reverse: composeWeather(["water", "warm"]),
       windRain: composeWeather(["air", "water"]),
       moon: composeWeather(["tired"]),
+      windSnow: composeWeather(["air", "surprise"]),
+      moonFog: composeWeather(["soft", "tired"]),
       fallback: composeWeather(["invalid"]),
       signatures: Object.values(PHENOMENA).map((p) => p.kind),
     };
   });
   expect(result.sunRain).toEqual(result.reverse);
   expect(result.sunRain.rainbow).toBe(1);
+  expect(result.sunRain.encounters).toEqual([1, 0, 0]);
+  expect(result.windSnow.encounters).toEqual([0, 1, 0]);
+  expect(result.moonFog.encounters).toEqual([0, 0, 1]);
   expect(result.sunRain.kinds).toEqual([0, 1]);
   expect(result.windRain.slant).toBe(1);
   expect(result.windRain.rainbow).toBe(0);

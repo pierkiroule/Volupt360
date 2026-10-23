@@ -64,6 +64,11 @@ export function composeWeather(ids: string[]) {
     weather: [has("warm"), has("water"), has("air"), has("soft")],
     climate: [has("night"), has("surprise"), has("tired"), has("spark")],
     magic: [has("wonder"), has("longing"), has("confused"), has("trust")],
+    encounters: [
+      has("warm") * has("water"),
+      has("air") * has("surprise"),
+      has("soft") * has("tired"),
+    ],
     rainbow: has("warm") * has("water"),
     slant: has("water") * has("air"),
   };

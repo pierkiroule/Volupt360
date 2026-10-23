@@ -1,3 +1,4 @@
+import { sampleTravel } from "./TravelPath";
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
@@ -36,6 +37,7 @@ export class SimpleWorld {
   private last = 0;
   private time = 0;
   private journey = 0;
+  private tour = new Float64Array(6);
   private entry = 0;
   private debugAt = 0;
   private yaw = 0;
@@ -97,6 +99,7 @@ export class SimpleWorld {
           motion: { value: new THREE.Vector4(0.5, 0.5, 0.5, 0.1) },
           presence: { value: 0.6 },
           identity: { value: new THREE.Vector4(0, 1, 0.6, 0) },
+          encounter: { value: new THREE.Vector3() },
           tile: { value: new THREE.Vector2(i % 2, Math.floor(i / 2)) },
           tint: { value: new THREE.Color() },
           accent: { value: new THREE.Color() },
@@ -109,7 +112,7 @@ export class SimpleWorld {
           p+=vec3(sin(time*.031+seed),cos(time*.023+seed*.8),sin(time*.019+seed*1.1))*.65;
           vec4 view=modelViewMatrix*vec4(p,1.);detail=1.-smoothstep(5.,20.,-view.z);gl_Position=projectionMatrix*view;}`,
 
-        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent,reaction,neighbor0,neighbor1,neighbor2;uniform vec4 motion,identity,meetingWeather;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold,islet,detail;
+        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent,reaction,neighbor0,neighbor1,neighbor2;uniform vec4 motion,identity,meetingWeather;uniform vec3 encounter;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold,islet,detail;
         vec4 ink(vec2 p){return texture2D(paper,(clamp(p,.005,.995)+tile)*.5);}
         void main(){float seed=phase+islet*1.37;float contact=islet<.5?reaction.x:islet<1.5?reaction.y:reaction.z;vec3 other=islet<.5?neighbor0:islet<1.5?neighbor1:neighbor2;float t=time*.018*motion.x+seed;
           vec2 drift=vec2(sin(vUv.y*3.+t),cos(vUv.x*4.-t*.61))*(.035+contact*(.035+meetingWeather.y*.03));
@@ -140,6 +143,13 @@ export class SimpleWorld {
           float granule=(r.g-.5)*.18;
           float gradient=smoothstep(.1,.9,vUv.y*.55+q.b*.45+fold*.18);
           vec3 c=mix(tint,accent,gradient*.75);
+          // Pair-specific washes: golden rain openings, wind-combed snow, silver moon fog.
+          float window=smoothstep(.32,.76,q.b+sin(vUv.y*4.+t)*.12);
+          c=mix(c,vec3(.83,.62,.32),encounter.x*window*.38);
+          c=mix(c,vec3(.83,.89,.91),encounter.y*smoothstep(.48,.7,r.g)*.42);
+          c=mix(c,vec3(.67,.72,.83),encounter.z*window*.48);
+          edge*=1.-encounter.x*window*.2;
+          edge*=1.-encounter.y*(.5+.5*sin(vUv.x*24.+vUv.y*3.+t))*.18;
           float meeting=contact*smoothstep(.2,.75,q.b)*.32;
           c=mix(c,other,meeting);
           float deposit=clamp(pool*identity.y+drying*.3+contact*.15,0.,1.);
@@ -220,6 +230,7 @@ export class SimpleWorld {
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
+    this.nature.setPalette(ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
       ? "sun-rain"
@@ -232,6 +243,7 @@ export class SimpleWorld {
       sheet.material.uniforms.tint.value.set(p.color);
       sheet.material.uniforms.accent.value.set(p.secondary);
       sheet.material.uniforms.meetingWeather.value.fromArray(score.weather);
+      sheet.material.uniforms.encounter.value.fromArray(score.encounters);
       sheet.material.uniforms.motion.value.fromArray(
         PHENOMENA[score.entries[index]].motion,
       );
@@ -419,11 +431,11 @@ export class SimpleWorld {
     }
     if (this.inside) {
       // A closed, continuous ellipse through the work. Never a flight into empty space.
-      const t = this.journey * 0.065;
+      const tour = sampleTravel(this.journey, this.tour);
       this.camera.position.set(
-        Math.sin(t) * 6 * blend,
-        18 + Math.sin(t * 2) * 1.2 * blend,
-        THREE.MathUtils.lerp(12, 2 + (Math.cos(t) - 1) * 5, blend),
+        tour[0] * blend,
+        THREE.MathUtils.lerp(18, tour[1], blend),
+        THREE.MathUtils.lerp(12, tour[2], blend),
       );
       if (!this.paused) {
         this.viewYaw = smoothGyroHeading(this.viewYaw, this.yaw, dt);
@@ -435,7 +447,13 @@ export class SimpleWorld {
         );
       }
       // Relative gaze stays separate from the gentle travel direction.
-      this.camera.lookAt(this.look.set(0, 18, -5));
+      this.camera.lookAt(
+        this.look.set(
+          tour[3] * blend,
+          THREE.MathUtils.lerp(18, tour[4], blend),
+          THREE.MathUtils.lerp(-5, tour[5], blend),
+        ),
+      );
       this.rotation.setFromQuaternion(this.camera.quaternion, "YXZ");
       this.rotation.set(
         this.rotation.x + this.viewPitch,
