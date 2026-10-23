@@ -21,7 +21,7 @@ export class SimpleWorld {
   private texture = makeWatercolorAtlas();
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
-  private nature = new NatureDiscs();
+  private nature = new NatureDiscs(this.texture);
   private words = new ResonantWords();
   private sheets: THREE.InstancedMesh<
     THREE.PlaneGeometry,

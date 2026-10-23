@@ -115,10 +115,24 @@ Un mot ciblé par le regard ou encore en retour vers sa position est protégé d
 
 `naturePhotos.ts` interroge l’API publique Wikimedia Commons sans clé, avec une recherche de nature propre à chaque météo. Jusqu’à trois recherches sont combinées pour former une sélection de six photos au maximum. Les URLs des fichiers proviennent uniquement des réponses de l’API. Images bitmap uniquement, taille minimale, domaines de média vérifiés, licences CC BY / CC BY-SA / CC0 / domaine public identifiées ; les fichiers sans licence reconnue et ceux sans attribution disponible lorsqu’elle est nécessaire sont ignorés. Les métadonnées HTML sont converties en texte, jamais injectées.
 
-Métadonnées : cache mémoire borné à douze recherches, durée maximale de 24 heures pendant la visite. Vignettes : cache HTTP du navigateur. Trois téléchargements simultanés au maximum, abandon après 18 secondes, annulation lors de la sortie, essais de candidats suivants en cas de CORS/erreur de décodage. Les bitmaps sont fermés après copie dans l’atlas. Pas de garantie de disponibilité hors ligne des photographies.
+Métadonnées : cache mémoire borné à vingt-quatre recherches, durée maximale de 24 heures pendant la visite. Vignettes : cache HTTP du navigateur. Trois téléchargements simultanés au maximum, délai de 6,5 secondes par recherche et budget global de 18 secondes, annulation lors de la sortie, essais de candidats suivants en cas de CORS/erreur de décodage. Les bitmaps sont fermés après copie dans l’atlas. Pas de garantie de disponibilité hors ligne des photographies.
 
 `NatureDiscs.ts` recadre les images dans un atlas 768×512 et dessine six disques aux bords adoucis en un seul lot. Ils circulent lentement dans l’espace, avec une opacité de 0,4. Pause et mouvement réduit les figent. En l’absence de photos, le ciel reste fonctionnel avec dix appels de dessin ; avec photos, onze. Pas de source distante bloquante pour le démarrage de la scène.
 
 Le petit bouton « Sources des images » expose les titres, auteurs, pages d’origine, liens des licences et les modifications de recadrage/transparence. Les crédits concernent uniquement les images effectivement affichées. Le contenu du panneau reste textuel ; le bouton dispose d’une zone tactile de 44 pixels. Une panne présente un réessai discret.
 
 Validation : quatre tests réseau simulés couvrent six images et leurs crédits, cache des métadonnées, panne/reprise, filtrage des licences et URLs, et vignette bloquée. Les douze autres tests de mots, navigation, ciel, pigments et gyro simulé sont réexécutés. Les images du scénario de test sont des fixtures locales ; le téléchargement de vraies photographies Commons n’a pas pu être vérifié ici : la connexion directe à Commons retourne une erreur de proxy 403, y compris après tentative avec permissions étendues. Validation sur le déploiement et sur téléphone réel nécessaire.
+
+### Photos variées et recherches de secours
+
+Chaque météo dispose de trois recherches successives, de la plus précise à une thématique plus large. Chaque requête récupère jusqu’à 24 candidats. Si les images exploitables ou nouvelles ne suffisent pas, le chargement explore le niveau suivant, notamment après des erreurs de vignette. Une indisponibilité totale du service arrête ces recherches ; la scène reste disponible.
+
+Les candidats sont mélangés à chaque ouverture. Un historique local borné retient les douze dernières images de chaque composition, pour douze compositions au maximum. Ces images sont dépriorisées : elles ne sont réutilisées que si les recherches thématiques ne fournissent pas assez de nouveautés. Le cache conserve les candidats, pas une sélection figée. Les recherches vides sont mises en cache une minute, les résultats positifs jusqu’à 24 heures pendant la visite.
+
+Deux nouveaux tests simulés vérifient une recherche initiale vide suivie d’un résultat thématique, et trois ouvertures avec les mêmes météos donnant dix-huit photos distinctes. Si Commons est indisponible ou si toutes les recherches ne proposent que les mêmes fichiers, une nouveauté absolue ne peut pas être garantie. Aucun téléchargement réel n’a pu être validé depuis le proxy de cet environnement.
+
+### Filtre aquarelle des photographies
+
+Le matériau des disques applique une diffusion locale des couleurs, des paliers chromatiques légèrement fondus, une accumulation de pigment sur les contours et une granulation issue de l’atlas du ciel. Les limites du disque sont irrégulières et estompées. Les échantillons restent à l’intérieur de leur case d’atlas pour éviter les débordements d’une photo sur une autre. Les sources restent reconnaissables ; aucun nouveau fichier modifié n’est enregistré.
+
+Le filtre ajoute des lectures de texture, mais aucun lot, matériau ou texture supplémentaire. Les crédits indiquent aussi l’application du filtre. Validation : build TypeScript/Vite et six tests des images (réponses réseau simulées), sans mesure sur téléphone physique.

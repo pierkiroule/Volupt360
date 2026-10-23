@@ -10,7 +10,7 @@ export class NatureDiscs {
   private up = new THREE.Vector3();
   private center = new THREE.Vector3();
   private corner = new THREE.Vector3();
-  constructor() {
+  constructor(paper: THREE.Texture) {
     this.canvas.width = 768;
     this.canvas.height = 512;
     this.texture = new THREE.CanvasTexture(this.canvas);
@@ -53,9 +53,29 @@ export class NatureDiscs {
       new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
-        uniforms: { map: { value: this.texture }, presence: { value: 0 } },
+        uniforms: {
+          map: { value: this.texture },
+          paper: { value: paper },
+          presence: { value: 0 },
+        },
         vertexShader: `attribute vec2 local;varying vec2 vUv,disc;void main(){vUv=uv;disc=local;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader: `uniform sampler2D map;uniform float presence;varying vec2 vUv,disc;void main(){float radius=length(disc-.5)*2.;float mask=1.-smoothstep(.78,1.,radius);if(mask<.01)discard;vec3 image=texture2D(map,vUv).rgb;image=mix(image,vec3(.85,.81,.7),.08);gl_FragColor=vec4(image,mask*presence);\n#include <colorspace_fragment>\n}`,
+        fragmentShader: `uniform sampler2D map,paper;uniform float presence;varying vec2 vUv,disc;
+        void main(){vec4 grain=texture2D(paper,disc*.47+vec2(.015,.51));float radius=length(disc-.5)*2.;
+          float mask=1.-smoothstep(.7,.99,radius+(grain.b-.5)*.09);if(mask<.01)discard;
+          vec2 texel=vec2(1./768.,1./512.);
+          vec2 cellOrigin=vUv-disc*vec2(1./3.,.5);
+          vec2 uv=clamp(vUv+(grain.gb-.5)*texel*1.6,cellOrigin+texel*3.,cellOrigin+vec2(1./3.,.5)-texel*3.);
+          vec3 center=texture2D(map,uv).rgb;
+          vec3 left=texture2D(map,uv-vec2(texel.x*1.8,0.)).rgb,right=texture2D(map,uv+vec2(texel.x*1.8,0.)).rgb;
+          vec3 top=texture2D(map,uv+vec2(0.,texel.y*1.8)).rgb,bottom=texture2D(map,uv-vec2(0.,texel.y*1.8)).rgb;
+          vec3 wash=center*.5+(left+right+top+bottom)*.125;
+          vec3 bands=floor(wash*8.+.5)/8.;wash=mix(wash,bands,.32);
+          float contour=clamp(length(left-right)+length(top-bottom),0.,1.);
+          float pool=exp(-abs(grain.b-.5)*30.);
+          vec3 image=wash*(1.-contour*.25-pool*.07+(grain.g-.5)*.1);
+          float light=dot(image,vec3(.2126,.7152,.0722));image=mix(vec3(light),image,.88);
+          image=mix(image,vec3(.88,.84,.74),.08+(1.-grain.a)*.07);
+          gl_FragColor=vec4(image,mask*presence*(.82+grain.a*.18));\n#include <colorspace_fragment>\n}`,
       }),
     );
     this.mesh.frustumCulled = false;

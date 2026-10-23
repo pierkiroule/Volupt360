@@ -312,7 +312,7 @@ export default function SimpleApp() {
                 <p>
                   Photographies · Wikimedia Commons
                   <br />
-                  Recadrage en disque et transparence.
+                  Recadrage en disque, transparence et filtre aquarelle.
                 </p>
                 <ul>
                   {photoSources.map((photo) => (

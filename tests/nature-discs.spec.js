@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 const image = readFileSync("public/textures/Text1.png");
-function fixture() {
+function fixture(count = 7) {
   return {
     query: {
       pages: Object.fromEntries(
-        Array.from({ length: 7 }, (_, i) => [
+        Array.from({ length: count }, (_, i) => [
           String(i),
           {
             title: `File:Nature ${i}.png`,
@@ -21,11 +21,12 @@ function fixture() {
                     value: `<a href="https://commons.wikimedia.org">Nature Author ${i}</a>`,
                   },
                   LicenseShortName: {
-                    value: i === 6 ? "All rights reserved" : "CC BY 4.0",
+                    value:
+                      i === count - 1 ? "All rights reserved" : "CC BY 4.0",
                   },
                   LicenseUrl: {
                     value:
-                      i === 6
+                      i === count - 1
                         ? ""
                         : "https://creativecommons.org/licenses/by/4.0/",
                   },
@@ -53,7 +54,7 @@ test("licensed nature photographs load into six floating discs with discreet cre
         new URL(route.request().url()).searchParams.get("gsrsearch"),
       );
       await route.fulfill({
-        json: fixture(),
+        json: fixture(25),
         headers: { "access-control-allow-origin": "*" },
       });
     },
@@ -78,7 +79,7 @@ test("licensed nature photographs load into six floating discs with discreet cre
     page.getByRole("link", { name: "CC BY 4.0", exact: true }),
   ).toHaveCount(6);
   await expect(page.locator(".simple-photo-sources")).toContainText(
-    "Nature Author 0",
+    "Nature Author",
   );
   await expect(page.locator(".simple-photo-sources")).not.toContainText(
     "All rights reserved",
@@ -177,4 +178,65 @@ test("a blocked thumbnail is skipped without breaking the remaining photographs"
   await expect(page.locator(".simple-photo-sources")).not.toContainText(
     "Nature Author 0",
   );
+});
+
+test("an empty universe search broadens to a related nature query", async ({
+  page,
+}) => {
+  const queries = [];
+  await page.addInitScript(() =>
+    localStorage.setItem("cosmo-simple.v1", JSON.stringify(["confused"])),
+  );
+  await page.route("https://commons.wikimedia.org/w/api.php?**", (route) => {
+    const query = new URL(route.request().url()).searchParams.get("gsrsearch");
+    queries.push(query);
+    return route.fulfill({
+      json: query.includes("aurora landscape")
+        ? { query: { pages: {} } }
+        : fixture(25),
+      headers: { "access-control-allow-origin": "*" },
+    });
+  });
+  await page.route("https://upload.wikimedia.org/test/**", (route) =>
+    route.fulfill({
+      body: image,
+      contentType: "image/png",
+      headers: { "access-control-allow-origin": "*" },
+    }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
+  await expect(page.locator("canvas")).toHaveAttribute("data-photos", "6");
+  expect(queries.some((q) => q.includes("aurora landscape"))).toBe(true);
+  expect(queries.some((q) => q.includes("aurora borealis"))).toBe(true);
+});
+
+test("a new connection receives different photographs while retaining the same weather", async ({
+  page,
+}) => {
+  await page.route("https://commons.wikimedia.org/w/api.php?**", (route) =>
+    route.fulfill({
+      json: fixture(25),
+      headers: { "access-control-allow-origin": "*" },
+    }),
+  );
+  await page.route("https://upload.wikimedia.org/test/**", (route) =>
+    route.fulfill({
+      body: image,
+      contentType: "image/png",
+      headers: { "access-control-allow-origin": "*" },
+    }),
+  );
+  const selections = [];
+  for (let visit = 0; visit < 3; visit++) {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
+    await expect(page.locator("canvas")).toHaveAttribute("data-photos", "6");
+    selections.push(
+      await page
+        .locator(".simple-photo-sources li>a:first-child")
+        .evaluateAll((links) => links.map((a) => a.href)),
+    );
+  }
+  expect(new Set(selections.flat()).size).toBe(18);
 });
