@@ -1,3 +1,4 @@
+import { universeIdentity } from "./UniverseIdentity";
 import { FlightSteering } from "./FlightSteering";
 import { CameraPoetics } from "./CameraPoetics";
 import { PigmentMusic } from "./PigmentMusic";
@@ -53,6 +54,7 @@ export class SimpleWorld {
   private steering = new FlightSteering();
   private flightForward = new THREE.Vector3();
   private journey = 0;
+  private worldSpeed = 1;
   private travelSpeed = 0;
   private cameraPoetics = new CameraPoetics();
   private tour = new Float64Array(6);
@@ -248,7 +250,11 @@ export class SimpleWorld {
     this.frame = requestAnimationFrame(this.tick);
   }
   setPalette(ids: string[]) {
-    const score = composeWeather(ids);
+    const score = composeWeather(ids),
+      identity = universeIdentity(ids);
+    this.worldSpeed = identity.speed;
+    this.renderer.domElement.dataset.universe = identity.name;
+    this.renderer.domElement.dataset.sequence = identity.key;
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
@@ -263,15 +269,17 @@ export class SimpleWorld {
     this.sheets.forEach((sheet, i) => {
       const index = i % score.entries.length,
         p = score.palettes[index];
-      sheet.material.uniforms.tint.value.set(p.color);
-      sheet.material.uniforms.accent.value.set(p.secondary);
+      sheet.material.uniforms.tint.value.set(identity.colors[index % 3]);
+      sheet.material.uniforms.accent.value.set(
+        identity.colors[(index + 1) % 3],
+      );
       sheet.material.uniforms.meetingWeather.value.fromArray(score.weather);
       sheet.material.uniforms.encounter.value.fromArray(score.encounters);
       sheet.material.uniforms.motion.value.fromArray(
-        PHENOMENA[score.entries[index]].motion,
+        PHENOMENA[identity.sequence[index]].motion,
       );
-      const veil = PHENOMENA[score.entries[index]].veil;
-      const material = MATERIAL_IDENTITIES[score.entries[index]];
+      const veil = PHENOMENA[identity.sequence[index]].veil;
+      const material = MATERIAL_IDENTITIES[identity.sequence[index]];
       const family = (material.family + (i === 3 ? 1 : 0)) % 4;
       sheet.material.uniforms.tile.value.set(
         family % 2,
@@ -285,13 +293,17 @@ export class SimpleWorld {
       );
       sheet.material.uniforms.presence.value = Math.min(
         0.88,
-        veil[2] * 1.2 + 0.1,
+        (veil[2] * 1.2 + 0.1) * identity.opacity,
       );
-      sheet.scale.set(veil[0], veil[1], 1);
+      sheet.scale.set(veil[0] * identity.mass, veil[1] * identity.mass, 1);
       sheet.position.set(
-        Math.sin(i * 2.2 + material.twist) * 3.6 * material.spread,
-        Math.cos(i * 1.9) * 1.5 + material.lift,
-        -3 - i * 2.7 * material.depth,
+        Math.sin(i * 2.2 + material.twist + identity.rotation) *
+          3.6 *
+          material.spread *
+          identity.space[0],
+        Math.cos(i * 1.9 + identity.rotation) * 1.5 * identity.space[1] +
+          material.lift,
+        -5 + Math.cos(i * 1.7 + identity.rotation) * 4.2 * identity.space[2],
       );
       sheet.rotation.y = (i - 1.5) * 0.35 + material.twist * 0.3;
       sheet.rotation.z =
@@ -301,7 +313,7 @@ export class SimpleWorld {
           ? -0.35 * score.slant
           : Math.sin(i * 2) * 0.08);
     });
-    this.dynamics.configure(this.sheets, score.entries);
+    this.dynamics.configure(this.sheets, identity.sequence);
   }
 
   setGyro(active: boolean) {
@@ -440,7 +452,7 @@ export class SimpleWorld {
         1.7,
         dt,
       );
-      if (this.inside) this.journey += dt * this.travelSpeed;
+      if (this.inside) this.journey += dt * this.travelSpeed * this.worldSpeed;
     }
     // Drop fill cost once on sustained slow frames; never oscillate quality each frame.
     if (raw > 0.028 && raw < 0.2) this.slow++;

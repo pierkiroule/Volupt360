@@ -1,3 +1,4 @@
+import { universeIdentity } from "./UniverseIdentity";
 import { composeWeather } from "./composition";
 // Artistic orchestration, never an inference about the visitor.
 // piano, wooden mallet, bowed glass; spacing, brightness, harmonic pace.
@@ -16,21 +17,20 @@ export const MUSIC_WEATHER: Record<string, readonly number[]> = {
   longing: [0.65, 0.85, 0.45, 2.3, 2800, 35],
 };
 export function musicProfile(ids: string[]) {
+  const identity = universeIdentity(ids);
   const score = composeWeather(ids),
     rows = score.entries.map((id) => MUSIC_WEATHER[id]);
   const mean = (i: number) =>
     rows.reduce((sum, row) => sum + row[i], 0) / rows.length;
   return {
     key: score.entries.join(","),
-    weights: [
-      Math.min(1, mean(0) + score.encounters[0] * 0.1),
-      mean(1),
-      Math.min(1, mean(2) + score.encounters[2] * 0.15),
-      Math.min(1, 0.3 + mean(2) * 0.7),
-    ],
-    gap: mean(3) * (1 - score.encounters[0] * 0.1),
-    cutoff: mean(4),
-    harmony: mean(5) * (1 + score.encounters[2] * 0.15),
+    weights: identity.instruments,
+    gap: mean(3) / identity.density,
+    cutoff: identity.cutoff,
+    harmony: mean(5) / Math.sqrt(identity.density),
+    transpose: identity.transpose,
+    progression: identity.progression,
+    sequence: identity.key,
     drift: score.weather[2],
     silver: score.encounters[2],
     gold: score.encounters[0],
@@ -83,7 +83,11 @@ export class WeatherScore {
     return this.randomState / 4294967296;
   }
   get harmonyNotes(): readonly number[] {
-    return this.voicings[Math.max(0, this.chord)];
+    const index =
+      this.profile.progression[
+        Math.max(0, this.chord) % this.profile.progression.length
+      ];
+    return this.voicings[index].map((note) => note + this.profile.transpose);
   }
   advance(time: number): MusicNote[] {
     const result: MusicNote[] = [];
@@ -91,8 +95,10 @@ export class WeatherScore {
       this.chord = (this.chord + 1) % this.voicings.length;
       this.chordAt = time + this.profile.harmony * (0.9 + this.random() * 0.2);
     }
-    const chord = this.voicings[this.chord];
-    const scale = [50, 53, 55, 57, 60, 62, 65, 67, 69, 72, 74];
+    const chord = this.harmonyNotes;
+    const scale = [50, 53, 55, 57, 60, 62, 65, 67, 69, 72, 74].map(
+      (note) => note + this.profile.transpose,
+    );
     const add = (
       instrument: number,
       note: number,

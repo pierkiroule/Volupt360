@@ -1,3 +1,4 @@
+import { universeIdentity } from "./UniverseIdentity";
 import * as THREE from "three";
 import { composeWeather } from "./composition";
 
@@ -143,20 +144,19 @@ export class WeatherAccents {
     this.seeds.frustumCulled = false;
   }
   setPalette(ids: string[]) {
-    const score = composeWeather(ids);
+    const score = composeWeather(ids),
+      identity = universeIdentity(ids);
     for (const material of [this.ribbons.material, this.seeds.material]) {
       material.uniforms.layers.value = score.entries.length;
       material.uniforms.weather.value.fromArray(score.weather);
       material.uniforms.rainbow.value = score.rainbow;
       material.uniforms.kinds.value.set(
-        score.kinds[0],
-        score.kinds[1] ?? score.kinds[0],
-        score.kinds[2] ?? score.kinds[0],
+        identity.modes[0],
+        identity.modes[1] ?? identity.modes[0],
+        identity.modes[2] ?? identity.modes[0],
       );
       ["a", "b", "c"].forEach((key, i) =>
-        material.uniforms[key].value.set(
-          score.palettes[i % score.palettes.length].color,
-        ),
+        material.uniforms[key].value.set(identity.colors[i % 3]),
       );
     }
   }

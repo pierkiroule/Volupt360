@@ -280,7 +280,9 @@ export default function SimpleApp() {
       </div>
       {!inside && (
         <footer className="simple-footer">
-          <p>Choisis la météo de ton ciel. Puis entre.</p>
+          <p>
+            Le premier choix donne l’élan. Les suivants transforment le monde.
+          </p>
           <small>
             Voyage et musique au toucher d’Entrer · silence disponible avec ♫
           </small>
@@ -329,11 +331,15 @@ export default function SimpleApp() {
               aria-pressed={paused}
               onClick={() => {
                 if (paused) {
+                  if (world.current) world.current.paused = false;
                   setPaused(false);
                   if (resumeMusic.current) void startMusic();
                 } else {
                   resumeMusic.current =
                     musicState === "on" || musicState === "loading";
+                  if (world.current) world.current.paused = true;
+                  musicWanted.current = false;
+                  music.current?.pause();
                   setPaused(true);
                 }
               }}

@@ -31,3 +31,5 @@ Le voyage possède une accélération douce, une légère respiration de focale 
 
 
 Direction électro : trois drumloops originaux de quatre mesures à 104 BPM (régulier, syncopé, aéré), basse sinusoïdale et arpèges de marimba synchronisés. Le mix rythmique dépend des météos. Les percussions restent plus sèches, les instruments respirent légèrement sur la pulsation. Les plis, les particules et les déformations optiques partagent l’horloge musicale. Les boucles sont locales et mises en cache ; leur synthèse originale est reproductible avec `scripts/generate-electro-loops.py` (Python, NumPy et FFmpeg, uniquement pour régénérer les assets).
+
+Chaque séquence dispose désormais d’une identité spatiale : douze univers et sept familles de rencontres, avec formes, ciels, profondeur, palettes et orchestration propres. Le premier émoji donne l’ancrage ; les suivants le transforment. L’ordre des choix est conservé et participe à la composition.

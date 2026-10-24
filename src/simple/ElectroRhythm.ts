@@ -1,4 +1,10 @@
-import { composeWeather } from "./composition";
+import { universeIdentity } from "./UniverseIdentity";
+
+export function bassRegister(note: number) {
+  while (note > 45) note -= 12;
+  while (note < 26) note += 12;
+  return note;
+}
 
 /** Three original, sample-backed drum loops on one clock, plus a restrained sub bass.
  * The melodic sampler and visual phase use this same audio clock. */
@@ -34,14 +40,8 @@ export class ElectroRhythm {
     );
   }
   setPalette(ids: string[]) {
-    const p = composeWeather(ids);
-    const rain = p.weather[1] + p.magic[1];
-    const a = 0.35 + p.weather[0] * 0.55 + p.climate[0] * 0.3;
-    const b = 0.15 + rain * 0.5 + p.weather[2] * 0.35;
-    const c =
-      0.12 + p.weather[3] * 0.45 + p.climate[2] * 0.4 + p.climate[1] * 0.25;
-    const total = a + b + c;
-    this.mix = [a / total, b / total, c / total];
+    const identity = universeIdentity(ids);
+    this.mix = [...identity.drums];
     this.gains.forEach((g, i) =>
       g.gain.setTargetAtTime(this.mix[i] * 0.48, this.context.currentTime, 1.2),
     );
@@ -125,8 +125,7 @@ export class ElectroRhythm {
     const oscillator = this.context.createOscillator(),
       gain = this.context.createGain();
     oscillator.type = "sine";
-    oscillator.frequency.value =
-      440 * 2 ** ((Math.max(26, Math.min(45, note)) - 69) / 12);
+    oscillator.frequency.value = 440 * 2 ** ((bassRegister(note) - 69) / 12);
     gain.gain.setValueAtTime(0, time);
     gain.gain.linearRampToValueAtTime(volume, time + 0.018);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.3);

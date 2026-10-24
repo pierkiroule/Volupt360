@@ -1,3 +1,4 @@
+import { universeIdentity } from "./UniverseIdentity";
 import * as THREE from "three";
 import {
   PaintEngine,
@@ -94,9 +95,10 @@ export class PigmentMusic {
     this.ids = [...ids];
     this.inkCount = composeWeather(ids).entries.length;
     if (!this.engine) return;
-    const score = composeWeather(ids);
-    const inks = score.palettes.map((p) => {
-      const base = new THREE.Color(p.color),
+    const score = composeWeather(ids),
+      identity = universeIdentity(ids);
+    const inks = score.palettes.map((p, i) => {
+      const base = new THREE.Color(identity.colors[i % 3]),
         paper = new THREE.Color("#fff9ee");
       return [0.45, 0.75, 1, 1.35, 1.7].map(
         (amount) =>

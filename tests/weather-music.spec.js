@@ -14,10 +14,12 @@ test("weather scores are reproducible, harmonic and distinct over thirty simulat
       return events;
     };
     const a = render(["warm", "water"], 91),
-      b = render(["water", "warm"], 91),
+      b = render(["warm", "water"], 91),
       c = render(["soft", "tired"], 91);
     return {
       same: JSON.stringify(a) === JSON.stringify(b),
+      ordered:
+        JSON.stringify(a) !== JSON.stringify(render(["water", "warm"], 91)),
       different: JSON.stringify(a) !== JSON.stringify(c),
       count: a.length,
       instruments: [...new Set(a.map((event) => event.instrument))].sort(),
@@ -38,6 +40,7 @@ test("weather scores are reproducible, harmonic and distinct over thirty simulat
     };
   });
   expect(result.same).toBe(true);
+  expect(result.ordered).toBe(true);
   expect(result.different).toBe(true);
   expect(result.valid).toBe(true);
   expect(result.profiles).toBe(12);

@@ -221,3 +221,17 @@ La phase musicale arrive aux shaders depuis l’horloge audio à chaque frame : 
 Validation : build et seize tests ciblés réussis (rendu des shaders, physique pigmentaire, interpolation, effets caméra, décodage réel des boucles, période des quatre mesures, signal audio non nul, phase/grille, basse bornée, pause/reprise et erreurs). La simulation de partition ne mesure pas le rendu musical en écoute prolongée ; aucune validation physique Android/iOS ni garantie de 60 FPS.
 
 L’atmosphère s’approfondit avec l’énergie musicale et les voiles accueillent une irisation lente, sans ajout de texture ou de passe. Après ce dernier ajustement, huit tests ciblés (douze météos, shaders, effets caméra, rythmes) ont passé. Le build de production a également été rechargé hors ligne : quinze assets audio en cache, musique et voyage actifs, aucune erreur JavaScript détectée.
+
+### Identités spatiales et séquences
+
+`UniverseIdentity` centralise douze partitions artistiques complètes : corolles solaires, cathédrale des pluies, tresses du vent, archipel incertain, spirale des encres, portes du jour, ponts prismatiques, strates de cristal, forêt d’aurores, chambres lunaires, alvéoles du ciel et courants croisés. Chaque partition définit sa topologie, sa répartition 3D, sa palette, son ciel, sa masse, ses réserves, sa vitesse, ses instruments, sa progression harmonique et son mix de drums.
+
+Sept rencontres possèdent une topologie et une atmosphère spécifiques : soleil/pluie, vent/orage, brume/lune, vent/neige, lune/soleil, lune/pluie et orage/arc-en-ciel. Un troisième choix modifie encore les couleurs, les proportions et l’orchestration. Le premier émoji choisi donne l’ancrage ; l’ordre détermine une graine et un sens spatial, et infléchit l’écriture musicale. La liste sauvegardée conserve cet ordre. Les drapeaux météo physiques restent canoniques pour les effets existants.
+
+Les voiles changent de géométrie dans le shader à partir des mêmes grilles : corolles, colonnes, tresses, îlots, spirales, arcs, strates et enveloppes ajourées. Les lavis de fond sont redistribués selon la partition. Le skydome, les accents et les encres de la simulation utilisent la même palette. Aucun modèle externe ni appel de rendu supplémentaire ; les limites de particules, de tessellation et de simulation sont conservées.
+
+L’orchestre partage les mêmes ressources locales mais change de registre, de progression, de densité et de poids instrumentaux. Les loops électro ont des proportions propres à chaque partition. Les notes de tous les pupitres sont transposées ensemble ; la basse se replie par octaves pour préserver la tonalité. Ces correspondances restent artistiques et ne prétendent pas inférer un état psychologique.
+
+Vérification : quinze tests de navigation, shaders, musique et identité réussis, dont rendu réel des dix-neuf topologies avec dix-neuf empreintes de pixels distinctes, conservation des trois choix, variation selon l’ordre et maintien du budget GPU. Des captures de plusieurs aperçus ont été inspectées. Les performances sur appareil physique restent à évaluer.
+
+Les autres associations mêlent aussi leurs familles géométriques, et le troisième choix conserve une famille propre même lorsqu’une rencontre dédiée existe. Les matières et effets suivent l’ordre sélectionné ; la pause est appliquée immédiatement au rendu et à l’audio. Après ces ajustements, le build et les six derniers contrôles d’identité/topologie/météo ont passé, ainsi que les six contrôles précédents de rendu mobile et d’harmonie.
