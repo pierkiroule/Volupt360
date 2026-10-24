@@ -81,7 +81,7 @@ interface Aux { w: number; h: number; paper: Target; flow: Target; flowTex: WebG
 const MAX_SEGS = 16;
 const MAX_DROPS = 4;
 const VEL_DOWNSCALE = 4;
-const PRESSURE_ITERATIONS = 6; // ÉmoCiel: small shared mobile sheet.
+const PRESSURE_ITERATIONS = 6; // ÉmoCiel default; adapter selects 4 on mobile.
 const SETTLE_SECONDS = 1.1;
 
 export class PaintUnavailableError extends Error {}
@@ -98,6 +98,7 @@ export class PaintEngine {
   viewH = 1;
   look!: Look;
 
+  private pressureIterations: number;
   private progs: Record<string, Prog> = {};
   private vao: WebGLVertexArrayObject;
   private vertexBuffer: WebGLBuffer;
@@ -133,8 +134,9 @@ export class PaintEngine {
   private dropBuf = new Float32Array(MAX_DROPS * 4);
   private dropInkBuf = new Float32Array(MAX_DROPS * 4);
 
-  constructor(canvas: HTMLCanvasElement, opts: { coarse: boolean }) {
+  constructor(canvas: HTMLCanvasElement, opts: { coarse: boolean; pressureIterations?: number }) {
     this.canvas = canvas;
+    this.pressureIterations = Math.max(4, Math.min(18, opts.pressureIterations ?? PRESSURE_ITERATIONS));
     const gl = canvas.getContext('webgl2', {
       antialias: false, alpha: false, depth: false, stencil: false,
       premultipliedAlpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance',
@@ -400,7 +402,7 @@ export class PaintEngine {
       this.run('divergence', this.divergence, () => {}, { uVel: this.vel[0].tex });
       this.run('scale', this.pressure[1], (u) => gl.uniform1f(u.uAmount, 0.8), { uSrc: this.pressure[0].tex });
       this.swap(this.pressure);
-      for (let i = 0; i < PRESSURE_ITERATIONS; i++) {
+      for (let i = 0; i < this.pressureIterations; i++) {
         this.run('jacobi', this.pressure[1], () => {}, { uPressure: this.pressure[0].tex, uDivergence: this.divergence.tex });
         this.swap(this.pressure);
       }

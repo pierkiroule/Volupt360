@@ -1,3 +1,4 @@
+import { CameraPoetics } from "./CameraPoetics";
 import { PigmentMusic } from "./PigmentMusic";
 import { SILENT_SIGNAL, type MusicSignal } from "./MusicSignal";
 import { sampleTravel } from "./TravelPath";
@@ -19,8 +20,14 @@ export class SimpleWorld {
   readonly renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(56, 1, 0.1, 80);
-  private geometry = new THREE.PlaneGeometry(10, 6, 32, 16);
-  private pigment = new PigmentMusic();
+  private mobile = matchMedia("(pointer: coarse)").matches || innerWidth < 700;
+  private geometry = new THREE.PlaneGeometry(
+    10,
+    6,
+    this.mobile ? 24 : 32,
+    this.mobile ? 12 : 16,
+  );
+  private pigment = new PigmentMusic(this.mobile);
   private audioSource: (() => Readonly<MusicSignal> | undefined) | null = null;
   setAudioSource(source: () => Readonly<MusicSignal> | undefined) {
     this.audioSource = source;
@@ -28,7 +35,7 @@ export class SimpleWorld {
   private texture = makeWatercolorAtlas();
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
-  private resonances = new AbstractResonances(this.texture);
+  private resonances = new AbstractResonances(this.texture, this.mobile);
   private words = new ResonantWords();
   private sheets: THREE.InstancedMesh<
     THREE.PlaneGeometry,
@@ -43,6 +50,8 @@ export class SimpleWorld {
   private last = 0;
   private time = 0;
   private journey = 0;
+  private travelSpeed = 0;
+  private cameraPoetics = new CameraPoetics();
   private tour = new Float64Array(6);
   private entry = 0;
   private debugAt = 0;
@@ -301,6 +310,10 @@ export class SimpleWorld {
     const { width, height } = this.host.getBoundingClientRect();
     if (width < 1 || height < 1) return;
     this.renderer.setSize(width, height, false);
+    this.cameraPoetics.resize(
+      width * this.pixelRatio,
+      height * this.pixelRatio,
+    );
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   };
@@ -407,15 +420,23 @@ export class SimpleWorld {
     const raw = this.last ? (now - this.last) / 1000 : 0;
     const dt = Math.min(0.04, Math.max(0, raw));
     this.last = now;
+    if (!this.inside) this.travelSpeed = 0;
     if (!this.paused) {
       this.time += dt;
-      if (this.inside && this.travel) this.journey += dt;
+      this.travelSpeed = THREE.MathUtils.damp(
+        this.travelSpeed,
+        this.inside && this.travel ? 1 : 0,
+        1.7,
+        dt,
+      );
+      if (this.inside) this.journey += dt * this.travelSpeed;
     }
     // Drop fill cost once on sustained slow frames; never oscillate quality each frame.
     if (raw > 0.028 && raw < 0.2) this.slow++;
     else this.slow = Math.max(0, this.slow - 1);
     if (this.slow > 90 && this.pixelRatio > 0.8) {
       this.pigment.setReducedQuality();
+      this.cameraPoetics.setReducedQuality();
       this.pixelRatio = 0.8;
       this.renderer.setPixelRatio(0.8);
       this.resize();
@@ -429,7 +450,10 @@ export class SimpleWorld {
       1,
     );
     const blend = this.entry * this.entry * (3 - 2 * this.entry);
-    const fov = 40 + blend * 28;
+    const opticalBreath = this.gyro
+      ? 0
+      : Math.sin(this.journey * 0.15) * 1.4 * this.travelSpeed;
+    const fov = 40 + blend * (28 + opticalBreath);
     if (this.camera.fov !== fov) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
@@ -477,20 +501,37 @@ export class SimpleWorld {
       this.camera.position.set(0, 18, 12);
       this.camera.lookAt(0, 18, -5);
     }
+    const audio = this.audioSource?.() ?? SILENT_SIGNAL;
+    const musicResponse = this.resonances.setMusic(
+      audio,
+      this.paused || !this.inside ? 0 : dt,
+    );
     this.contact = this.dynamics.update(this.time, this.paused ? 0 : dt);
     this.atmosphere.update(this.time, this.camera, this.pixelRatio);
     this.atmosphere.particles.material.uniforms.resonance.value = this.contact;
-    this.accents.update(this.time, this.pixelRatio, this.contact);
+    this.accents.update(
+      this.time,
+      this.pixelRatio,
+      this.contact,
+      musicResponse,
+    );
     this.birds.update(this.time);
     this.words.update(this.time, dt, this.camera, this.paused, this.inside);
-    this.pigment.update(
-      dt,
-      this.audioSource?.() ?? SILENT_SIGNAL,
-      this.paused || !this.inside,
+    this.pigment.update(dt, audio, this.paused || !this.inside);
+    this.resonances.setLivingTexture(
+      this.pigment.texture,
+      this.pigment.previousTexture,
+      this.pigment.blend,
     );
-    this.resonances.setLivingTexture(this.pigment.texture);
     this.resonances.update(this.time, dt, this.paused, this.inside);
-    this.renderer.render(this.scene, this.camera);
+    if (!this.inside || this.gyro) this.cameraPoetics.reset();
+    this.cameraPoetics.update(
+      this.time,
+      dt,
+      this.inside && this.travel && !this.gyro,
+      this.paused,
+    );
+    this.cameraPoetics.render(this.renderer, this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
       const d = this.renderer.domElement.dataset;
@@ -498,6 +539,7 @@ export class SimpleWorld {
       d.sky = "watercolor";
       const pigment = this.pigment.inspect();
       d.pigment = pigment.state;
+      d.pigmentSize = String(pigment.size);
       d.pigmentDeposits = String(pigment.deposits);
       d.resonances = this.inside ? "6" : "0";
       const reading = this.words.inspect();
@@ -512,7 +554,9 @@ export class SimpleWorld {
       d.birdTime = this.time.toFixed(3);
       d.renderer = "simple-silk";
       d.time = this.time.toFixed(3);
-      d.calls = String(this.renderer.info.render.calls);
+      d.calls = String(this.cameraPoetics.calls);
+      d.cameraFx = this.cameraPoetics.inspect().amount.toFixed(3);
+      d.travelSpeed = this.travelSpeed.toFixed(3);
       d.position = `${this.camera.position.x.toFixed(4)},${this.camera.position.y.toFixed(4)},${this.camera.position.z.toFixed(4)}`;
       const q = this.camera.quaternion;
       d.heading = `${q.x.toFixed(6)},${q.y.toFixed(6)},${q.z.toFixed(6)},${q.w.toFixed(6)}`;
@@ -545,6 +589,7 @@ export class SimpleWorld {
     this.atmosphere.dispose();
     this.birds.dispose();
     this.resonances.dispose();
+    this.cameraPoetics.dispose();
     this.pigment.dispose();
     this.words.dispose();
     this.accents.dispose();

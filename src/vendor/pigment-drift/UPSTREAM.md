@@ -8,7 +8,7 @@ Vendored files: paint/engine.ts, paint/shaders.ts, paint/noise.ts, engine/color.
 engine/params.ts. No Studio UI or external dependencies are included.
 
 Local changes to paint/engine.ts:
-- Pressure solver iterations reduced from 18 to 6 for a 48 × 48 velocity grid.
+- Pressure solver iterations configurable: 6 desktop / 4 mobile, instead of 18.
 - preserveDrawingBuffer enabled for the small shared canvas texture.
 - Retain and delete the fullscreen vertex buffer on disposal.
 
