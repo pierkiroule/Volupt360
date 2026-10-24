@@ -22,3 +22,5 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/
 
 
 Musique facultative : ouvrir ♫, puis activer Musique. Le moteur `smplr` joue neuf échantillons locaux VCSL (piano Kawai, marimba doux, vibraphone frotté), sous CC0. Les météos orientent une composition pentatonique évolutive : orchestration, densité, harmonie lente et espace stéréo. Volume, silence et pause sont disponibles. Les samples sont mis en cache avec l’application en production. Sources et licence : `public/audio/emociel/`.
+
+Matière musicale : le premier voile abstrait reçoit une peinture à mémoire GPU issue de Pigment Drift Paint Studio (MIT). Active ♫ pour que la musique dépose et déplace l’eau et les pigments ; en silence, la matière continue doucement à diffuser et sécher. Simulation partagée 192 × 192, cadence bornée et rendu procédural de secours. Provenance et limites : `src/vendor/pigment-drift/UPSTREAM.md` et `docs/emociel-simple.md`.

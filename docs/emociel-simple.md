@@ -168,3 +168,17 @@ Le même atlas contient six emplacements, mais un seul est visible : apparition 
 Vérifications : compilation et tests navigateur de décodage des vrais OGG, signal non nul mesuré en sortie du moteur `smplr`, pause/suspension/reprise/fermeture, activation volontaire, volume, erreurs et retry. Une simulation de partition de trente minutes vérifie reproductibilité, gamme et densité bornée ; ce n’est pas un test d’écoute réel de trente minutes. L’équilibre artistique à l’écoute, les interruptions spécifiques à Android/iOS et la charge sur téléphone physique restent à valider.
 
 Vérification supplémentaire effectuée sur le build de production : service worker activé, neuf samples présents dans le cache, passage hors ligne, rechargement puis activation musicale réussie. Les quatre tests du contrôle 3D existant ont également passé lors de l’intégration.
+
+### Pigment Drift : matière à mémoire musicale
+
+Le code MIT de Paint Studio est intégré dans `src/vendor/pigment-drift`, à la révision `61d3cf57d5273105d7b9985973e4648d7a553c83`. L’origine et les modifications sont documentées dans `UPSTREAM.md`. La licence est aussi distribuée dans `public/licenses/pigment-drift-MIT.txt`.
+
+`PigmentMusic` pilote un seul champ de pigments/humidité WebGL2 partagé de 192 × 192 pixels ; vélocité et pression : 48 × 48, six itérations de pression. Le moteur conserve réellement les encres sur GPU, les advecte et les diffuse. Il démarre seulement lorsqu’un signal musical est mesuré. Pas de nouvelle scène, de simulation par voile, d’historique ni de moteur musical dupliqué.
+
+`WeatherMusic` analyse son signal après volume/effets : RMS, énergie grave, détails spectraux et variations d’énergie. Les attaques favorisent des dépôts espacés ; les graves influencent leur rayon et les courants, les détails spectraux orientent le mouvement. Une goutte sur cinq apporte de l’eau qui repousse les pigments. L’intensité est lissée ; aucun grossissement global du monde ni flash. Le silence laisse la diffusion et le séchage résiduels se poursuivre, sans nouveaux dépôts. Le changement de météo adapte les encres sans réinitialiser le champ.
+
+Une `CanvasTexture` transfère le rendu de cette feuille au shader du premier des six voiles abstraits. Les autres voiles gardent leur matière procédurale : c’est volontairement une première intégration limitée. Le grain et les bords existants sont préservés. La simulation est cadencée à 12 Hz maximum (8 Hz en qualité réduite) ; le rendu 3D continue indépendamment. Aucune lecture GPU→CPU explicite dans la boucle. Le coût du transfert entre les deux contextes WebGL dépend du navigateur et reste à profiler sur téléphone physique.
+
+Pause et sortie du monde suspendent les calculs. La texture et les ressources WebGL sont libérées au démontage. Si WebGL2/les cibles flottantes sont indisponibles, si le contexte secondaire est perdu ou si une opération échoue, le shader revient au rendu procédural. Un contexte secondaire perdu n’est pas recréé automatiquement pendant la visite.
+
+Contrôles exécutés : champs GPU réels non vides, évolution résiduelle sans nouveaux dépôts, conservation du champ lors d’un changement de palette, pause exacte, rendu 3D piloté par les vrais samples, fallback sans WebGL2, contrôles audio/navigation et compilation. Les diagnostics de passes du canvas principal ne comptent pas les passes hors écran de la simulation ; ne pas les interpréter comme le coût GPU total. Pas de validation de 60 FPS, de test de longue durée ni de test sur appareil physique.

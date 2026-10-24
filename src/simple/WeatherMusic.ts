@@ -1,8 +1,14 @@
 import { Sampler } from "smplr";
+import type { MusicSignal } from "./MusicSignal";
 import { WeatherScore } from "./WeatherScore";
 
 export class WeatherMusic {
   readonly context = new AudioContext({ latencyHint: "playback" });
+  private analyser = this.context.createAnalyser();
+  private waveform = new Float32Array(512);
+  private spectrum = new Uint8Array(256);
+  private signal: MusicSignal = { energy: 0, low: 0, high: 0, onset: 0 };
+  private previousEnergy = 0;
   private gain = this.context.createGain();
   private filter = this.context.createBiquadFilter();
   private compressor = this.context.createDynamicsCompressor();
@@ -53,7 +59,10 @@ export class WeatherMusic {
     this.reverb.connect(this.wet);
     this.wet.connect(this.compressor);
     this.compressor.connect(this.gain);
-    this.gain.connect(this.context.destination);
+    this.analyser.fftSize = 512;
+    this.analyser.smoothingTimeConstant = 0.8;
+    this.gain.connect(this.analyser);
+    this.analyser.connect(this.context.destination);
     this.setPalette(ids);
     this.context.onstatechange = () => {
       if (this.running && this.context.state !== "running" && !this.disposed) {
@@ -123,6 +132,20 @@ export class WeatherMusic {
   private tick() {
     if (!this.running || this.disposed || this.context.state !== "running")
       return;
+    this.analyser.getFloatTimeDomainData(this.waveform);
+    this.analyser.getByteFrequencyData(this.spectrum);
+    let sum = 0,
+      low = 0,
+      high = 0;
+    for (const sample of this.waveform) sum += sample * sample;
+    for (let i = 1; i < 8; i++) low += this.spectrum[i] / (7 * 255);
+    for (let i = 12; i < 55; i++) high += this.spectrum[i] / (43 * 255);
+    const measured = Math.min(1, Math.sqrt(sum / 512) * 12);
+    this.signal.onset = Math.max(0, measured - this.previousEnergy);
+    this.previousEnergy = measured;
+    this.signal.energy += (measured - this.signal.energy) * 0.3;
+    this.signal.low += (low - this.signal.low) * 0.2;
+    this.signal.high += (high - this.signal.high) * 0.2;
     const now = this.context.currentTime;
     this.clock += Math.min(0.2, now - this.last);
     this.last = now;
@@ -136,6 +159,9 @@ export class WeatherMusic {
         time: now + event.at - this.clock,
       });
     }
+  }
+  readSignal(): Readonly<MusicSignal> {
+    return this.signal;
   }
   setPalette(ids: string[]) {
     this.score.setPalette(ids);
@@ -156,6 +182,12 @@ export class WeatherMusic {
   }
   pause() {
     this.running = false;
+    this.signal.energy =
+      this.signal.low =
+      this.signal.high =
+      this.signal.onset =
+        0;
+    this.previousEnergy = 0;
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = undefined;
@@ -190,6 +222,7 @@ export class WeatherMusic {
     for (const panner of this.panners) panner.disconnect();
     this.panners = [];
     for (const node of [
+      this.analyser,
       this.input,
       this.filter,
       this.reverb,

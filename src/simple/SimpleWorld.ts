@@ -1,3 +1,5 @@
+import { PigmentMusic } from "./PigmentMusic";
+import { SILENT_SIGNAL, type MusicSignal } from "./MusicSignal";
 import { sampleTravel } from "./TravelPath";
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
@@ -18,6 +20,11 @@ export class SimpleWorld {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(56, 1, 0.1, 80);
   private geometry = new THREE.PlaneGeometry(10, 6, 32, 16);
+  private pigment = new PigmentMusic();
+  private audioSource: (() => Readonly<MusicSignal> | undefined) | null = null;
+  setAudioSource(source: () => Readonly<MusicSignal> | undefined) {
+    this.audioSource = source;
+  }
   private texture = makeWatercolorAtlas();
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
@@ -230,6 +237,7 @@ export class SimpleWorld {
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
     this.resonances.setPalette(ids);
+    this.pigment.setPalette(ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
       ? "sun-rain"
@@ -407,6 +415,7 @@ export class SimpleWorld {
     if (raw > 0.028 && raw < 0.2) this.slow++;
     else this.slow = Math.max(0, this.slow - 1);
     if (this.slow > 90 && this.pixelRatio > 0.8) {
+      this.pigment.setReducedQuality();
       this.pixelRatio = 0.8;
       this.renderer.setPixelRatio(0.8);
       this.resize();
@@ -474,6 +483,12 @@ export class SimpleWorld {
     this.accents.update(this.time, this.pixelRatio, this.contact);
     this.birds.update(this.time);
     this.words.update(this.time, dt, this.camera, this.paused, this.inside);
+    this.pigment.update(
+      dt,
+      this.audioSource?.() ?? SILENT_SIGNAL,
+      this.paused || !this.inside,
+    );
+    this.resonances.setLivingTexture(this.pigment.texture);
     this.resonances.update(this.time, dt, this.paused, this.inside);
     this.renderer.render(this.scene, this.camera);
     if (now - this.debugAt > 120) {
@@ -481,6 +496,9 @@ export class SimpleWorld {
       const d = this.renderer.domElement.dataset;
       d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
+      const pigment = this.pigment.inspect();
+      d.pigment = pigment.state;
+      d.pigmentDeposits = String(pigment.deposits);
       d.resonances = this.inside ? "6" : "0";
       const reading = this.words.inspect();
       d.word = reading.focused ?? "";
@@ -527,6 +545,7 @@ export class SimpleWorld {
     this.atmosphere.dispose();
     this.birds.dispose();
     this.resonances.dispose();
+    this.pigment.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();

@@ -91,6 +91,7 @@ export default function SimpleApp() {
         if (message.startsWith("Pas de signal")) setGyro(false);
       });
       scene.setPalette(current.current.selected);
+      scene.setAudioSource(() => music.current?.readSignal());
       scene.inside = current.current.inside;
       scene.travel = current.current.travel;
       scene.paused = current.current.paused;

@@ -40,6 +40,8 @@ export class AbstractResonances {
         side: THREE.DoubleSide,
         uniforms: {
           paper: { value: paper },
+          living: { value: paper },
+          livingEnabled: { value: 0 },
           time: { value: 0 },
           presence: { value: 0 },
           kinds: { value: new THREE.Vector3() },
@@ -49,8 +51,8 @@ export class AbstractResonances {
           c: { value: new THREE.Color() },
           encounters: { value: new THREE.Vector3() },
         },
-        vertexShader: `attribute float slot;uniform float time,layers;uniform vec3 kinds;varying vec2 inkUV;varying float family,kind,fold;
-      void main(){float u=position.x,v=position.y;inkUV=position.xy;family=mod(slot,layers);
+        vertexShader: `attribute float slot;uniform float time,layers;uniform vec3 kinds;varying vec2 inkUV;varying float family,kind,fold,membrane;
+      void main(){membrane=slot;float u=position.x,v=position.y;inkUV=position.xy;family=mod(slot,layers);
         kind=family<.5?kinds.x:family<1.5?kinds.y:kinds.z;
         float seed=slot*2.39996,t=time*.055+seed;
         float angle=(u-.5)*5.2+t*.32;
@@ -68,7 +70,7 @@ export class AbstractResonances {
         p.y+=sin(time*.021+seed)*.6;
         gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
       }`,
-        fragmentShader: `uniform sampler2D paper;uniform float time,presence;uniform vec3 a,b,c,encounters;varying vec2 inkUV;varying float family,kind,fold;
+        fragmentShader: `uniform sampler2D paper,living;uniform float time,presence,livingEnabled;uniform vec3 a,b,c,encounters;varying vec2 inkUV;varying float family,kind,fold,membrane;
       void main(){vec2 uv=inkUV;vec4 grain=texture2D(paper,uv*.46+vec2(.015,.515));
         vec4 pool=texture2D(paper,uv*.43+vec2(.515,.015));
         float edge=smoothstep(0.,.15,uv.x)*smoothstep(0.,.15,1.-uv.x)*smoothstep(0.,.22,uv.y)*smoothstep(0.,.22,1.-uv.y);
@@ -81,6 +83,12 @@ export class AbstractResonances {
         float wet=.5+.5*sin(time*.025+family*2.+uv.x*3.);
         vec3 color=pigment*(.65+grain.g*.28+fold*.12-rim*.12);
         float alpha=edge*holes*(.25+pool.a*.4+rim*.13)*presence*(.8+wet*.2);
+        if(livingEnabled>.5 && membrane<.5){
+          vec3 paint=texture2D(living,uv).rgb;
+          float deposit=smoothstep(.035,.24,1.-dot(paint,vec3(.2126,.7152,.0722)));
+          color=mix(color,paint,.82*deposit);
+          alpha=max(alpha,edge*deposit*presence*.86);
+        }
         if(alpha<.005)discard;gl_FragColor=vec4(color,alpha);
         #include <colorspace_fragment>
       }`,
@@ -89,6 +97,11 @@ export class AbstractResonances {
     this.mesh.material.forceSinglePass = true;
     this.mesh.frustumCulled = false;
     this.mesh.visible = false;
+  }
+  setLivingTexture(texture: THREE.Texture | null) {
+    const u = this.mesh.material.uniforms;
+    u.livingEnabled.value = texture ? 1 : 0;
+    u.living.value = texture ?? u.paper.value;
   }
   setPalette(ids: string[]) {
     const score = composeWeather(ids),
