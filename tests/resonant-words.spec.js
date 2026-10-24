@@ -59,7 +59,7 @@ test("poetry follows weather combinations, remains readable, sparse and paused",
   expect(result.pool[0]).toBe("la lumière traverse ce qui ruisselle");
   expect(result.wind[0]).toBe("le blanc apprend à voyager");
   expect(result.moon[0]).toBe("une lueur sans contour");
-  expect(result.count).toBe(72);
+  expect(result.count).toBe(96);
   expect(result.after).toEqual(result.before);
   expect(result.lines.every((lines) => lines.length <= 2)).toBe(true);
   expect(result.reduced.fades.filter((v) => v > 0)).toHaveLength(1);

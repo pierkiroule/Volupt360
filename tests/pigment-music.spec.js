@@ -107,9 +107,7 @@ test("actual sampled music drives pigment deposits in the 3D world", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-pigment", "idle");
   await page.getByLabel("Réglages musique").click();
-  await page.getByRole("button", { name: "Activer la musique" }).click();
   await expect(canvas).toHaveAttribute("data-pigment", "active", {
     timeout: 20000,
   });

@@ -70,7 +70,9 @@ test("flight ramps smoothly and pause freezes travel and optical progression", a
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-ready", "inside");
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Contempler", exact: true }),
+  ).toBeVisible();
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-travel-speed")))
     .toBeGreaterThan(0.3);
@@ -101,7 +103,9 @@ test("returning to the palette while paused clears travel optics", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Contempler", exact: true }),
+  ).toBeVisible();
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.getByRole("button", { name: "Revenir à la palette" }).click();

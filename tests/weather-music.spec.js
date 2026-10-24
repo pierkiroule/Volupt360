@@ -20,6 +20,7 @@ test("weather scores are reproducible, harmonic and distinct over thirty simulat
       same: JSON.stringify(a) === JSON.stringify(b),
       different: JSON.stringify(a) !== JSON.stringify(c),
       count: a.length,
+      instruments: [...new Set(a.map((event) => event.instrument))].sort(),
       slow: c.length,
       valid: [...a, ...c].every(
         (e) =>
@@ -40,6 +41,7 @@ test("weather scores are reproducible, harmonic and distinct over thirty simulat
   expect(result.different).toBe(true);
   expect(result.valid).toBe(true);
   expect(result.profiles).toBe(12);
+  expect(result.instruments).toEqual([0, 1, 2, 3]);
   expect(result.count).toBeGreaterThan(result.slow);
   expect(result.count).toBeLessThan(3000);
 });
@@ -92,7 +94,7 @@ test("real local samples decode and smplr produces audio, then pauses, resumes a
   expect(result.closed).toBe("closed");
 });
 
-test("audio is opt-in, volume and silence work, and leaving the sky pauses playback", async ({
+test("entry starts music and travel after a gesture, volume and silence work", async ({
   page,
 }) => {
   const requests = [];
@@ -100,15 +102,14 @@ test("audio is opt-in, volume and silence work, and leaving the sky pauses playb
     if (r.url().endsWith(".ogg")) requests.push(r.url());
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   expect(requests).toEqual([]);
+  await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   await page.getByLabel("Réglages musique").click();
-  await page.getByRole("button", { name: "Activer la musique" }).click();
   await expect(page.locator(".simple-music")).toHaveAttribute(
     "data-state",
     "on",
   );
-  expect(requests).toHaveLength(9);
+  expect(requests).toHaveLength(12);
   await page.getByRole("slider", { name: "Volume musique" }).fill("0.3");
   await page.getByRole("button", { name: "Couper la musique" }).click();
   await expect(page.locator(".simple-music")).toHaveAttribute(
@@ -120,12 +121,12 @@ test("audio is opt-in, volume and silence work, and leaving the sky pauses playb
     "data-state",
     "on",
   );
-  expect(requests).toHaveLength(9);
+  expect(requests).toHaveLength(12);
   await page.getByRole("button", { name: "Revenir à la palette" }).click();
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   await expect(page.locator(".simple-music")).toHaveAttribute(
     "data-state",
-    "paused",
+    "on",
   );
 });
 
@@ -138,7 +139,6 @@ test("missing samples leave the visual world functional and allow retry", async 
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   await page.getByLabel("Réglages musique").click();
-  await page.getByRole("button", { name: "Activer la musique" }).click();
   await expect(page.locator(".simple-music")).toHaveAttribute(
     "data-state",
     "error",

@@ -52,7 +52,9 @@ test("viewpoint remains above the landscape and all animated layers freeze on pa
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-ready", "inside");
   await expect(canvas).toHaveAttribute("data-horizon", "painted-landscape");
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Contempler", exact: true }),
+  ).toBeVisible();
   const position = await canvas.getAttribute("data-position");
   await expect
     .poll(() => canvas.getAttribute("data-position"))
@@ -77,7 +79,7 @@ test("viewpoint remains above the landscape and all animated layers freeze on pa
     Number(await canvas.getAttribute("data-calls")),
   ).toBeGreaterThanOrEqual(10);
   expect(Number(await canvas.getAttribute("data-calls"))).toBeLessThanOrEqual(
-    11,
+    12,
   );
   expect(errors).toEqual([]);
 });

@@ -13,7 +13,7 @@ test("six local spatial membranes replace remote photos and freeze on pause", as
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-resonances", "6");
-  await expect(canvas).toHaveAttribute("data-calls", "11");
+  await expect(canvas).toHaveAttribute("data-calls", /^(11|12)$/);
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/three/build/three.module.js");
     const { AbstractResonances } =

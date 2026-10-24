@@ -30,8 +30,10 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await page.mouse.move(270, 350, { steps: 6 });
   await page.mouse.up();
   await page.waitForTimeout(600);
-  expect(await canvas.getAttribute("data-position")).toBe(position);
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  expect(await canvas.getAttribute("data-position")).not.toBe(position);
+  await expect(
+    page.getByRole("button", { name: "Contempler", exact: true }),
+  ).toBeVisible();
   await expect
     .poll(() => canvas.getAttribute("data-position"))
     .not.toBe(position);

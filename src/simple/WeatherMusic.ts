@@ -89,6 +89,7 @@ export class WeatherMusic {
       ["piano", ["C4", "D5", "C6"]],
       ["wood", ["C3", "F4", "C5"]],
       ["bow", ["E4", "G4", "D5"]],
+      ["strings", ["D3", "C4", "D5"]],
     ] as const;
     try {
       const sets = await Promise.all(
@@ -150,6 +151,7 @@ export class WeatherMusic {
     this.clock += Math.min(0.2, now - this.last);
     this.last = now;
     for (const event of this.score.advance(this.clock)) {
+      if (event.instrument === 0) this.signal.note = event.note;
       const instrument = this.instruments[event.instrument];
       this.panners[event.instrument].pan.setTargetAtTime(event.pan, now, 1.5);
       instrument.start({

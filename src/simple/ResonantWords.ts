@@ -12,6 +12,7 @@ export class ResonantWords {
   private cursor = 6;
   private active = 0;
   private elapsed = 0;
+  private needsAnchor = false;
   private lineLayouts: string[][] = [];
   private wordFade = new Float32Array(6).fill(1);
   private anchors = Array.from({ length: 6 }, () => new THREE.Vector3());
@@ -243,6 +244,7 @@ export class ResonantWords {
       Math.min(1, t / 3) * (1 - THREE.MathUtils.smoothstep(t, 15, 18));
     if (t >= 32) {
       this.active = (this.active + 1) % 6;
+      this.needsAnchor = true;
       this.labels[this.active] = this.pool[this.cursor++ % this.pool.length];
       this.paintWord(this.active);
       this.elapsed = 0;
@@ -260,6 +262,7 @@ export class ResonantWords {
     if (!inside) {
       this.mesh.visible = false;
       this.alpha = 0;
+      this.needsAnchor = true;
       this.focused = -1;
       this.candidate = -1;
       this.dwell = 0;
@@ -275,6 +278,14 @@ export class ResonantWords {
     this.mesh.material.uniforms.opacity.value = this.alpha;
     this.mesh.material.uniforms.time.value = time;
     camera.getWorldDirection(this.forward);
+    if (this.needsAnchor) {
+      this.right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+      this.anchors[this.active]
+        .copy(camera.position)
+        .addScaledVector(this.forward, 14)
+        .addScaledVector(this.right, this.active % 2 ? 0.65 : -0.65);
+      this.needsAnchor = false;
+    }
     let best = -1,
       bestDot = 0.994;
     for (let i = 0; i < 6; i++) {

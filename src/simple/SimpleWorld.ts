@@ -1,3 +1,4 @@
+import { FlightSteering } from "./FlightSteering";
 import { CameraPoetics } from "./CameraPoetics";
 import { PigmentMusic } from "./PigmentMusic";
 import { SILENT_SIGNAL, type MusicSignal } from "./MusicSignal";
@@ -49,6 +50,8 @@ export class SimpleWorld {
   private frame = 0;
   private last = 0;
   private time = 0;
+  private steering = new FlightSteering();
+  private flightForward = new THREE.Vector3();
   private journey = 0;
   private travelSpeed = 0;
   private cameraPoetics = new CameraPoetics();
@@ -299,6 +302,7 @@ export class SimpleWorld {
 
   setGyro(active: boolean) {
     this.gyro = active;
+    if (active) this.travelSpeed = 0;
     this.horizon.reset();
     this.source = "";
     this.lastRelative = -Infinity;
@@ -420,7 +424,10 @@ export class SimpleWorld {
     const raw = this.last ? (now - this.last) / 1000 : 0;
     const dt = Math.min(0.04, Math.max(0, raw));
     this.last = now;
-    if (!this.inside) this.travelSpeed = 0;
+    if (!this.inside) {
+      this.travelSpeed = 0;
+      this.steering.reset();
+    }
     if (!this.paused) {
       this.time += dt;
       this.travelSpeed = THREE.MathUtils.damp(
@@ -461,10 +468,17 @@ export class SimpleWorld {
     if (this.inside) {
       // A closed, continuous ellipse through the work. Never a flight into empty space.
       const tour = sampleTravel(this.journey, this.tour);
+      this.camera.getWorldDirection(this.flightForward);
+      const detour = this.steering.update(
+        this.paused ? 0 : dt,
+        this.flightForward,
+        !!this.pointer && this.travel && !this.gyro,
+        this.travelSpeed,
+      );
       this.camera.position.set(
-        tour[0] * blend,
-        THREE.MathUtils.lerp(18, tour[1], blend),
-        THREE.MathUtils.lerp(12, tour[2], blend),
+        (tour[0] + detour.x) * blend,
+        THREE.MathUtils.lerp(18, tour[1] + detour.y, blend),
+        THREE.MathUtils.lerp(12, tour[2] + detour.z, blend),
       );
       if (!this.paused) {
         this.viewYaw = smoothGyroHeading(this.viewYaw, this.yaw, dt);
@@ -557,6 +571,7 @@ export class SimpleWorld {
       d.calls = String(this.cameraPoetics.calls);
       d.cameraFx = this.cameraPoetics.inspect().amount.toFixed(3);
       d.travelSpeed = this.travelSpeed.toFixed(3);
+      d.steering = `${this.steering.offset.x.toFixed(3)},${this.steering.offset.y.toFixed(3)},${this.steering.offset.z.toFixed(3)}`;
       d.position = `${this.camera.position.x.toFixed(4)},${this.camera.position.y.toFixed(4)},${this.camera.position.z.toFixed(4)}`;
       const q = this.camera.quaternion;
       d.heading = `${q.x.toFixed(6)},${q.y.toFixed(6)},${q.z.toFixed(6)},${q.w.toFixed(6)}`;

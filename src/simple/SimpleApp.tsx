@@ -23,6 +23,7 @@ export default function SimpleApp() {
   >("off");
   const [volume, setVolume] = useState(0.55);
   const musicWanted = useRef(false);
+  const resumeMusic = useRef(false);
   useEffect(
     () => () => {
       musicWanted.current = false;
@@ -51,6 +52,10 @@ export default function SimpleApp() {
       setMusicState("paused");
       return;
     }
+    await startMusic();
+  }
+  async function startMusic() {
+    if (musicState === "loading") return;
     musicWanted.current = true;
     setMusicState("loading");
     try {
@@ -123,7 +128,10 @@ export default function SimpleApp() {
   }, [inside, travel, paused, retry]);
   useEffect(() => {
     const hide = () => {
-      if (document.hidden) setPaused(true);
+      if (document.hidden) {
+        resumeMusic.current = music.current?.inspect().running ?? false;
+        setPaused(true);
+      }
     };
     document.addEventListener("visibilitychange", hide);
     return () => document.removeEventListener("visibilitychange", hide);
@@ -237,8 +245,18 @@ export default function SimpleApp() {
                 aria-label="Entrer dans mon ciel"
                 onClick={() => {
                   setInside(true);
-                  setTravel(false);
-                  setNotice("");
+                  const reduced = matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                  ).matches;
+                  setTravel(!reduced);
+                  setPaused(reduced);
+                  resumeMusic.current = true;
+                  setNotice(
+                    reduced
+                      ? "Mouvements réduits : Reprendre reste disponible."
+                      : "",
+                  );
+                  if (!reduced) void startMusic();
                 }}
               >
                 Entrer{" "}
@@ -263,6 +281,9 @@ export default function SimpleApp() {
       {!inside && (
         <footer className="simple-footer">
           <p>Choisis la météo de ton ciel. Puis entre.</p>
+          <small>
+            Voyage et musique au toucher d’Entrer · silence disponible avec ♫
+          </small>
           <small className="simple-selected-names" aria-live="polite">
             {selected
               .map((id) => NUANCES.find((n) => n.id === id)?.label)
@@ -277,7 +298,7 @@ export default function SimpleApp() {
           </div>
           <div className="simple-guidance">
             {travel
-              ? "Le voyage reste au cœur de ton monde."
+              ? "Glisse pour orienter ta traversée. Relâche pour te laisser porter."
               : "Glisse pour regarder autour de toi."}
           </div>
           <nav className="simple-tools" aria-label="Contempler mon univers">
@@ -306,7 +327,16 @@ export default function SimpleApp() {
             <button
               aria-label={paused ? "Reprendre" : "Pause"}
               aria-pressed={paused}
-              onClick={() => setPaused(!paused)}
+              onClick={() => {
+                if (paused) {
+                  setPaused(false);
+                  if (resumeMusic.current) void startMusic();
+                } else {
+                  resumeMusic.current =
+                    musicState === "on" || musicState === "loading";
+                  setPaused(true);
+                }
+              }}
             >
               {paused ? "▷" : "Ⅱ"}
               <span>{paused ? "Reprendre" : "Pause"}</span>
@@ -355,7 +385,9 @@ export default function SimpleApp() {
                 }}
               />
             </label>
-            <small>Piano, bois et verre frotté · sons VCSL / CC0</small>
+            <small>
+              Piano, cordes, bois et verre frotté · VCSL & VSCO / CC0
+            </small>
           </div>
         </details>
       )}

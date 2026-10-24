@@ -47,6 +47,7 @@ export class AbstractResonances {
           livingEnabled: { value: 0 },
           time: { value: 0 },
           music: { value: new THREE.Vector3() },
+          melody: { value: 0.5 },
           presence: { value: 0 },
           kinds: { value: new THREE.Vector3() },
           layers: { value: 1 },
@@ -55,7 +56,7 @@ export class AbstractResonances {
           c: { value: new THREE.Color() },
           encounters: { value: new THREE.Vector3() },
         },
-        vertexShader: `attribute float slot;uniform float time,layers;uniform vec3 kinds,music;varying vec2 inkUV;varying float family,kind,fold,membrane;
+        vertexShader: `attribute float slot;uniform float time,layers,melody;uniform vec3 kinds,music;varying vec2 inkUV;varying float family,kind,fold,membrane;
       void main(){membrane=slot;float u=position.x,v=position.y;inkUV=position.xy;family=mod(slot,layers);
         kind=family<.5?kinds.x:family<1.5?kinds.y:kinds.z;
         float seed=slot*2.39996,t=time*.055+seed;
@@ -69,17 +70,23 @@ export class AbstractResonances {
         else if(abs(kind-8.)<.1){p=vec3((u-.5)*5.,sin(u*7.+t)*1.2+(v-.5)*2.,cos(u*4.-t)*.8);}
         p.z+=sin(v*6.+u*8.+t)*(.18+music.x*.65)*sin(u*3.14159);
         p.y+=sin(u*9.-t*.7+seed)*music.y*.35*sin(v*3.14159);
+        p.z+=sin(u*5.+v*3.+seed)*melody*music.x*.35;
         fold=.5+.5*sin(u*8.+v*5.+t);
         float az=seed*.75;float x=p.x;p.x=x*cos(az)+p.z*sin(az);p.z=-x*sin(az)+p.z*cos(az);
         p+=vec3(sin(seed)*5.5,18.+cos(seed)*1.5,-5.+cos(seed*.9)*4.5);
         p.y+=sin(time*.021+seed)*.6;
         gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
       }`,
-        fragmentShader: `uniform sampler2D paper,living,livingPrevious;uniform float time,presence,livingEnabled,livingBlend;uniform vec3 a,b,c,encounters,music;varying vec2 inkUV;varying float family,kind,fold,membrane;
+        fragmentShader: `uniform sampler2D paper,living,livingPrevious;uniform float time,presence,livingEnabled,livingBlend,melody;uniform vec3 a,b,c,encounters,music;varying vec2 inkUV;varying float family,kind,fold,membrane;
       void main(){vec2 uv=inkUV;vec4 grain=texture2D(paper,uv*.46+vec2(.015,.515));
         vec4 pool=texture2D(paper,uv*.43+vec2(.515,.015));
         float edge=smoothstep(0.,.15,uv.x)*smoothstep(0.,.15,1.-uv.x)*smoothstep(0.,.22,uv.y)*smoothstep(0.,.22,1.-uv.y);
         float holes=smoothstep(.1,.36,grain.a+pool.a*.45);
+        // A moving reserve suggests a silhouette without ever fixing a figure.
+        vec2 hollow=uv-vec2(.48+.1*sin(time*.025+family),.5+melody*.12);
+        float reserve=1.-smoothstep(.035,.22,length(hollow*vec2(1.,1.4))+(pool.b-.5)*.12);
+        float reveal=smoothstep(.55,.95,.5+.5*sin(time*.032+family*2.1));
+        holes*=1.-reserve*reveal*.6;
         float rim=exp(-abs(grain.b-.5-music.z*.025*sin(uv.x*16.-time*.3))*32.);
         vec3 pigment=family<.5?a:family<1.5?b:c;
         pigment=mix(pigment,vec3(.86,.72,.43),encounters.x*fold*.22);
@@ -110,6 +117,13 @@ export class AbstractResonances {
     music.x = THREE.MathUtils.damp(music.x, signal.energy, 2.4, dt);
     music.y = THREE.MathUtils.damp(music.y, signal.low, 1.8, dt);
     music.z = THREE.MathUtils.damp(music.z, signal.high, 2, dt);
+    const u = this.mesh.material.uniforms;
+    u.melody.value = THREE.MathUtils.damp(
+      u.melody.value,
+      Math.max(0, Math.min(1, ((signal.note ?? 62) - 50) / 24)),
+      0.7,
+      dt,
+    );
     return music;
   }
   setLivingTexture(

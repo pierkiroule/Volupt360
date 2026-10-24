@@ -36,7 +36,7 @@ export function offlinePlugin() {
       const textureUrls = textureFiles.map(
         (path) => base + relative(publicDir, path).split("\\").join("/"),
       );
-      const audioFiles = ["piano", "wood", "bow"].flatMap((name) =>
+      const audioFiles = ["piano", "wood", "bow", "strings"].flatMap((name) =>
         ["low", "mid", "high"].map(
           (level) => `audio/emociel/${name}-${level}.ogg`,
         ),
