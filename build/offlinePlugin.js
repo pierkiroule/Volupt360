@@ -41,6 +41,9 @@ export function offlinePlugin() {
           (level) => `audio/emociel/${name}-${level}.ogg`,
         ),
       );
+      audioFiles.push(
+        ...["four", "broken", "air"].map((name) => `audio/electro/${name}.ogg`),
+      );
       const audioHash = createHash("sha256");
       for (const path of audioFiles)
         audioHash.update(readFileSync(resolve(publicDir, path)));

@@ -28,3 +28,6 @@ Matière musicale : le premier voile abstrait reçoit une peinture à mémoire G
 Le voyage possède une accélération douce, une légère respiration de focale et de rares effets optiques de flou périphérique et de contours d’encre. Ces effets sont limités à une passe et se désactivent en qualité réduite.
 
 117 fragments originaux composent une poésie ouverte selon les météos et leurs rencontres. Piano mélodique, réponses de marimba, résonances frottées et accords de violoncelles partagent une même écriture harmonique. Les notes infléchissent les plis et les réserves de pigment ; aucune interprétation automatique du vécu n’est produite.
+
+
+Direction électro : trois drumloops originaux de quatre mesures à 104 BPM (régulier, syncopé, aéré), basse sinusoïdale et arpèges de marimba synchronisés. Le mix rythmique dépend des météos. Les percussions restent plus sèches, les instruments respirent légèrement sur la pulsation. Les plis, les particules et les déformations optiques partagent l’horloge musicale. Les boucles sont locales et mises en cache ; leur synthèse originale est reproductible avec `scripts/generate-electro-loops.py` (Python, NumPy et FFmpeg, uniquement pour régénérer les assets).

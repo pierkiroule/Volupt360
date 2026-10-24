@@ -114,6 +114,8 @@ export class SimpleWorld {
           neighbor0: { value: new THREE.Color() },
           neighbor1: { value: new THREE.Color() },
           neighbor2: { value: new THREE.Color() },
+          musicMotion: { value: new THREE.Vector3() },
+          beat: { value: 0 },
           motion: { value: new THREE.Vector4(0.5, 0.5, 0.5, 0.1) },
           presence: { value: 0.6 },
           identity: { value: new THREE.Vector4(0, 1, 0.6, 0) },
@@ -122,18 +124,19 @@ export class SimpleWorld {
           tint: { value: new THREE.Color() },
           accent: { value: new THREE.Color() },
         },
-        vertexShader: `uniform float time,phase;uniform vec4 motion;attribute float island;varying vec2 vUv;varying float fold,islet,detail;
+        vertexShader: `uniform float time,phase,beat;uniform vec3 musicMotion;uniform vec4 motion;attribute float island;varying vec2 vUv;varying float fold,islet,detail;
         void main(){vUv=uv;islet=island;vec3 p=position;float seed=phase+island*1.37;float t=time*.19*motion.x+seed;
           float a=p.x*(.25+motion.z*.7)+t,b=p.y*.6-t*.63;
-          p.z+=sin(a)*(.4+motion.z)+cos(b)*.45;p.y+=sin(a*.7)*(.25+motion.w*.8);p.x+=sin(b+t*.3)*(.25+motion.w);
+          p.z+=sin(a)*(.4+motion.z)+cos(b)*.45;
+          p.z+=sin(p.x*.7+p.y*.6+beat*.22)*musicMotion.x*.9;p.y+=sin(a*.7)*(.25+motion.w*.8);p.x+=sin(b+t*.3)*(.25+motion.w);
           fold=.5+.5*cos(a)*cos(b);p=(instanceMatrix*vec4(p,1.)).xyz;
           p+=vec3(sin(time*.031+seed),cos(time*.023+seed*.8),sin(time*.019+seed*1.1))*.65;
           vec4 view=modelViewMatrix*vec4(p,1.);detail=1.-smoothstep(5.,20.,-view.z);gl_Position=projectionMatrix*view;}`,
 
-        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent,reaction,neighbor0,neighbor1,neighbor2;uniform vec4 motion,identity,meetingWeather;uniform vec3 encounter;uniform float presence,time,phase;uniform vec2 tile;varying vec2 vUv;varying float fold,islet,detail;
+        fragmentShader: `uniform sampler2D paper;uniform vec3 tint,accent,reaction,neighbor0,neighbor1,neighbor2;uniform vec4 motion,identity,meetingWeather;uniform vec3 encounter,musicMotion;uniform float presence,time,phase,beat;uniform vec2 tile;varying vec2 vUv;varying float fold,islet,detail;
         vec4 ink(vec2 p){return texture2D(paper,(clamp(p,.005,.995)+tile)*.5);}
         void main(){float seed=phase+islet*1.37;float contact=islet<.5?reaction.x:islet<1.5?reaction.y:reaction.z;vec3 other=islet<.5?neighbor0:islet<1.5?neighbor1:neighbor2;float t=time*.018*motion.x+seed;
-          vec2 drift=vec2(sin(vUv.y*3.+t),cos(vUv.x*4.-t*.61))*(.035+contact*(.035+meetingWeather.y*.03));
+          vec2 drift=vec2(sin(vUv.y*3.+t),cos(vUv.x*4.-t*.61))*(.035+musicMotion.x*.045+contact*(.035+meetingWeather.y*.03));
           float symmetry=step(.5,islet)*(1.-step(1.5,islet))*.86;
           vec2 folded=vec2(.5+abs(vUv.x-.5+sin(vUv.y*3.+seed)*.015),vUv.y);
           vec2 pigmentUV=mix(vUv,folded,symmetry);
@@ -171,6 +174,7 @@ export class SimpleWorld {
           float meeting=contact*smoothstep(.2,.75,q.b)*.32;
           c=mix(c,other,meeting);
           float deposit=clamp(pool*identity.y+drying*.3+contact*.15,0.,1.);
+          float luma=dot(c,vec3(.2126,.7152,.0722));c=max(vec3(.01),mix(vec3(luma),c,1.25+musicMotion.x*.3));
           c*=1.-deposit*.35-drying*.1+granule;
           float sumi=smoothstep(.48,.8,p.a)*smoothstep(.3,.75,q.b)*min(1.,identity.y);
           c=mix(c,mix(tint*.24,vec3(.07,.09,.12),.35),sumi*.6);
@@ -520,7 +524,20 @@ export class SimpleWorld {
       audio,
       this.paused || !this.inside ? 0 : dt,
     );
+    for (const sheet of this.sheets) {
+      sheet.material.uniforms.musicMotion.value.copy(musicResponse);
+      if (audio.energy > 0.005 && !this.paused)
+        sheet.material.uniforms.beat.value = audio.beat ?? 0;
+    }
+    if (!this.paused)
+      this.cameraPoetics.setMusic(
+        audio.energy > 0.005 ? audio.beat : undefined,
+        musicResponse.x,
+      );
     this.contact = this.dynamics.update(this.time, this.paused ? 0 : dt);
+    this.atmosphere.sky.material.uniforms.electro.value
+      .copy(musicResponse)
+      .multiplyScalar(this.inside ? 1 : 0);
     this.atmosphere.update(this.time, this.camera, this.pixelRatio);
     this.atmosphere.particles.material.uniforms.resonance.value = this.contact;
     this.accents.update(
@@ -528,6 +545,7 @@ export class SimpleWorld {
       this.pixelRatio,
       this.contact,
       musicResponse,
+      !this.paused && audio.energy > 0.005 ? audio.beat : undefined,
     );
     this.birds.update(this.time);
     this.words.update(this.time, dt, this.camera, this.paused, this.inside);

@@ -5,6 +5,7 @@ export interface MusicSignal {
   high: number;
   onset: number;
   note?: number;
+  beat?: number;
 }
 export const SILENT_SIGNAL: Readonly<MusicSignal> = Object.freeze({
   energy: 0,

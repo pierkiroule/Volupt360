@@ -386,7 +386,7 @@ export default function SimpleApp() {
               />
             </label>
             <small>
-              Piano, cordes, bois et verre frotté · VCSL & VSCO / CC0
+              Électro · 104 BPM · boucles locales, piano et cordes · CC0
             </small>
           </div>
         </details>

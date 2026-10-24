@@ -13,6 +13,7 @@ export class Atmosphere {
       depthTest: false,
       uniforms: {
         paper: { value: texture },
+        electro: { value: new THREE.Vector3() },
         eye: { value: new THREE.Vector3(0, 18, 12) },
         time: { value: 0 },
         weather: { value: new THREE.Vector4() },
@@ -25,7 +26,7 @@ export class Atmosphere {
         c: { value: new THREE.Color("#a49bb9") },
       },
       vertexShader: `varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader: `uniform sampler2D paper;uniform vec3 eye;uniform float time;uniform vec3 a,b,c;uniform vec4 weather,climate,magic;varying vec3 direction;
+      fragmentShader: `uniform sampler2D paper;uniform vec3 eye;uniform float time;uniform vec3 a,b,c,electro;uniform vec4 weather,climate,magic;varying vec3 direction;
       void main(){vec3 d=normalize(direction);float t=time*.008;
         vec2 uv=d.xz*.24+vec2(d.y*.18,t*(1.+weather.z*2.));
         vec4 wash=texture2D(paper,uv+vec2(.5));
@@ -36,6 +37,8 @@ export class Atmosphere {
         vec3 ivory=vec3(.91,.90,.86);
         float dark=climate.x*.4+climate.z*.55;
         vec3 base=mix(ivory,vec3(.11,.15,.25),min(.75,dark));
+        base=mix(base,vec3(.13,.10,.22),electro.x*.55);
+        float saturation=dot(pigment,vec3(.2126,.7152,.0722));pigment=max(vec3(.01),mix(vec3(saturation),pigment,1.+electro.x*.65));
         vec3 color=mix(base,pigment,.18+clouds*(.25+magic.w*.15));
         color=mix(color,vec3(.33,.43,.57),weather.y*clouds*.28);
         color=mix(color,ivory,weather.w*(.28+grain.a*.25));

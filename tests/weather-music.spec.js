@@ -86,6 +86,11 @@ test("real local samples decode and smplr produces audio, then pauses, resumes a
   expect(result.peak).toBeGreaterThan(0.0001);
   expect(result.peak).toBeLessThan(1);
   expect(result.playing.loaded).toBe(true);
+  expect(result.playing.rhythm.loops).toBe(3);
+  expect(result.playing.rhythm.bpm).toBe(104);
+  expect(result.playing.rhythm.hits).toBeGreaterThan(0);
+  expect(result.paused.rhythm.running).toBe(false);
+  expect(result.resumed.rhythm.loops).toBe(3);
   expect(result.playing.events).toBeGreaterThan(0);
   expect(result.paused.running).toBe(false);
   expect(result.paused.state).toBe("suspended");
@@ -109,7 +114,7 @@ test("entry starts music and travel after a gesture, volume and silence work", a
     "data-state",
     "on",
   );
-  expect(requests).toHaveLength(12);
+  expect(requests).toHaveLength(15);
   await page.getByRole("slider", { name: "Volume musique" }).fill("0.3");
   await page.getByRole("button", { name: "Couper la musique" }).click();
   await expect(page.locator(".simple-music")).toHaveAttribute(
@@ -121,7 +126,7 @@ test("entry starts music and travel after a gesture, volume and silence work", a
     "data-state",
     "on",
   );
-  expect(requests).toHaveLength(12);
+  expect(requests).toHaveLength(15);
   await page.getByRole("button", { name: "Revenir à la palette" }).click();
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   await expect(page.locator(".simple-music")).toHaveAttribute(

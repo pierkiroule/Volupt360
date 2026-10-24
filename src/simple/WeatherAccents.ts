@@ -10,6 +10,7 @@ export class WeatherAccents {
     const uniforms = () => ({
       time: { value: 0 },
       music: { value: new THREE.Vector3() },
+      beat: { value: 0 },
       ratio: { value: 1 },
       contact: { value: 0 },
       weather: { value: new THREE.Vector4() },
@@ -110,9 +111,9 @@ export class WeatherAccents {
       transparent: true,
       depthWrite: false,
       uniforms: uniforms(),
-      vertexShader: `uniform float time,ratio,layers,contact;uniform vec4 weather;uniform vec3 kinds,music;attribute vec3 seed;varying float group,alpha,style,weatherKind;varying vec3 grainSeed;
+      vertexShader: `uniform float time,ratio,layers,contact,beat;uniform vec4 weather;uniform vec3 kinds,music;attribute vec3 seed;varying float group,alpha,style,weatherKind;varying vec3 grainSeed;
       void main(){group=min(floor(seed.x*layers),layers-1.);float kind=group<.5?kinds.x:group<1.5?kinds.y:kinds.z;weatherKind=kind;
-        float period=19.+seed.z*17.;float age=fract(time/period+seed.y);float spread=smoothstep(0.,1.,age);float angle=seed.x*62.83185+time*.06;
+        float period=19.+seed.z*17.;float age=fract(time/period+seed.y);float spread=smoothstep(0.,1.,age);float angle=seed.x*62.83185+time*.18+beat*.065;
         float radius=(.2+spread*2.9)*(0.5+seed.z*.5);vec3 p=position+vec3(cos(angle)*radius,sin(angle)*radius*.6,sin(angle*.7)*radius*.65);
         if(kind<.5||abs(kind-5.)<.1){p.y+=spread*3.;}
         else if(kind<1.5||kind>10.5){p.y-=spread*5.5;p.x+=sin(time*.15+seed.z)*.4+weather.z*spread*2.5;}
@@ -120,7 +121,7 @@ export class WeatherAccents {
         else if(kind>6.5&&kind<7.5){p.y-=spread*2.5;p.x+=sin(time*.13+seed.z*4.);}
         else if(kind>8.5&&kind<9.5){p=position+vec3(cos(angle)*radius,sin(angle)*radius,sin(angle*.7)*.4);}
         p+=vec3(sin(angle),cos(angle*.7),sin(angle*.6))*contact*.35;
-        p+=vec3(cos(angle+seed.y),sin(angle*.8),cos(angle*.6))*(music.x*.7+music.y*.35)*spread;
+        p+=vec3(cos(angle+seed.y),sin(angle*.8),cos(angle*.6))*(music.x*1.5+music.y*.8)*spread;
         vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
         gl_PointSize=clamp((100.+seed.z*170.)*ratio/max(2.5,-view.z),3.,32.*ratio);
         alpha=smoothstep(0.,.13,age)*(1.-smoothstep(.65,1.,age))*smoothstep(.8,2.5,-view.z);
@@ -159,13 +160,20 @@ export class WeatherAccents {
       );
     }
   }
-  update(time: number, ratio: number, contact: number, music?: THREE.Vector3) {
+  update(
+    time: number,
+    ratio: number,
+    contact: number,
+    music?: THREE.Vector3,
+    beat?: number,
+  ) {
     this.ribbons.material.uniforms.time.value = time;
     const u = this.seeds.material.uniforms;
     u.time.value = time;
     u.ratio.value = ratio;
     u.contact.value = contact;
     if (music) u.music.value.copy(music);
+    if (beat !== undefined && music && music.x > 0.005) u.beat.value = beat;
     this.seeds.geometry.setDrawRange(
       0,
       ratio < 1 ? Math.floor(this.count * 0.65) : this.count,

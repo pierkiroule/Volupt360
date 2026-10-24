@@ -82,6 +82,9 @@ export class WeatherScore {
     this.randomState = s >>> 0;
     return this.randomState / 4294967296;
   }
+  get harmonyNotes(): readonly number[] {
+    return this.voicings[Math.max(0, this.chord)];
+  }
   advance(time: number): MusicNote[] {
     const result: MusicNote[] = [];
     if (time >= this.chordAt) {

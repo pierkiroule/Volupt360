@@ -27,26 +27,32 @@ export class CameraPoetics {
           image: { value: null },
           texel: { value: new THREE.Vector2(1, 1) },
           time: { value: 0 },
+          groove: { value: new THREE.Vector2() },
           presence: { value: 0 },
         },
         vertexShader: `varying vec2 vUv;void main(){vUv=position.xy*.5+.5;gl_Position=vec4(position,1.);}`,
-        fragmentShader: `uniform sampler2D image;uniform vec2 texel;uniform float time,presence;varying vec2 vUv;
+        fragmentShader: `uniform sampler2D image;uniform vec2 texel,groove;uniform float time,presence;varying vec2 vUv;
       void main(){
         // Long, overlapping optical windows, independent from musical attacks.
         float opening=smoothstep(.72,.98,.5+.5*sin(time*.057-.9));
         float ink=smoothstep(.78,.99,.5+.5*sin(time*.043+1.1));
         vec2 edge=abs(vUv-.5)*2.;float periphery=smoothstep(.3,.95,max(edge.x,edge.y));
+        vec2 warped=clamp(vUv+periphery*presence*groove.y*.009*vec2(sin(vUv.y*6.+groove.x*.22),cos(vUv.x*5.-groove.x*.17)),vec2(0.),vec2(1.));
         vec2 delta=texel*(.7+opening*2.2*periphery);
-        vec3 center=texture2D(image,vUv).rgb;
-        vec3 left=texture2D(image,clamp(vUv-vec2(delta.x,0.),vec2(0.),vec2(1.))).rgb;
-        vec3 right=texture2D(image,clamp(vUv+vec2(delta.x,0.),vec2(0.),vec2(1.))).rgb;
-        vec3 top=texture2D(image,clamp(vUv+vec2(0.,delta.y),vec2(0.),vec2(1.))).rgb;
-        vec3 bottom=texture2D(image,clamp(vUv-vec2(0.,delta.y),vec2(0.),vec2(1.))).rgb;
+        vec3 center=texture2D(image,warped).rgb;
+        vec3 left=texture2D(image,clamp(warped-vec2(delta.x,0.),vec2(0.),vec2(1.))).rgb;
+        vec3 right=texture2D(image,clamp(warped+vec2(delta.x,0.),vec2(0.),vec2(1.))).rgb;
+        vec3 top=texture2D(image,clamp(warped+vec2(0.,delta.y),vec2(0.),vec2(1.))).rgb;
+        vec3 bottom=texture2D(image,clamp(warped-vec2(0.,delta.y),vec2(0.),vec2(1.))).rgb;
         vec3 wash=mix(center,(center*2.+left+right+top+bottom)/6.,opening*periphery*.55);
         float contour=clamp(length(left-right)+length(top-bottom),0.,1.);
         wash*=1.-contour*ink*.2;
         // Keep the central gaze sharp; the effect never obscures words or controls.
         vec3 color=mix(center,wash,presence);
+        float luma=dot(color,vec3(.2126,.7152,.0722));color=mix(vec3(luma),color,1.+presence*groove.y*.35);
+        vec3 axis=normalize(vec3(1.));float angle=sin(groove.x*.065)*presence*groove.y*.3;
+        color=color*cos(angle)+cross(axis,color)*sin(angle)+axis*dot(axis,color)*(1.-cos(angle));
+        color=max(color,vec3(0.));
         gl_FragColor=vec4(color,1.);
         #include <colorspace_fragment>
       }`,
@@ -103,6 +109,11 @@ export class CameraPoetics {
     renderer.setRenderTarget(previous);
     renderer.render(this.scene, this.camera);
     this.calls = sceneCalls + renderer.info.render.calls;
+  }
+  setMusic(beat: number | undefined, energy: number) {
+    const groove = this.mesh.material.uniforms.groove.value as THREE.Vector2;
+    if (beat !== undefined) groove.x = beat;
+    groove.y = energy;
   }
   reset() {
     this.amount = 0;
