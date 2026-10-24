@@ -1,0 +1,204 @@
+import { Sampler } from "smplr";
+import { WeatherScore } from "./WeatherScore";
+
+export class WeatherMusic {
+  readonly context = new AudioContext({ latencyHint: "playback" });
+  private gain = this.context.createGain();
+  private filter = this.context.createBiquadFilter();
+  private compressor = this.context.createDynamicsCompressor();
+  private reverb = this.context.createConvolver();
+  private wet = this.context.createGain();
+  private input = this.context.createGain();
+  private panners: StereoPannerNode[] = [];
+  private loading: Promise<void> | undefined;
+  private instruments: ReturnType<typeof Sampler>[] = [];
+  private suspendTimer: ReturnType<typeof setTimeout> | undefined;
+  private timer: ReturnType<typeof setInterval> | undefined;
+  private score: WeatherScore;
+  private clock = 0;
+  private last = 0;
+  private running = false;
+  private disposed = false;
+  private loaded = false;
+  private volume = 0.55;
+  private abort = new AbortController();
+  constructor(ids: string[], interrupted?: () => void) {
+    this.score = new WeatherScore(ids);
+    this.gain.gain.value = 0;
+    this.filter.type = "lowpass";
+    this.filter.Q.value = 0.35;
+    this.compressor.threshold.value = -18;
+    this.compressor.knee.value = 18;
+    this.compressor.ratio.value = 3;
+    this.compressor.attack.value = 0.025;
+    this.compressor.release.value = 0.35;
+    // Deterministic, filtered stereo impulse, constructed once (not an audio sample).
+    const length = this.context.sampleRate * 3.6,
+      impulse = this.context.createBuffer(2, length, this.context.sampleRate);
+    let seed = 1931;
+    for (let channel = 0; channel < 2; channel++) {
+      const data = impulse.getChannelData(channel);
+      let smooth = 0;
+      for (let i = 0; i < length; i++) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        smooth = smooth * 0.7 + ((seed / 4294967296) * 2 - 1) * 0.3;
+        data[i] = smooth * Math.pow(1 - i / length, 3) * 0.35;
+      }
+    }
+    this.reverb.buffer = impulse;
+    this.wet.gain.value = 0.55;
+    this.input.connect(this.filter);
+    this.filter.connect(this.compressor);
+    this.filter.connect(this.reverb);
+    this.reverb.connect(this.wet);
+    this.wet.connect(this.compressor);
+    this.compressor.connect(this.gain);
+    this.gain.connect(this.context.destination);
+    this.setPalette(ids);
+    this.context.onstatechange = () => {
+      if (this.running && this.context.state !== "running" && !this.disposed) {
+        this.pause();
+        interrupted?.();
+      }
+    };
+  }
+  async start() {
+    // Called synchronously from a click, before loading, to unlock mobile audio.
+    if (this.suspendTimer) clearTimeout(this.suspendTimer);
+    await this.context.resume();
+    if (this.disposed) return;
+    if (!this.loaded) await (this.loading ??= this.load());
+    if (this.disposed) return;
+    this.running = true;
+    this.last = this.context.currentTime;
+    this.gain.gain.setTargetAtTime(this.volume, this.context.currentTime, 0.6);
+    if (!this.timer) this.timer = setInterval(() => this.tick(), 80);
+    this.tick();
+  }
+  private async load() {
+    const groups = [
+      ["piano", ["C4", "D5", "C6"]],
+      ["wood", ["C3", "F4", "C5"]],
+      ["bow", ["E4", "G4", "D5"]],
+    ] as const;
+    try {
+      const sets = await Promise.all(
+        groups.map(async ([name, roots], index) => {
+          const buffers = await Promise.all(
+            ["low", "mid", "high"].map(async (level) => {
+              const response = await fetch(
+                `${import.meta.env.BASE_URL}audio/emociel/${name}-${level}.ogg`,
+                { signal: this.abort.signal },
+              );
+              if (!response.ok) throw Error("Échantillon indisponible");
+              return this.context.decodeAudioData(await response.arrayBuffer());
+            }),
+          );
+          if (this.disposed) throw Error("Lecture fermée");
+          const panner = this.context.createStereoPanner();
+          panner.connect(this.input);
+          this.panners[index] = panner;
+          const sampler = Sampler(this.context, {
+            destination: panner,
+            volume: 92,
+            decayTime: 1.8,
+            detune: 0,
+            lpfCutoffHz: 7000,
+            buffers: Object.fromEntries(
+              buffers.map((buffer, i) => [roots[i], buffer]),
+            ),
+          });
+          this.instruments.push(sampler);
+          await sampler.ready;
+          return sampler;
+        }),
+      );
+      this.instruments = sets;
+      this.loaded = true;
+    } catch (error) {
+      this.dispose();
+      throw error;
+    }
+  }
+  private tick() {
+    if (!this.running || this.disposed || this.context.state !== "running")
+      return;
+    const now = this.context.currentTime;
+    this.clock += Math.min(0.2, now - this.last);
+    this.last = now;
+    for (const event of this.score.advance(this.clock)) {
+      const instrument = this.instruments[event.instrument];
+      this.panners[event.instrument].pan.setTargetAtTime(event.pan, now, 1.5);
+      instrument.start({
+        note: event.note,
+        velocity: event.velocity,
+        duration: event.duration,
+        time: now + event.at - this.clock,
+      });
+    }
+  }
+  setPalette(ids: string[]) {
+    this.score.setPalette(ids);
+    this.filter.frequency.setTargetAtTime(
+      this.score.profile.cutoff,
+      this.context.currentTime,
+      2,
+    );
+  }
+  setVolume(value: number) {
+    this.volume = Math.max(0, Math.min(0.8, value));
+    if (this.running)
+      this.gain.gain.setTargetAtTime(
+        this.volume,
+        this.context.currentTime,
+        0.15,
+      );
+  }
+  pause() {
+    this.running = false;
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = undefined;
+    }
+    this.gain.gain.cancelScheduledValues(this.context.currentTime);
+    this.gain.gain.setTargetAtTime(0, this.context.currentTime, 0.08);
+    for (const i of this.instruments) i.stop();
+    if (!this.disposed)
+      this.suspendTimer = setTimeout(() => {
+        if (!this.running && this.context.state === "running")
+          void this.context.suspend();
+      }, 350);
+  }
+  inspect() {
+    return {
+      state: this.context.state,
+      loaded: this.loaded,
+      running: this.running,
+      events: this.score.events,
+      profile: this.score.profile.key,
+    };
+  }
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.context.onstatechange = null;
+    if (this.suspendTimer) clearTimeout(this.suspendTimer);
+    this.pause();
+    this.abort.abort();
+    for (const i of this.instruments) i.dispose();
+    this.instruments = [];
+    for (const panner of this.panners) panner.disconnect();
+    this.panners = [];
+    for (const node of [
+      this.input,
+      this.filter,
+      this.reverb,
+      this.wet,
+      this.compressor,
+      this.gain,
+    ])
+      node.disconnect();
+    this.reverb.buffer = null;
+    void this.context.close();
+  }
+}

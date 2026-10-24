@@ -4,7 +4,7 @@
 
 Douze symboles météo composent un monde de voiles aquarellés, de ciels pigmentaires et de particules vivantes. Soleil, pluie, vent, brume, orage, éclaircies, arc-en-ciel, neige, aurore, lune, nuages et averses possèdent chacun leur mouvement. Choisis une à trois nuances, entre, contemple ou laisse-toi porter par un voyage lent. Traînées pigmentaires et grappes de particules viennent animer les espaces entre les nuages. Nuages aux contours diffus, horizon de coucher de soleil, sol lointain brumeux et passages d’oiseaux accompagnent le vol en altitude. Navigation tactile et gyroscope facultatif ; pause accessible à tout moment.
 
-React, Vite, TypeScript et Three.js. Aucun backend, moteur musical, modèle 3D distant ou interprétation des émotions. Six membranes abstraites Three.js remplacent les photographies : plis, rubans humides et filaments évoluent selon les météos choisies. Aucun chargement de photographies ni accès à une API externe. Les choix restent sur l’appareil.
+React, Vite, TypeScript et Three.js. Aucun backend, modèle 3D distant ou interprétation des émotions. Six membranes abstraites Three.js remplacent les photographies : plis, rubans humides et filaments évoluent selon les météos choisies. Aucun chargement de photographies ni accès à une API externe. Les choix restent sur l’appareil.
 
 ```sh
 npm ci
@@ -19,3 +19,6 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/
 ```
 
 [Architecture, performances et limites](docs/emociel-simple.md). Les anciens parcours sont conservés dans les sources pour archivage ; ils ne sont plus chargés par l’application. Les anciennes sauvegardes restent intactes.
+
+
+Musique facultative : ouvrir ♫, puis activer Musique. Le moteur `smplr` joue neuf échantillons locaux VCSL (piano Kawai, marimba doux, vibraphone frotté), sous CC0. Les météos orientent une composition pentatonique évolutive : orchestration, densité, harmonie lente et espace stéréo. Volume, silence et pause sont disponibles. Les samples sont mis en cache avec l’application en production. Sources et licence : `public/audio/emociel/`.

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NUANCES, readPalette, SIMPLE_KEY } from "./palette";
 import { SimpleWorld } from "./SimpleWorld";
+import { WeatherMusic } from "./WeatherMusic";
 import { requestGyroscope } from "../scene/gyroOrientation";
 import "./simple.css";
 
@@ -16,6 +17,62 @@ export default function SimpleApp() {
   const [failure, setFailure] = useState(false);
   const [retry, setRetry] = useState(0);
   const [permissionBusy, setPermissionBusy] = useState(false);
+  const music = useRef<WeatherMusic | null>(null);
+  const [musicState, setMusicState] = useState<
+    "off" | "loading" | "on" | "paused" | "error"
+  >("off");
+  const [volume, setVolume] = useState(0.55);
+  const musicWanted = useRef(false);
+  useEffect(
+    () => () => {
+      musicWanted.current = false;
+      music.current?.dispose();
+      music.current = null;
+    },
+    [],
+  );
+  useEffect(() => {
+    music.current?.setPalette(selected);
+  }, [selected]);
+  useEffect(() => {
+    if (!inside || paused) {
+      musicWanted.current = false;
+      music.current?.pause();
+      setMusicState((state) =>
+        state === "on" || state === "loading" ? "paused" : state,
+      );
+    }
+  }, [inside, paused]);
+  async function toggleMusic() {
+    if (musicState === "loading") return;
+    if (musicState === "on") {
+      musicWanted.current = false;
+      music.current?.pause();
+      setMusicState("paused");
+      return;
+    }
+    musicWanted.current = true;
+    setMusicState("loading");
+    try {
+      if (!music.current || music.current.inspect().state === "closed")
+        music.current = new WeatherMusic(selected, () => {
+          musicWanted.current = false;
+          if (alive.current) setMusicState("paused");
+        });
+      music.current.setVolume(volume);
+      await music.current.start();
+      if (!alive.current || !musicWanted.current) {
+        music.current?.pause();
+        return;
+      }
+      setMusicState("on");
+    } catch {
+      if (alive.current) {
+        setMusicState("error");
+        setNotice("Le son n’a pas pu démarrer. Touche Musique pour réessayer.");
+      }
+    }
+  }
   const host = useRef<HTMLDivElement>(null);
   const world = useRef<SimpleWorld | null>(null);
   const current = useRef({ selected, inside, travel, paused });
@@ -263,6 +320,43 @@ export default function SimpleApp() {
             </button>
           </nav>
         </>
+      )}
+      {inside && (
+        <details className="simple-music" data-state={musicState}>
+          <summary aria-label="Réglages musique">♫</summary>
+          <div>
+            <button
+              onClick={() => void toggleMusic()}
+              disabled={musicState === "loading" || paused}
+              aria-label={
+                musicState === "on" ? "Couper la musique" : "Activer la musique"
+              }
+            >
+              {musicState === "loading"
+                ? "Chargement…"
+                : musicState === "on"
+                  ? "Couper le son"
+                  : "Musique"}
+            </button>
+            <label>
+              Volume
+              <input
+                aria-label="Volume musique"
+                type="range"
+                min="0"
+                max=".8"
+                step=".01"
+                value={volume}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setVolume(value);
+                  music.current?.setVolume(value);
+                }}
+              />
+            </label>
+            <small>Piano, bois et verre frotté · sons VCSL / CC0</small>
+          </div>
+        </details>
       )}
       {notice && (
         <p className="simple-notice" role="status">

@@ -36,11 +36,25 @@ export function offlinePlugin() {
       const textureUrls = textureFiles.map(
         (path) => base + relative(publicDir, path).split("\\").join("/"),
       );
+      const audioFiles = ["piano", "wood", "bow"].flatMap((name) =>
+        ["low", "mid", "high"].map(
+          (level) => `audio/emociel/${name}-${level}.ogg`,
+        ),
+      );
+      const audioHash = createHash("sha256");
+      for (const path of audioFiles)
+        audioHash.update(readFileSync(resolve(publicDir, path)));
       const version = createHash("sha256")
-        .update(files.sort().join("|") + textureHash.digest("hex"))
+        .update(
+          files.sort().join("|") +
+            textureHash.digest("hex") +
+            audioHash.digest("hex"),
+        )
         .digest("hex")
         .slice(0, 12);
+      const audioUrls = audioFiles.map((path) => base + path);
       const urls = [
+        ...audioUrls,
         base,
         base + "index.html",
         ...files.map((file) => base + file),
