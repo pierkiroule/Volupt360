@@ -79,7 +79,7 @@ test("viewpoint remains above the landscape and all animated layers freeze on pa
     Number(await canvas.getAttribute("data-calls")),
   ).toBeGreaterThanOrEqual(10);
   expect(Number(await canvas.getAttribute("data-calls"))).toBeLessThanOrEqual(
-    12,
+    14,
   );
   expect(errors).toEqual([]);
 });

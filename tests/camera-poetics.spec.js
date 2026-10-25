@@ -93,7 +93,7 @@ test("flight ramps smoothly and pause freezes travel and optical progression", a
   }));
   expect(after).toEqual(before);
   expect(Number(await canvas.getAttribute("data-calls"))).toBeLessThanOrEqual(
-    12,
+    14,
   );
 });
 

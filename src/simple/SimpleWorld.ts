@@ -7,6 +7,7 @@ import { sampleTravel } from "./TravelPath";
 import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
+import { CalligraphicInk } from "./CalligraphicInk";
 import { AbstractResonances } from "./AbstractResonances";
 import { ResonantWords } from "./ResonantWords";
 import { WeatherAccents } from "./WeatherAccents";
@@ -37,6 +38,7 @@ export class SimpleWorld {
   private texture = makeWatercolorAtlas();
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
+  private ink = new CalligraphicInk(this.texture, this.mobile);
   private resonances = new AbstractResonances(this.texture, this.mobile);
   private words = new ResonantWords();
   private sheets: THREE.InstancedMesh<
@@ -229,6 +231,7 @@ export class SimpleWorld {
       this.birds.mesh,
       this.words.mesh,
       this.resonances.mesh,
+      this.ink.group,
     );
     this.observer = new ResizeObserver(this.resize);
     this.observer.observe(host);
@@ -259,6 +262,7 @@ export class SimpleWorld {
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
     this.resonances.setPalette(ids);
+    this.ink.setPalette(ids);
     this.pigment.setPalette(ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
@@ -568,6 +572,7 @@ export class SimpleWorld {
       this.pigment.blend,
     );
     this.resonances.update(this.time, dt, this.paused, this.inside);
+    this.ink.update(this.time, musicResponse, this.pixelRatio, this.inside);
     if (!this.inside || this.gyro) this.cameraPoetics.reset();
     this.cameraPoetics.update(
       this.time,
@@ -634,6 +639,7 @@ export class SimpleWorld {
     this.atmosphere.dispose();
     this.birds.dispose();
     this.resonances.dispose();
+    this.ink.dispose();
     this.cameraPoetics.dispose();
     this.pigment.dispose();
     this.words.dispose();

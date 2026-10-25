@@ -199,7 +199,7 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
     Number(await canvas.getAttribute("data-calls")),
   ).toBeGreaterThanOrEqual(10);
   expect(Number(await canvas.getAttribute("data-calls"))).toBeLessThanOrEqual(
-    11,
+    13,
   );
   expect(errors).toEqual([]);
 });

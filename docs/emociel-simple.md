@@ -235,3 +235,20 @@ L’orchestre partage les mêmes ressources locales mais change de registre, de 
 Vérification : quinze tests de navigation, shaders, musique et identité réussis, dont rendu réel des dix-neuf topologies avec dix-neuf empreintes de pixels distinctes, conservation des trois choix, variation selon l’ordre et maintien du budget GPU. Des captures de plusieurs aperçus ont été inspectées. Les performances sur appareil physique restent à évaluer.
 
 Les autres associations mêlent aussi leurs familles géométriques, et le troisième choix conserve une famille propre même lorsqu’une rencontre dédiée existe. Les matières et effets suivent l’ordre sélectionné ; la pause est appliquée immédiatement au rendu et à l’audio. Après ces ajustements, le build et les six derniers contrôles d’identité/topologie/météo ont passé, ainsi que les six contrôles précédents de rendu mobile et d’harmonie.
+
+### Volutes d’encre
+
+`CalligraphicInk` ajoute une mémoire visuelle éphémère, sans historique accumulé :
+12 courbes sur mobile (18 sur ordinateur), fines lignes noires natives d’un pixel,
+et quatre grains par courbe. Les lignes s’écrivent puis s’estompent. Les grains
+se détachent de leur trajectoire et diffusent en taches étirées, texturées avec
+l’atlas aquarelle partagé, à symétrie partielle et contours doux.
+
+La seed ordonnée, les proportions, la vitesse et la famille spatiale de
+`UniverseIdentity` composent cette encre. Le signal musical déjà lissé module
+localement ses courbures ; aucune analyse psychologique n’est effectuée.
+Deux appels de rendu supplémentaires seulement en immersion (13–14 au total,
+9 inchangés en aperçu), buffers fixes, aucune nouvelle texture ni allocation
+par image. La pause fige aussi cette couche ; `dispose()` libère ses géométries
+et matériaux sans détruire l’atlas partagé. Sur les fonds nocturnes, le noir
+reste volontairement discret. Le contrôle sur téléphone physique reste à faire.
