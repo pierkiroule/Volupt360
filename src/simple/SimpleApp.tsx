@@ -200,7 +200,7 @@ export default function SimpleApp() {
             <div
               className="simple-ring"
               role="group"
-              aria-label="Choisir une à trois météos"
+              aria-label="Choisir une à trois émotions"
             >
               {NUANCES.map((n, index) => (
                 <button
@@ -213,6 +213,7 @@ export default function SimpleApp() {
                     } as React.CSSProperties
                   }
                   aria-label={n.label}
+                  title={n.label}
                   aria-pressed={selected.includes(n.id)}
                   onClick={() => choose(n.id)}
                 >

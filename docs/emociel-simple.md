@@ -252,3 +252,14 @@ Deux appels de rendu supplémentaires seulement en immersion (13–14 au total,
 par image. La pause fige aussi cette couche ; `dispose()` libère ses géométries
 et matériaux sans détruire l’atlas partagé. Sur les fonds nocturnes, le noir
 reste volontairement discret. Le contrôle sur téléphone physique reste à faire.
+
+### Palette de visages expressifs
+
+Les douze entrées sont désormais Joie 😊, Tristesse 😢, Peur 😨, Dégoût 🤢,
+Colère 😠, Tendresse 🥰, Émerveillement 🤩, Surprise 😮, Confusion 😕,
+Fatigue 😴, Sérénité 😌 et Nostalgie 🥹. Ce vocabulaire ouvert mêle émotions,
+sentiments et sensations ; il ne prétend pas classifier exhaustivement
+l'expérience humaine. Les associations de un à trois visages permettent
+l'ambivalence sans interprétation automatique. Labels accessibles et titres
+explicitent les visages. Les identifiants internes restent stables pour
+préserver les compositions sauvegardées et leurs rendus.

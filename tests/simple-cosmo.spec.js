@@ -17,9 +17,9 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   expect(Number(await canvas.getAttribute("data-accents"))).toBeLessThanOrEqual(
     384,
   );
-  await page.getByRole("button", { name: "Orage", exact: true }).click();
+  await page.getByRole("button", { name: "Colère", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Orage", exact: true }),
+    page.getByRole("button", { name: "Colère", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({ path: "test-results/simple-palette.png" });
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
@@ -47,7 +47,7 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await page.getByRole("button", { name: "Revenir à la palette" }).click();
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "Orage", exact: true }),
+    page.getByRole("button", { name: "Colère", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(errors).toEqual([]);
 });
@@ -176,14 +176,14 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
       ).toBe(true);
     }
   const before = await canvas.screenshot();
-  await page.getByRole("button", { name: "Arc-en-ciel", exact: true }).click();
+  await page.getByRole("button", { name: "Émerveillement", exact: true }).click();
   await page.waitForTimeout(150);
   expect(before.equals(await canvas.screenshot())).toBe(false);
   const selected = await page
     .locator(".simple-nuance[aria-pressed=true]")
     .count();
   expect(selected).toBe(3);
-  await page.getByRole("button", { name: "Aurore", exact: true }).click();
+  await page.getByRole("button", { name: "Confusion", exact: true }).click();
   expect(await page.locator(".simple-nuance[aria-pressed=true]").count()).toBe(
     3,
   );
