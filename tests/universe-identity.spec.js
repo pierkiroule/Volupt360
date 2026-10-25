@@ -124,10 +124,10 @@ test("ordered selections reach the complete world and persist without extra prev
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   for (const [ids, name] of [
-    [["warm"], "corolles-solaires"],
-    [["water"], "cathedrale-des-pluies"],
-    [["soft", "tired"], "archipel-de-lune"],
-    [["air", "night"], "vortex-traverse"],
+    [["warm"], "joie-en-corolles"],
+    [["water"], "tristesse-en-rivieres"],
+    [["soft", "tired"], "replis-en-suspens"],
+    [["air", "night"], "forces-en-tension"],
   ]) {
     await page.evaluate(
       (ids) => localStorage.setItem("cosmo-simple.v1", JSON.stringify(ids)),
@@ -158,7 +158,12 @@ test("each world keeps its own transposed harmony coherent down to the bass regi
         for (const e of score.advance(t)) {
           count++;
           const pc = (((e.note - score.profile.transpose) % 12) + 12) % 12;
-          if (![0, 2, 5, 7, 9].includes(pc)) failures.push([id, e.note]);
+          if (
+            !(score.profile.major ? [0, 2, 4, 7, 9] : [0, 2, 5, 7, 9]).includes(
+              pc,
+            )
+          )
+            failures.push([id, e.note]);
         }
       }
       for (const note of score.harmonyNotes) {

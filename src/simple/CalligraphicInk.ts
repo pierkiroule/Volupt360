@@ -9,11 +9,15 @@ vec3 path(float u,float id){
  float s=id*2.39996+seed,t=time*.065*pace;
  float a=u*6.28318*(1.+mod(mode,3.)*.24)+s;
  float rain=1.-smoothstep(.0,.65,abs(mode-1.));
- float wind=1.-smoothstep(.0,.65,abs(mode-2.));
+ float hesitation=1.-smoothstep(.0,.65,abs(mode-2.));
  vec3 p=vec3(cos(a)*(1.1+.5*sin(u*4.+s)),sin(a*1.3+s)*1.1,sin(a*.7)*.9);
- p.x+=wind*(u-.5)*4.;p.y=mix(p.y,(u-.5)*4.,rain*.85);
+ p.x+=hesitation*(u-.5)*1.5;p.y=mix(p.y,(u-.5)*4.,rain*.85);
  float envelope=sin(u*3.141593);
  p+=vec3(sin(u*11.+t+s),cos(u*8.-t+s),sin(u*7.+t))*(.12+music.x*.3)*envelope;
+ if(abs(mode-3.)<.1){p.z+=sin(u*12.+s)*.4;p.x*=.7+.2*sin(t+s);}
+ if(abs(mode-4.)<.1){p.y+=sin(u*14.+t)*.35;}
+ if(abs(mode-9.)<.1){p.y*=.3;p.x*=1.5;}
+ if(abs(mode-10.)<.1){p.y*=.65;}
  p.x*=hand;
  p+=vec3(sin(s)*5.,cos(s)*2.,cos(s*.79)*5.);
  p*=space;

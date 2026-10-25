@@ -19,6 +19,7 @@ export class ElectroRhythm {
   private origin = 0;
   private nextStep = 0;
   private running = false;
+  private presence = 0.65;
   private mix = [0.65, 0.25, 0.1];
   hits = 0;
   constructor(
@@ -42,8 +43,13 @@ export class ElectroRhythm {
   setPalette(ids: string[]) {
     const identity = universeIdentity(ids);
     this.mix = [...identity.drums];
+    this.presence = identity.rhythm;
     this.gains.forEach((g, i) =>
-      g.gain.setTargetAtTime(this.mix[i] * 0.48, this.context.currentTime, 1.2),
+      g.gain.setTargetAtTime(
+        this.mix[i] * 0.48 * this.presence,
+        this.context.currentTime,
+        1.2,
+      ),
     );
   }
   start() {
@@ -59,7 +65,11 @@ export class ElectroRhythm {
       source.loopEnd = buffer.duration;
       source.playbackRate.value = buffer.duration / (ElectroRhythm.beat * 16);
       gain.gain.value = 0;
-      gain.gain.setTargetAtTime(this.mix[i] * 0.48, this.origin, 0.5);
+      gain.gain.setTargetAtTime(
+        this.mix[i] * 0.48 * this.presence,
+        this.origin,
+        0.5,
+      );
       source.connect(gain);
       gain.connect(this.destination);
       source.onended = () => {
@@ -106,17 +116,21 @@ export class ElectroRhythm {
         s = step % 16,
         bar = Math.floor(step / 16);
       if (s % 4 === 0) {
-        this.duck(time);
+        if (this.presence > 0.45) this.duck(time);
         this.hits++;
       }
       if ([0, 6, 8, 11].includes(s) && bar % 8 !== 7)
-        this.bass(chord[s === 11 ? 1 : 0] - 12, time, s === 0 ? 0.21 : 0.13);
-      if (step % 2 === 0 && bar % 8 < 6) {
+        this.bass(
+          chord[s === 11 ? 1 : 0] - 12,
+          time,
+          (s === 0 ? 0.21 : 0.13) * this.presence,
+        );
+      if (step % 2 === 0 && bar % 8 < (this.presence < 0.4 ? 3 : 6)) {
         const motif = [0, 1, 2, 3, 2, 1, 3, 1];
         this.arpeggio(
           chord[motif[Math.floor(step / 2) % 8]],
           time,
-          30 + (step % 4 ? 7 : 0),
+          Math.round((30 + (step % 4 ? 7 : 0)) * (0.35 + this.presence * 0.65)),
         );
       }
     }

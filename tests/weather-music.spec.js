@@ -26,7 +26,7 @@ test("weather scores are reproducible, harmonic and distinct over thirty simulat
       slow: c.length,
       valid: [...a, ...c].every(
         (e) =>
-          [0, 2, 5, 7, 9].includes(e.note % 12) &&
+          [0, 2, 4, 5, 7, 9].includes(e.note % 12) &&
           e.note >= 45 &&
           e.note <= 81 &&
           e.velocity <= 58 &&

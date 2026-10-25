@@ -2,19 +2,34 @@ import { universeIdentity } from "./UniverseIdentity";
 import { composeWeather } from "./composition";
 // Artistic orchestration, never an inference about the visitor.
 // piano, wooden mallet, bowed glass; spacing, brightness, harmonic pace.
+// Compatibility export: stable weather IDs now carry the expressive emotion scores.
 export const MUSIC_WEATHER: Record<string, readonly number[]> = {
-  warm: [0.85, 0.35, 0.35, 2.8, 3600, 26],
-  water: [0.4, 1, 0.35, 1.65, 2500, 32],
-  air: [0.35, 0.65, 0.75, 2.6, 3200, 38],
-  soft: [0.2, 0.15, 1, 5.2, 1700, 55],
-  night: [0.65, 0.3, 0.85, 3.8, 1900, 34],
-  spark: [1, 0.45, 0.3, 2.8, 3400, 28],
-  wonder: [0.65, 0.8, 0.65, 2.4, 3300, 30],
-  surprise: [0.45, 0.65, 0.35, 4.5, 2300, 48],
-  confused: [0.3, 0.4, 1, 3.8, 2800, 45],
-  tired: [0.8, 0.25, 0.75, 5, 2000, 52],
-  trust: [0.45, 0.3, 0.95, 4.2, 2400, 42],
-  longing: [0.65, 0.85, 0.45, 2.3, 2800, 35],
+  warm: [1, 0.9, 0.25, 2.6, 4100, 23],
+  water: [1, 0.25, 0.8, 3.4, 2300, 42],
+  air: [0.35, 0.65, 0.9, 3.8, 2400, 38],
+  soft: [0.25, 1, 0.75, 4.7, 1900, 47],
+  night: [0.55, 1, 0.45, 2.7, 3300, 25],
+  spark: [1, 0.3, 0.5, 4.1, 2600, 44],
+  wonder: [0.8, 1, 0.9, 2.9, 4200, 31],
+  surprise: [0.75, 1, 0.4, 2.8, 3700, 29],
+  confused: [0.5, 0.85, 0.8, 3.1, 3100, 33],
+  tired: [0.75, 0.15, 0.8, 5.8, 1700, 64],
+  trust: [0.85, 0.4, 0.65, 4.9, 2500, 53],
+  longing: [1, 0.55, 0.6, 3.9, 2500, 40],
+};
+const EMOTION_MOTIFS: Record<string, number[]> = {
+  warm: [0, 1, 2, 3, 2, 1, 3, 2],
+  water: [3, 2, 1, 0, 1, 0, -1, 0],
+  air: [0, 1, 0, -1, 0, 0, 1, 0],
+  soft: [0, -1, -2, 0, -1, 0, -2, -1],
+  night: [0, 2, 3, 1, 3, 2, 0, 2],
+  spark: [0, 1, 2, 1, 0, 1, 2, 0],
+  wonder: [0, 1, 3, 2, 4, 3, 1, 2],
+  surprise: [0, 0, 3, 2, 2, 1, 3, 0],
+  confused: [0, 2, -1, 1, -2, 2, 0, 1],
+  tired: [1, 1, 0, 0, -1, 0, 0, 0],
+  trust: [0, 1, 1, 2, 2, 1, 1, 0],
+  longing: [0, 1, 2, 1, 0, 1, 2, 1],
 };
 export function musicProfile(ids: string[]) {
   const identity = universeIdentity(ids);
@@ -25,15 +40,17 @@ export function musicProfile(ids: string[]) {
   return {
     key: score.entries.join(","),
     weights: identity.instruments,
+    major: identity.major,
+    motif: EMOTION_MOTIFS[identity.sequence[0]],
     gap: mean(3) / identity.density,
     cutoff: identity.cutoff,
     harmony: mean(5) / Math.sqrt(identity.density),
     transpose: identity.transpose,
     progression: identity.progression,
     sequence: identity.key,
-    drift: score.weather[2],
-    silver: score.encounters[2],
-    gold: score.encounters[0],
+    drift: Math.min(1, identity.speed * 0.5),
+    silver: ids.includes("trust") ? 1 : 0,
+    gold: ids.includes("warm") && ids.includes("spark") ? 1 : 0,
   };
 }
 export interface MusicNote {
@@ -70,9 +87,16 @@ export class WeatherScore {
   constructor(ids: string[], seed = 9173) {
     this.randomState = seed >>> 0 || 1;
     this.setPalette(ids);
+    this.motif = [...this.profile.motif];
   }
   setPalette(ids: string[]) {
-    this.profile = musicProfile(ids);
+    const next = musicProfile(ids);
+    if (next.sequence !== this.profile.sequence) {
+      this.motif = [...next.motif];
+      this.cursor = 0;
+      this.previous = 62 + next.transpose;
+    }
+    this.profile = next;
   }
   private random() {
     let s = this.randomState;
@@ -82,12 +106,17 @@ export class WeatherScore {
     this.randomState = s >>> 0;
     return this.randomState / 4294967296;
   }
+  private tonal(note: number) {
+    return note - (this.profile.major && ((note % 12) + 12) % 12 === 5 ? 1 : 0);
+  }
   get harmonyNotes(): readonly number[] {
     const index =
       this.profile.progression[
         Math.max(0, this.chord) % this.profile.progression.length
       ];
-    return this.voicings[index].map((note) => note + this.profile.transpose);
+    return this.voicings[index].map(
+      (note) => this.tonal(note) + this.profile.transpose,
+    );
   }
   advance(time: number): MusicNote[] {
     const result: MusicNote[] = [];
@@ -96,9 +125,9 @@ export class WeatherScore {
       this.chordAt = time + this.profile.harmony * (0.9 + this.random() * 0.2);
     }
     const chord = this.harmonyNotes;
-    const scale = [50, 53, 55, 57, 60, 62, 65, 67, 69, 72, 74].map(
-      (note) => note + this.profile.transpose,
-    );
+    const scale = [50, 53, 55, 57, 60, 62, 65, 67, 69, 72, 74]
+      .map((note) => this.tonal(note) + this.profile.transpose)
+      .sort((a, b) => a - b);
     const add = (
       instrument: number,
       note: number,
@@ -140,7 +169,13 @@ export class WeatherScore {
           Math.min(
             scale.length - 1,
             center +
-              (this.motif[step] > this.motif[Math.max(0, step - 1)] ? 1 : -1),
+              Math.max(
+                -2,
+                Math.min(
+                  2,
+                  this.motif[step] - this.motif[Math.max(0, step - 1)],
+                ),
+              ),
           ),
         );
         if (step === 0 || step === 7) {

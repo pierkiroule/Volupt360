@@ -78,16 +78,17 @@ export class AbstractResonances {
         if((worldMode<11.5 && layers>1.5)||(layers>2.5 && family>1.5))m=family<.5?partnerModes.x:family<1.5?partnerModes.y:partnerModes.z;
         if(m<.5){float r=1.+band*1.7;p=vec3(cos(arc)*r*2.,sin(arc)*r*2.,sin(u*5.+t)*.6);}
         else if(m<1.5){p=vec3(band*1.6+sin(u*6.+t)*.3,(u-.5)*7.,cos(u*4.+t)*.8);}
-        else if(m<2.5){p=vec3((u-.5)*9.,sin(u*9.-t)*.7+band,cos(u*5.+t+v)*1.2);}
-        else if(m<3.5){float a=u*6.28318;p=vec3(cos(a)*(1.+band),sin(a)*(.7+band*.4),sin(v*3.14159)*1.4);}
+        else if(m<2.5){p=vec3((u-.5)*6.,sin(u*9.-t)*.38+band*.65,cos(u*5.+t+v)*1.7);p.x+=sin(u*17.+t*.7)*.08;}
+        else if(m<3.5){float a=u*6.28318;float recoil=.8+.2*sin(t*.6+seed);p=vec3(cos(a)*(1.+band)*recoil,sin(a)*(.7+band*.4),sin(v*3.14159)*2.+sin(u*12.+t)*.3);}
         else if(m<4.5||abs(m-13.)<.1){float a=u*9.+t;float r=.5+u*2.+band;p=vec3(cos(a)*r,(u-.5)*5.+band,sin(a)*r);}
-        else if(m<5.5){p=vec3(sin(arc)*2.,cos(arc)*2.+band*1.8,(u-.5)*2.);}
+        else if(m<5.5){p=vec3(sin(arc)*2.,sin(arc*1.2+seed)*.9+band*1.5,cos(arc)*1.2);}
         else if(m<6.5){float a=u*3.14159;p=vec3(cos(a)*(2.7+band),sin(a)*(2.7+band),sin(u*5.+t)*.4);}
-        else if(m<7.5){p=vec3((u-.5)*7.,band*.9+sin(u*9.+seed)*.15,cos(u*4.)*1.8);}
-        else if(m<8.5){p=vec3((u-.5)*6.,band*4.+sin(u*8.+t)*1.4,cos(u*5.+t)*.8);}
-        else if(m<9.5||abs(m-14.)<.1||abs(m-16.)<.1){p=vec3(cos(arc)*(2.+band),sin(arc)*(2.+band),sin(v*3.14159)*.8);}
+        else if(m<7.5){float opening=.65+.35*sin(t*.65+seed);p=vec3(cos(arc)*(1.+u*2.)*opening,sin(arc)*(1.+u*2.)*opening+band,band*2.+sin(u*5.+t)*.5);}
+        else if(m<8.5){p=vec3(sin(u*10.+seed)*2.+band,cos(u*7.+t)*1.5+band,sin(u*6.-t)*1.7);}
+        else if(m<9.5){p=vec3((u-.5)*7.,band*.8-sin(u*3.14159)*.7,cos(u*4.+t*.3)*1.4);}
+        else if(abs(m-14.)<.1||abs(m-16.)<.1){p=vec3(cos(arc)*(2.+band),sin(arc)*(2.+band),sin(v*3.14159)*.8);}
         else if(m<10.5){float a=u*6.28318;p=vec3(cos(a)*(1.7+band),sin(a)*(1.7+band)*.65,sin(v*3.14159)*2.);}
-        else if(m<11.5){p=vec3((u-.5)*7.,(u-.5)*3.*(mod(slot,2.)*2.-1.)+band*1.5,sin(u*7.+t)*.8);}
+        else if(m<11.5){p=vec3(sin(arc)*2.8,cos(arc)*1.4+band,sin(arc*.5+seed)*1.7+band);}
         else if(m<12.5){if(mod(slot,2.)<.5)p=vec3(band*1.2,(u-.5)*7.,sin(u*6.+t)*.6);else p=vec3(cos(arc)*(2.5+band),sin(arc)*(2.5+band),sin(u*4.+t)*.5);}
         else if(abs(m-15.)<.1){p=vec3((u-.5)*8.,sin(u*9.+t)*(.5+v),cos(u*9.+t)*(.5+v));}
         else {float a=u*10.+t;p=vec3(cos(a)*(1.4+band),(u-.5)*6.,sin(a)*(1.4+band));}

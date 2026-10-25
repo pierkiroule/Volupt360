@@ -56,9 +56,9 @@ test("poetry follows weather combinations, remains readable, sparse and paused",
   expect(result.silent).toBeGreaterThan(250);
   expect(result.seen.length).toBeGreaterThan(3);
   expect(result.pool).toEqual(result.reverse);
-  expect(result.pool[0]).toBe("la lumière traverse ce qui ruisselle");
-  expect(result.wind[0]).toBe("le blanc apprend à voyager");
-  expect(result.moon[0]).toBe("une lueur sans contour");
+  expect(result.pool[0]).toBe("un sourire entre les rivières");
+  expect(result.wind[0]).toBe("un seuil devient une ouverture");
+  expect(result.moon[0]).toBe("des plis gardent leurs distances");
   expect(result.count).toBe(96);
   expect(result.after).toEqual(result.before);
   expect(result.lines.every((lines) => lines.length <= 2)).toBe(true);
@@ -89,7 +89,7 @@ test("a fragment approaches the gaze without moving the camera", async ({
     words.dispose();
     return { focused, released, position, after: camera.position.toArray() };
   });
-  expect(result.focused.focused).toBe("la lumière traverse ce qui ruisselle");
+  expect(result.focused.focused).toBe("un sourire entre les rivières");
   expect(result.focused.approach).toBeGreaterThan(0.9);
   expect(result.released.focused).toBeNull();
   expect(result.after).toEqual(result.position);

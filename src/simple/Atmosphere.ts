@@ -133,7 +133,7 @@ export class Atmosphere {
         else if(kind<4.5){p.x+=sin(t*2.+p.y)*1.3;p.y+=sin(t*1.7+p.z)*1.1;}
         else if(kind<5.5){p.y=mod(position.y+time*(.5+seed.y*.5)+10.,20.)-10.;p.x+=sin(p.y*.5+t)*.7;}
         else if(kind<6.5){p.x+=sin(t)*1.5;p.y+=cos(t+seed.z*6.)*1.1;}
-        else if(kind<7.5){p.y=mod(position.y-time*(.2+seed.y*.2)+10.,20.)-10.;p.x+=sin(time*.18+seed.z*8.)*1.5;}
+        else if(kind<7.5){float opening=.5+.5*sin(time*.18+seed.z*8.);p+=normalize(position+vec3(.1))*opening*2.;}
         else if(kind<8.5){p.y+=sin(p.x*.4+t)*2.;p.z+=cos(p.x*.4+t)*1.5;}
         else if(kind<9.5){p.x+=sin(t*.2)*.3;}
         else if(kind<10.5){p.x+=sin(t*.5)*1.2;p.y+=cos(t*.4)*.4;}
@@ -149,7 +149,7 @@ export class Atmosphere {
         if(kind>.5&&kind<1.5){p.x+=p.y*weather.z*.7;alpha=(1.-smoothstep(.025,.1,abs(p.x)))*(1.-smoothstep(.08,.48,abs(p.y)));color=mix(color,vec3(.9,.8,.52),weather.x*.35*particle.z);}
         else if(kind>1.5&&kind<2.5){alpha=exp(-abs(p.y)*24.)*(1.-smoothstep(.1,.49,abs(p.x)));}
         else if((kind>2.5&&kind<3.5)||(kind>9.5&&kind<10.5)){alpha=(1.-smoothstep(0.,.5,length(p)))*.26;}
-        else if(kind>6.5&&kind<7.5){float r=length(p);float arms=.7+.3*cos(atan(p.y,p.x)*6.);alpha=(1.-smoothstep(.05,.45,r/arms))*.7;color=mix(color,vec3(.9,.95,1.),.65);}
+        else if(kind>6.5&&kind<7.5){float r=length(p);alpha=exp(-abs(r-.24)*22.)*.7;}
         else if(kind>10.5){float r=length(p*vec2(1.,2.));alpha=exp(-abs(r-.3)*25.)*.6;}
         else if(kind>8.5&&kind<9.5){alpha=exp(-length(p)*15.);color=vec3(.94,.92,.8);}
         else{float angle=particle.z*6.28;mat2 rotate=mat2(cos(angle),-sin(angle),sin(angle),cos(angle));p=rotate*p;alpha=1.-smoothstep(.04,.46,length(p*vec2(1.,2.4)));}

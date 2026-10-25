@@ -263,3 +263,48 @@ l'expérience humaine. Les associations de un à trois visages permettent
 l'ambivalence sans interprétation automatique. Labels accessibles et titres
 explicitent les visages. Les identifiants internes restent stables pour
 préserver les compositions sauvegardées et leurs rendus.
+
+### Résonances des visages — direction artistique actuelle
+
+Les descriptions météo des étapes précédentes constituent l’historique du projet.
+Les scores de `UniverseIdentity` sont désormais composés pour les visages :
+
+| Visage | Matière et mouvement | Écriture musicale |
+|---|---|---|
+| Joie | Corolles or, corail et rose, ouverture ascendante | Piano et bois, pentatonique majeure, élans rythmiques |
+| Tristesse | Rivières bleues et mauves, voiles descendants | Motifs descendants, cordes, mineur, respirations |
+| Peur | Lisières gris-vert, espaces réservés, petites hésitations | Motifs retenus, résonances frottées, réponses espacées |
+| Dégoût | Replis olive et violine, matières qui gardent leurs distances | Bois filtré, contre-mouvements, registre assombri |
+| Colère | Remous carmin et terre cuite, torsions plus amples | Percussions syncopées, basse plus présente, motifs contrastés |
+| Tendresse | Entrelacs rose poudré et pêche | Piano et cordes, arcs mélodiques, percussion discrète |
+| Émerveillement | Ponts turquoise, orchidée et or, grande profondeur | Ouvertures harmoniques, marimba et résonances |
+| Surprise | Éclosions ambre et turquoise, anneaux pigmentaires | Motifs avec paliers et sauts, réponses inattendues |
+| Confusion | Méandres entrecroisés, plusieurs directions | Motifs bifurquants et progression moins prévisible |
+| Fatigue | Strates basses, lavis gris-lilas, mouvements très lents | Longs intervalles, timbres feutrés, rythme presque absent |
+| Sérénité | Alvéoles sauge et céladon, ondes amples | Motifs stables, harmonie lente, cordes enveloppantes |
+| Nostalgie | Boucles vieux rose et bleu patiné | Motifs récurrents transformés, piano et violoncelles |
+
+Ce sont des propositions artistiques modifiables, pas une correspondance
+psychologique universelle. Les mélanges conservent leurs deux ou trois couleurs,
+leurs familles géométriques et leurs orchestrations. L’ordre donne l’ancrage
+harmonique ; le ciel mélange les teintes des choix. Les sept rencontres dédiées
+portent maintenant des noms et une palette cohérents avec ces visages.
+
+Les 117 fragments ont été réécrits dans le même vocabulaire ouvert. Les anciennes
+étoiles de neige de « Surprise » deviennent des éclosions et anneaux ; les flux de
+« Nostalgie » se recourbent plutôt que de produire une deuxième pluie. Les volutes
+noires suivent aussi les replis et la lenteur de ces compositions.
+
+Le niveau des drumloops et des basses, le nombre de mesures d’arpèges et le
+sidechain varient avec la présence rythmique : fatigue, tendresse et sérénité ne
+subissent plus le pompage du même beat électro. Tempo partagé de 104 BPM pour
+préserver la continuité des boucles. Aucun nouveau sample, texture ou appel de
+rendu ; budget géométrique et navigation conservés.
+
+Vérifications de cette évolution : build de production réussi ; 13 derniers
+contrôles passent (navigation mobile simulée, gyro simulé, restauration WebGL,
+rendus distincts, encre, harmonie des douze scores, lecture réelle des samples,
+pause/reprise et erreur réseau). La série précédente de 13 contrôles a également
+validé les fragments, les boucles rythmiques et les douze rendus complets. Les
+captures Joie et Tristesse ont été inspectées. Pas de validation sur téléphone
+physique ni d’écoute qualitative comparative prétendue par ces tests.
