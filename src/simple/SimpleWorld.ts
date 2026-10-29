@@ -8,6 +8,12 @@ import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
 import { CalligraphicInk } from "./CalligraphicInk";
+import {
+  MonumentalStudy,
+  MONUMENTAL_STUDY,
+  STUDY_PALETTE,
+  sampleStudyTravel,
+} from "./MonumentalStudy";
 import { ReactionDiffusion } from "./ReactionDiffusion";
 import { AbstractResonances } from "./AbstractResonances";
 import { ResonantWords } from "./ResonantWords";
@@ -38,6 +44,7 @@ export class SimpleWorld {
     this.audioSource = source;
   }
   private texture = makeWatercolorAtlas();
+  private study = new MonumentalStudy(this.texture, this.mobile);
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
   private ink = new CalligraphicInk(this.texture, this.mobile);
@@ -234,6 +241,7 @@ export class SimpleWorld {
       this.words.mesh,
       this.resonances.mesh,
       this.ink.group,
+      this.study.group,
     );
     this.observer = new ResizeObserver(this.resize);
     this.observer.observe(host);
@@ -257,8 +265,10 @@ export class SimpleWorld {
   setPalette(ids: string[]) {
     const score = composeWeather(ids),
       identity = universeIdentity(ids);
-    this.worldSpeed = identity.speed;
-    this.renderer.domElement.dataset.universe = identity.name;
+    this.worldSpeed = MONUMENTAL_STUDY ? 1 : identity.speed;
+    this.renderer.domElement.dataset.universe = MONUMENTAL_STUDY
+      ? "indigo-terre"
+      : identity.name;
     this.renderer.domElement.dataset.sequence = identity.key;
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
@@ -266,7 +276,7 @@ export class SimpleWorld {
     this.resonances.setPalette(ids);
     this.ink.setPalette(ids);
     this.pigment.setPalette(ids);
-    this.reaction.setPalette(ids);
+    this.reaction.setPalette(MONUMENTAL_STUDY ? STUDY_PALETTE : ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
       ? "sun-rain"
@@ -494,7 +504,9 @@ export class SimpleWorld {
     }
     if (this.inside) {
       // A bounded discovery route through the work, alternating distance and detail.
-      const tour = sampleTravel(this.journey, this.tour);
+      const tour = MONUMENTAL_STUDY
+        ? sampleStudyTravel(this.journey, this.tour)
+        : sampleTravel(this.journey, this.tour);
       this.camera.getWorldDirection(this.flightForward);
       const detour = this.steering.update(
         this.paused ? 0 : dt,
@@ -559,46 +571,71 @@ export class SimpleWorld {
         audio.energy > 0.005 ? audio.beat : undefined,
         musicResponse.x,
       );
-    this.contact = this.dynamics.update(this.time, this.paused ? 0 : dt);
-    this.atmosphere.sky.material.uniforms.electro.value
-      .copy(musicResponse)
-      .multiplyScalar(this.inside ? 1 : 0);
-    this.atmosphere.update(this.time, this.camera, this.pixelRatio);
-    this.atmosphere.particles.material.uniforms.resonance.value = this.contact;
-    this.accents.update(
-      this.time,
-      this.pixelRatio,
-      this.contact,
-      musicResponse,
-      !this.paused && audio.energy > 0.005 ? audio.beat : undefined,
-    );
-    this.birds.update(this.time);
-    this.words.update(this.time, dt, this.camera, this.paused, this.inside);
-    this.pigment.update(dt, audio, this.paused || !this.inside);
+    if (!MONUMENTAL_STUDY) {
+      this.contact = this.dynamics.update(this.time, this.paused ? 0 : dt);
+      this.atmosphere.sky.material.uniforms.electro.value
+        .copy(musicResponse)
+        .multiplyScalar(this.inside ? 1 : 0);
+      this.atmosphere.update(this.time, this.camera, this.pixelRatio);
+      this.atmosphere.particles.material.uniforms.resonance.value =
+        this.contact;
+      this.accents.update(
+        this.time,
+        this.pixelRatio,
+        this.contact,
+        musicResponse,
+        !this.paused && audio.energy > 0.005 ? audio.beat : undefined,
+      );
+      this.birds.update(this.time);
+      this.words.update(this.time, dt, this.camera, this.paused, this.inside);
+      if (!MONUMENTAL_STUDY)
+        this.pigment.update(dt, audio, this.paused || !this.inside);
+    }
     this.reaction.update(this.renderer, dt, audio, this.paused || !this.inside);
-    this.resonances.setReactionTexture(this.reaction.texture);
-    this.resonances.setLivingTexture(
-      this.pigment.texture,
-      this.pigment.previousTexture,
-      this.pigment.blend,
-    );
-    this.resonances.update(this.time, dt, this.paused, this.inside);
-    if (this.inside && !this.paused)
-      this.reaction.suggestEncounter(this.resonances.encounterSeed);
-    this.ink.update(this.time, musicResponse, this.pixelRatio, this.inside);
-    if (!this.inside || this.gyro) this.cameraPoetics.reset();
+    if (!MONUMENTAL_STUDY) {
+      this.resonances.setReactionTexture(this.reaction.texture);
+      this.resonances.setLivingTexture(
+        this.pigment.texture,
+        this.pigment.previousTexture,
+        this.pigment.blend,
+      );
+      this.resonances.update(this.time, dt, this.paused, this.inside);
+      if (!MONUMENTAL_STUDY && this.inside && !this.paused)
+        this.reaction.suggestEncounter(this.resonances.encounterSeed);
+      this.ink.update(this.time, musicResponse, this.pixelRatio, this.inside);
+    }
+    this.study.group.visible = MONUMENTAL_STUDY;
+    if (MONUMENTAL_STUDY) {
+      this.study.update(
+        this.time,
+        this.paused ? 0 : dt,
+        audio,
+        this.reaction.texture,
+      );
+      this.cloudLayer.visible = false;
+      this.atmosphere.sky.visible = false;
+      this.resonances.mesh.visible = false;
+      this.ink.group.visible = false;
+      this.words.mesh.visible = false;
+      this.birds.mesh.visible = false;
+    }
+    if (MONUMENTAL_STUDY || !this.inside || this.gyro)
+      this.cameraPoetics.reset();
     this.cameraPoetics.update(
       this.time,
       dt,
-      this.inside && this.travel && !this.gyro,
+      !MONUMENTAL_STUDY && this.inside && this.travel && !this.gyro,
       this.paused,
     );
     this.cameraPoetics.render(this.renderer, this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
       const d = this.renderer.domElement.dataset;
-      d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
+      d.particles = MONUMENTAL_STUDY
+        ? "0"
+        : String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
+      d.study = MONUMENTAL_STUDY ? "monumental-ink" : "legacy";
       const pigment = this.pigment.inspect();
       const reaction = this.reaction.inspect();
       d.reaction = reaction.state;
@@ -608,13 +645,15 @@ export class SimpleWorld {
       d.pigment = pigment.state;
       d.pigmentSize = String(pigment.size);
       d.pigmentDeposits = String(pigment.deposits);
-      d.resonances = this.inside ? "6" : "0";
+      d.resonances = !MONUMENTAL_STUDY && this.inside ? "6" : "0";
       const reading = this.words.inspect();
       d.word = reading.focused ?? "";
       d.wordApproach = reading.approach.toFixed(3);
-      d.accents = String(this.accents.seeds.geometry.drawRange.count);
-      d.streams = "12";
-      d.islands = "12";
+      d.accents = MONUMENTAL_STUDY
+        ? "0"
+        : String(this.accents.seeds.geometry.drawRange.count);
+      d.streams = MONUMENTAL_STUDY ? "0" : "12";
+      d.islands = MONUMENTAL_STUDY ? "0" : "12";
       d.contact = this.contact.toFixed(4);
       d.altitude = this.camera.position.y.toFixed(2);
       d.horizon = "painted-landscape";
@@ -661,6 +700,7 @@ export class SimpleWorld {
     this.cameraPoetics.dispose();
     this.pigment.dispose();
     this.reaction.dispose();
+    this.study.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();

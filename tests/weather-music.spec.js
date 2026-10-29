@@ -130,7 +130,9 @@ test("entry starts music and travel after a gesture, volume and silence work", a
     "on",
   );
   expect(requests).toHaveLength(15);
-  await page.getByRole("button", { name: "Revenir à la palette" }).click();
+  await page
+    .getByRole("button", { name: /Revenir à (la palette|l’accueil)/ })
+    .click();
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   await expect(page.locator(".simple-music")).toHaveAttribute(
     "data-state",

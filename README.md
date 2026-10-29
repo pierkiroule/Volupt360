@@ -1,12 +1,23 @@
-# ÉmoCiel •°
+# ÉmoCiel •° — Étude I : Indigo & terre
 
-**Compose ton ciel émotionnel et traverse-le tranquillement en 360°.**
+**Un paysage d’encre suspendu. Approcher. Traverser. Regarder autrement.**
 
-Douze visages expressifs composent un monde aquarellé : joie, tristesse, peur, dégoût, colère, tendresse, émerveillement, surprise, confusion, fatigue, sérénité et nostalgie. Choisis une à trois nuances, entre, contemple ou laisse-toi porter par un voyage lent. Chaque visage possède ses couleurs, ses matières et sa composition musicale ; leurs mélanges gardent leurs contrastes. Les volutes d’encre noire, pigments et particules dialoguent avec le son. Glisse pendant le voyage pour infléchir la traversée ; au relâchement, le parcours reprend doucement. Gyroscope facultatif pour la contemplation ; pause accessible à tout moment.
+Une composition unique remplace temporairement les variantes émotionnelles :
+une grande formation d’aquarelle indigo et terre cuite, une réserve de papier à
+traverser et deux plans secondaires. Aucun empilement de particules, mots ou
+filaments. On approche les pigments, traverse l’ouverture puis découvre l’œuvre
+sous d’autres angles.
 
-Les grandes matières se recouvrent en compositions asymétriques, avec réserves mouvantes, ramifications et grain fin. Les rencontres spatiales enrichissent la peinture ; certaines notes animent localement un voile. Les fragments courts apparaissent rarement, et le voyage alterne découverte de détails et prise de recul.
+Le voyage peut être orienté au toucher ou arrêté pour contempler. Le gyroscope
+est facultatif, avec navigation tactile alternative. Pause, volume et silence
+restent accessibles. Les choix emoji antérieurs sont conservés localement mais
+leur sélection n’est pas proposée dans cette étude.
 
-React, Vite, TypeScript et Three.js. Aucun backend, modèle 3D distant ou interprétation des émotions. Six membranes abstraites Three.js remplacent les photographies : plis, rubans humides et filaments évoluent selon les visages choisis. Aucun chargement de photographies ni accès à une API externe. Les choix restent sur l’appareil.
+React, Vite, TypeScript et Three.js. Pas de backend, d’API d’images ni
+d’interprétation psychologique. Deux appels de scène et une simulation
+Gray–Scott basse résolution partagée, sans nouveau contexte WebGL. Le grain
+et les textures aquarelle sont procéduraux ; les cellules de réaction-diffusion
+modulent la matière sans devenir des motifs décoratifs répétitifs.
 
 ```sh
 npm ci
@@ -14,26 +25,22 @@ npm run dev
 npm run build
 ```
 
-Vercel : commande `npm run build`, dossier `dist`. L’application s’ouvre sur la nouvelle expérience, quel que soit l’ancien paramètre d’URL.
+Vercel : commande `npm run build`, dossier `dist`.
 
 ```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/simple-cosmo.spec.js tests/weather-composition.spec.js tests/painterly-sky.spec.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/monumental-study.spec.js tests/weather-music.spec.js tests/reaction-diffusion.spec.js
 ```
 
-[Architecture, performances et limites](docs/emociel-simple.md). Les anciens parcours sont conservés dans les sources pour archivage ; ils ne sont plus chargés par l’application. Les anciennes sauvegardes restent intactes.
+La musique repose sur `smplr`, douze samples locaux VCSL/VSCO sous CC0 et trois
+boucles rythmiques originales locales. Provenance : `public/audio/emociel/` et
+`public/audio/electro/`. Le son démarre après interaction ; les ressources audio
+et l’application sont mises en cache en production.
 
+[Composition, architecture, retour arrière et limites](docs/monumental-study.md).
+[Historique des versions précédentes](docs/emociel-simple.md).
 
-Le toucher d’Entrer lance la traversée immersive et la musique ; ♫ permet de couper le son ou de régler le volume. Le moteur `smplr` joue douze échantillons locaux VCSL et VSCO (piano Kawai, marimba doux, vibraphone frotté et violoncelles), sous CC0. Les choix orientent une composition pentatonique évolutive : orchestration, densité, harmonie lente et espace stéréo. Volume, silence et pause sont disponibles. Les samples sont mis en cache avec l’application en production. Sources et licence : `public/audio/emociel/`.
-
-Matière musicale : le premier voile abstrait reçoit une peinture à mémoire GPU issue de Pigment Drift Paint Studio (MIT). Active ♫ pour que la musique dépose et déplace l’eau et les pigments ; en silence, la matière continue doucement à diffuser et sécher. Simulation partagée 128 × 128 sur mobile / 192 × 192 sur ordinateur, interpolation entre états et cadence bornée et rendu procédural de secours. Provenance et limites : `src/vendor/pigment-drift/UPSTREAM.md` et `docs/emociel-simple.md`.
-
-La réaction-diffusion Gray–Scott est la matière principale des six membranes : pigments qui se ramifient, réserves et bordures d’encre contrastées, avec un léger relief vivant. Une seule simulation GPU basse résolution est partagée ; la musique y dépose des graines et le silence laisse évoluer les traces. Les textures aquarelle et Pigment Drift enrichissent cette matière.
-
-Le voyage possède une accélération douce, une légère respiration de focale et de rares effets optiques de flou périphérique et de contours d’encre. Ces effets sont limités à une passe et se désactivent en qualité réduite.
-
-117 fragments originaux composent une poésie ouverte selon les ressentis choisis et leurs rencontres. Piano mélodique, réponses de marimba, résonances frottées et accords de violoncelles partagent une même écriture harmonique. Les notes infléchissent les plis et les réserves de pigment ; aucune interprétation automatique du vécu n’est produite.
-
-
-Direction électro : trois drumloops originaux de quatre mesures à 104 BPM (régulier, syncopé, aéré), basse sinusoïdale et arpèges de marimba synchronisés. Le mix rythmique dépend des météos. Les percussions restent plus sèches, les instruments respirent légèrement sur la pulsation. Les plis, les particules et les déformations optiques partagent l’horloge musicale. Les boucles sont locales et mises en cache ; leur synthèse originale est reproductible avec `scripts/generate-electro-loops.py` (Python, NumPy et FFmpeg, uniquement pour régénérer les assets).
-
-Chaque séquence dispose désormais d’une identité spatiale : douze univers et sept familles de rencontres, avec formes, ciels, profondeur, palettes et orchestration propres. Le premier émoji donne l’ancrage ; les suivants le transforment. L’ordre des choix est conservé et participe à la composition.
+Le drapeau `MONUMENTAL_STUDY = false` dans `src/simple/MonumentalStudy.ts` permet
+de retrouver la palette et les univers précédents après reconstruction. Leur
+code et les données utilisateur sont conservés. Pigment Drift (MIT) reste dans
+le dépôt, sans simulation active dans cette étude : voir
+`src/vendor/pigment-drift/UPSTREAM.md`.

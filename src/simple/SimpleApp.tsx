@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NUANCES, readPalette, SIMPLE_KEY } from "./palette";
 import { SimpleWorld } from "./SimpleWorld";
+import { MONUMENTAL_STUDY, STUDY_PALETTE } from "./MonumentalStudy";
 import { WeatherMusic } from "./WeatherMusic";
 import { requestGyroscope } from "../scene/gyroOrientation";
 import "./simple.css";
@@ -33,7 +34,7 @@ export default function SimpleApp() {
     [],
   );
   useEffect(() => {
-    music.current?.setPalette(selected);
+    music.current?.setPalette(MONUMENTAL_STUDY ? STUDY_PALETTE : selected);
   }, [selected]);
   useEffect(() => {
     if (!inside || paused) {
@@ -60,10 +61,13 @@ export default function SimpleApp() {
     setMusicState("loading");
     try {
       if (!music.current || music.current.inspect().state === "closed")
-        music.current = new WeatherMusic(selected, () => {
-          musicWanted.current = false;
-          if (alive.current) setMusicState("paused");
-        });
+        music.current = new WeatherMusic(
+          MONUMENTAL_STUDY ? STUDY_PALETTE : selected,
+          () => {
+            musicWanted.current = false;
+            if (alive.current) setMusicState("paused");
+          },
+        );
       music.current.setVolume(volume);
       await music.current.start();
       if (!alive.current || !musicWanted.current) {
@@ -182,14 +186,28 @@ export default function SimpleApp() {
     <main className={"simple-app" + (inside ? " is-inside" : "")}>
       {!inside && (
         <header className="simple-heading">
-          <span className="simple-overline">Ton ciel, à ta façon</span>
+          <span className="simple-overline">
+            {MONUMENTAL_STUDY
+              ? "Étude I — Indigo & terre"
+              : "Ton ciel, à ta façon"}
+          </span>
           <h1>
             ÉmoCiel <i>•°</i>
           </h1>
           <p>
-            Compose ton ciel émotionnel.
-            <br />
-            Traverse-le tranquillement en 360°.
+            {MONUMENTAL_STUDY ? (
+              <>
+                Un paysage d’encre suspendu.
+                <br />
+                Approcher. Traverser. Regarder autrement.
+              </>
+            ) : (
+              <>
+                Compose ton ciel émotionnel.
+                <br />
+                Traverse-le tranquillement en 360°.
+              </>
+            )}
           </p>
         </header>
       )}
@@ -197,49 +215,51 @@ export default function SimpleApp() {
         <div ref={host} className="simple-world" data-inside={inside} />
         {!inside && (
           <>
-            <div
-              className="simple-ring"
-              role="group"
-              aria-label="Choisir une à trois émotions"
-            >
-              {NUANCES.map((n, index) => (
-                <button
-                  key={n.id}
-                  className="simple-nuance"
-                  style={
-                    {
-                      "--angle": `${index * (360 / NUANCES.length) - 90}deg`,
-                      "--ink": n.color,
-                    } as React.CSSProperties
-                  }
-                  aria-label={n.label}
-                  title={n.label}
-                  aria-pressed={selected.includes(n.id)}
-                  onClick={() => choose(n.id)}
-                >
-                  <span className="simple-weather-symbol" aria-hidden="true">
-                    {n.emoji}
-                  </span>
-                  {selected.includes(n.id) && (
-                    <svg
-                      className="simple-selection-check"
-                      viewBox="0 0 16 16"
-                      aria-hidden="true"
-                    >
-                      <circle cx="8" cy="8" r="8" fill="currentColor" />
-                      <path
-                        d="m4.5 8 2.3 2.3 4.7-4.6"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
+            {!MONUMENTAL_STUDY && (
+              <div
+                className="simple-ring"
+                role="group"
+                aria-label="Choisir une à trois émotions"
+              >
+                {NUANCES.map((n, index) => (
+                  <button
+                    key={n.id}
+                    className="simple-nuance"
+                    style={
+                      {
+                        "--angle": `${index * (360 / NUANCES.length) - 90}deg`,
+                        "--ink": n.color,
+                      } as React.CSSProperties
+                    }
+                    aria-label={n.label}
+                    title={n.label}
+                    aria-pressed={selected.includes(n.id)}
+                    onClick={() => choose(n.id)}
+                  >
+                    <span className="simple-weather-symbol" aria-hidden="true">
+                      {n.emoji}
+                    </span>
+                    {selected.includes(n.id) && (
+                      <svg
+                        className="simple-selection-check"
+                        viewBox="0 0 16 16"
+                        aria-hidden="true"
+                      >
+                        <circle cx="8" cy="8" r="8" fill="currentColor" />
+                        <path
+                          d="m4.5 8 2.3 2.3 4.7-4.6"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
             {!failure && (
               <button
                 className="simple-enter"
@@ -282,16 +302,20 @@ export default function SimpleApp() {
       {!inside && (
         <footer className="simple-footer">
           <p>
-            Le premier choix donne l’élan. Les suivants transforment le monde.
+            {MONUMENTAL_STUDY
+              ? "Indigo profond, terre cuite et réserves de papier."
+              : "Le premier choix donne l’élan. Les suivants transforment le monde."}
           </p>
           <small>
             Voyage et musique au toucher d’Entrer · silence disponible avec ♫
           </small>
-          <small className="simple-selected-names" aria-live="polite">
-            {selected
-              .map((id) => NUANCES.find((n) => n.id === id)?.label)
-              .join(" · ")}
-          </small>
+          {!MONUMENTAL_STUDY && (
+            <small className="simple-selected-names" aria-live="polite">
+              {selected
+                .map((id) => NUANCES.find((n) => n.id === id)?.label)
+                .join(" · ")}
+            </small>
+          )}
         </footer>
       )}
       {inside && (
@@ -306,7 +330,11 @@ export default function SimpleApp() {
           </div>
           <nav className="simple-tools" aria-label="Contempler mon univers">
             <button
-              aria-label="Revenir à la palette"
+              aria-label={
+                MONUMENTAL_STUDY
+                  ? "Revenir à l’accueil"
+                  : "Revenir à la palette"
+              }
               onClick={() => {
                 setInside(false);
                 setTravel(false);
@@ -315,7 +343,7 @@ export default function SimpleApp() {
                 setNotice("");
               }}
             >
-              ←<span>Palette</span>
+              ←<span>{MONUMENTAL_STUDY ? "Accueil" : "Palette"}</span>
             </button>
             <button
               aria-label={travel ? "Contempler" : "Voyager"}
