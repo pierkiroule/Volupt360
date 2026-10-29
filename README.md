@@ -25,6 +25,8 @@ Le toucher d’Entrer lance la traversée immersive et la musique ; ♫ permet d
 
 Matière musicale : le premier voile abstrait reçoit une peinture à mémoire GPU issue de Pigment Drift Paint Studio (MIT). Active ♫ pour que la musique dépose et déplace l’eau et les pigments ; en silence, la matière continue doucement à diffuser et sécher. Simulation partagée 128 × 128 sur mobile / 192 × 192 sur ordinateur, interpolation entre états et cadence bornée et rendu procédural de secours. Provenance et limites : `src/vendor/pigment-drift/UPSTREAM.md` et `docs/emociel-simple.md`.
 
+La réaction-diffusion Gray–Scott est la matière principale des six membranes : pigments qui se ramifient, réserves et bordures d’encre contrastées, avec un léger relief vivant. Une seule simulation GPU basse résolution est partagée ; la musique y dépose des graines et le silence laisse évoluer les traces. Les textures aquarelle et Pigment Drift enrichissent cette matière.
+
 Le voyage possède une accélération douce, une légère respiration de focale et de rares effets optiques de flou périphérique et de contours d’encre. Ces effets sont limités à une passe et se désactivent en qualité réduite.
 
 117 fragments originaux composent une poésie ouverte selon les ressentis choisis et leurs rencontres. Piano mélodique, réponses de marimba, résonances frottées et accords de violoncelles partagent une même écriture harmonique. Les notes infléchissent les plis et les réserves de pigment ; aucune interprétation automatique du vécu n’est produite.

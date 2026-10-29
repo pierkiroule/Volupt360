@@ -166,3 +166,110 @@ test("world integrates one field and freezes it on pause without extra scene dra
     .toBeGreaterThan(Number(steps));
   expect(errors).toEqual([]);
 });
+
+test("reaction diffusion visibly drives all six membranes without more simulation targets", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const T = await import("/node_modules/three/build/three.module.js");
+    const { ReactionDiffusion } =
+      await import("/src/simple/ReactionDiffusion.ts");
+    const { AbstractResonances } =
+      await import("/src/simple/AbstractResonances.ts");
+    const { makeWatercolorAtlas } =
+      await import("/src/simple/WatercolorAtlas.ts");
+    const renderer = new T.WebGLRenderer({ preserveDrawingBuffer: true });
+    renderer.setSize(256, 256);
+    const failures = [];
+    renderer.debug.onShaderError = (gl, p, v, f) =>
+      failures.push(gl.getShaderInfoLog(v) + gl.getShaderInfoLog(f));
+    const field = new ReactionDiffusion(true),
+      paper = makeWatercolorAtlas(),
+      forms = new AbstractResonances(paper, true);
+    field.setPalette(["warm"]);
+    field.update(
+      renderer,
+      1 / 60,
+      { energy: 0, low: 0, high: 0, onset: 0 },
+      false,
+    );
+    const scene = new T.Scene();
+    scene.background = new T.Color("#f5f0e6");
+    scene.add(forms.mesh);
+    const camera = new T.PerspectiveCamera(65, 1, 0.1, 100),
+      target = new T.WebGLRenderTarget(256, 256);
+    const pixels = new Uint8Array(256 * 256 * 4),
+      perSlot = forms.mesh.geometry.index.count / 6;
+    forms.setPalette(["warm"]);
+    forms.update(5, 1, true, true);
+    const changes = [];
+    let beforePng = "",
+      afterPng = "";
+    const draw = () => {
+      renderer.setRenderTarget(target);
+      renderer.render(scene, camera);
+      renderer.readRenderTargetPixels(target, 0, 0, 256, 256, pixels);
+      return pixels.slice();
+    };
+    for (let slot = 0; slot < 6; slot++) {
+      const seed = slot * 2.39996,
+        az = seed * 0.75;
+      const center = new T.Vector3(
+        Math.sin(seed) * 5.5 * 1.3,
+        18 + Math.cos(seed) * 1.5 * 1.1,
+        -5 + Math.cos(seed * 0.9) * 4.5 * 1.15,
+      );
+      camera.position
+        .copy(center)
+        .add(new T.Vector3(Math.sin(az) * 7, 0.6, Math.cos(az) * 7));
+      camera.lookAt(center);
+      forms.mesh.geometry.setDrawRange(slot * perSlot, perSlot);
+      forms.setReactionTexture(null);
+      const before = draw();
+      if (slot === 0) {
+        renderer.setRenderTarget(null);
+        renderer.render(scene, camera);
+        beforePng = renderer.domElement.toDataURL();
+      }
+      forms.setReactionTexture(field.texture);
+      const after = draw();
+      let changed = 0;
+      for (let i = 0; i < after.length; i += 4)
+        if (
+          Math.abs(after[i] - before[i]) +
+            Math.abs(after[i + 1] - before[i + 1]) +
+            Math.abs(after[i + 2] - before[i + 2]) >
+          25
+        )
+          changed++;
+      changes.push(changed);
+      if (slot === 0) {
+        renderer.setRenderTarget(null);
+        renderer.render(scene, camera);
+        afterPng = renderer.domElement.toDataURL();
+      }
+    }
+    const calls = renderer.info.render.calls,
+      targets = field.inspect().targets;
+    forms.dispose();
+    paper.dispose();
+    field.dispose();
+    target.dispose();
+    renderer.dispose();
+    return { changes, calls, targets, failures, beforePng, afterPng };
+  });
+  const { writeFile } = await import("node:fs/promises");
+  for (const [name, png] of [
+    ["before", result.beforePng],
+    ["after", result.afterPng],
+  ])
+    await writeFile(
+      testInfo.outputPath(`reaction-${name}.png`),
+      Buffer.from(png.split(",")[1], "base64"),
+    );
+  expect(result.failures).toEqual([]);
+  expect(result.changes.every((n) => n > 1200)).toBe(true);
+  expect(result.calls).toBe(1);
+  expect(result.targets).toBe(2);
+});

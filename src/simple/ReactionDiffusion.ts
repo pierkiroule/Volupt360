@@ -110,16 +110,31 @@ export class ReactionDiffusion {
       pixels[i] = 255;
       pixels[i + 3] = 255;
     }
-    for (let n = 0; n < 18; n++) {
-      const x = Math.floor((0.12 + this.rand() * 0.76) * this.size),
-        y = Math.floor((0.12 + this.rand() * 0.76) * this.size);
-      for (let j = -3; j <= 3; j++)
-        for (let i = -3; i <= 3; i++)
-          if (i * i + j * j < 10) {
-            const k = ((y + j) * this.size + x + i) * 4;
-            pixels[k] = 130;
-            pixels[k + 1] = 165;
-          }
+    // Broad irregular deposits make the living matter readable immediately.
+    // Same UV scale on mobile and desktop; no expensive warm-up burst.
+    for (let n = 0; n < 34; n++) {
+      const x = Math.floor((0.1 + this.rand() * 0.8) * this.size),
+        y = Math.floor((0.1 + this.rand() * 0.8) * this.size),
+        radius = ((3.5 + this.rand() * 3.5) * this.size) / 128,
+        extent = Math.ceil(radius * 1.2),
+        phase = this.rand() * 6.28;
+      for (let j = -extent; j <= extent; j++)
+        for (let i = -extent; i <= extent; i++) {
+          const r = Math.hypot(i, j * 0.85) / radius,
+            border = 1 + Math.sin(Math.atan2(j, i) * 3 + phase) * 0.14;
+          if (
+            r > border ||
+            x + i < 0 ||
+            x + i >= this.size ||
+            y + j < 0 ||
+            y + j >= this.size
+          )
+            continue;
+          const k = ((y + j) * this.size + x + i) * 4,
+            amount = 1 - THREE.MathUtils.smoothstep(r, border * 0.65, border);
+          pixels[k] = Math.min(pixels[k], Math.round(255 - amount * 125));
+          pixels[k + 1] = Math.max(pixels[k + 1], Math.round(amount * 165));
+        }
     }
     this.initial = new THREE.DataTexture(pixels, this.size, this.size);
     this.initial.needsUpdate = true;

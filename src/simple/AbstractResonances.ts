@@ -3,6 +3,12 @@ import * as THREE from "three";
 import type { MusicSignal } from "./MusicSignal";
 import { composeWeather } from "./composition";
 
+// Stable per-veil projections: one field, different orientations, no repeated UV seam.
+const reactionCoordinates = `vec2 reactionUV(vec2 p,float m){
+ vec2 q=mod(m,2.)<.5?p:vec2(1.-p.y,p.x);
+ return clamp(q*.82+vec2(.06+mod(m,3.)*.035,.07+mod(m,2.)*.04),.005,.995);
+}`;
+
 /** Six spatial pigment membranes, one draw, shared grain and static buffers.
  * All deformation is reconstructed from the original parameter grid on the GPU. */
 export class AbstractResonances {
@@ -64,7 +70,8 @@ export class AbstractResonances {
           c: { value: new THREE.Color() },
           encounters: { value: new THREE.Vector3() },
         },
-        vertexShader: `attribute float slot;uniform float time,layers,melody,beat,worldMode;uniform vec3 kinds,music,space,partnerModes;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;
+        vertexShader: `attribute float slot;uniform float time,layers,melody,beat,worldMode;uniform vec3 kinds,music,space,partnerModes;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;uniform sampler2D reaction;uniform float reactionEnabled;
+      ${reactionCoordinates}
       void main(){membrane=slot;float u=position.x,v=position.y;inkUV=position.xy;family=mod(slot,layers);
         kind=family<.5?kinds.x:family<1.5?kinds.y:kinds.z;
         float seed=slot*2.39996,t=time*.13*worldStyle.w+seed+beat*.04;
@@ -99,6 +106,10 @@ export class AbstractResonances {
         p.y+=sin(u*9.-t*.7+seed)*music.y*.85*sin(v*3.14159);
         p.z+=sin(u*5.+v*3.+seed)*melody*music.x*.35;
         p.z+=sin(u*7.+seed)*(.5-.5*cos(beat*6.283185+u*1.5+seed))*.32*music.x*sin(u*3.14159);
+        if(reactionEnabled>.5){
+          float pigmentHeight=texture2D(reaction,reactionUV(position.xy,slot)).g;
+          p.z+=(pigmentHeight-.1)*1.1*sin(u*3.14159)*sin(v*3.14159);
+        }
         fold=.5+.5*sin(u*8.+v*5.+t);
         float az=seed*.75;float x=p.x;p.x=x*cos(az)+p.z*sin(az);p.z=-x*sin(az)+p.z*cos(az);
         p+=vec3(sin(seed)*5.5*space.x,18.+cos(seed)*1.5*space.y,-5.+cos(seed*.9)*4.5*space.z);
@@ -106,6 +117,7 @@ export class AbstractResonances {
         gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
       }`,
         fragmentShader: `uniform sampler2D paper,living,livingPrevious,reaction;uniform float reactionEnabled;uniform float time,presence,livingEnabled,livingBlend,melody,beat;uniform vec3 a,b,c,encounters,music;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;
+      ${reactionCoordinates}
       void main(){vec2 uv=inkUV;vec4 grain=texture2D(paper,uv*.46+vec2(.015,.515));
         vec4 pool=texture2D(paper,uv*.43+vec2(.515,.015));
         float edge=smoothstep(0.,.15,uv.x)*smoothstep(0.,.15,1.-uv.x)*smoothstep(0.,.22,uv.y)*smoothstep(0.,.22,1.-uv.y);
@@ -135,15 +147,23 @@ export class AbstractResonances {
           color=mix(color,paint,.82*deposit);
           alpha=max(alpha,edge*deposit*presence*.86);
         }
-        if(reactionEnabled>.5 && membrane<.5){
-          float density=texture2D(reaction,uv).g;
-          float fibers=texture2D(reaction,uv+vec2(.008,0.)).g;
-          float rimInk=smoothstep(.015,.09,abs(density-fibers));
-          float poolInk=smoothstep(.025,.26,density);
-          // The field is a pigment structure, not an emissive cellular image.
-          color*=1.-poolInk*.3-rimInk*.2;
-          color=mix(color,pigment*.55,poolInk*.24);
-          alpha=max(alpha*(1.-(1.-poolInk)*.12),edge*presence*(poolInk*.48+rimInk*.18));
+        if(reactionEnabled>.5){
+          vec2 fieldUV=reactionUV(uv,membrane);
+          float density=texture2D(reaction,fieldUV).g;
+          vec2 gradient=vec2(texture2D(reaction,fieldUV+vec2(.008,0.)).g-density,
+                             texture2D(reaction,fieldUV+vec2(0.,.008)).g-density);
+          float rimInk=smoothstep(.006,.065,length(gradient));
+          float poolInk=smoothstep(.018,.22,density);
+          // Reaction-diffusion is the primary pigment, with clear water reserves.
+          vec3 ink=max(vec3(.018),pigment*.36);
+          vec3 wash=mix(pigment,vec3(.97,.95,.9),.28);
+          vec3 matter=mix(wash,ink,clamp(poolInk*.65+rimInk*.65,0.,1.));
+          matter*=.82+grain.g*.22;
+          float coverage=edge*(.09+poolInk*.76+rimInk*.18);
+          float wetEdge=edge*rimInk*.12;
+          color=mix(color,matter,.88);
+          color+=vec3(wetEdge*.12);
+          alpha=mix(alpha,coverage*presence,.92);
         }
         alpha*=worldStyle.y;
         if(alpha<.005)discard;gl_FragColor=vec4(color,alpha);

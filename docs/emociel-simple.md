@@ -358,3 +358,29 @@ d’univers). La série précédente a aussi validé la navigation et le gyro si
 Le test d’intégration attend l’état de pause confirmé avant de lire les compteurs,
 pour ne pas confondre une ancienne capture de diagnostic et une simulation active.
 Pas de mesure sur téléphone physique ni de test longue durée.
+
+### Réaction-diffusion centrale — visibilité renforcée
+
+La version précédente ne modulait que faiblement une membrane et ses petits
+semis étaient difficiles à repérer. La réaction-diffusion pilote maintenant
+les **six membranes** : concentration et opacité des pigments, réserves,
+bordures plus contrastées et léger relief calculé depuis le même champ. Chaque
+voile utilise une projection stable différente du champ partagé. Les lavis,
+le grain de papier et Pigment Drift restent les couches complémentaires.
+
+Les 34 dépôts initiaux sont plus larges, irréguliers et à l’échelle UV identique
+sur mobile et ordinateur. Ils sont visibles immédiatement, sans salve de calculs
+de préchauffage. Le champ continue réellement à réagir, diffuser et recevoir les
+graines musicales ; ce ne sont pas des textures précalculées.
+
+Toujours une seule simulation, deux render targets et les mêmes géométries et
+appels de rendu. Le shader des six voiles effectue désormais une lecture du
+champ au sommet et trois lectures par fragment concerné : ce coût augmente
+par rapport à la première intégration, sans multiplier les simulations.
+
+Build réussi et neuf tests ciblés passent. Un nouveau contrôle GPU compare
+séparément les six membranes avec et sans champ : chacune présente plus de
+1 200 pixels significativement modifiés dans un rendu 256², sans appel de scène
+supplémentaire. Captures avant/après inspectées. Validation physique mobile
+et mesure longue durée restent à effectuer. Le déploiement de main n’est pas
+modifié : utiliser une prévisualisation construite depuis feature/cosmo-simple.
