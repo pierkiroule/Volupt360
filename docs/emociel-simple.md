@@ -308,3 +308,53 @@ pause/reprise et erreur réseau). La série précédente de 13 contrôles a éga
 validé les fragments, les boucles rythmiques et les douze rendus complets. Les
 captures Joie et Tristesse ont été inspectées. Pas de validation sur téléphone
 physique ni d’écoute qualitative comparative prétendue par ces tests.
+
+### Réaction-diffusion aquarellée — première intégration
+
+`ReactionDiffusion.ts` calcule un champ Gray–Scott persistant dans le contexte
+Three.js existant. Deux cibles RGBA half-float de 128² pixels sur mobile ou 192²
+sur ordinateur alternent, sans profondeur ni mipmaps. Cela représente environ
+256 Kio / 576 Kio de mémoire de couleur GPU, hors surcoût du pilote. Aucun
+readback ni nouveau contexte WebGL dans la boucle. L’initialisation est différée
+jusqu’à l’entrée dans l’univers.
+
+`ReactionDiffusionProfiles.ts` définit trois régimes : îlots (joie, tendresse,
+sérénité…), rivières (tristesse, fatigue, nostalgie) et méandres (colère, peur,
+confusion, dégoût). Un mélange de deux ou trois choix conserve ses régimes dans
+des zones du champ avec transitions étroites ; les paramètres ne sont pas
+moyennés sur tout le voile. Ces correspondances sont artistiques.
+
+À cadence fixe de 20 mises à jour/s, quatre petits pas bornés font évoluer le
+champ. La qualité réduite passe à 12 mises à jour/s et deux pas. Ce sont des
+passes GPU supplémentaires, même si le nombre d’appels de rendu de la scène
+reste identique. Leur coût réel sur téléphone reste à mesurer.
+
+Le signal audio existant est lissé : l’énergie module légèrement l’évolution,
+les graves la taille des dépôts, les aigus leur intensité. Les attaques peuvent
+ensemencer la matière au maximum une fois toutes les 1,2 secondes. Sans musique,
+la simulation diffuse à partir de ses dépôts initiaux sans nouvelles graines.
+La pause et la sortie vers la palette suspendent les calculs. Le changement de
+palette conserve la matière. Une restauration du contexte réinitialise
+explicitement le champ ; son histoire GPU n’est pas sauvegardée sur disque.
+
+`AbstractResonances` utilise ce champ uniquement sur la première membrane :
+concentration pigmentaire, réserves et bordures teintées, en combinaison avec
+l’atlas aquarelle et Pigment Drift. Les cinq autres membranes, l’audio, les
+commandes et la navigation restent inchangés. Les grains calligraphiques
+existants ne déposent pas encore de graines par collision : ce branchement
+spatial est une extension ultérieure, pas simulée dans cette version.
+
+Retour arrière immédiat : définir `ENABLE_REACTION_DIFFUSION = false` dans
+`src/simple/ReactionDiffusion.ts`, puis reconstruire. Aucun calcul ni cible GPU
+n’est alors créé pour la réaction-diffusion. Si WebGL2, les cibles half-float ou
+leur framebuffer ne sont pas disponibles, le rendu aquarelle existant demeure.
+`dispose()` libère cibles, géométrie et matériau.
+
+Validation de cette première intégration : build TypeScript/Vite réussi ; les
+12 derniers tests passent (champ GPU réel, graines musicales bornées, évolution
+en silence, gel en pause, changement de palette conservant le champ, nettoyage
+des cibles, mode désactivé, fallback, restauration, Pigment Drift et identités
+d’univers). La série précédente a aussi validé la navigation et le gyro simulés.
+Le test d’intégration attend l’état de pause confirmé avant de lire les compteurs,
+pour ne pas confondre une ancienne capture de diagnostic et une simulation active.
+Pas de mesure sur téléphone physique ni de test longue durée.

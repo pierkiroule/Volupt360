@@ -42,6 +42,8 @@ export class AbstractResonances {
         side: THREE.DoubleSide,
         uniforms: {
           paper: { value: paper },
+          reaction: { value: paper },
+          reactionEnabled: { value: 0 },
           living: { value: paper },
           livingPrevious: { value: paper },
           livingBlend: { value: 1 },
@@ -103,7 +105,7 @@ export class AbstractResonances {
         p.y+=sin(time*.021+seed)*.6;
         gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
       }`,
-        fragmentShader: `uniform sampler2D paper,living,livingPrevious;uniform float time,presence,livingEnabled,livingBlend,melody,beat;uniform vec3 a,b,c,encounters,music;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;
+        fragmentShader: `uniform sampler2D paper,living,livingPrevious,reaction;uniform float reactionEnabled;uniform float time,presence,livingEnabled,livingBlend,melody,beat;uniform vec3 a,b,c,encounters,music;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;
       void main(){vec2 uv=inkUV;vec4 grain=texture2D(paper,uv*.46+vec2(.015,.515));
         vec4 pool=texture2D(paper,uv*.43+vec2(.515,.015));
         float edge=smoothstep(0.,.15,uv.x)*smoothstep(0.,.15,1.-uv.x)*smoothstep(0.,.22,uv.y)*smoothstep(0.,.22,1.-uv.y);
@@ -133,6 +135,16 @@ export class AbstractResonances {
           color=mix(color,paint,.82*deposit);
           alpha=max(alpha,edge*deposit*presence*.86);
         }
+        if(reactionEnabled>.5 && membrane<.5){
+          float density=texture2D(reaction,uv).g;
+          float fibers=texture2D(reaction,uv+vec2(.008,0.)).g;
+          float rimInk=smoothstep(.015,.09,abs(density-fibers));
+          float poolInk=smoothstep(.025,.26,density);
+          // The field is a pigment structure, not an emissive cellular image.
+          color*=1.-poolInk*.3-rimInk*.2;
+          color=mix(color,pigment*.55,poolInk*.24);
+          alpha=max(alpha*(1.-(1.-poolInk)*.12),edge*presence*(poolInk*.48+rimInk*.18));
+        }
         alpha*=worldStyle.y;
         if(alpha<.005)discard;gl_FragColor=vec4(color,alpha);
         #include <colorspace_fragment>
@@ -157,6 +169,11 @@ export class AbstractResonances {
       dt,
     );
     return music;
+  }
+  setReactionTexture(texture: THREE.Texture | null) {
+    const u = this.mesh.material.uniforms;
+    u.reaction.value = texture ?? u.paper.value;
+    u.reactionEnabled.value = texture ? 1 : 0;
   }
   setLivingTexture(
     texture: THREE.Texture | null,

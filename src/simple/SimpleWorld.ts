@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { composeWeather, PHENOMENA } from "./composition";
 import { Atmosphere } from "./Atmosphere";
 import { CalligraphicInk } from "./CalligraphicInk";
+import { ReactionDiffusion } from "./ReactionDiffusion";
 import { AbstractResonances } from "./AbstractResonances";
 import { ResonantWords } from "./ResonantWords";
 import { WeatherAccents } from "./WeatherAccents";
@@ -31,6 +32,7 @@ export class SimpleWorld {
     this.mobile ? 12 : 16,
   );
   private pigment = new PigmentMusic(this.mobile);
+  private reaction = new ReactionDiffusion(this.mobile);
   private audioSource: (() => Readonly<MusicSignal> | undefined) | null = null;
   setAudioSource(source: () => Readonly<MusicSignal> | undefined) {
     this.audioSource = source;
@@ -264,6 +266,7 @@ export class SimpleWorld {
     this.resonances.setPalette(ids);
     this.ink.setPalette(ids);
     this.pigment.setPalette(ids);
+    this.reaction.setPalette(ids);
     this.renderer.domElement.dataset.composition = score.entries.join(",");
     this.renderer.domElement.dataset.interaction = score.rainbow
       ? "sun-rain"
@@ -387,6 +390,7 @@ export class SimpleWorld {
   };
   private contextRestored = () => {
     this.lost = false;
+    this.reaction.reset();
     this.last = 0;
     this.notify("");
     if (!this.disposed && !document.hidden)
@@ -463,6 +467,7 @@ export class SimpleWorld {
     else this.slow = Math.max(0, this.slow - 1);
     if (this.slow > 90 && this.pixelRatio > 0.8) {
       this.pigment.setReducedQuality();
+      this.reaction.setReducedQuality();
       this.cameraPoetics.setReducedQuality();
       this.pixelRatio = 0.8;
       this.renderer.setPixelRatio(0.8);
@@ -566,6 +571,8 @@ export class SimpleWorld {
     this.birds.update(this.time);
     this.words.update(this.time, dt, this.camera, this.paused, this.inside);
     this.pigment.update(dt, audio, this.paused || !this.inside);
+    this.reaction.update(this.renderer, dt, audio, this.paused || !this.inside);
+    this.resonances.setReactionTexture(this.reaction.texture);
     this.resonances.setLivingTexture(
       this.pigment.texture,
       this.pigment.previousTexture,
@@ -587,6 +594,10 @@ export class SimpleWorld {
       d.particles = String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
       const pigment = this.pigment.inspect();
+      const reaction = this.reaction.inspect();
+      d.reaction = reaction.state;
+      d.reactionSteps = String(reaction.steps);
+      d.reactionPaused = String(this.paused || !this.inside);
       d.pigment = pigment.state;
       d.pigmentSize = String(pigment.size);
       d.pigmentDeposits = String(pigment.deposits);
@@ -642,6 +653,7 @@ export class SimpleWorld {
     this.ink.dispose();
     this.cameraPoetics.dispose();
     this.pigment.dispose();
+    this.reaction.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();
