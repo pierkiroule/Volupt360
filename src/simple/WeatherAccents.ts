@@ -79,7 +79,7 @@ export class WeatherAccents {
         float grain=texture2D(pigment,vec2(uvInk.x*.42+.03,uvInk.y*.18+.55)).a;
         float edge=1.-smoothstep(.35,1.,abs(uvInk.y-.5)*2.);float ends=smoothstep(0.,.1,uvInk.x)*(1.-smoothstep(.8,1.,uvInk.x));
         float flow=.5+.5*sin(uvInk.x*11.-time*.21);float alpha=edge*ends*(.3+grain*.5)*visibility;
-        gl_FragColor=vec4(ink*(.65+flow*.2),alpha*.78);\n#include <colorspace_fragment>\n}`,
+        gl_FragColor=vec4(ink*(.65+flow*.2),alpha*.36);\n#include <colorspace_fragment>\n}`,
     });
     ribbonMaterial.forceSinglePass = true;
     this.ribbons = new THREE.Mesh(geometry, ribbonMaterial);
@@ -126,20 +126,17 @@ export class WeatherAccents {
         p+=vec3(cos(angle+seed.y),sin(angle*.8),cos(angle*.6))*(music.x*1.5+music.y*.8)*spread;
         vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
         gl_PointSize=clamp((100.+seed.z*170.)*ratio/max(2.5,-view.z),3.,32.*ratio);
-        alpha=smoothstep(0.,.13,age)*(1.-smoothstep(.65,1.,age))*smoothstep(.8,2.5,-view.z);
+        alpha=(.15+.85*pow(.5+.5*sin(time*.025+seed.z*6.28),3.))*smoothstep(0.,.13,age)*(1.-smoothstep(.65,1.,age))*smoothstep(.8,2.5,-view.z);
         style=mod(floor(seed.z*9.),3.);grainSeed=seed;}`,
       fragmentShader: `uniform vec3 a,b,c;uniform vec4 weather;uniform sampler2D pigment;varying float group,alpha,style,weatherKind;varying vec3 grainSeed;
       void main(){vec2 p=gl_PointCoord-.5;float angle=grainSeed.x*6.28318;mat2 rotate=mat2(cos(angle),-sin(angle),sin(angle),cos(angle));p=rotate*p;
         float r=style<.5?length(p*vec2(1.,2.2)):length(p);float mask=1.-smoothstep(.15,.49,r);
-        if(style>1.5)mask=exp(-abs(r-.29)*22.)*.7;
-        if(weatherKind>.5&&weatherKind<1.5){vec2 drop=gl_PointCoord-.5;drop.x+=drop.y*weather.z*.45;mask=(1.-smoothstep(.025,.085,abs(drop.x)))*(1.-smoothstep(.12,.49,abs(drop.y)));}
-        else if(weatherKind>1.5&&weatherKind<2.5){vec2 wind=gl_PointCoord-.5;mask=exp(-abs(wind.y)*22.)*(1.-smoothstep(.1,.49,abs(wind.x)));}
-        else if(weatherKind>6.5&&weatherKind<7.5){mask=exp(-abs(length(p)-.25)*20.);}
+        mask*=.65+.35*sin(grainSeed.y*8.+p.y*7.);
         vec4 paper=texture2D(pigment,gl_PointCoord*.35+grainSeed.xy*.1);mask*=.55+paper.a*.45;
         if(mask<.02)discard;vec3 color=group<.5?a:group<1.5?b:c;
 
         if(weatherKind>5.5&&weatherKind<6.5)color=.55+.23*cos(vec3(0.,2.1,4.2)+grainSeed.z*5.3);
-        gl_FragColor=vec4(color*(.65+grainSeed.z*.25),mask*alpha*.85);\n#include <colorspace_fragment>\n}`,
+        gl_FragColor=vec4(color*(.65+grainSeed.z*.25),mask*alpha*.42);\n#include <colorspace_fragment>\n}`,
     });
     this.seeds = new THREE.Points(pointGeometry, pointMaterial);
     this.seeds.frustumCulled = false;
@@ -177,7 +174,7 @@ export class WeatherAccents {
     if (beat !== undefined && music && music.x > 0.005) u.beat.value = beat;
     this.seeds.geometry.setDrawRange(
       0,
-      ratio < 1 ? Math.floor(this.count * 0.65) : this.count,
+      Math.floor(this.count * (ratio < 1 ? 0.22 : 0.35)),
     );
   }
   dispose() {

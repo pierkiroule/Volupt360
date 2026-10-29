@@ -11,7 +11,7 @@ export class ResonantWords {
   private pool: string[] = [];
   private cursor = 6;
   private active = 0;
-  private elapsed = 0;
+  private elapsed = -12;
   private needsAnchor = false;
   private lineLayouts: string[][] = [];
   private wordFade = new Float32Array(6).fill(1);
@@ -112,25 +112,9 @@ export class ResonantWords {
         fragmentShader: `uniform sampler2D map;uniform float time,opacity;varying vec2 vUv,vLocal;varying float focus,index,span,visibility;varying vec3 tint;
         void main(){vec4 text=texture2D(map,vUv);vec2 p=vLocal-.5;
           float reach=span*.5+.065;float radius=length(p/vec2(reach,.14));
-          float halo=exp(-radius*radius*1.8)*(.1+focus*.16);
-          halo+=exp(-pow((radius-.85)*5.,2.))*(.05+focus*.12);
-          // Evaluate the nearest of six orbiting sparks, instead of a six-pass loop.
-          float turn=time*.055+index*.73;
-          float angleAt=atan(p.y/.13,p.x/reach+.00001);
-          float slot=mod(floor((angleAt-turn)/1.04719755+.5),6.);
-          float seed=slot*1.04719755+index*.73;
-          float angle=seed+time*.055;
-          vec2 star=vec2(cos(angle)*reach,sin(angle)*.13);
-          vec2 delta=p-star;float breathe=.3+.7*pow(.5+.5*sin(time*.8+seed*2.3),2.);
-          float size=max(.0055,fwidth(vLocal.x)*1.2);
-          float core=exp(-dot(delta,delta)/(size*size));
-          float cross=exp(-abs(delta.x)/size)*exp(-abs(delta.y)/(size*2.8))+exp(-abs(delta.y)/size)*exp(-abs(delta.x)/(size*2.8));
-          float sparkle=(core+cross*.3)*breathe;
-          float aura=exp(-dot(delta,delta)/.0008)*breathe;
-          float alphaHalo=clamp(halo+aura*(.07+focus*.08)+sparkle*(.4+focus*.35),0.,.85);
-          alphaHalo*=smoothstep(0.,.07,vLocal.x)*smoothstep(0.,.07,1.-vLocal.x)*smoothstep(0.,.07,vLocal.y)*smoothstep(0.,.07,1.-vLocal.y);
-          vec3 haloColor=mix(tint*.65,vec3(.85,.56,.21),.45);
-          haloColor=mix(haloColor,vec3(1.,.94,.72),min(1.,sparkle));
+          float alphaHalo=exp(-radius*radius*1.8)*(.025+focus*.05);
+          alphaHalo*=smoothstep(0.,.07,vLocal.x)*smoothstep(0.,.07,1.-vLocal.x);
+          vec3 haloColor=vec3(.96,.94,.88);
           float alpha=text.a+(1.-text.a)*alphaHalo;
           vec3 color=(text.rgb*text.a+haloColor*alphaHalo*(1.-text.a))/max(alpha,.0001);
           gl_FragColor=vec4(color,alpha*opacity*visibility);\n#include <colorspace_fragment>\n}`,
@@ -154,7 +138,7 @@ export class ResonantWords {
     this.pool = fragmentsFor(score.entries);
     this.cursor = 6;
     this.active = 0;
-    this.elapsed = 0;
+    this.elapsed = -12;
     this.wordFade.fill(0);
     this.labels = Array.from(
       { length: 6 },
@@ -236,13 +220,14 @@ export class ResonantWords {
   private renewWords(dt: number) {
     if (dt <= 0) return;
     this.elapsed += dt;
-    // Three-second arrival, twelve seconds to read, three-second departure,
-    // then fourteen seconds of empty sky. Never more than one fragment.
+    // Twelve seconds of initial discovery, then four-second arrival,
+    // eight seconds to read, four-second departure and thirty-two seconds of silence.
     const t = this.elapsed;
     this.wordFade.fill(0);
     this.wordFade[this.active] =
-      Math.min(1, t / 3) * (1 - THREE.MathUtils.smoothstep(t, 15, 18));
-    if (t >= 32) {
+      Math.max(0, Math.min(1, t / 4)) *
+      (1 - THREE.MathUtils.smoothstep(t, 12, 16));
+    if (t >= 48) {
       this.active = (this.active + 1) % 6;
       this.needsAnchor = true;
       this.labels[this.active] = this.pool[this.cursor++ % this.pool.length];
@@ -271,7 +256,7 @@ export class ResonantWords {
     }
     this.mesh.visible = true;
     const step = paused ? 0 : dt;
-    if (paused && this.elapsed === 0) this.wordFade[this.active] = 1;
+    if (paused && this.elapsed <= 0) this.wordFade[this.active] = 1;
     if (paused && this.alpha === 0) this.alpha = 0.85;
     this.alpha = THREE.MathUtils.damp(this.alpha, 0.85, 2, step);
     this.mesh.material.opacity = this.alpha;

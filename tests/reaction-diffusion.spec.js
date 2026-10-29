@@ -60,6 +60,10 @@ test("real GPU field persists, receives bounded musical seeds, freezes and frees
       pausedState = field.inspect();
     field.setPalette(["water"]);
     const preserved = read();
+    field.suggestEncounter({ u: 0.35, v: 0.65, strength: 0.8 });
+    for (let i = 0; i < 100; i++)
+      field.update(renderer, 1 / 60, silence, false);
+    const meeting = field.inspect();
     const beforeTextures = renderer.info.memory.textures;
     field.reset();
     field.update(renderer, 1 / 60, silence, false);
@@ -103,6 +107,7 @@ test("real GPU field persists, receives bounded musical seeds, freezes and frees
       silentState,
       musicalState,
       pausedState,
+      meeting,
       beforeTextures,
       afterTextures,
       restored,
@@ -125,6 +130,8 @@ test("real GPU field persists, receives bounded musical seeds, freezes and frees
   expect(result.pausedState).toEqual(result.musicalState);
   expect(result.musicalState.steps).toBeLessThanOrEqual(1600);
   expect(result.musicalState.targets).toBe(2);
+  expect(result.meeting.encounters).toBe(1);
+  expect(result.meeting.deposits).toBe(result.musicalState.deposits + 1);
   expect(result.afterTextures).toBe(result.beforeTextures - 2);
   expect(result.noTexture).toBe(true);
   expect(result.restored.state).toBe("active");
@@ -215,11 +222,7 @@ test("reaction diffusion visibly drives all six membranes without more simulatio
     for (let slot = 0; slot < 6; slot++) {
       const seed = slot * 2.39996,
         az = seed * 0.75;
-      const center = new T.Vector3(
-        Math.sin(seed) * 5.5 * 1.3,
-        18 + Math.cos(seed) * 1.5 * 1.1,
-        -5 + Math.cos(seed * 0.9) * 4.5 * 1.15,
-      );
+      const center = forms.mesh.material.uniforms.centers.value[slot].clone();
       camera.position
         .copy(center)
         .add(new T.Vector3(Math.sin(az) * 7, 0.6, Math.cos(az) * 7));

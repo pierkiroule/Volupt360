@@ -4,6 +4,8 @@
 
 Douze visages expressifs composent un monde aquarellé : joie, tristesse, peur, dégoût, colère, tendresse, émerveillement, surprise, confusion, fatigue, sérénité et nostalgie. Choisis une à trois nuances, entre, contemple ou laisse-toi porter par un voyage lent. Chaque visage possède ses couleurs, ses matières et sa composition musicale ; leurs mélanges gardent leurs contrastes. Les volutes d’encre noire, pigments et particules dialoguent avec le son. Glisse pendant le voyage pour infléchir la traversée ; au relâchement, le parcours reprend doucement. Gyroscope facultatif pour la contemplation ; pause accessible à tout moment.
 
+Les grandes matières se recouvrent en compositions asymétriques, avec réserves mouvantes, ramifications et grain fin. Les rencontres spatiales enrichissent la peinture ; certaines notes animent localement un voile. Les fragments courts apparaissent rarement, et le voyage alterne découverte de détails et prise de recul.
+
 React, Vite, TypeScript et Three.js. Aucun backend, modèle 3D distant ou interprétation des émotions. Six membranes abstraites Three.js remplacent les photographies : plis, rubans humides et filaments évoluent selon les visages choisis. Aucun chargement de photographies ni accès à une API externe. Les choix restent sur l’appareil.
 
 ```sh

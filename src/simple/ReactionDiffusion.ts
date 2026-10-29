@@ -19,6 +19,9 @@ export class ReactionDiffusion {
   private clock = 0;
   private lastDeposit = -10;
   private count = 0;
+  private encounters = 0;
+  private lastEncounter = -10;
+  private pending = new THREE.Vector3(0.5, 0.5, 0);
   private steps = 0;
   private ready = false;
   private failed = false;
@@ -175,6 +178,14 @@ export class ReactionDiffusion {
       ? this.targets[this.cursor].texture
       : null;
   }
+  suggestEncounter(seed: Readonly<{ u: number; v: number; strength: number }>) {
+    if (seed.strength > 0.35 && this.clock - this.lastEncounter > 5)
+      this.pending.set(
+        THREE.MathUtils.clamp(seed.u, 0.06, 0.94),
+        THREE.MathUtils.clamp(seed.v, 0.06, 0.94),
+        Math.min(0.8, seed.strength),
+      );
+  }
   setReducedQuality() {
     this.reduced = true;
   }
@@ -216,20 +227,34 @@ export class ReactionDiffusion {
       if (this.accumulator < interval) return;
       this.accumulator %= interval;
       // At most one musical seed per second; silence only evolves the existing field.
+      const encounter =
+        this.pending.z > 0.35 && this.clock - this.lastEncounter > 5;
       const deposit =
-        signal.onset > 0.1 &&
-        this.audioEnergy > 0.025 &&
+        ((signal.onset > 0.1 && this.audioEnergy > 0.025) || encounter) &&
         this.clock - this.lastDeposit > 1.2;
       const passes = this.reduced ? 2 : 4;
       for (let i = 0; i < passes; i++) {
         this.u.seed.value.set(-1, -1, 0, 0);
         if (i === 0 && deposit) {
           this.u.seed.value.set(
-            0.12 + this.rand() * 0.76,
-            0.12 + this.rand() * 0.76,
+            encounter
+              ? this.pending.x
+              : signal.note !== undefined
+                ? 0.16 + (((signal.note * 7) % 19) / 19) * 0.68
+                : 0.12 + this.rand() * 0.76,
+            encounter
+              ? this.pending.y
+              : signal.note !== undefined
+                ? 0.16 + (((signal.note * 11) % 23) / 23) * 0.68
+                : 0.12 + this.rand() * 0.76,
             0.025 + this.audioLow * 0.018,
             0.45 + this.audioHigh * 0.2,
           );
+          if (encounter) {
+            this.encounters++;
+            this.lastEncounter = this.clock;
+            this.pending.z = 0;
+          }
           this.lastDeposit = this.clock;
           this.count++;
         }
@@ -258,6 +283,7 @@ export class ReactionDiffusion {
       size: this.size,
       steps: this.steps,
       deposits: this.count,
+      encounters: this.encounters,
       targets: this.targets.length,
     };
   }

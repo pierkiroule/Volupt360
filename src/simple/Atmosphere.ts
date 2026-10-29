@@ -188,7 +188,7 @@ export class Atmosphere {
     this.particles.material.uniforms.ratio.value = ratio;
     this.particles.geometry.setDrawRange(
       0,
-      ratio < 1 ? Math.floor(this.count * 0.65) : this.count,
+      Math.floor(this.count * (ratio < 1 ? 0.3 : 0.5)),
     );
   }
   dispose() {

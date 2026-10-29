@@ -1,3 +1,4 @@
+import { ProjectiveComposition } from "./ProjectiveComposition";
 import { universeIdentity } from "./UniverseIdentity";
 import * as THREE from "three";
 import type { MusicSignal } from "./MusicSignal";
@@ -12,6 +13,12 @@ const reactionCoordinates = `vec2 reactionUV(vec2 p,float m){
 /** Six spatial pigment membranes, one draw, shared grain and static buffers.
  * All deformation is reconstructed from the original parameter grid on the GPU. */
 export class AbstractResonances {
+  private lastNote = -1;
+  private noteAge = 3;
+  private composition = new ProjectiveComposition();
+  get encounterSeed() {
+    return this.composition.seed;
+  }
   readonly mesh: THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>;
   constructor(paper: THREE.Texture, coarse = false) {
     const points: number[] = [],
@@ -50,6 +57,10 @@ export class AbstractResonances {
           paper: { value: paper },
           reaction: { value: paper },
           reactionEnabled: { value: 0 },
+          centers: { value: this.composition.centers },
+          neighbors: { value: this.composition.neighbors },
+          neighborColors: { value: this.composition.colors },
+          contactWeights: { value: this.composition.contact },
           living: { value: paper },
           livingPrevious: { value: paper },
           livingBlend: { value: 1 },
@@ -61,6 +72,8 @@ export class AbstractResonances {
           worldStyle: { value: new THREE.Vector4(1, 0.8, 0.4, 1) },
           music: { value: new THREE.Vector3() },
           melody: { value: 0.5 },
+          soundLane: { value: 0 },
+          soundBloom: { value: 0 },
           beat: { value: 0 },
           presence: { value: 0 },
           kinds: { value: new THREE.Vector3() },
@@ -70,57 +83,56 @@ export class AbstractResonances {
           c: { value: new THREE.Color() },
           encounters: { value: new THREE.Vector3() },
         },
-        vertexShader: `attribute float slot;uniform float time,layers,melody,beat,worldMode;uniform vec3 kinds,music,space,partnerModes;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;uniform sampler2D reaction;uniform float reactionEnabled;
+        vertexShader: `attribute float slot;uniform float time,layers,melody,beat,worldMode,soundLane,soundBloom;uniform vec3 kinds,music,space,partnerModes;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;varying vec3 worldPoint,meetingPoint,meetingColor;varying float meetingStrength;uniform vec3 centers[6],neighbors[6],neighborColors[6];uniform float contactWeights[6];uniform sampler2D reaction;uniform float reactionEnabled;
       ${reactionCoordinates}
       void main(){membrane=slot;float u=position.x,v=position.y;inkUV=position.xy;family=mod(slot,layers);
         kind=family<.5?kinds.x:family<1.5?kinds.y:kinds.z;
-        float seed=slot*2.39996,t=time*.13*worldStyle.w+seed+beat*.04;
-        float angle=(u-.5)*6.4+t*.55;
-        float radius=1.6+sin(u*4.+t)*.35;
-        vec3 p=vec3(cos(angle)*radius,sin(angle)*radius*.65,(v-.5)*2.);
-        if(kind<.5||abs(kind-5.)<.1){p=vec3((u-.5)*5.,sin(u*5.+t)*.7+(v-.5)*1.5,cos(u*4.+t)*.8+sin(v*3.14)*.6);}
-        else if(abs(kind-1.)<.1||kind>10.5){p=vec3((v-.5)*1.8+sin(u*7.+t)*.3,(u-.5)*5.,cos(u*6.+t)*.65);}
-        else if(abs(kind-2.)<.1||abs(kind-7.)<.1){p=vec3((u-.5)*6.,sin(u*8.-t)*.55+(v-.5)*1.2,cos(u*5.+t+v)*.9);}
-        else if(abs(kind-3.)<.1||kind>9.5){p=vec3((u-.5)*4.8,(v-.5)*2.8+sin(u*4.+t)*.5,sin(u*5.+v*3.+t)*.85);}
-        else if(abs(kind-8.)<.1){p=vec3((u-.5)*5.,sin(u*7.+t)*1.2+(v-.5)*2.,cos(u*4.-t)*.8);}
-        float m=worldMode,band=v-.5,arc=(u-.5)*4.8;
-        if((worldMode<11.5 && layers>1.5)||(layers>2.5 && family>1.5))m=family<.5?partnerModes.x:family<1.5?partnerModes.y:partnerModes.z;
-        if(m<.5){float r=1.+band*1.7;p=vec3(cos(arc)*r*2.,sin(arc)*r*2.,sin(u*5.+t)*.6);}
-        else if(m<1.5){p=vec3(band*1.6+sin(u*6.+t)*.3,(u-.5)*7.,cos(u*4.+t)*.8);}
-        else if(m<2.5){p=vec3((u-.5)*6.,sin(u*9.-t)*.38+band*.65,cos(u*5.+t+v)*1.7);p.x+=sin(u*17.+t*.7)*.08;}
-        else if(m<3.5){float a=u*6.28318;float recoil=.8+.2*sin(t*.6+seed);p=vec3(cos(a)*(1.+band)*recoil,sin(a)*(.7+band*.4),sin(v*3.14159)*2.+sin(u*12.+t)*.3);}
-        else if(m<4.5||abs(m-13.)<.1){float a=u*9.+t;float r=.5+u*2.+band;p=vec3(cos(a)*r,(u-.5)*5.+band,sin(a)*r);}
-        else if(m<5.5){p=vec3(sin(arc)*2.,sin(arc*1.2+seed)*.9+band*1.5,cos(arc)*1.2);}
-        else if(m<6.5){float a=u*3.14159;p=vec3(cos(a)*(2.7+band),sin(a)*(2.7+band),sin(u*5.+t)*.4);}
-        else if(m<7.5){float opening=.65+.35*sin(t*.65+seed);p=vec3(cos(arc)*(1.+u*2.)*opening,sin(arc)*(1.+u*2.)*opening+band,band*2.+sin(u*5.+t)*.5);}
-        else if(m<8.5){p=vec3(sin(u*10.+seed)*2.+band,cos(u*7.+t)*1.5+band,sin(u*6.-t)*1.7);}
-        else if(m<9.5){p=vec3((u-.5)*7.,band*.8-sin(u*3.14159)*.7,cos(u*4.+t*.3)*1.4);}
-        else if(abs(m-14.)<.1||abs(m-16.)<.1){p=vec3(cos(arc)*(2.+band),sin(arc)*(2.+band),sin(v*3.14159)*.8);}
-        else if(m<10.5){float a=u*6.28318;p=vec3(cos(a)*(1.7+band),sin(a)*(1.7+band)*.65,sin(v*3.14159)*2.);}
-        else if(m<11.5){p=vec3(sin(arc)*2.8,cos(arc)*1.4+band,sin(arc*.5+seed)*1.7+band);}
-        else if(m<12.5){if(mod(slot,2.)<.5)p=vec3(band*1.2,(u-.5)*7.,sin(u*6.+t)*.6);else p=vec3(cos(arc)*(2.5+band),sin(arc)*(2.5+band),sin(u*4.+t)*.5);}
-        else if(abs(m-15.)<.1){p=vec3((u-.5)*8.,sin(u*9.+t)*(.5+v),cos(u*9.+t)*(.5+v));}
-        else {float a=u*10.+t;p=vec3(cos(a)*(1.4+band),(u-.5)*6.,sin(a)*(1.4+band));}
+        float seed=slot*2.39996,t=time*.035*worldStyle.w+seed;
+        float mode=family<.5?partnerModes.x:family<1.5?partnerModes.y:partnerModes.z;
+        float x=(u-.5)*8.,y=(v-.5)*5.1;
+        float warp=sin(x*.61+sin(y*.83+t*.19)+seed)+.45*sin(y*1.39-x*.37-t*.13);
+        float foldField=sin(y*.69+sin(x*.53+seed)+t*.17);
+        vec3 p=vec3(x+foldField*.65,y+warp*.7,warp*.95+foldField*.8);
+        // Distinct expressive proportions; no fixed rings, arches or silhouettes.
+        if(abs(mode-1.)<.1){p.x*=.8;p.y*=1.35;}
+        if(abs(mode-2.)<.1){p.z*=1.3;p.x*=.9;}
+        if(abs(mode-3.)<.1){p.z+=sin(x*.9+y*.6+t*.2)*.65;}
+        if(abs(mode-4.)<.1){p.z*=1.4;}
+        if(abs(mode-7.)<.1){p.xy*=.9+.1*sin(t*.3+seed);}
+        if(abs(mode-8.)<.1){p.x+=sin(y*.9+t*.2)*.8;}
+        if(abs(mode-9.)<.1){p.x*=1.2;p.y*=.55;}
+        if(abs(mode-10.)<.1){p.z*=.65;}
+        if(abs(mode-11.)<.1){p.y+=sin(x*.8+t*.15)*.5;}
         p*=worldStyle.x;p.x*=worldStyle.z<0.?-1.:1.;
-        p.z+=sin(v*6.+u*8.+t)*(.22+(1.-exp(-music.x*2.5))*1.25)*sin(u*3.14159);
-        p.y+=sin(u*9.-t*.7+seed)*music.y*.85*sin(v*3.14159);
-        p.z+=sin(u*5.+v*3.+seed)*melody*music.x*.35;
-        p.z+=sin(u*7.+seed)*(.5-.5*cos(beat*6.283185+u*1.5+seed))*.32*music.x*sin(u*3.14159);
+        float localSound=.12+.88*exp(-abs(slot-soundLane)*2.)*soundBloom;
+        p.z+=sin(v*6.+u*8.+t)*(.22+(1.-exp(-music.x*localSound*2.5))*1.25)*sin(u*3.14159);
+        p.y+=sin(u*9.-t*.7+seed)*music.y*localSound*.85*sin(v*3.14159);
+        p.z+=sin(u*5.+v*3.+seed)*melody*music.x*localSound*.35;
+        p.z+=sin(u*7.+seed)*(.5-.5*cos(beat*6.283185+u*1.5+seed))*.12*music.x*localSound*sin(u*3.14159);
         if(reactionEnabled>.5){
           float pigmentHeight=texture2D(reaction,reactionUV(position.xy,slot)).g;
           p.z+=(pigmentHeight-.1)*1.1*sin(u*3.14159)*sin(v*3.14159);
         }
         fold=.5+.5*sin(u*8.+v*5.+t);
-        float az=seed*.75;float x=p.x;p.x=x*cos(az)+p.z*sin(az);p.z=-x*sin(az)+p.z*cos(az);
-        p+=vec3(sin(seed)*5.5*space.x,18.+cos(seed)*1.5*space.y,-5.+cos(seed*.9)*4.5*space.z);
-        p.y+=sin(time*.021+seed)*.6;
+        float az=seed*.75;float rotatedX=p.x;p.x=rotatedX*cos(az)+p.z*sin(az);p.z=-rotatedX*sin(az)+p.z*cos(az);
+        int index=int(slot+.1);
+        p+=centers[index];
+        worldPoint=p;meetingPoint=neighbors[index];meetingColor=neighborColors[index];meetingStrength=contactWeights[index];
         gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
       }`,
-        fragmentShader: `uniform sampler2D paper,living,livingPrevious,reaction;uniform float reactionEnabled;uniform float time,presence,livingEnabled,livingBlend,melody,beat;uniform vec3 a,b,c,encounters,music;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;
+        fragmentShader: `uniform sampler2D paper,living,livingPrevious,reaction;uniform float reactionEnabled,soundLane,soundBloom;uniform float time,presence,livingEnabled,livingBlend,melody,beat;uniform vec3 a,b,c,encounters,music;uniform vec4 worldStyle;varying vec2 inkUV;varying float family,kind,fold,membrane;varying vec3 worldPoint,meetingPoint,meetingColor;varying float meetingStrength;
       ${reactionCoordinates}
       void main(){vec2 uv=inkUV;vec4 grain=texture2D(paper,uv*.46+vec2(.015,.515));
         vec4 pool=texture2D(paper,uv*.43+vec2(.515,.015));
-        float edge=smoothstep(0.,.15,uv.x)*smoothstep(0.,.15,1.-uv.x)*smoothstep(0.,.22,uv.y)*smoothstep(0.,.22,1.-uv.y);
+        // Large asymmetrical lobes, medium capillaries, then fine paper grain.
+        vec4 macro=texture2D(paper,uv*.29+vec2(.1+mod(membrane,2.)*.5,.06));
+        vec4 micro=texture2D(paper,uv*1.7+vec2(.13,.52));
+        vec2 p=uv-.5;
+        float contour=length(p*vec2(1.65,1.75))+(macro.b-.5)*.52+(pool.b-.5)*.18;
+        float edge=1.-smoothstep(.38,.92,contour);
+        edge*=smoothstep(0.,.08,uv.x)*smoothstep(0.,.08,1.-uv.x)*smoothstep(0.,.1,uv.y)*smoothstep(0.,.1,1.-uv.y);
+        if(edge<.005)discard;
+        float meeting=meetingStrength*(1.-smoothstep(.5,3.2,distance(worldPoint,meetingPoint)));
         float holes=smoothstep(.1+abs(worldStyle.z)*.14,.36+abs(worldStyle.z)*.14,grain.a+pool.a*.45);
         // A moving reserve suggests a silhouette without ever fixing a figure.
         vec2 hollow=uv-vec2(.48+.1*sin(time*.025+family),.5+melody*.12);
@@ -135,7 +147,8 @@ export class AbstractResonances {
         float wet=.5+.5*sin(time*.08+family*2.+uv.x*3.);
         float flow=.5+.5*sin(uv.x*11.-uv.y*4.-time*.4+family*1.7);
         vec3 iridescence=.48+.34*cos(vec3(0.,2.1,4.2)+uv.x*4.+uv.y*2.+time*.12+family*1.6);
-        pigment=mix(pigment,iridescence,music.x*(.22+fold*.22));
+        float localSound=.12+.88*exp(-abs(membrane-soundLane)*2.)*soundBloom;
+        pigment=mix(pigment,iridescence,music.x*localSound*(.1+fold*.12));
         float luma=dot(pigment,vec3(.2126,.7152,.0722));
         pigment=max(vec3(.015),mix(vec3(luma),pigment,1.45+music.x*.5));
         vec3 color=pigment*(.65+grain.g*.28+fold*.12-rim*.12)*(1.-music.x*flow*.2);
@@ -149,6 +162,8 @@ export class AbstractResonances {
         }
         if(reactionEnabled>.5){
           vec2 fieldUV=reactionUV(uv,membrane);
+          // Local contact bends the pigment field and opens a water reserve.
+          fieldUV+=vec2(macro.b-.5,pool.b-.5)*meeting*.045;
           float density=texture2D(reaction,fieldUV).g;
           vec2 gradient=vec2(texture2D(reaction,fieldUV+vec2(.008,0.)).g-density,
                              texture2D(reaction,fieldUV+vec2(0.,.008)).g-density);
@@ -158,8 +173,13 @@ export class AbstractResonances {
           vec3 ink=max(vec3(.018),pigment*.36);
           vec3 wash=mix(pigment,vec3(.97,.95,.9),.28);
           vec3 matter=mix(wash,ink,clamp(poolInk*.65+rimInk*.65,0.,1.));
-          matter*=.82+grain.g*.22;
-          float coverage=edge*(.09+poolInk*.76+rimInk*.18);
+          matter*=.8+grain.g*.18+micro.g*.12;
+          matter=mix(matter,meetingColor*.58,meeting*poolInk*.48);
+          float ghost=smoothstep(.35,.7,macro.a)*(.5+.5*sin(time*.018+membrane*1.9));
+          float medium=smoothstep(.18,.66,pool.a)*.2;
+          float coverage=edge*(.14+poolInk*.62+rimInk*.14+medium);
+          coverage*=1.-ghost*(1.-poolInk)*.45;
+          coverage*=1.-meeting*(1.-poolInk)*.3;
           float wetEdge=edge*rimInk*.12;
           color=mix(color,matter,.88);
           color+=vec3(wetEdge*.12);
@@ -181,6 +201,20 @@ export class AbstractResonances {
     music.y = THREE.MathUtils.damp(music.y, signal.low, 1.8, dt);
     music.z = THREE.MathUtils.damp(music.z, signal.high, 2, dt);
     const u = this.mesh.material.uniforms;
+    this.noteAge += dt;
+    if (
+      dt > 0 &&
+      signal.energy > 0.02 &&
+      signal.note !== undefined &&
+      signal.note !== this.lastNote &&
+      this.noteAge > 1.8
+    ) {
+      this.lastNote = signal.note;
+      this.noteAge = 0;
+      u.soundLane.value = ((signal.note % 6) + 6) % 6;
+      u.soundBloom.value = 1;
+    }
+    u.soundBloom.value = THREE.MathUtils.damp(u.soundBloom.value, 0, 0.35, dt);
     if (dt > 0 && signal.energy > 0.005) u.beat.value = signal.beat ?? 0;
     u.melody.value = THREE.MathUtils.damp(
       u.melody.value,
@@ -210,6 +244,7 @@ export class AbstractResonances {
     const score = composeWeather(ids),
       u = this.mesh.material.uniforms;
     const identity = universeIdentity(ids);
+    this.composition.setPalette(ids);
     u.worldMode.value = identity.mode;
     u.partnerModes.value.set(
       identity.modes[0],
@@ -238,6 +273,7 @@ export class AbstractResonances {
   }
   update(time: number, dt: number, paused: boolean, inside: boolean) {
     this.mesh.visible = inside;
+    this.composition.update(time, paused ? 0 : dt);
     const u = this.mesh.material.uniforms;
     u.time.value = time;
     u.presence.value = paused

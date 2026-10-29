@@ -185,7 +185,7 @@ export class SimpleWorld {
           float sumi=smoothstep(.48,.8,p.a)*smoothstep(.3,.75,q.b)*min(1.,identity.y);
           c=mix(c,mix(tint*.24,vec3(.07,.09,.12),.35),sumi*.6);
           c=mix(c,vec3(.94,.91,.84),smoothstep(.66,.92,r.g)*.16);
-          float alpha=edge*(.22+pool*.7+drying*.16)*presence;
+          float alpha=edge*(.18+pool*.55+drying*.12)*presence*.72;
           gl_FragColor=vec4(c,alpha);\n#include <colorspace_fragment>\n}`,
       });
       material.forceSinglePass = true;
@@ -460,10 +460,12 @@ export class SimpleWorld {
         1.7,
         dt,
       );
+      // End the infinitesimal damping tail: contemplation must truly stop.
+      if (!this.travel && this.travelSpeed < 0.01) this.travelSpeed = 0;
       if (this.inside) this.journey += dt * this.travelSpeed * this.worldSpeed;
     }
     // Drop fill cost once on sustained slow frames; never oscillate quality each frame.
-    if (raw > 0.028 && raw < 0.2) this.slow++;
+    if (raw > 0.028 && raw < 0.5) this.slow += raw > 0.06 ? 3 : 1;
     else this.slow = Math.max(0, this.slow - 1);
     if (this.slow > 90 && this.pixelRatio > 0.8) {
       this.pigment.setReducedQuality();
@@ -491,7 +493,7 @@ export class SimpleWorld {
       this.camera.updateProjectionMatrix();
     }
     if (this.inside) {
-      // A closed, continuous ellipse through the work. Never a flight into empty space.
+      // A bounded discovery route through the work, alternating distance and detail.
       const tour = sampleTravel(this.journey, this.tour);
       this.camera.getWorldDirection(this.flightForward);
       const detour = this.steering.update(
@@ -530,6 +532,8 @@ export class SimpleWorld {
         "YXZ",
       );
       this.camera.quaternion.setFromEuler(this.rotation);
+      // Allow the full sensor wait after entry, even on a slow first GPU frame.
+      if (this.gyro && !this.sensorAt && this.entry < 1) this.gyroStarted = now;
       if (this.gyro && !this.sensorAt && now - this.gyroStarted > 4000) {
         this.setGyro(false);
         this.notify(
@@ -579,6 +583,8 @@ export class SimpleWorld {
       this.pigment.blend,
     );
     this.resonances.update(this.time, dt, this.paused, this.inside);
+    if (this.inside && !this.paused)
+      this.reaction.suggestEncounter(this.resonances.encounterSeed);
     this.ink.update(this.time, musicResponse, this.pixelRatio, this.inside);
     if (!this.inside || this.gyro) this.cameraPoetics.reset();
     this.cameraPoetics.update(
@@ -597,6 +603,7 @@ export class SimpleWorld {
       const reaction = this.reaction.inspect();
       d.reaction = reaction.state;
       d.reactionSteps = String(reaction.steps);
+      d.reactionEncounters = String(reaction.encounters);
       d.reactionPaused = String(this.paused || !this.inside);
       d.pigment = pigment.state;
       d.pigmentSize = String(pigment.size);

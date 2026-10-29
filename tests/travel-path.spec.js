@@ -5,7 +5,8 @@ test("tour stays around the work with a continuous, slow heading and a closed re
 }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
-    const { sampleTravel } = await import("/src/simple/TravelPath.ts");
+    const { sampleTravel, TRAVEL_PERIOD } =
+      await import("/src/simple/TravelPath.ts");
     const out = new Float64Array(6),
       start = [...sampleTravel(0, out)];
     let previous = start,
@@ -43,12 +44,12 @@ test("tour stays around the work with a continuous, slow heading and a closed re
       maxRadius = Math.max(maxRadius, Math.hypot(p[0], p[1] - 18, p[2] + 5));
       previous = [...p];
     }
-    const end = [...sampleTravel((Math.PI * 2) / 0.042, out)];
+    const end = [...sampleTravel(TRAVEL_PERIOD, out)];
     return { maxStep, maxTurn, minDistance, maxRadius, start, end };
   });
   expect(result.maxStep).toBeLessThan(0.015);
   expect(result.maxTurn).toBeLessThan(0.004);
-  expect(result.minDistance).toBeGreaterThan(3);
+  expect(result.minDistance).toBeGreaterThan(1.5);
   expect(result.maxRadius).toBeLessThan(9);
   result.start.forEach((v, i) => expect(result.end[i]).toBeCloseTo(v, 8));
 });

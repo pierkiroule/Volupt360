@@ -384,3 +384,54 @@ séparément les six membranes avec et sans champ : chacune présente plus de
 supplémentaire. Captures avant/après inspectées. Validation physique mobile
 et mesure longue durée restent à effectuer. Le déploiement de main n’est pas
 modifié : utiliser une prévisualisation construite depuis feature/cosmo-simple.
+
+### Composition projective — masses, détails et découverte
+
+`ProjectiveComposition.ts` organise six champs en trois groupes qui se recouvrent,
+avec des centres asymétriques dérivant lentement. Les arcs, cercles et spirales
+prédéfinis des membranes sont remplacés par de grandes nappes pliées. Les choix
+gardent leurs couleurs, proportions et dynamiques propres sans dessiner une
+figure imposée. Aucun visage ou objet caché n’est ajouté.
+
+Le shader combine trois échelles : lobes et réserves asymétriques, ramifications
+de réaction-diffusion, puis grain de papier fin. Certaines réserves se découvrent
+et se referment à des rythmes déphasés. Les nuages secondaires reculent ; les
+accents utilisent 35 % de leurs particules (22 % en qualité réduite), l’atmosphère
+50 % (30 % en qualité réduite). Les anneaux et symboles météo des accents cèdent
+la place à des grains pigmentaires. Le nombre de ressources GPU reste borné.
+
+Les voisinages sont calculés entre enveloppes 3D des champs, pas à partir d’un
+croisement à l’écran. Leur milieu produit une influence locale : migration de
+couleur, réserve et courbure de la texture. Une rencontre soutenue peut déposer
+une graine persistante dans le champ partagé, au plus toutes les cinq secondes,
+avec le plafond global de dépôt à 1,2 seconde. La projection vers les UV est une
+approximation de la membrane de référence. Il ne s’agit ni d’une intersection
+exacte de triangles ni d’une simulation de mélange physique des fluides.
+
+Les notes sélectionnent un voile pour une réponse douce et décroissante ; les
+autres ne gardent qu’une faible modulation de fond. Les notes répétées peuvent
+réensemencer une même zone du champ. La musique et ses samples sont conservés.
+
+`TravelPath` alterne une vue d’ensemble, une approche et un passage rapproché,
+sur un parcours continu fermé d’environ 224 secondes avant modulation de vitesse
+par l’univers. Le pilotage tactile demeure indépendant. Le résidu de décélération
+est arrêté à très faible vitesse pour rendre la contemplation vraiment immobile.
+Le délai d’absence de capteur gyro commence après la transition d’entrée.
+
+Les 117 fragments sont plus courts et ouverts. Douze secondes de découverte sans
+texte précèdent la première apparition ; chaque cycle laisse ensuite 32 secondes
+sans texte après un fondu d’entrée, une lecture et un fondu de sortie de 16 secondes
+au total. Un seul fragment est visible ; l’alternative en mouvement réduit reste
+statique. Les halos scintillants sont remplacés par une réserve discrète.
+
+Aucune interprétation psychologique, nouvelle API ou dépendance n’est introduite.
+La pertinence projective et la qualité d’usage restent à apprécier avec les
+participants ; les contrôles techniques ne démontrent pas d’effet psychologique.
+
+Validation : build TypeScript/Vite réussi ; onze contrôles de matière, de champ
+GPU et d’identités ont passé, puis dix contrôles de navigation, gyro simulé,
+rencontres et trajet après correction de la dérive et du délai de capteur. Les
+tests de fragments, de dépôt persistant aux rencontres et de musique réelle ont
+aussi passé pendant cette évolution. Les trois contrôles de composition ont été
+réexécutés avec capture après la fin de la transition d’entrée. Capture mobile
+inspectée ; pas de validation sur appareil physique ni de test prolongé annoncé.
