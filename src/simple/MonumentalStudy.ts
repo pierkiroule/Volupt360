@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { MusicSignal } from "./MusicSignal";
 
 /** One authored study before any further emotional variants. Flip to restore the previous composition. */
-export const MONUMENTAL_STUDY = true;
+export const MONUMENTAL_STUDY = false;
 export const STUDY_PALETTE = ["water", "longing"];
 
 /** One batched formation and a quiet paper vault. No additive effects or decorative emitters. */

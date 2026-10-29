@@ -1,5 +1,10 @@
 # Étude I — Indigo & terre
 
+> Étude facultative, désormais inactive par défaut. Le parcours courant permet
+> à nouveau de choisir 1 à 3 émojis et de générer son propre univers visuel et sonore.
+> Les descriptions ci-dessous concernent uniquement le mode expérimental activé
+> par `MONUMENTAL_STUDY = true`.
+
 Cette version se concentre volontairement sur une seule composition avant de
 redécliner les émotions. La palette emoji et les variations visuelles précédentes
 sont suspendues. Les choix locaux sauvegardés ne sont ni effacés ni réinterprétés.

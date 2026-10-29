@@ -44,7 +44,9 @@ export class SimpleWorld {
     this.audioSource = source;
   }
   private texture = makeWatercolorAtlas();
-  private study = new MonumentalStudy(this.texture, this.mobile);
+  private study = MONUMENTAL_STUDY
+    ? new MonumentalStudy(this.texture, this.mobile)
+    : null;
   private cloudLayer = new THREE.Group();
   private birds = new DistantBirds();
   private ink = new CalligraphicInk(this.texture, this.mobile);
@@ -241,7 +243,7 @@ export class SimpleWorld {
       this.words.mesh,
       this.resonances.mesh,
       this.ink.group,
-      this.study.group,
+      ...(this.study ? [this.study.group] : []),
     );
     this.observer = new ResizeObserver(this.resize);
     this.observer.observe(host);
@@ -604,9 +606,9 @@ export class SimpleWorld {
         this.reaction.suggestEncounter(this.resonances.encounterSeed);
       this.ink.update(this.time, musicResponse, this.pixelRatio, this.inside);
     }
-    this.study.group.visible = MONUMENTAL_STUDY;
+    if (this.study) this.study.group.visible = MONUMENTAL_STUDY;
     if (MONUMENTAL_STUDY) {
-      this.study.update(
+      this.study?.update(
         this.time,
         this.paused ? 0 : dt,
         audio,
@@ -635,7 +637,7 @@ export class SimpleWorld {
         ? "0"
         : String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = "watercolor";
-      d.study = MONUMENTAL_STUDY ? "monumental-ink" : "legacy";
+      d.study = MONUMENTAL_STUDY ? "monumental-ink" : "emoji-universes";
       const pigment = this.pigment.inspect();
       const reaction = this.reaction.inspect();
       d.reaction = reaction.state;
@@ -700,7 +702,7 @@ export class SimpleWorld {
     this.cameraPoetics.dispose();
     this.pigment.dispose();
     this.reaction.dispose();
-    this.study.dispose();
+    this.study?.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();

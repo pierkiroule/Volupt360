@@ -11,6 +11,11 @@ test("one authored ink study replaces decorative layers and preserves controls",
       errors.push(m.text());
   });
   await page.goto("/");
+  test.skip(
+    (await page.locator("canvas").getAttribute("data-study")) !==
+      "monumental-ink",
+    "Optional single-study mode is inactive; emoji flow is the active experience.",
+  );
   const canvas = page.locator("canvas");
   await expect(page.getByText("Étude I — Indigo & terre")).toBeVisible();
   await expect(page.locator(".simple-nuance")).toHaveCount(0);
@@ -187,6 +192,11 @@ test("gyro, fallback, context restoration and saved choices survive the study", 
     });
   });
   await page.goto("/");
+  test.skip(
+    (await page.locator("canvas").getAttribute("data-study")) !==
+      "monumental-ink",
+    "Optional single-study mode is inactive; emoji flow is the active experience.",
+  );
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-ready", "inside");

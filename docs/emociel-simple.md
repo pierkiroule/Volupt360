@@ -435,3 +435,29 @@ tests de fragments, de dépôt persistant aux rencontres et de musique réelle o
 aussi passé pendant cette évolution. Les trois contrôles de composition ont été
 réexécutés avec capture après la fin de la transition d’entrée. Capture mobile
 inspectée ; pas de validation sur appareil physique ni de test prolongé annoncé.
+
+### Rétablissement du concept auteur
+
+Le réglage normal est à nouveau `MONUMENTAL_STUDY = false`. La palette de douze
+visages, la sélection ordonnée de un à trois choix, l’aperçu vivant et l’entrée
+dans l’univers sont restaurés. Les sélections alimentent directement les scores
+visuels, les pigments et les profils musicaux ; le profil fixe de l’étude unique
+n’est plus appliqué. Les sauvegardes existantes restent accessibles.
+
+Les masses asymétriques, détails à trois échelles, réaction-diffusion, rencontres
+spatiales, fragments rares et améliorations de navigation du parcours composé
+sont conservés. L’étude indigo/terre reste dans le code comme essai, sans être
+créée dans la scène active et sans ressource GPU supplémentaire. Les tests UI
+de cette étude sont explicitement ignorés lorsqu’elle est inactive ; ses tests
+isolés de matériau et de trajet restent disponibles.
+
+`tests/emoji-flow.spec.js` vérifie le retour effectif du rôle d’auteur : palette,
+minimum d’un choix, plafond de trois, changement d’identité et d’ordre, entrée,
+lecture musicale, pause, retour et persistance après rechargement.
+
+Validation de ce rétablissement : build TypeScript/Vite réussi ; 13 tests actifs
+passent (parcours auteur, limites de sélection, sauvegardes, gyro simulé,
+restauration WebGL, diversité des rendus et harmonie, lecture/volume/silence/reprise
+audio et gestion d’erreur). Deux tests isolés de l’étude passent ; ses deux tests
+UI sont explicitement ignorés car ce mode est inactif. Pas de validation sur
+appareil mobile physique annoncée.

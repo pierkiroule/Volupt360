@@ -1,23 +1,25 @@
-# ÉmoCiel •° — Étude I : Indigo & terre
+# ÉmoCiel •° — Ton ciel, à ta façon
 
-**Un paysage d’encre suspendu. Approcher. Traverser. Regarder autrement.**
+**Choisir 1 à 3 émojis → faire naître son univers → entrer → contempler ou voyager.**
 
-Une composition unique remplace temporairement les variantes émotionnelles :
-une grande formation d’aquarelle indigo et terre cuite, une réserve de papier à
-traverser et deux plans secondaires. Aucun empilement de particules, mots ou
-filaments. On approche les pigments, traverse l’ouverture puis découvre l’œuvre
-sous d’autres angles.
+Douze visages permettent d’associer joie, tristesse, peur, dégoût, colère,
+tendresse, émerveillement, surprise, confusion, fatigue, sérénité et nostalgie.
+Les choix et leur ordre modifient réellement les couleurs, les matières,
+les mouvements, la composition spatiale et l’orchestration musicale. Il ne
+s’agit pas d’une interprétation psychologique du visiteur.
 
-Le voyage peut être orienté au toucher ou arrêté pour contempler. Le gyroscope
-est facultatif, avec navigation tactile alternative. Pause, volume et silence
-restent accessibles. Les choix emoji antérieurs sont conservés localement mais
-leur sélection n’est pas proposée dans cette étude.
+L’univers est composé de grandes nappes aquarellées et d’encre, de réserves
+mouvantes et de textures à plusieurs échelles. La réaction-diffusion conserve
+une mémoire pigmentaire et reçoit des graines musicales et des suggestions de
+rencontre spatiale. Les particules restent limitées ; les fragments poétiques
+courts sont espacés. Le voyage alterne approche et recul, avec pilotage tactile.
+Le gyroscope est facultatif, avec alternative tactile. Pause, volume et silence
+restent accessibles. Les sélections sont sauvegardées localement.
 
-React, Vite, TypeScript et Three.js. Pas de backend, d’API d’images ni
-d’interprétation psychologique. Deux appels de scène et une simulation
-Gray–Scott basse résolution partagée, sans nouveau contexte WebGL. Le grain
-et les textures aquarelle sont procéduraux ; les cellules de réaction-diffusion
-modulent la matière sans devenir des motifs décoratifs répétitifs.
+React, Vite, TypeScript et Three.js. Aucun backend ni API d’images. La musique
+utilise `smplr`, douze samples locaux VCSL/VSCO sous CC0 et trois boucles
+rythmiques originales locales. Sources : `public/audio/emociel/` et
+`public/audio/electro/`. Son après interaction ; mise en cache en production.
 
 ```sh
 npm ci
@@ -25,22 +27,17 @@ npm run dev
 npm run build
 ```
 
-Vercel : commande `npm run build`, dossier `dist`.
+Vercel : `npm run build`, dossier `dist`.
 
 ```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/monumental-study.spec.js tests/weather-music.spec.js tests/reaction-diffusion.spec.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/emoji-flow.spec.js tests/simple-cosmo.spec.js tests/universe-identity.spec.js tests/weather-music.spec.js
 ```
 
-La musique repose sur `smplr`, douze samples locaux VCSL/VSCO sous CC0 et trois
-boucles rythmiques originales locales. Provenance : `public/audio/emociel/` et
-`public/audio/electro/`. Le son démarre après interaction ; les ressources audio
-et l’application sont mises en cache en production.
+L’étude indigo/terre reste conservée comme essai graphique **inactif**. Le drapeau
+`MONUMENTAL_STUDY = false` est le réglage normal : il laisse l’utilisateur composer
+son univers. Passer ce drapeau à `true` puis reconstruire ouvre l’étude unique
+à la place du parcours ; ce n’est pas un réglage proposé au visiteur.
 
-[Composition, architecture, retour arrière et limites](docs/monumental-study.md).
-[Historique des versions précédentes](docs/emociel-simple.md).
-
-Le drapeau `MONUMENTAL_STUDY = false` dans `src/simple/MonumentalStudy.ts` permet
-de retrouver la palette et les univers précédents après reconstruction. Leur
-code et les données utilisateur sont conservés. Pigment Drift (MIT) reste dans
-le dépôt, sans simulation active dans cette étude : voir
-`src/vendor/pigment-drift/UPSTREAM.md`.
+[Architecture des univers, matériaux et limites](docs/emociel-simple.md).
+[Étude graphique facultative](docs/monumental-study.md).
+Les données utilisateur et les améliorations de navigation sont conservées.
