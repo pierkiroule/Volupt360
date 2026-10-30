@@ -1,25 +1,21 @@
-# ÉmoCiel •° — Ton ciel, à ta façon
+# ÉmoCiel •° — Compose ta météo intérieure
 
-**Choisir 1 à 3 émojis → faire naître son univers → entrer → contempler ou voyager.**
+**1 à 3 émojis → une météo singulière → entrer dans son atmosphère → contempler ou voyager.**
 
-Douze visages permettent d’associer joie, tristesse, peur, dégoût, colère,
-tendresse, émerveillement, surprise, confusion, fatigue, sérénité et nostalgie.
-Les choix et leur ordre modifient réellement les couleurs, les matières,
-les mouvements, la composition spatiale et l’orchestration musicale. Il ne
-s’agit pas d’une interprétation psychologique du visiteur.
+Les choix composent un ciel panoramique, des nuages en relief, des trouées
+lumineuses, des averses localisées, de la neige, du vent ou une brume nocturne.
+Les phénomènes peuvent coexister : une éclaircie parmi les nuages de pluie,
+une lumière de fin de jour sous une couverture mouvante. La musique suit les
+mêmes choix, sans interprétation psychologique automatique.
 
-L’univers est composé de grandes nappes aquarellées et d’encre, de réserves
-mouvantes et de textures à plusieurs échelles. La réaction-diffusion conserve
-une mémoire pigmentaire et reçoit des graines musicales et des suggestions de
-rencontre spatiale. Les particules restent limitées ; les fragments poétiques
-courts sont espacés. Le voyage alterne approche et recul, avec pilotage tactile.
-Le gyroscope est facultatif, avec alternative tactile. Pause, volume et silence
-restent accessibles. Les sélections sont sauvegardées localement.
+Les formations flottent à plusieurs distances et se transforment lentement.
+On les approche, les contourne et les traverse. La brume enveloppe doucement
+la caméra à l’intérieur d’un nuage. Les formes restent ouvertes à l’imaginaire ;
+les mots et les motifs picturaux ne se superposent plus au paysage.
 
-React, Vite, TypeScript et Three.js. Aucun backend ni API d’images. La musique
-utilise `smplr`, douze samples locaux VCSL/VSCO sous CC0 et trois boucles
-rythmiques originales locales. Sources : `public/audio/emociel/` et
-`public/audio/electro/`. Son après interaction ; mise en cache en production.
+Sélection conservée localement, pilotage tactile, contemplation gyro facultative,
+alternative sans capteur, pause, volume et silence. Pas de backend, de
+localisation, d’API météo ni de photos téléchargées.
 
 ```sh
 npm ci
@@ -30,14 +26,15 @@ npm run build
 Vercel : `npm run build`, dossier `dist`.
 
 ```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/emoji-flow.spec.js tests/simple-cosmo.spec.js tests/universe-identity.spec.js tests/weather-music.spec.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npx playwright test tests/weather-atmosphere.spec.js tests/emoji-flow.spec.js tests/simple-cosmo.spec.js tests/weather-music.spec.js
 ```
 
-L’étude indigo/terre reste conservée comme essai graphique **inactif**. Le drapeau
-`MONUMENTAL_STUDY = false` est le réglage normal : il laisse l’utilisateur composer
-son univers. Passer ce drapeau à `true` puis reconstruire ouvre l’étude unique
-à la place du parcours ; ce n’est pas un réglage proposé au visiteur.
+React, Vite, TypeScript et Three.js. Nuages en amas d’imposteurs éclairés,
+skydome et précipitations : deux à trois appels de rendu, sans ray marching
+volumétrique coûteux. La musique locale repose sur `smplr`, VCSL/VSCO sous CC0
+et trois boucles originales ; sources dans `public/audio/`.
 
-[Architecture des univers, matériaux et limites](docs/emociel-simple.md).
-[Étude graphique facultative](docs/monumental-study.md).
-Les données utilisateur et les améliorations de navigation sont conservées.
+[Architecture, limites et retour arrière](docs/atmospheric-weather.md).
+Les anciens moteurs aquarelle et l’étude indigo restent conservés mais inactifs.
+Les sélections utilisateur ne sont pas effacées. Validation physique mobile
+et mesure de performance prolongée restent à effectuer.

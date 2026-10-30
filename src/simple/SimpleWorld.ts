@@ -1,3 +1,4 @@
+import { WeatherAtmosphere, ATMOSPHERIC_WEATHER } from "./WeatherAtmosphere";
 import { universeIdentity } from "./UniverseIdentity";
 import { FlightSteering } from "./FlightSteering";
 import { CameraPoetics } from "./CameraPoetics";
@@ -43,7 +44,12 @@ export class SimpleWorld {
   setAudioSource(source: () => Readonly<MusicSignal> | undefined) {
     this.audioSource = source;
   }
-  private texture = makeWatercolorAtlas();
+  private texture = ATMOSPHERIC_WEATHER
+    ? new THREE.Texture()
+    : makeWatercolorAtlas();
+  private weather = ATMOSPHERIC_WEATHER
+    ? new WeatherAtmosphere(this.mobile)
+    : null;
   private study = MONUMENTAL_STUDY
     ? new MonumentalStudy(this.texture, this.mobile)
     : null;
@@ -109,7 +115,12 @@ export class SimpleWorld {
     this.pixelRatio = Math.min(devicePixelRatio || 1, 1.25);
     this.renderer.setPixelRatio(this.pixelRatio);
     const canvas = this.renderer.domElement;
-    canvas.setAttribute("aria-label", "Voiles aquarellés en mouvement");
+    canvas.setAttribute(
+      "aria-label",
+      ATMOSPHERIC_WEATHER
+        ? "Atmosphère nuageuse à explorer"
+        : "Voiles aquarellés en mouvement",
+    );
     host.appendChild(canvas);
     this.geometry.setAttribute(
       "island",
@@ -244,6 +255,7 @@ export class SimpleWorld {
       this.resonances.mesh,
       this.ink.group,
       ...(this.study ? [this.study.group] : []),
+      ...(this.weather ? [this.weather.group] : []),
     );
     this.observer = new ResizeObserver(this.resize);
     this.observer.observe(host);
@@ -272,6 +284,7 @@ export class SimpleWorld {
       ? "indigo-terre"
       : identity.name;
     this.renderer.domElement.dataset.sequence = identity.key;
+    this.weather?.setPalette(ids);
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
@@ -573,7 +586,7 @@ export class SimpleWorld {
         audio.energy > 0.005 ? audio.beat : undefined,
         musicResponse.x,
       );
-    if (!MONUMENTAL_STUDY) {
+    if (!MONUMENTAL_STUDY && !ATMOSPHERIC_WEATHER) {
       this.contact = this.dynamics.update(this.time, this.paused ? 0 : dt);
       this.atmosphere.sky.material.uniforms.electro.value
         .copy(musicResponse)
@@ -593,8 +606,14 @@ export class SimpleWorld {
       if (!MONUMENTAL_STUDY)
         this.pigment.update(dt, audio, this.paused || !this.inside);
     }
-    this.reaction.update(this.renderer, dt, audio, this.paused || !this.inside);
-    if (!MONUMENTAL_STUDY) {
+    if (!ATMOSPHERIC_WEATHER)
+      this.reaction.update(
+        this.renderer,
+        dt,
+        audio,
+        this.paused || !this.inside,
+      );
+    if (!MONUMENTAL_STUDY && !ATMOSPHERIC_WEATHER) {
       this.resonances.setReactionTexture(this.reaction.texture);
       this.resonances.setLivingTexture(
         this.pigment.texture,
@@ -607,7 +626,7 @@ export class SimpleWorld {
       this.ink.update(this.time, musicResponse, this.pixelRatio, this.inside);
     }
     if (this.study) this.study.group.visible = MONUMENTAL_STUDY;
-    if (MONUMENTAL_STUDY) {
+    if (MONUMENTAL_STUDY && !ATMOSPHERIC_WEATHER) {
       this.study?.update(
         this.time,
         this.paused ? 0 : dt,
@@ -621,22 +640,42 @@ export class SimpleWorld {
       this.words.mesh.visible = false;
       this.birds.mesh.visible = false;
     }
-    if (MONUMENTAL_STUDY || !this.inside || this.gyro)
+    if (this.weather) {
+      this.weather.update(this.time, this.camera, this.pixelRatio);
+      this.cloudLayer.visible = false;
+      this.atmosphere.sky.visible = false;
+      this.resonances.mesh.visible = false;
+      this.ink.group.visible = false;
+      this.words.mesh.visible = false;
+      this.birds.mesh.visible = false;
+      if (this.study) this.study.group.visible = false;
+    }
+    if (ATMOSPHERIC_WEATHER || MONUMENTAL_STUDY || !this.inside || this.gyro)
       this.cameraPoetics.reset();
     this.cameraPoetics.update(
       this.time,
       dt,
-      !MONUMENTAL_STUDY && this.inside && this.travel && !this.gyro,
+      !ATMOSPHERIC_WEATHER &&
+        !MONUMENTAL_STUDY &&
+        this.inside &&
+        this.travel &&
+        !this.gyro,
       this.paused,
     );
     this.cameraPoetics.render(this.renderer, this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
       const d = this.renderer.domElement.dataset;
-      d.particles = MONUMENTAL_STUDY
-        ? "0"
-        : String(this.atmosphere.particles.geometry.drawRange.count);
-      d.sky = "watercolor";
+      d.particles =
+        MONUMENTAL_STUDY || ATMOSPHERIC_WEATHER
+          ? "0"
+          : String(this.atmosphere.particles.geometry.drawRange.count);
+      d.sky = ATMOSPHERIC_WEATHER ? "atmosphere" : "watercolor";
+      d.clouds = String(this.weather?.inspect().clouds ?? 0);
+      d.cloudMist = String(this.weather?.inspect().mist ?? 0);
+      d.precipitation = this.weather
+        ? JSON.stringify(this.weather.inspect().climate)
+        : "";
       d.study = MONUMENTAL_STUDY ? "monumental-ink" : "emoji-universes";
       const pigment = this.pigment.inspect();
       const reaction = this.reaction.inspect();
@@ -647,15 +686,17 @@ export class SimpleWorld {
       d.pigment = pigment.state;
       d.pigmentSize = String(pigment.size);
       d.pigmentDeposits = String(pigment.deposits);
-      d.resonances = !MONUMENTAL_STUDY && this.inside ? "6" : "0";
+      d.resonances =
+        !MONUMENTAL_STUDY && !ATMOSPHERIC_WEATHER && this.inside ? "6" : "0";
       const reading = this.words.inspect();
       d.word = reading.focused ?? "";
       d.wordApproach = reading.approach.toFixed(3);
-      d.accents = MONUMENTAL_STUDY
-        ? "0"
-        : String(this.accents.seeds.geometry.drawRange.count);
-      d.streams = MONUMENTAL_STUDY ? "0" : "12";
-      d.islands = MONUMENTAL_STUDY ? "0" : "12";
+      d.accents =
+        MONUMENTAL_STUDY || ATMOSPHERIC_WEATHER
+          ? "0"
+          : String(this.accents.seeds.geometry.drawRange.count);
+      d.streams = MONUMENTAL_STUDY || ATMOSPHERIC_WEATHER ? "0" : "12";
+      d.islands = MONUMENTAL_STUDY || ATMOSPHERIC_WEATHER ? "0" : "12";
       d.contact = this.contact.toFixed(4);
       d.altitude = this.camera.position.y.toFixed(2);
       d.horizon = "painted-landscape";
@@ -703,6 +744,7 @@ export class SimpleWorld {
     this.pigment.dispose();
     this.reaction.dispose();
     this.study?.dispose();
+    this.weather?.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();

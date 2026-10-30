@@ -89,7 +89,7 @@ export default function SimpleApp() {
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
-    document.title = "ÉmoCiel •° — Compose ton ciel émotionnel";
+    document.title = "ÉmoCiel •° — Compose ta météo intérieure";
     if ("serviceWorker" in navigator && import.meta.env.PROD)
       void navigator.serviceWorker
         .register(import.meta.env.BASE_URL + "sw.js")
@@ -203,9 +203,9 @@ export default function SimpleApp() {
               </>
             ) : (
               <>
-                Compose ton ciel émotionnel.
+                Compose ta météo intérieure.
                 <br />
-                Traverse-le tranquillement en 360°.
+                Entre dans ton atmosphère en 360°.
               </>
             )}
           </p>

@@ -11,10 +11,10 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await expect(page.locator(".simple-nuance")).toHaveCount(12);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-renderer", "simple-silk");
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(9);
-  await expect(canvas).toHaveAttribute("data-streams", "12");
-  expect(Number(await canvas.getAttribute("data-accents"))).toBeGreaterThan(0);
-  expect(Number(await canvas.getAttribute("data-accents"))).toBeLessThanOrEqual(
+  expect(Number(await canvas.getAttribute("data-calls"))).toBe(3);
+  await expect(canvas).toHaveAttribute("data-streams", "0");
+  expect(Number(await canvas.getAttribute("data-clouds"))).toBeGreaterThan(0);
+  expect(Number(await canvas.getAttribute("data-clouds"))).toBeLessThanOrEqual(
     384,
   );
   await page.getByRole("button", { name: "Colère", exact: true }).click();
@@ -150,7 +150,7 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
   });
   await page.goto("/");
   const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-sky", "watercolor");
+  await expect(canvas).toHaveAttribute("data-sky", "atmosphere");
   const bounds = await page.locator(".simple-nuance").evaluateAll((buttons) =>
     buttons.map((b) => {
       const r = b.getBoundingClientRect();
@@ -176,7 +176,9 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
       ).toBe(true);
     }
   const before = await canvas.screenshot();
-  await page.getByRole("button", { name: "Émerveillement", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Émerveillement", exact: true })
+    .click();
   await page.waitForTimeout(150);
   expect(before.equals(await canvas.screenshot())).toBe(false);
   const selected = await page
@@ -197,9 +199,9 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
   ).toBeLessThanOrEqual(480);
   expect(
     Number(await canvas.getAttribute("data-calls")),
-  ).toBeGreaterThanOrEqual(10);
+  ).toBeGreaterThanOrEqual(2);
   expect(Number(await canvas.getAttribute("data-calls"))).toBeLessThanOrEqual(
-    13,
+    3,
   );
   expect(errors).toEqual([]);
 });

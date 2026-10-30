@@ -38,7 +38,7 @@ test("the author selects one to three faces, generates their own world and keeps
   await page.screenshot({ path: testInfo.outputPath("emoji-palette.png") });
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   await expect(canvas).toHaveAttribute("data-ready", "inside");
-  await expect(canvas).toHaveAttribute("data-resonances", "6");
+  await expect(canvas).toHaveAttribute("data-sky", "atmosphere");
   await expect(page.locator(".simple-music")).toHaveAttribute(
     "data-state",
     "on",

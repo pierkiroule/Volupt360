@@ -137,7 +137,7 @@ test("ordered selections reach the complete world and persist without extra prev
     const canvas = page.locator("canvas");
     await expect(canvas).toHaveAttribute("data-universe", name);
     await expect(canvas).toHaveAttribute("data-sequence", ids.join(">"));
-    await expect(canvas).toHaveAttribute("data-calls", "9");
+    await expect(canvas).toHaveAttribute("data-calls", /^[23]$/);
     await page.screenshot({ path: `test-results/universe-${name}.png` });
   }
 });
