@@ -8,6 +8,7 @@ import { requestGyroscope } from "../scene/gyroOrientation";
 import "./simple.css";
 
 export default function SimpleApp() {
+  const [artRetry, setArtRetry] = useState(0);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [artStatus, setArtStatus] = useState("Chargement des œuvres…");
   const [revealedArt, setRevealedArt] = useState<Artwork | null>(null);
@@ -49,7 +50,7 @@ export default function SimpleApp() {
           );
       });
     return () => controller.abort();
-  }, [selected]);
+  }, [selected, artRetry]);
   useEffect(() => {
     world.current?.artBubbles.setWorks(artworks);
   }, [artworks, retry]);
@@ -477,6 +478,11 @@ export default function SimpleApp() {
             Trois invitations artistiques, sans interprétation psychologique.
           </p>
           {artStatus && <p role="status">{artStatus}</p>}
+          {artStatus.includes("indisponibles") && (
+            <button onClick={() => setArtRetry((n) => n + 1)}>
+              Réessayer les œuvres
+            </button>
+          )}
           {artworks.map((a) => (
             <p key={a.id}>
               <a href={a.source} target="_blank" rel="noopener noreferrer">

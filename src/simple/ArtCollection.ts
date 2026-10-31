@@ -43,7 +43,7 @@ export async function loadArtworks(
 ): Promise<Artwork[]> {
   const choices = ids.filter((id) => ART_QUERIES[id]).slice(0, 3);
   if (!choices.length) choices.push("warm");
-  const key = "emociel-art-v2:" + choices.join(",");
+  const key = "emociel-art-v3:" + choices.join(",");
   try {
     const cached = JSON.parse(localStorage.getItem(key) || "null");
     if (cached?.expires > Date.now() && cached.items?.length === 3)
@@ -52,31 +52,61 @@ export async function loadArtworks(
     /* Storage is optional. */
   }
   const queries = [...new Set(choices.map((id) => ART_QUERIES[id]))];
-  const pools = await Promise.all(
-    queries.map(async (q) => {
-      const url = new URL("https://api.artic.edu/api/v1/artworks/search");
-      url.searchParams.set("q", q);
-      url.searchParams.set("limit", "30");
-      url.searchParams.set(
-        "fields",
-        "id,title,artist_display,is_public_domain,image_id,color",
-      );
-      const response = await fetch(url, {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(12000)]),
-      });
-      if (!response.ok) throw new Error("Museum unavailable");
-      const json = await response.json();
-      // Only the museum’s explicit public-domain flag authorizes image use.
-      return (json.data || []).filter(
-        (a: any) =>
-          a.is_public_domain === true &&
-          typeof a.image_id === "string" &&
-          /^[a-zA-Z0-9-]+$/.test(a.image_id) &&
-          typeof a.id === "number" &&
-          typeof a.title === "string",
-      );
-    }),
-  );
+  async function search(q: string) {
+    const query = new URLSearchParams({
+      q,
+      limit: "40",
+      fields: "id,title,artist_display,is_public_domain,image_id,color",
+      // Filter before pagination: filtering just the first search page can
+      // otherwise discard every result although eligible works exist later.
+      "query[term][is_public_domain]": "true",
+    });
+    const params = JSON.stringify({
+      query: {
+        bool: {
+          must: [
+            { multi_match: { query: q, fields: ["title", "artist_title"] } },
+          ],
+          filter: [{ term: { is_public_domain: true } }],
+        },
+      },
+    });
+    query.delete("query[term][is_public_domain]");
+    query.set("params", params);
+    const endpoints = import.meta.env.PROD
+      ? [
+          "/museum-api/artworks/search",
+          "https://api.artic.edu/api/v1/artworks/search",
+        ]
+      : ["https://api.artic.edu/api/v1/artworks/search"];
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(`${endpoint}?${query}`, {
+          signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
+        });
+        if (!response.ok) throw new Error("Museum unavailable");
+        const json = await response.json();
+        if (!Array.isArray(json.data))
+          throw new Error("Invalid museum response");
+        return json.data.filter(
+          (a: any) =>
+            a.is_public_domain === true &&
+            typeof a.image_id === "string" &&
+            /^[a-zA-Z0-9-]+$/.test(a.image_id) &&
+            typeof a.id === "number" &&
+            typeof a.title === "string",
+        );
+      } catch {
+        if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+      }
+    }
+    return [];
+  }
+  // One unavailable artist must not discard the other successful searches.
+  const pools = await Promise.all(queries.map(search));
+  if (new Set(pools.flat().map((a: any) => a.id)).size < 3) {
+    pools.push(await search("abstract composition color rhythm"));
+  }
   const picked: Artwork[] = [];
   for (let i = 0; i < 3; i++) {
     const primary = TONES[choices[Math.min(i, choices.length - 1)]];
@@ -114,14 +144,14 @@ export async function loadArtworks(
       id: candidate.id,
       title: candidate.title,
       artist: candidate.artist_display,
-      image: `https://www.artic.edu/iiif/2/${candidate.image_id}/full/843,/0/default.jpg`,
+      image: `${import.meta.env.PROD ? "/museum-images" : "https://www.artic.edu/iiif/2"}/${candidate.image_id}/full/843,/0/default.jpg`,
       source: `https://www.artic.edu/artworks/${candidate.id}`,
       role: roles[i],
     });
   }
   try {
     const keys = Object.keys(localStorage).filter((k) =>
-      k.startsWith("emociel-art-v2:"),
+      k.startsWith("emociel-art-v3:"),
     );
     while (keys.length >= 12) {
       const oldest = keys.shift();

@@ -98,3 +98,73 @@ test("a genuine world-space crossing reveals once and resources are disposed", a
   });
   expect(result).toEqual({ encounters: 1, children: 2, after: 0 });
 });
+
+test("a failed artist and a sparse first page are completed by the public-domain search", async ({
+  page,
+}) => {
+  const searches = [];
+  await page.route("https://api.artic.edu/**", (route) => {
+    const url = new URL(route.request().url());
+    const q = url.searchParams.get("q");
+    searches.push(q);
+    const params = JSON.parse(url.searchParams.get("params"));
+    expect(params.query.bool.filter[0].term.is_public_domain).toBe(true);
+    if (q === "Wassily Kandinsky")
+      return route.fulfill({ status: 503, body: "" });
+    const ids = q.includes("abstract") ? [4, 5, 6] : [1];
+    return route.fulfill({
+      json: {
+        data: ids.map((id) => ({
+          id,
+          title: "Abstract " + id,
+          artist_display: "Artist",
+          image_id: "img-" + id,
+          is_public_domain: true,
+        })),
+      },
+    });
+  });
+  await page.goto("/");
+  const works = await page.evaluate(async () => {
+    const { loadArtworks } = await import("/src/simple/ArtCollection.ts");
+    return loadArtworks(["night", "warm"], new AbortController().signal);
+  });
+  expect(works).toHaveLength(3);
+  expect(new Set(works.map((w) => w.id)).size).toBe(3);
+  expect(searches).toContain("abstract composition color rhythm");
+});
+
+test("retry recovers the collection without leaving the sky", async ({
+  page,
+}) => {
+  let available = false;
+  await page.route("https://api.artic.edu/**", (route) =>
+    route.fulfill(
+      available
+        ? {
+            json: {
+              data: [1, 2, 3].map((id) => ({
+                id,
+                title: "Composition " + id,
+                image_id: "img-" + id,
+                is_public_domain: true,
+                artist_display: "Artist",
+              })),
+            },
+          }
+        : { status: 503, body: "" },
+    ),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
+  await page.getByRole("button", { name: "Œuvres et sources" }).click();
+  await expect(
+    page.getByRole("button", { name: "Réessayer les œuvres" }),
+  ).toBeVisible();
+  available = true;
+  await page.getByRole("button", { name: "Réessayer les œuvres" }).click();
+  await expect(
+    page.getByRole("button", { name: "Œuvres et sources" }),
+  ).toHaveText("Œuvres · 3/3");
+  await expect(page.locator("canvas")).toHaveAttribute("data-ready", "inside");
+});
