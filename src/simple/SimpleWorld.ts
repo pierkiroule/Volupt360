@@ -1,4 +1,4 @@
-import { ArtBubbles } from "./ArtBubbles";
+import { EmotionalResonance } from "./EmotionalResonance";
 import { WeatherAtmosphere, ATMOSPHERIC_WEATHER } from "./WeatherAtmosphere";
 import { universeIdentity } from "./UniverseIdentity";
 import { FlightSteering } from "./FlightSteering";
@@ -48,7 +48,7 @@ export class SimpleWorld {
   private texture = ATMOSPHERIC_WEATHER
     ? new THREE.Texture()
     : makeWatercolorAtlas();
-  readonly artBubbles = new ArtBubbles();
+  readonly emotionalResonance = new EmotionalResonance(this.mobile);
   private weather = ATMOSPHERIC_WEATHER
     ? new WeatherAtmosphere(this.mobile)
     : null;
@@ -257,7 +257,7 @@ export class SimpleWorld {
       this.resonances.mesh,
       this.ink.group,
       ...(this.study ? [this.study.group] : []),
-      this.artBubbles.group,
+      this.emotionalResonance.group,
       ...(this.weather ? [this.weather.group] : []),
     );
     this.observer = new ResizeObserver(this.resize);
@@ -288,6 +288,7 @@ export class SimpleWorld {
       : identity.name;
     this.renderer.domElement.dataset.sequence = identity.key;
     this.weather?.setPalette(ids);
+    this.emotionalResonance.setPalette(ids);
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
@@ -665,8 +666,8 @@ export class SimpleWorld {
         !this.gyro,
       this.paused,
     );
-    this.artBubbles.group.visible = this.inside;
-    this.artBubbles.update(this.camera, this.inside && !this.paused);
+    this.emotionalResonance.group.visible = this.inside;
+    this.emotionalResonance.update(this.time, this.camera, audio?.energy ?? 0);
     this.cameraPoetics.render(this.renderer, this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
@@ -676,6 +677,7 @@ export class SimpleWorld {
           ? "0"
           : String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = ATMOSPHERIC_WEATHER ? "atmosphere" : "watercolor";
+      d.emotionalResonance = this.emotionalResonance.group.userData.sequence;
       d.clouds = String(this.weather?.inspect().clouds ?? 0);
       d.cloudMist = String(this.weather?.inspect().mist ?? 0);
       d.precipitation = this.weather
@@ -750,7 +752,7 @@ export class SimpleWorld {
     this.reaction.dispose();
     this.study?.dispose();
     this.weather?.dispose();
-    this.artBubbles.dispose();
+    this.emotionalResonance.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();
