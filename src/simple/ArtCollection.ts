@@ -20,22 +20,9 @@ export interface Artwork {
   image: string;
   source: string;
   role: string;
+  license?: string;
+  licenseUrl?: string;
 }
-// Hue/lightness targets are editorial choices, not universal emotional meanings.
-const TONES: Record<string, [number, number]> = {
-  warm: [42, 65],
-  water: [220, 30],
-  air: [260, 35],
-  soft: [105, 35],
-  night: [8, 35],
-  spark: [345, 70],
-  wonder: [285, 60],
-  surprise: [55, 70],
-  confused: [270, 45],
-  tired: [225, 25],
-  trust: [175, 65],
-  longing: [30, 45],
-};
 const roles = ["Écho", "Nuance", "Ouverture"];
 export async function loadArtworks(
   ids: string[],
@@ -43,7 +30,7 @@ export async function loadArtworks(
 ): Promise<Artwork[]> {
   const choices = ids.filter((id) => ART_QUERIES[id]).slice(0, 3);
   if (!choices.length) choices.push("warm");
-  const key = "emociel-art-v3:" + choices.join(",");
+  const key = "emociel-commons-v1:" + choices.join(",");
   try {
     const cached = JSON.parse(localStorage.getItem(key) || "null");
     if (cached?.expires > Date.now() && cached.items?.length === 3)
@@ -52,106 +39,114 @@ export async function loadArtworks(
     /* Storage is optional. */
   }
   const queries = [...new Set(choices.map((id) => ART_QUERIES[id]))];
-  async function search(q: string) {
-    const query = new URLSearchParams({
-      q,
-      limit: "40",
-      fields: "id,title,artist_display,is_public_domain,image_id,color",
-      // Filter before pagination: filtering just the first search page can
-      // otherwise discard every result although eligible works exist later.
-      "query[term][is_public_domain]": "true",
-    });
-    const params = JSON.stringify({
-      query: {
-        bool: {
-          must: [
-            { multi_match: { query: q, fields: ["title", "artist_title"] } },
-          ],
-          filter: [{ term: { is_public_domain: true } }],
-        },
-      },
-    });
-    query.delete("query[term][is_public_domain]");
-    query.set("params", params);
-    const endpoints = import.meta.env.PROD
-      ? [
-          "/museum-api/artworks/search",
-          "https://api.artic.edu/api/v1/artworks/search",
-        ]
-      : ["https://api.artic.edu/api/v1/artworks/search"];
-    for (const endpoint of endpoints) {
-      try {
-        const response = await fetch(`${endpoint}?${query}`, {
-          signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
-        });
-        if (!response.ok) throw new Error("Museum unavailable");
-        const json = await response.json();
-        if (!Array.isArray(json.data))
-          throw new Error("Invalid museum response");
-        return json.data.filter(
-          (a: any) =>
-            a.is_public_domain === true &&
-            typeof a.image_id === "string" &&
-            /^[a-zA-Z0-9-]+$/.test(a.image_id) &&
-            typeof a.id === "number" &&
-            typeof a.title === "string",
-        );
-      } catch {
-        if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-      }
+  const text = (html: string | undefined) => {
+    const document = new DOMParser().parseFromString(html || "", "text/html");
+    return document.body.textContent?.trim() || "";
+  };
+  const safeUrl = (value: unknown, host: string) => {
+    try {
+      const url = new URL(String(value));
+      return url.protocol === "https:" && url.hostname === host ? url.href : "";
+    } catch {
+      return "";
     }
-    return [];
+  };
+  async function search(q: string): Promise<Artwork[]> {
+    const query = new URLSearchParams({
+      action: "query",
+      format: "json",
+      origin: "*",
+      generator: "search",
+      gsrsearch: q + " painting filetype:bitmap",
+      gsrnamespace: "6",
+      gsrlimit: "30",
+      prop: "imageinfo",
+      iiprop: "url|extmetadata|mime",
+      iiurlwidth: "843",
+      iiextmetadatalanguage: "fr",
+    });
+    try {
+      const response = await fetch(
+        `https://commons.wikimedia.org/w/api.php?${query}`,
+        {
+          signal: AbortSignal.any([signal, AbortSignal.timeout(12000)]),
+        },
+      );
+      if (!response.ok) return [];
+      const json = await response.json();
+      return Object.values(json.query?.pages || {}).flatMap((page: any) => {
+        const info = page.imageinfo?.[0],
+          meta = info?.extmetadata;
+        if (!meta || !/^image\/(jpeg|png|webp)$/.test(info.mime || ""))
+          return [];
+        const license = text(meta.LicenseShortName?.value);
+        // Do not mistake a general free licence or a public-domain artwork
+        // with a restricted photograph for a CC0/public-domain image.
+        if (
+          !/^(CC0(?: 1\.0)?|Public domain|Domaine public|PDM(?: 1\.0)?)$/i.test(
+            license,
+          )
+        )
+          return [];
+        if (text(meta.Restrictions?.value)) return [];
+        const image = safeUrl(
+          info.thumburl || info.url,
+          "upload.wikimedia.org",
+        );
+        const source = safeUrl(info.descriptionurl, "commons.wikimedia.org");
+        if (!image || !source || typeof page.pageid !== "number") return [];
+        return [
+          {
+            id: page.pageid,
+            title:
+              text(meta.ObjectName?.value) || page.title.replace(/^File:/, ""),
+            artist: text(meta.Artist?.value) || "Artiste non renseigné",
+            image,
+            source,
+            role: "",
+            license,
+            licenseUrl: safeUrl(meta.LicenseUrl?.value, "creativecommons.org"),
+          },
+        ];
+      });
+    } catch {
+      if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+      return [];
+    }
   }
   // One unavailable artist must not discard the other successful searches.
   const pools = await Promise.all(queries.map(search));
   if (new Set(pools.flat().map((a: any) => a.id)).size < 3) {
-    pools.push(await search("abstract composition color rhythm"));
+    pools.push(await search("abstract painting"));
   }
   const picked: Artwork[] = [];
   for (let i = 0; i < 3; i++) {
-    const primary = TONES[choices[Math.min(i, choices.length - 1)]];
-    const targetLight = Math.min(80, primary[1] + (i === 2 ? 12 : 0));
-    const score = (a: any) => {
-      const hueDistance =
-        typeof a.color?.h === "number"
-          ? Math.min(
-              Math.abs(a.color.h - primary[0]),
-              360 - Math.abs(a.color.h - primary[0]),
-            ) / 180
-          : 0.5;
-      const lightDistance =
-        typeof a.color?.l === "number"
-          ? Math.abs(a.color.l - targetLight) / 100
-          : 0.5;
-      const abstract =
-        /composition|abstract|improvisation|rhythm|color|colour|form|circle|square/i.test(
-          a.title,
-        )
-          ? 0.65
-          : 0;
-      const figurative = /portrait|self-portrait|photograph|nude/i.test(a.title)
-        ? 1
-        : 0;
-      return abstract - hueDistance - lightDistance * 0.6 - figurative;
-    };
-    const pool = pools
-      .flat()
-      .filter((a: any) => !picked.some((p) => p.id === a.id));
-    pool.sort((a: any, b: any) => score(b) - score(a) || a.id - b.id);
+    const preferred = pools[Math.min(i, pools.length - 1)] || [];
+    const pool = [...preferred, ...pools.flat()].filter(
+      (a) => !picked.some((p) => p.id === a.id),
+    );
+    // Search ranking follows the selected artist. Prefer abstract composition
+    // titles over portraits; do not claim a colour analysis without metadata.
+    pool.sort(
+      (a, b) =>
+        Number(
+          /composition|abstract|improvisation|rhythm|color|colour|form|circle|square/i.test(
+            b.title,
+          ),
+        ) -
+        Number(
+          /composition|abstract|improvisation|rhythm|color|colour|form|circle|square/i.test(
+            a.title,
+          ),
+        ),
+    );
     const candidate = pool[0];
     if (!candidate) throw new Error("Not enough verified public-domain works");
-    picked.push({
-      id: candidate.id,
-      title: candidate.title,
-      artist: candidate.artist_display,
-      image: `${import.meta.env.PROD ? "/museum-images" : "https://www.artic.edu/iiif/2"}/${candidate.image_id}/full/843,/0/default.jpg`,
-      source: `https://www.artic.edu/artworks/${candidate.id}`,
-      role: roles[i],
-    });
+    picked.push({ ...candidate, role: roles[i] });
   }
   try {
     const keys = Object.keys(localStorage).filter((k) =>
-      k.startsWith("emociel-art-v3:"),
+      k.startsWith("emociel-commons-v1:"),
     );
     while (keys.length >= 12) {
       const oldest = keys.shift();

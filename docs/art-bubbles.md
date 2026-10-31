@@ -1,23 +1,19 @@
-# Œuvres rencontrées dans Émociel
+# Œuvres rencontrées dans Émociel — Wikimedia Commons
 
-Trois bulles sont ajoutées au monde existant, sans modifier le vol, le gyroscope ou la musique. Leur traversée (distance au segment 3D parcouru par la caméra) révèle une œuvre une seule fois par sélection. Le panneau Œuvres permet aussi de les ouvrir sans devoir viser. La révélation est refermable et le vol reste disponible.
+Le fournisseur Art Institute of Chicago a été remplacé par l’API publique Wikimedia Commons (`https://commons.wikimedia.org/w/api.php`). Aucun compte, clé ni serveur applicatif n’est nécessaire. `origin=*` permet les requêtes CORS publiques. Les anciennes réécritures Vercel et URLs IIIF du musée sont supprimées.
 
-## Sélection
+## Sélection artistique
 
-`src/simple/ArtCollection.ts` contient les correspondances éditoriales émotions/artistes et les cibles de teinte/luminosité. Les candidats de l’Art Institute of Chicago sont classés selon leurs couleurs lorsqu’elles sont renseignées, leurs titres abstraits et les choix ordonnés. Trois œuvres distinctes reçoivent les rôles Écho, Nuance, Ouverture. Ces associations artistiques ne constituent aucune interprétation psychologique.
+`ArtCollection.ts` contient une table éditoriale émotions/artistes. Les recherches suivent les choix ordonnés ; trois œuvres distinctes reçoivent les rôles Écho, Nuance, Ouverture. Une recherche complémentaire d’abstractions complète les résultats trop courts. Le classement privilégie les titres évoquant des compositions abstraites. Il ne prétend pas analyser les couleurs des images, car Commons ne fournit pas les mêmes métadonnées que le musée. Les associations n’ont aucune valeur diagnostique et demandent encore une curation fine pour garantir la qualité de chaque correspondance.
 
-Seules les réponses avec `is_public_domain === true` et un identifiant image valide sont utilisées. Les images IIIF et liens sources sont construits à partir des identifiants retournés par le musée. L’artiste, le titre, le musée et la mention domaine public / CC0 sont accessibles dans Sources. Aucun appel IA, serveur ou nouvelle dépendance.
+## Droits et sécurité
 
-## Ressources et erreurs
+Le parseur exploite `query.pages[].imageinfo[0]` et les `extmetadata`. Seules les mentions explicites CC0, Public domain / Domaine public ou PDM sont acceptées, sans restriction signalée. Les autres licences, notamment CC BY-SA, sont exclues. Les champs HTML sont convertis en texte ; aucun HTML distant n’est inséré dans React. Seuls les liens HTTPS de commons.wikimedia.org et upload.wikimedia.org sont autorisés pour les sources et images. Les URLs réelles de miniature sont fournies par l’API, pas inventées. Les crédits affichent l’artiste, la source et la licence effectivement retournée. Ces métadonnées constituent la vérification disponible ; elles ne remplacent pas une expertise juridique.
 
-Métadonnées en cache local pendant sept jours, une entrée par combinaison visitée. Les images utilisent le cache HTTP du navigateur. Trois textures au maximum dans la scène ; textures et matériaux libérés à chaque changement, y compris les chargements arrivant après destruction. Géométries partagées. Les requêtes ont un délai maximal de douze secondes et sont annulées quand la sélection change. Une erreur réseau conserve entièrement le ciel et affiche l’indisponibilité dans Sources. Un échec image/CORS n’affiche pas de fausse œuvre.
+## Intégration et ressources
 
-## Limites
+Les trois membranes de `ArtBubbles.ts` restent dans la scène et réutilisent les géométries. Une traversée réelle du segment de caméra déclenche la révélation une seule fois par sélection. L’œuvre peut aussi être ouverte depuis Sources. Le vol, le gyroscope et la musique restent inchangés. Trois textures au maximum, libérées au changement ou démontage, y compris les chargements tardifs. Cache de métadonnées v1 spécifique Commons, limité à douze combinaisons et sept jours ; cache HTTP navigateur pour les images. Délai maximal douze secondes par recherche, annulation lors des changements, erreur non bloquante et bouton Réessayer.
 
-Le musée a renvoyé HTTP 403 depuis l’environnement de développement, y compris après nouvelle tentative réseau. Le parcours a donc été vérifié avec des réponses simulées, pas avec un téléchargement réel du musée. Disponibilité des images réelles et CORS à confirmer sur le déploiement. La sélection par métadonnées est une première approximation éditoriale, pas un catalogue d’œuvres individuellement validées : une curation manuelle restera préférable pour une correspondance particulièrement fine. Certaines collections peuvent fournir moins de trois œuvres éligibles ; aucune œuvre protégée n’est alors utilisée pour compléter.
+## Validation et limites
 
-Les textures sont des photographies planes dans des membranes sphériques, pas des tableaux reconstruits en volumes ou panoramas. Pas de validation sur téléphone physique effectuée.
-
-## Correction du chargement
-
-Les recherches filtrent désormais le domaine public **avant** pagination via la requête Elasticsearch documentée de l’API. Chaque artiste peut échouer indépendamment ; une recherche complémentaire d’abstractions complète les pools trop courts. Le cache v3 invalide les anciens résultats. Sur Vercel, les réécritures `/museum-api/*` et `/museum-images/*` assurent des accès de même origine, sans serveur applicatif ni proxy tiers. Les réponses API disposent aussi d’une tentative directe de secours. Le bouton Réessayer relance la sélection sans quitter le ciel. Ces réécritures nécessitent un nouveau déploiement Vercel ; elles n’ont pas été validées sur un déploiement réel depuis cet environnement. Le musée reste inaccessible ici (403), donc aucune garantie de disponibilité distante n’est revendiquée.
+Build et tests automatisés exécutés. Les tests couvrent le format Commons, le refus des licences non admises, les sources, le cache, la reprise et la collision 3D. Les requêtes réelles Commons renvoient HTTP 403 depuis l’environnement d’exécution, y compris après tentative réseau supplémentaire : les données API ont donc été simulées dans les tests. Le chargement distant et les images réelles restent à confirmer sur le déploiement ; aucun succès réseau réel n’est revendiqué. Téléphone physique non testé. Les images sont des plans dans des membranes, pas des panoramas ni des reconstructions 3D des tableaux.

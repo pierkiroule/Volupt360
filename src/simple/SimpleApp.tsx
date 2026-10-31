@@ -489,7 +489,7 @@ export default function SimpleApp() {
                 {a.role} — {a.title}
               </a>
               <small>
-                {a.artist} · Art Institute of Chicago · domaine public / CC0
+                {a.artist} · Wikimedia Commons · {a.license || "domaine public"}
               </small>
               <button
                 onClick={() => {
@@ -520,7 +520,8 @@ export default function SimpleApp() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {revealedArt.artist} · AIC · CC0
+            {revealedArt.artist} · Commons ·{" "}
+            {revealedArt.license || "domaine public"}
           </a>
         </section>
       )}

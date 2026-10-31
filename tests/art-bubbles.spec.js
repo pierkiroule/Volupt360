@@ -1,65 +1,8 @@
 import { test, expect } from "@playwright/test";
-
-test("museum selection excludes protected images, is distinct, cached and depends on choices", async ({
-  page,
-}) => {
-  let requests = [];
-  await page.route("https://api.artic.edu/**", (route) => {
-    requests.push(new URL(route.request().url()).searchParams.get("q"));
-    return route.fulfill({
-      json: {
-        data: [
-          {
-            id: 0,
-            title: "Protected",
-            image_id: "no",
-            is_public_domain: false,
-          },
-          ...[1, 2, 3].map((id) => ({
-            id,
-            title: "Composition " + id,
-            artist_display: "Artist",
-            image_id: "image-" + id,
-            is_public_domain: true,
-          })),
-        ],
-      },
-    });
-  });
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { loadArtworks } = await import("/src/simple/ArtCollection.ts");
-    const signal = new AbortController().signal;
-    const items = await loadArtworks(["night"], signal);
-    await loadArtworks(["night"], signal);
-    return items;
-  });
-  expect(result.map((a) => a.id)).toEqual([1, 2, 3]);
-  expect(result.map((a) => a.role)).toEqual(["Écho", "Nuance", "Ouverture"]);
-  expect(requests).toContain("Wassily Kandinsky");
-});
-
-test("network failure preserves the sky and explains missing works", async ({
-  page,
-}) => {
-  await page.route("https://api.artic.edu/**", (route) =>
-    route.fulfill({ status: 503, body: "" }),
-  );
-  await page.goto("/");
-  await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
-  await page.getByRole("button", { name: "Œuvres et sources" }).click();
-  await expect(
-    page.getByText(
-      "Œuvres momentanément indisponibles. Le ciel reste accessible.",
-    ),
-  ).toBeVisible();
-  await expect(page.locator("canvas")).toHaveAttribute("data-ready", "inside");
-});
-
 test("a genuine world-space crossing reveals once and resources are disposed", async ({
   page,
 }) => {
-  await page.route("https://api.artic.edu/**", (route) =>
+  await page.route("https://commons.wikimedia.org/**", (route) =>
     route.fulfill({ status: 503, body: "" }),
   );
   await page.goto("/");
@@ -99,61 +42,65 @@ test("a genuine world-space crossing reveals once and resources are disposed", a
   expect(result).toEqual({ encounters: 1, children: 2, after: 0 });
 });
 
-test("a failed artist and a sparse first page are completed by the public-domain search", async ({
+const pages = (license = "Public domain") =>
+  Object.fromEntries(
+    [1, 2, 3].map((id) => [
+      id,
+      {
+        pageid: id,
+        title: "File:Composition " + id,
+        imageinfo: [
+          {
+            mime: "image/jpeg",
+            thumburl: "https://upload.wikimedia.org/test-" + id + ".jpg",
+            descriptionurl:
+              "https://commons.wikimedia.org/wiki/File:Composition_" + id,
+            extmetadata: {
+              LicenseShortName: { value: license },
+              Artist: { value: "<b>Artist</b>" },
+              ObjectName: { value: "Composition " + id },
+            },
+          },
+        ],
+      },
+    ]),
+  );
+
+test("Commons selects three unique public-domain works, strips HTML, follows choices and caches", async ({
   page,
 }) => {
-  const searches = [];
-  await page.route("https://api.artic.edu/**", (route) => {
-    const url = new URL(route.request().url());
-    const q = url.searchParams.get("q");
-    searches.push(q);
-    const params = JSON.parse(url.searchParams.get("params"));
-    expect(params.query.bool.filter[0].term.is_public_domain).toBe(true);
-    if (q === "Wassily Kandinsky")
-      return route.fulfill({ status: 503, body: "" });
-    const ids = q.includes("abstract") ? [4, 5, 6] : [1];
-    return route.fulfill({
-      json: {
-        data: ids.map((id) => ({
-          id,
-          title: "Abstract " + id,
-          artist_display: "Artist",
-          image_id: "img-" + id,
-          is_public_domain: true,
-        })),
-      },
-    });
+  const queries = [];
+  await page.route("https://commons.wikimedia.org/**", (route) => {
+    queries.push(new URL(route.request().url()).searchParams.get("gsrsearch"));
+    return route.fulfill({ json: { query: { pages: pages() } } });
   });
   await page.goto("/");
-  const works = await page.evaluate(async () => {
+  const result = await page.evaluate(async () => {
     const { loadArtworks } = await import("/src/simple/ArtCollection.ts");
-    return loadArtworks(["night", "warm"], new AbortController().signal);
+    const signal = new AbortController().signal;
+    const a = await loadArtworks(["night"], signal);
+    await loadArtworks(["night"], signal);
+    return a;
   });
-  expect(works).toHaveLength(3);
-  expect(new Set(works.map((w) => w.id)).size).toBe(3);
-  expect(searches).toContain("abstract composition color rhythm");
+  expect(result.map((a) => a.id)).toEqual([1, 2, 3]);
+  expect(
+    result.every(
+      (a) =>
+        a.artist === "Artist" && a.source.includes("commons.wikimedia.org"),
+    ),
+  ).toBe(true);
+  expect(result.map((a) => a.role)).toEqual(["Écho", "Nuance", "Ouverture"]);
+  expect(queries.some((q) => q.includes("Wassily Kandinsky"))).toBe(true);
 });
 
-test("retry recovers the collection without leaving the sky", async ({
+test("restricted images are refused and retry restores the collection without leaving the sky", async ({
   page,
 }) => {
-  let available = false;
-  await page.route("https://api.artic.edu/**", (route) =>
-    route.fulfill(
-      available
-        ? {
-            json: {
-              data: [1, 2, 3].map((id) => ({
-                id,
-                title: "Composition " + id,
-                image_id: "img-" + id,
-                is_public_domain: true,
-                artist_display: "Artist",
-              })),
-            },
-          }
-        : { status: 503, body: "" },
-    ),
+  let permitted = false;
+  await page.route("https://commons.wikimedia.org/**", (route) =>
+    route.fulfill({
+      json: { query: { pages: pages(permitted ? "CC0" : "CC BY-SA 4.0") } },
+    }),
   );
   await page.goto("/");
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
@@ -161,10 +108,33 @@ test("retry recovers the collection without leaving the sky", async ({
   await expect(
     page.getByRole("button", { name: "Réessayer les œuvres" }),
   ).toBeVisible();
-  available = true;
+  await expect(
+    page.getByRole("button", { name: "Œuvres et sources" }),
+  ).toHaveText("Œuvres · 0/3");
+  permitted = true;
   await page.getByRole("button", { name: "Réessayer les œuvres" }).click();
   await expect(
     page.getByRole("button", { name: "Œuvres et sources" }),
   ).toHaveText("Œuvres · 3/3");
   await expect(page.locator("canvas")).toHaveAttribute("data-ready", "inside");
+});
+
+test("network failure is non-blocking", async ({ page }) => {
+  await page.route("https://commons.wikimedia.org/**", (route) =>
+    route.fulfill({ status: 503, body: "" }),
+  );
+  await page.goto("/");
+  const failed = await page.evaluate(async () => {
+    const { loadArtworks } = await import("/src/simple/ArtCollection.ts");
+    try {
+      await loadArtworks(["trust"], new AbortController().signal);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+  expect(failed).toBe(true);
+  await expect(
+    page.getByRole("button", { name: "Entrer dans mon ciel" }),
+  ).toBeVisible();
 });
