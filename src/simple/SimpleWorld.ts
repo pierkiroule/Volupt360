@@ -1,4 +1,4 @@
-import { EmotionalResonance } from "./EmotionalResonance";
+import { KiteCoast } from "./KiteCoast";
 import { WeatherAtmosphere, ATMOSPHERIC_WEATHER } from "./WeatherAtmosphere";
 import { universeIdentity } from "./UniverseIdentity";
 import { FlightSteering } from "./FlightSteering";
@@ -48,7 +48,7 @@ export class SimpleWorld {
   private texture = ATMOSPHERIC_WEATHER
     ? new THREE.Texture()
     : makeWatercolorAtlas();
-  readonly emotionalResonance = new EmotionalResonance(this.mobile);
+  readonly kite = new KiteCoast();
   private weather = ATMOSPHERIC_WEATHER
     ? new WeatherAtmosphere(this.mobile)
     : null;
@@ -257,7 +257,7 @@ export class SimpleWorld {
       this.resonances.mesh,
       this.ink.group,
       ...(this.study ? [this.study.group] : []),
-      this.emotionalResonance.group,
+      this.kite.group,
       ...(this.weather ? [this.weather.group] : []),
     );
     this.observer = new ResizeObserver(this.resize);
@@ -288,7 +288,7 @@ export class SimpleWorld {
       : identity.name;
     this.renderer.domElement.dataset.sequence = identity.key;
     this.weather?.setPalette(ids);
-    this.emotionalResonance.setPalette(ids);
+    this.kite.setPalette(ids);
     this.atmosphere.setPalette(ids);
     this.accents.setPalette(ids);
     this.words.setPalette(ids);
@@ -377,23 +377,24 @@ export class SimpleWorld {
     if (!this.inside || !event.isPrimary || this.paused || this.pointer) return;
     this.pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
     this.renderer.domElement.setPointerCapture(event.pointerId);
-    this.horizon.reset();
+    this.steerKite(event);
   };
+  private steerKite(event: PointerEvent) {
+    const r = this.renderer.domElement.getBoundingClientRect();
+    this.kite.steer(
+      ((event.clientX - r.left) / r.width) * 2 - 1,
+      ((event.clientY - r.top) / r.height) * 2 - 1,
+    );
+  }
   private move = (event: PointerEvent) => {
     const p = this.pointer;
     if (!p || event.pointerId !== p.id) return;
-    this.yaw -=
-      ((event.clientX - p.x) / Math.max(240, this.host.clientWidth)) * 2.5;
-    this.pitch = THREE.MathUtils.clamp(
-      this.pitch -
-        ((event.clientY - p.y) / Math.max(240, this.host.clientHeight)) * 2.2,
-      -1.05,
-      1.05,
-    );
+    this.steerKite(event);
     p.x = event.clientX;
     p.y = event.clientY;
   };
   private up = () => {
+    this.kite.release();
     this.pointer = null;
     this.horizon.reset();
   };
@@ -521,60 +522,8 @@ export class SimpleWorld {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
     }
-    if (this.inside) {
-      // A bounded discovery route through the work, alternating distance and detail.
-      const tour = MONUMENTAL_STUDY
-        ? sampleStudyTravel(this.journey, this.tour)
-        : sampleTravel(this.journey, this.tour);
-      this.camera.getWorldDirection(this.flightForward);
-      const detour = this.steering.update(
-        this.paused ? 0 : dt,
-        this.flightForward,
-        !!this.pointer && this.travel && !this.gyro,
-        this.travelSpeed,
-      );
-      this.camera.position.set(
-        (tour[0] + detour.x) * blend,
-        THREE.MathUtils.lerp(18, tour[1] + detour.y, blend),
-        THREE.MathUtils.lerp(12, tour[2] + detour.z, blend),
-      );
-      if (!this.paused) {
-        this.viewYaw = smoothGyroHeading(this.viewYaw, this.yaw, dt);
-        this.viewPitch = THREE.MathUtils.damp(
-          this.viewPitch,
-          this.pitch,
-          7,
-          dt,
-        );
-      }
-      // Relative gaze stays separate from the gentle travel direction.
-      this.camera.lookAt(
-        this.look.set(
-          tour[3] * blend,
-          THREE.MathUtils.lerp(18, tour[4], blend),
-          THREE.MathUtils.lerp(-5, tour[5], blend),
-        ),
-      );
-      this.rotation.setFromQuaternion(this.camera.quaternion, "YXZ");
-      this.rotation.set(
-        this.rotation.x + this.viewPitch,
-        this.rotation.y + this.viewYaw,
-        0,
-        "YXZ",
-      );
-      this.camera.quaternion.setFromEuler(this.rotation);
-      // Allow the full sensor wait after entry, even on a slow first GPU frame.
-      if (this.gyro && !this.sensorAt && this.entry < 1) this.gyroStarted = now;
-      if (this.gyro && !this.sensorAt && now - this.gyroStarted > 4000) {
-        this.setGyro(false);
-        this.notify(
-          "Pas de signal gyroscope. Glisse pour regarder autour de toi.",
-        );
-      }
-    } else {
-      this.camera.position.set(0, 18, 12);
-      this.camera.lookAt(0, 18, -5);
-    }
+    this.camera.position.set(0, 16.5, 12);
+    this.camera.lookAt(this.look.set(this.kite.position.x * 0.12, 19.2, -5));
     const audio = this.audioSource?.() ?? SILENT_SIGNAL;
     const musicResponse = this.resonances.setMusic(
       audio,
@@ -666,8 +615,8 @@ export class SimpleWorld {
         !this.gyro,
       this.paused,
     );
-    this.emotionalResonance.group.visible = this.inside;
-    this.emotionalResonance.update(this.time, this.camera, audio?.energy ?? 0);
+    this.kite.group.visible = true;
+    this.kite.update(this.time);
     this.cameraPoetics.render(this.renderer, this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
@@ -677,7 +626,7 @@ export class SimpleWorld {
           ? "0"
           : String(this.atmosphere.particles.geometry.drawRange.count);
       d.sky = ATMOSPHERIC_WEATHER ? "atmosphere" : "watercolor";
-      d.emotionalResonance = this.emotionalResonance.group.userData.sequence;
+      d.kite = JSON.stringify(this.kite.inspect());
       d.clouds = String(this.weather?.inspect().clouds ?? 0);
       d.cloudMist = String(this.weather?.inspect().mist ?? 0);
       d.precipitation = this.weather
@@ -752,7 +701,7 @@ export class SimpleWorld {
     this.reaction.dispose();
     this.study?.dispose();
     this.weather?.dispose();
-    this.emotionalResonance.dispose();
+    this.kite.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();

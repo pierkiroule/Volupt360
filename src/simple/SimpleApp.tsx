@@ -205,7 +205,7 @@ export default function SimpleApp() {
               <>
                 Compose ta météo intérieure.
                 <br />
-                Entre dans ton atmosphère en 360°.
+                Fais danser ton cerf-volant au bord de mer.
               </>
             )}
           </p>
@@ -269,7 +269,7 @@ export default function SimpleApp() {
                   const reduced = matchMedia(
                     "(prefers-reduced-motion: reduce)",
                   ).matches;
-                  setTravel(!reduced);
+                  setTravel(false);
                   setPaused(reduced);
                   resumeMusic.current = true;
                   setNotice(
@@ -307,7 +307,8 @@ export default function SimpleApp() {
               : "Le premier choix donne l’élan. Les suivants transforment le monde."}
           </p>
           <small>
-            Voyage et musique au toucher d’Entrer · silence disponible avec ♫
+            Cerf-volant et musique au toucher d’Entrer · silence disponible avec
+            ♫
           </small>
           {!MONUMENTAL_STUDY && (
             <small className="simple-selected-names" aria-live="polite">
@@ -324,9 +325,7 @@ export default function SimpleApp() {
             ÉmoCiel <i>•°</i>
           </div>
           <div className="simple-guidance">
-            {travel
-              ? "Glisse pour orienter ta traversée. Relâche pour te laisser porter."
-              : "Glisse pour regarder autour de toi."}
+            Glisse pour guider ton cerf-volant. Relâche pour le laisser planer.
           </div>
           <nav className="simple-tools" aria-label="Contempler mon univers">
             <button
@@ -344,16 +343,6 @@ export default function SimpleApp() {
               }}
             >
               ←<span>{MONUMENTAL_STUDY ? "Accueil" : "Palette"}</span>
-            </button>
-            <button
-              aria-label={travel ? "Contempler" : "Voyager"}
-              aria-pressed={travel}
-              onClick={() => {
-                setTravel(!travel);
-                setNotice("");
-              }}
-            >
-              ↝<span>{travel ? "Contempler" : "Voyager"}</span>
             </button>
             <button
               aria-label={paused ? "Reprendre" : "Pause"}
@@ -375,14 +364,6 @@ export default function SimpleApp() {
             >
               {paused ? "▷" : "Ⅱ"}
               <span>{paused ? "Reprendre" : "Pause"}</span>
-            </button>
-            <button
-              aria-label="Gyroscope"
-              disabled={permissionBusy}
-              aria-pressed={gyro}
-              onClick={() => void toggleGyro()}
-            >
-              ◎<span>{permissionBusy ? "…" : "Gyro"}</span>
             </button>
           </nav>
         </>
