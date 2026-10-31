@@ -1,0 +1,1 @@
+Original procedural drum loops composed for ÉmoCiel. 104 BPM, four bars, mono 32 kHz Vorbis. Kick, snare and hats synthesized locally; no third-party sample. Released under CC0-1.0. Seam tails wrapped into the next cycle. Not recordings of acoustic drums.

@@ -1,3 +1,4 @@
+import { universeIdentity } from "./UniverseIdentity";
 import * as THREE from "three";
 import { composeWeather } from "./composition";
 
@@ -13,6 +14,9 @@ export class Atmosphere {
       depthTest: false,
       uniforms: {
         paper: { value: texture },
+        worldTop: { value: new THREE.Color("#fff0c3") },
+        worldHorizon: { value: new THREE.Color("#deaa65") },
+        electro: { value: new THREE.Vector3() },
         eye: { value: new THREE.Vector3(0, 18, 12) },
         time: { value: 0 },
         weather: { value: new THREE.Vector4() },
@@ -25,7 +29,7 @@ export class Atmosphere {
         c: { value: new THREE.Color("#a49bb9") },
       },
       vertexShader: `varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader: `uniform sampler2D paper;uniform vec3 eye;uniform float time;uniform vec3 a,b,c;uniform vec4 weather,climate,magic;varying vec3 direction;
+      fragmentShader: `uniform sampler2D paper;uniform vec3 eye;uniform float time;uniform vec3 a,b,c,electro,worldTop,worldHorizon;uniform vec4 weather,climate,magic;varying vec3 direction;
       void main(){vec3 d=normalize(direction);float t=time*.008;
         vec2 uv=d.xz*.24+vec2(d.y*.18,t*(1.+weather.z*2.));
         vec4 wash=texture2D(paper,uv+vec2(.5));
@@ -35,10 +39,12 @@ export class Atmosphere {
         vec3 pigment=mix(a,b,veil);pigment=mix(pigment,c,smoothstep(-.3,.8,d.y)*.4);
         vec3 ivory=vec3(.91,.90,.86);
         float dark=climate.x*.4+climate.z*.55;
-        vec3 base=mix(ivory,vec3(.11,.15,.25),min(.75,dark));
+        vec3 base=mix(worldHorizon,worldTop,smoothstep(-.3,.75,d.y));
+        base*=1.-electro.x*.22;
+        float saturation=dot(pigment,vec3(.2126,.7152,.0722));pigment=max(vec3(.01),mix(vec3(saturation),pigment,1.+electro.x*.65));
         vec3 color=mix(base,pigment,.18+clouds*(.25+magic.w*.15));
         color=mix(color,vec3(.33,.43,.57),weather.y*clouds*.28);
-        color=mix(color,ivory,weather.w*(.28+grain.a*.25));
+        color=mix(color,worldTop,weather.w*(.28+grain.a*.25));
         vec3 sunDir=normalize(vec3(-.6,.09,-.8));float sun=pow(max(0.,dot(d,sunDir)),7.);
         color=mix(color,vec3(1.,.85,.54),weather.x*sun*.78*(1.-clouds*.45));
         float sunCore=smoothstep(.9975,.9995,dot(d,sunDir));
@@ -127,7 +133,7 @@ export class Atmosphere {
         else if(kind<4.5){p.x+=sin(t*2.+p.y)*1.3;p.y+=sin(t*1.7+p.z)*1.1;}
         else if(kind<5.5){p.y=mod(position.y+time*(.5+seed.y*.5)+10.,20.)-10.;p.x+=sin(p.y*.5+t)*.7;}
         else if(kind<6.5){p.x+=sin(t)*1.5;p.y+=cos(t+seed.z*6.)*1.1;}
-        else if(kind<7.5){p.y=mod(position.y-time*(.2+seed.y*.2)+10.,20.)-10.;p.x+=sin(time*.18+seed.z*8.)*1.5;}
+        else if(kind<7.5){float opening=.5+.5*sin(time*.18+seed.z*8.);p+=normalize(position+vec3(.1))*opening*2.;}
         else if(kind<8.5){p.y+=sin(p.x*.4+t)*2.;p.z+=cos(p.x*.4+t)*1.5;}
         else if(kind<9.5){p.x+=sin(t*.2)*.3;}
         else if(kind<10.5){p.x+=sin(t*.5)*1.2;p.y+=cos(t*.4)*.4;}
@@ -143,7 +149,7 @@ export class Atmosphere {
         if(kind>.5&&kind<1.5){p.x+=p.y*weather.z*.7;alpha=(1.-smoothstep(.025,.1,abs(p.x)))*(1.-smoothstep(.08,.48,abs(p.y)));color=mix(color,vec3(.9,.8,.52),weather.x*.35*particle.z);}
         else if(kind>1.5&&kind<2.5){alpha=exp(-abs(p.y)*24.)*(1.-smoothstep(.1,.49,abs(p.x)));}
         else if((kind>2.5&&kind<3.5)||(kind>9.5&&kind<10.5)){alpha=(1.-smoothstep(0.,.5,length(p)))*.26;}
-        else if(kind>6.5&&kind<7.5){float r=length(p);float arms=.7+.3*cos(atan(p.y,p.x)*6.);alpha=(1.-smoothstep(.05,.45,r/arms))*.7;color=mix(color,vec3(.9,.95,1.),.65);}
+        else if(kind>6.5&&kind<7.5){float r=length(p);alpha=exp(-abs(r-.24)*22.)*.7;}
         else if(kind>10.5){float r=length(p*vec2(1.,2.));alpha=exp(-abs(r-.3)*25.)*.6;}
         else if(kind>8.5&&kind<9.5){alpha=exp(-length(p)*15.);color=vec3(.94,.92,.8);}
         else{float angle=particle.z*6.28;mat2 rotate=mat2(cos(angle),-sin(angle),sin(angle),cos(angle));p=rotate*p;alpha=1.-smoothstep(.04,.46,length(p*vec2(1.,2.4)));}
@@ -153,20 +159,23 @@ export class Atmosphere {
     this.particles.frustumCulled = false;
   }
   setPalette(ids: string[]) {
-    const score = composeWeather(ids);
+    const score = composeWeather(ids),
+      identity = universeIdentity(ids);
+    this.sky.material.uniforms.worldTop.value.set(identity.sky[0]);
+    this.sky.material.uniforms.worldHorizon.value.set(identity.sky[1]);
     for (const material of [this.sky.material, this.particles.material]) {
       ["a", "b", "c"].forEach((name, i) =>
         material.uniforms[name].value.set(
-          score.palettes[i % score.palettes.length].color,
+          identity.colors[i % identity.colors.length],
         ),
       );
       material.uniforms.weather.value.fromArray(score.weather);
       material.uniforms.climate.value.fromArray(score.climate);
       material.uniforms.magic.value.fromArray(score.magic);
       material.uniforms.kinds.value.set(
-        score.kinds[0],
-        score.kinds[1] ?? score.kinds[0],
-        score.kinds[2] ?? score.kinds[0],
+        identity.modes[0],
+        identity.modes[1] ?? identity.modes[0],
+        identity.modes[2] ?? identity.modes[0],
       );
       material.uniforms.layers.value = score.entries.length;
     }
@@ -179,7 +188,7 @@ export class Atmosphere {
     this.particles.material.uniforms.ratio.value = ratio;
     this.particles.geometry.setDrawRange(
       0,
-      ratio < 1 ? Math.floor(this.count * 0.65) : this.count,
+      Math.floor(this.count * (ratio < 1 ? 0.3 : 0.5)),
     );
   }
   dispose() {

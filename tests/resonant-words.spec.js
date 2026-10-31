@@ -53,13 +53,13 @@ test("poetry follows weather combinations, remains readable, sparse and paused",
     };
   });
   expect(result.maxVisible).toBe(1);
-  expect(result.silent).toBeGreaterThan(250);
-  expect(result.seen.length).toBeGreaterThan(3);
+  expect(result.silent).toBeGreaterThan(600);
+  expect(result.seen.length).toBeGreaterThan(2);
   expect(result.pool).toEqual(result.reverse);
-  expect(result.pool[0]).toBe("la lumière traverse ce qui ruisselle");
-  expect(result.wind[0]).toBe("le blanc apprend à voyager");
-  expect(result.moon[0]).toBe("une lueur sans contour");
-  expect(result.count).toBe(72);
+  expect(result.pool[0]).toBe("entre l’or et le bleu");
+  expect(result.wind[0]).toBe("un seuil possible");
+  expect(result.moon[0]).toBe("des plis en suspens");
+  expect(result.count).toBe(96);
   expect(result.after).toEqual(result.before);
   expect(result.lines.every((lines) => lines.length <= 2)).toBe(true);
   expect(result.reduced.fades.filter((v) => v > 0)).toHaveLength(1);
@@ -78,18 +78,18 @@ test("a fragment approaches the gaze without moving the camera", async ({
     words.setPalette(["warm", "water"]);
     camera.position.set(0, 18, 2);
     camera.lookAt(0, 18, -10);
-    for (let i = 0; i < 250; i++)
+    for (let i = 0; i < 1000; i++)
       words.update(i * 0.02, 0.02, camera, false, true);
     const focused = words.inspect();
     const position = camera.position.toArray();
     camera.lookAt(8, 18, 2);
-    for (let i = 250; i < 450; i++)
+    for (let i = 1000; i < 1200; i++)
       words.update(i * 0.02, 0.02, camera, false, true);
     const released = words.inspect();
     words.dispose();
     return { focused, released, position, after: camera.position.toArray() };
   });
-  expect(result.focused.focused).toBe("la lumière traverse ce qui ruisselle");
+  expect(result.focused.focused).toBe("entre l’or et le bleu");
   expect(result.focused.approach).toBeGreaterThan(0.9);
   expect(result.released.focused).toBeNull();
   expect(result.after).toEqual(result.position);

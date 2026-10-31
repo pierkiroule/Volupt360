@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { NUANCES, readPalette, SIMPLE_KEY } from "./palette";
 import { SimpleWorld } from "./SimpleWorld";
+import { MONUMENTAL_STUDY, STUDY_PALETTE } from "./MonumentalStudy";
+import { WeatherMusic } from "./WeatherMusic";
 import { requestGyroscope } from "../scene/gyroOrientation";
 import "./simple.css";
 
@@ -16,6 +18,70 @@ export default function SimpleApp() {
   const [failure, setFailure] = useState(false);
   const [retry, setRetry] = useState(0);
   const [permissionBusy, setPermissionBusy] = useState(false);
+  const music = useRef<WeatherMusic | null>(null);
+  const [musicState, setMusicState] = useState<
+    "off" | "loading" | "on" | "paused" | "error"
+  >("off");
+  const [volume, setVolume] = useState(0.55);
+  const musicWanted = useRef(false);
+  const resumeMusic = useRef(false);
+  useEffect(
+    () => () => {
+      musicWanted.current = false;
+      music.current?.dispose();
+      music.current = null;
+    },
+    [],
+  );
+  useEffect(() => {
+    music.current?.setPalette(MONUMENTAL_STUDY ? STUDY_PALETTE : selected);
+  }, [selected]);
+  useEffect(() => {
+    if (!inside || paused) {
+      musicWanted.current = false;
+      music.current?.pause();
+      setMusicState((state) =>
+        state === "on" || state === "loading" ? "paused" : state,
+      );
+    }
+  }, [inside, paused]);
+  async function toggleMusic() {
+    if (musicState === "loading") return;
+    if (musicState === "on") {
+      musicWanted.current = false;
+      music.current?.pause();
+      setMusicState("paused");
+      return;
+    }
+    await startMusic();
+  }
+  async function startMusic() {
+    if (musicState === "loading") return;
+    musicWanted.current = true;
+    setMusicState("loading");
+    try {
+      if (!music.current || music.current.inspect().state === "closed")
+        music.current = new WeatherMusic(
+          MONUMENTAL_STUDY ? STUDY_PALETTE : selected,
+          () => {
+            musicWanted.current = false;
+            if (alive.current) setMusicState("paused");
+          },
+        );
+      music.current.setVolume(volume);
+      await music.current.start();
+      if (!alive.current || !musicWanted.current) {
+        music.current?.pause();
+        return;
+      }
+      setMusicState("on");
+    } catch {
+      if (alive.current) {
+        setMusicState("error");
+        setNotice("Le son n’a pas pu démarrer. Touche Musique pour réessayer.");
+      }
+    }
+  }
   const host = useRef<HTMLDivElement>(null);
   const world = useRef<SimpleWorld | null>(null);
   const current = useRef({ selected, inside, travel, paused });
@@ -23,7 +89,7 @@ export default function SimpleApp() {
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
-    document.title = "ÉmoCiel •° — Compose ton ciel émotionnel";
+    document.title = "ÉmoCiel •° — Compose ta météo intérieure";
     if ("serviceWorker" in navigator && import.meta.env.PROD)
       void navigator.serviceWorker
         .register(import.meta.env.BASE_URL + "sw.js")
@@ -34,6 +100,7 @@ export default function SimpleApp() {
         if (message.startsWith("Pas de signal")) setGyro(false);
       });
       scene.setPalette(current.current.selected);
+      scene.setAudioSource(() => music.current?.readSignal());
       scene.inside = current.current.inside;
       scene.travel = current.current.travel;
       scene.paused = current.current.paused;
@@ -65,7 +132,10 @@ export default function SimpleApp() {
   }, [inside, travel, paused, retry]);
   useEffect(() => {
     const hide = () => {
-      if (document.hidden) setPaused(true);
+      if (document.hidden) {
+        resumeMusic.current = music.current?.inspect().running ?? false;
+        setPaused(true);
+      }
     };
     document.addEventListener("visibilitychange", hide);
     return () => document.removeEventListener("visibilitychange", hide);
@@ -116,14 +186,28 @@ export default function SimpleApp() {
     <main className={"simple-app" + (inside ? " is-inside" : "")}>
       {!inside && (
         <header className="simple-heading">
-          <span className="simple-overline">Ton ciel, à ta façon</span>
+          <span className="simple-overline">
+            {MONUMENTAL_STUDY
+              ? "Étude I — Indigo & terre"
+              : "Ton ciel, à ta façon"}
+          </span>
           <h1>
             ÉmoCiel <i>•°</i>
           </h1>
           <p>
-            Compose ton ciel émotionnel.
-            <br />
-            Traverse-le tranquillement en 360°.
+            {MONUMENTAL_STUDY ? (
+              <>
+                Un paysage d’encre suspendu.
+                <br />
+                Approcher. Traverser. Regarder autrement.
+              </>
+            ) : (
+              <>
+                Compose ta météo intérieure.
+                <br />
+                Fais danser ton cerf-volant au bord de mer.
+              </>
+            )}
           </p>
         </header>
       )}
@@ -131,56 +215,69 @@ export default function SimpleApp() {
         <div ref={host} className="simple-world" data-inside={inside} />
         {!inside && (
           <>
-            <div
-              className="simple-ring"
-              role="group"
-              aria-label="Choisir une à trois météos"
-            >
-              {NUANCES.map((n, index) => (
-                <button
-                  key={n.id}
-                  className="simple-nuance"
-                  style={
-                    {
-                      "--angle": `${index * (360 / NUANCES.length) - 90}deg`,
-                      "--ink": n.color,
-                    } as React.CSSProperties
-                  }
-                  aria-label={n.label}
-                  aria-pressed={selected.includes(n.id)}
-                  onClick={() => choose(n.id)}
-                >
-                  <span className="simple-weather-symbol" aria-hidden="true">
-                    {n.emoji}
-                  </span>
-                  {selected.includes(n.id) && (
-                    <svg
-                      className="simple-selection-check"
-                      viewBox="0 0 16 16"
-                      aria-hidden="true"
-                    >
-                      <circle cx="8" cy="8" r="8" fill="currentColor" />
-                      <path
-                        d="m4.5 8 2.3 2.3 4.7-4.6"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
+            {!MONUMENTAL_STUDY && (
+              <div
+                className="simple-ring"
+                role="group"
+                aria-label="Choisir une à trois émotions"
+              >
+                {NUANCES.map((n, index) => (
+                  <button
+                    key={n.id}
+                    className="simple-nuance"
+                    style={
+                      {
+                        "--angle": `${index * (360 / NUANCES.length) - 90}deg`,
+                        "--ink": n.color,
+                      } as React.CSSProperties
+                    }
+                    aria-label={n.label}
+                    title={n.label}
+                    aria-pressed={selected.includes(n.id)}
+                    onClick={() => choose(n.id)}
+                  >
+                    <span className="simple-weather-symbol" aria-hidden="true">
+                      {n.emoji}
+                    </span>
+                    {selected.includes(n.id) && (
+                      <svg
+                        className="simple-selection-check"
+                        viewBox="0 0 16 16"
+                        aria-hidden="true"
+                      >
+                        <circle cx="8" cy="8" r="8" fill="currentColor" />
+                        <path
+                          d="m4.5 8 2.3 2.3 4.7-4.6"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
             {!failure && (
               <button
                 className="simple-enter"
                 aria-label="Entrer dans mon ciel"
                 onClick={() => {
                   setInside(true);
+                  const reduced = matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                  ).matches;
                   setTravel(false);
-                  setNotice("");
+                  setPaused(reduced);
+                  resumeMusic.current = true;
+                  setNotice(
+                    reduced
+                      ? "Mouvements réduits : Reprendre reste disponible."
+                      : "",
+                  );
+                  if (!reduced) void startMusic();
                 }}
               >
                 Entrer{" "}
@@ -204,12 +301,22 @@ export default function SimpleApp() {
       </div>
       {!inside && (
         <footer className="simple-footer">
-          <p>Choisis la météo de ton ciel. Puis entre.</p>
-          <small className="simple-selected-names" aria-live="polite">
-            {selected
-              .map((id) => NUANCES.find((n) => n.id === id)?.label)
-              .join(" · ")}
+          <p>
+            {MONUMENTAL_STUDY
+              ? "Indigo profond, terre cuite et réserves de papier."
+              : "Le premier choix donne l’élan. Les suivants transforment le monde."}
+          </p>
+          <small>
+            Cerf-volant et musique au toucher d’Entrer · silence disponible avec
+            ♫
           </small>
+          {!MONUMENTAL_STUDY && (
+            <small className="simple-selected-names" aria-live="polite">
+              {selected
+                .map((id) => NUANCES.find((n) => n.id === id)?.label)
+                .join(" · ")}
+            </small>
+          )}
         </footer>
       )}
       {inside && (
@@ -218,13 +325,15 @@ export default function SimpleApp() {
             ÉmoCiel <i>•°</i>
           </div>
           <div className="simple-guidance">
-            {travel
-              ? "Le voyage reste au cœur de ton monde."
-              : "Glisse pour regarder autour de toi."}
+            Glisse pour guider ton cerf-volant. Relâche pour le laisser planer.
           </div>
           <nav className="simple-tools" aria-label="Contempler mon univers">
             <button
-              aria-label="Revenir à la palette"
+              aria-label={
+                MONUMENTAL_STUDY
+                  ? "Revenir à l’accueil"
+                  : "Revenir à la palette"
+              }
               onClick={() => {
                 setInside(false);
                 setTravel(false);
@@ -233,36 +342,70 @@ export default function SimpleApp() {
                 setNotice("");
               }}
             >
-              ←<span>Palette</span>
-            </button>
-            <button
-              aria-label={travel ? "Contempler" : "Voyager"}
-              aria-pressed={travel}
-              onClick={() => {
-                setTravel(!travel);
-                setNotice("");
-              }}
-            >
-              ↝<span>{travel ? "Contempler" : "Voyager"}</span>
+              ←<span>{MONUMENTAL_STUDY ? "Accueil" : "Palette"}</span>
             </button>
             <button
               aria-label={paused ? "Reprendre" : "Pause"}
               aria-pressed={paused}
-              onClick={() => setPaused(!paused)}
+              onClick={() => {
+                if (paused) {
+                  if (world.current) world.current.paused = false;
+                  setPaused(false);
+                  if (resumeMusic.current) void startMusic();
+                } else {
+                  resumeMusic.current =
+                    musicState === "on" || musicState === "loading";
+                  if (world.current) world.current.paused = true;
+                  musicWanted.current = false;
+                  music.current?.pause();
+                  setPaused(true);
+                }
+              }}
             >
               {paused ? "▷" : "Ⅱ"}
               <span>{paused ? "Reprendre" : "Pause"}</span>
             </button>
-            <button
-              aria-label="Gyroscope"
-              disabled={permissionBusy}
-              aria-pressed={gyro}
-              onClick={() => void toggleGyro()}
-            >
-              ◎<span>{permissionBusy ? "…" : "Gyro"}</span>
-            </button>
           </nav>
         </>
+      )}
+      {inside && (
+        <details className="simple-music" data-state={musicState}>
+          <summary aria-label="Réglages musique">♫</summary>
+          <div>
+            <button
+              onClick={() => void toggleMusic()}
+              disabled={musicState === "loading" || paused}
+              aria-label={
+                musicState === "on" ? "Couper la musique" : "Activer la musique"
+              }
+            >
+              {musicState === "loading"
+                ? "Chargement…"
+                : musicState === "on"
+                  ? "Couper le son"
+                  : "Musique"}
+            </button>
+            <label>
+              Volume
+              <input
+                aria-label="Volume musique"
+                type="range"
+                min="0"
+                max=".8"
+                step=".01"
+                value={volume}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setVolume(value);
+                  music.current?.setVolume(value);
+                }}
+              />
+            </label>
+            <small>
+              Électro · 104 BPM · boucles locales, piano et cordes · CC0
+            </small>
+          </div>
+        </details>
       )}
       {notice && (
         <p className="simple-notice" role="status">

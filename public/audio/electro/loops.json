@@ -1,0 +1,12 @@
+{
+  "bpm": 104,
+  "beats": 16,
+  "sampleRate": 32000,
+  "frames": 295385,
+  "license": "CC0-1.0",
+  "files": [
+    "four.ogg",
+    "broken.ogg",
+    "air.ogg"
+  ]
+}

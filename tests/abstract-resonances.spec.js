@@ -13,7 +13,7 @@ test("six local spatial membranes replace remote photos and freeze on pause", as
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-resonances", "6");
-  await expect(canvas).toHaveAttribute("data-calls", "11");
+  await expect(canvas).toHaveAttribute("data-calls", /^(13|14)$/);
   const result = await page.evaluate(async () => {
     const THREE = await import("/node_modules/three/build/three.module.js");
     const { AbstractResonances } =
@@ -74,4 +74,57 @@ test("six local spatial membranes replace remote photos and freeze on pause", as
   expect(await canvas.getAttribute("data-time")).toBe(time);
   expect(requests).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("mobile membranes use less geometry and their local rendering responds smoothly to music", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const THREE = await import("/node_modules/three/build/three.module.js");
+    const { AbstractResonances } =
+      await import("/src/simple/AbstractResonances.ts");
+    const { makeWatercolorAtlas } =
+      await import("/src/simple/WatercolorAtlas.ts");
+    const paper = makeWatercolorAtlas(),
+      forms = new AbstractResonances(paper, true);
+    forms.setPalette(["warm", "water"]);
+    forms.update(5, 1, true, true);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(96, 96);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("white");
+    scene.add(forms.mesh);
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
+    camera.position.set(0, 18, 10);
+    camera.lookAt(0, 18, -5);
+    const target = new THREE.WebGLRenderTarget(96, 96);
+    renderer.setRenderTarget(target);
+    const pixels = new Uint8Array(96 * 96 * 4);
+    const read = () => {
+      renderer.render(scene, camera);
+      renderer.readRenderTargetPixels(target, 0, 0, 96, 96, pixels);
+      return pixels.reduce((a, b) => a + b, 0);
+    };
+    const silent = read();
+    const first = forms
+      .setMusic({ energy: 1, low: 1, high: 1, onset: 1 }, 1 / 60)
+      .toArray();
+    for (let i = 0; i < 120; i++)
+      forms.setMusic({ energy: 1, low: 1, high: 1, onset: 1 }, 1 / 60);
+    const sound = read();
+    const stable = forms
+      .setMusic({ energy: 0, low: 0, high: 0, onset: 0 }, 0)
+      .toArray();
+    const triangles = renderer.info.render.triangles;
+    target.dispose();
+    forms.dispose();
+    paper.dispose();
+    renderer.dispose();
+    return { silent, sound, first, stable, triangles };
+  });
+  expect(result.sound).not.toBe(result.silent);
+  expect(result.first.every((v) => v > 0 && v < 0.05)).toBe(true);
+  expect(result.stable.every((v) => v > 0.9)).toBe(true);
+  expect(result.triangles).toBeLessThan(4000);
 });

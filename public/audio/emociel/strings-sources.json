@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/sgossner/VSCO-2-CE",
+  "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+  "license": "CC0-1.0",
+  "adaptations": "mono 32kHz Vorbis, max 10s, soft fades, peak normalized -8 dBFS",
+  "files": {
+    "strings-low": "Strings/Cello Section/susvib/susvib_D2_v1_1.wav",
+    "strings-mid": "Strings/Cello Section/susvib/susvib_C3_v1_1.wav",
+    "strings-high": "Strings/Cello Section/susvib/susvib_D4_v1_1.wav"
+  }
+}

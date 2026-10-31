@@ -371,3 +371,58 @@ button:focus-visible {
     translateX(clamp(122px, calc(var(--orb-size) / 2 + 8px), calc(50vw - 26px)))
     rotate(calc(-1 * var(--angle)));
 }
+
+.simple-music {
+  position: absolute;
+  z-index: 8;
+  right: 18px;
+  top: max(18px, env(safe-area-inset-top));
+  color: #42564f;
+  font-size: 13px;
+}
+.simple-music summary {
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid #42564f30;
+  border-radius: 50%;
+  background: #fffaf0b8;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  margin-left: auto;
+}
+.simple-music > div {
+  margin-top: 8px;
+  padding: 14px;
+  border: 1px solid #42564f30;
+  border-radius: 18px;
+  background: #fffaf0ed;
+  width: 220px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 8px 30px #42564f15;
+}
+.simple-music button {
+  min-height: 44px;
+  border: 1px solid #42564f40;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.simple-music label {
+  display: grid;
+  gap: 4px;
+}
+.simple-music input {
+  width: 100%;
+  min-height: 32px;
+  accent-color: #657e6b;
+}
+.simple-music small {
+  opacity: 0.7;
+  line-height: 1.5;
+}

@@ -157,3 +157,307 @@ Pause et réduction du mouvement utilisent l’horloge existante. Le module lib�
 `poeticFragments.ts` remplace le lexique de mots : 72 fragments originaux (six par météo), plus neuf fragments d’associations. La sélection est indépendante de l’ordre des émojis et privilégie d’abord les rencontres disponibles. Aucune interprétation psychologique n’est produite.
 
 Le même atlas contient six emplacements, mais un seul est visible : apparition sur trois secondes, lecture jusqu’à quinze secondes, disparition jusqu’à dix-huit secondes, puis quatorze secondes sans texte. Le prochain fragment est peint uniquement lorsqu’il est invisible. Composition typographique en une ou deux lignes, ajustement réel de la taille sans compression horizontale. Le regard rapproche le fragment ; la caméra reste indépendante. Pause suspend le cycle ; en réduction du mouvement, un fragment reste lisible et immobile. Ressources et nombre de passes inchangés.
+
+### Musique échantillonnée locale
+
+- `WeatherScore` : partition déterministe par seed, 12 profils météo, voix liées par une gamme commune ré/fa/sol/la/do, conduite mélodique, motif mémorisé avec mutations, horloges instrumentales indépendantes et silences. Aucun générateur distant. Les paramètres sont des choix artistiques, sans inférence émotionnelle.
+- `WeatherMusic` : trois instruments `smplr` (piano, bois et vibraphone frotté), neuf samples VCSL réels, 32 kHz mono Vorbis (~0,5 Mo). Les hauteurs de référence ont été vérifiées par analyse spectrale : les noms VCSL utilisent une autre convention d’octave que les noms MIDI. Normalisation de crête, filtre doux, réverbération stéréo générée une fois, compression et fondus de gain. Panoramique interpolé pour les notes futures et les résonances en cours.
+- Chargement uniquement après activation volontaire via ♫. Une instance partagée par atelier ; échec récupérable, pause en sortie de scène ou arrière-plan, suspension du contexte après fondu. Reprise volontaire. Volume et silence accessibles. Nettoyage des sources, timers, nœuds et contexte au démontage.
+- Les samples et leurs licences sont dans `public/audio/emociel`. `sources.json` conserve le dépôt, le commit et les chemins originaux ; `CC0.txt` contient la licence. Le service worker précache les neuf fichiers et inclut leur contenu dans la version du cache. Pas de serveur de samples distant à l’exécution.
+
+Vérifications : compilation et tests navigateur de décodage des vrais OGG, signal non nul mesuré en sortie du moteur `smplr`, pause/suspension/reprise/fermeture, activation volontaire, volume, erreurs et retry. Une simulation de partition de trente minutes vérifie reproductibilité, gamme et densité bornée ; ce n’est pas un test d’écoute réel de trente minutes. L’équilibre artistique à l’écoute, les interruptions spécifiques à Android/iOS et la charge sur téléphone physique restent à valider.
+
+Vérification supplémentaire effectuée sur le build de production : service worker activé, neuf samples présents dans le cache, passage hors ligne, rechargement puis activation musicale réussie. Les quatre tests du contrôle 3D existant ont également passé lors de l’intégration.
+
+### Pigment Drift : matière à mémoire musicale
+
+Le code MIT de Paint Studio est intégré dans `src/vendor/pigment-drift`, à la révision `61d3cf57d5273105d7b9985973e4648d7a553c83`. L’origine et les modifications sont documentées dans `UPSTREAM.md`. La licence est aussi distribuée dans `public/licenses/pigment-drift-MIT.txt`.
+
+`PigmentMusic` pilote un seul champ de pigments/humidité WebGL2 partagé de 192 × 192 pixels ; vélocité et pression : 48 × 48, six itérations de pression. Le moteur conserve réellement les encres sur GPU, les advecte et les diffuse. Il démarre seulement lorsqu’un signal musical est mesuré. Pas de nouvelle scène, de simulation par voile, d’historique ni de moteur musical dupliqué.
+
+`WeatherMusic` analyse son signal après volume/effets : RMS, énergie grave, détails spectraux et variations d’énergie. Les attaques favorisent des dépôts espacés ; les graves influencent leur rayon et les courants, les détails spectraux orientent le mouvement. Une goutte sur cinq apporte de l’eau qui repousse les pigments. L’intensité est lissée ; aucun grossissement global du monde ni flash. Le silence laisse la diffusion et le séchage résiduels se poursuivre, sans nouveaux dépôts. Le changement de météo adapte les encres sans réinitialiser le champ.
+
+Une `CanvasTexture` transfère le rendu de cette feuille au shader du premier des six voiles abstraits. Les autres voiles gardent leur matière procédurale : c’est volontairement une première intégration limitée. Le grain et les bords existants sont préservés. La simulation est cadencée à 12 Hz maximum (8 Hz en qualité réduite) ; le rendu 3D continue indépendamment. Aucune lecture GPU→CPU explicite dans la boucle. Le coût du transfert entre les deux contextes WebGL dépend du navigateur et reste à profiler sur téléphone physique.
+
+Pause et sortie du monde suspendent les calculs. La texture et les ressources WebGL sont libérées au démontage. Si WebGL2/les cibles flottantes sont indisponibles, si le contexte secondaire est perdu ou si une opération échoue, le shader revient au rendu procédural. Un contexte secondaire perdu n’est pas recréé automatiquement pendant la visite.
+
+Contrôles exécutés : champs GPU réels non vides, évolution résiduelle sans nouveaux dépôts, conservation du champ lors d’un changement de palette, pause exacte, rendu 3D piloté par les vrais samples, fallback sans WebGL2, contrôles audio/navigation et compilation. Les diagnostics de passes du canvas principal ne comptent pas les passes hors écran de la simulation ; ne pas les interpréter comme le coût GPU total. Pas de validation de 60 FPS, de test de longue durée ni de test sur appareil physique.
+
+### Fluidité, budget mobile et voyage optique
+
+- Deux textures GPU indépendantes gardent les états successifs de peinture. Le shader interpole leur affichage à chaque frame ; la simulation reste bornée à 12 Hz / 8 Hz. Le reste de l’accumulateur est conservé pour éviter une cadence irrégulière. Ni recalcul de fluides ni upload supplémentaire à chaque frame. Pause fige aussi l’interpolation. Les deux textures sont libérées ensemble.
+- Sur petit écran ou pointeur tactile : feuille de 128 × 128 au lieu de 192 × 192, vélocité 32 × 32 et quatre itérations de pression au lieu de six. Tous les gestes simulés sont remis à l’échelle. Les deux familles de voiles passent de 18 432 à 10 368 triangles (~44 % de moins), en conservant les déformations GPU continues.
+- Les trois composantes musicales sont amorties indépendamment. Elles font circuler les plis, les accumulations d’encre et les particules locales ; aucune variation globale d’échelle ni clignotement. Ces effets réutilisent les buffers et les passes existants.
+- `CameraPoetics` ajoute, uniquement pendant le voyage, une passe optique à cinq lectures : léger flou périphérique et contours pigmentaires pendant des fenêtres lentes. Le centre reste net. Pas de bloom, motion blur, aberration chromatique ni historique d’images. La cible est allouée au premier voyage et redimensionnée avec le rendu. Les effets s’estompent hors voyage, sont figés en pause et désactivés progressivement si la qualité adaptative baisse. Le gyroscope ne reçoit pas ces effets de voyage.
+- La vitesse du parcours est amortie au départ et à l’arrêt. Une variation de focale inférieure à 1,5 degré accompagne le vol, sans roulis. Pause reste un arrêt immédiat. Le parcours fermé et le regard relatif restent inchangés.
+
+Le compteur du canvas principal inclut maintenant la passe optique lorsqu’elle est active (jusqu’à 12 appels en immersion) ; les passes de fluides du contexte secondaire restent distinctes. Ces budgets sont des limites d’implémentation, pas une mesure de 60 FPS sur téléphone. Vérification physique Android/iOS et observation prolongée restent nécessaires.
+
+Vérifications de cette évolution : tests de cadence régulière à 60 Hz simulés, sources GPU indépendantes et pause du fondu, simulation 128² réelle, réponse musicale visible dans les pixels du rendu mobile, passes optiques, redimensionnement et libération de cible, pause du voyage et retour à la palette sans effet résiduel. Build final réussi ; les suites ciblées ont passé.
+
+### Traversée hypnopoétique, ensemble et pilotage
+
+- L’entrée lance voyage et musique sur le geste utilisateur, jamais avant. Les contrôles de silence, volume, pause et contemplation restent disponibles. Pause/reprise restaure la musique si elle jouait avant la pause ; une musique coupée volontairement reste coupée. Le réglage système de réduction du mouvement conserve une entrée immobile avec reprise volontaire.
+- `FlightSteering` ajoute un détour inertiel borné à la trajectoire composée. Un glissement change le regard et, pendant le contact, le mouvement réel de la caméra. Le relâchement ramène doucement le détour vers le parcours, sans téléportation. Contemplation arrête la translation ; le passage au gyroscope l’arrête immédiatement pour dissocier regard et déplacement. Pas de nouveau joystick ni de menu.
+- `WeatherScore` orchestre désormais quatre pupitres : mélodie de piano en phrases de huit positions, réponses espacées du marimba, résonances frottées et trois voix de violoncelles. Les voicings ouverts, la conduite de voix, les reprises motiviques avec mutations et les silences communs remplacent la simple succession de notes probables. Les profils météo modulent cette écriture. Le seed reste reproductible.
+- Trois vrais échantillons de violoncelles VSCO 2 CE sous CC0 s’ajoutent aux neuf VCSL. Douze OGG locaux au total (~720 Kio sur disque) ; pas de nouvelle dépendance ou d’API. Provenance, révision et adaptations dans `strings-sources.json`, licence dans `VSCO-CC0.txt`. Les hauteurs ont été vérifiées par analyse spectrale, les cordes sont adoucies et moins fortes à la source. Elles sont incluses dans le cache de production.
+- La dernière note mélodique rejoint le signal d’analyse : sa hauteur fait évoluer lentement la courbure des voiles et la position de réserves ambiguës. Les fréquences et l’énergie continuent de piloter les courants et la matière persistante. Les détails restent lissés, sans flash ni variation globale d’échelle.
+- La collection comprend 96 fragments météo et 21 fragments de rencontres (117 originaux). Les formulations laissent ouvertes les associations ; elles ne prescrivent pas un ressenti. Une seule présence textuelle, deux lignes maximum, longs intervalles sans texte. Les nouveaux fragments se placent dans le champ de la traversée puis restent des objets du monde, pas des panneaux fixés à la caméra.
+
+Vérifications : simulation de partition de trente minutes (reproductibilité, gamme, profils distincts et densité bornée), signal des vrais samples non nul, lecture/volume/silence/reprise et échec récupérable ; seize tests de navigation/rendu/pigments réussis après adaptation du parcours d’entrée, dont guidage réel vers la droite, retour inertiel, stabilité du gyro et réduction du mouvement. La musicalité à l’écoute prolongée et les performances sur téléphone physique ne sont pas validées par ces tests.
+
+Validation finale de cette évolution : build réussi ; seize tests navigation/rendu/pigments puis six tests musique/poésie réussis. Sur le build de production, douze OGG ont été vérifiés dans le cache ; après passage hors ligne et rechargement, Entrer a lancé la musique, le voyage et la simulation pigmentaire. Les échantillons ne sont pas des fixtures dans ces essais.
+
+### Direction électro et matière en mouvement
+
+`ElectroRhythm` apporte trois véritables buffers bouclés locaux, chacun de quatre mesures à 104 BPM. Ces boucles originales ont été rendues depuis une synthèse de kick, caisse claire et charleston ; ce ne sont pas des enregistrements acoustiques ou des morceaux récupérés en ligne. Les trois styles (régulier, syncopé, aéré) sont mêlés selon la météo, avec transitions de gain. Le script de génération et la déclaration CC0 sont livrés. Les quinze assets audio sont précachés en production.
+
+Tous les loops démarrent sur la même origine AudioContext ; une correction minimale de playbackRate compense l’arrondi des frames pour maintenir une période exacte de seize temps. La basse grave sinusoïdale et les arpèges échantillonnés utilisent cette grille, avec ordonnanceur anticipé à budget borné. Les notes de l’ensemble sont aussi quantifiées sur la grille. Des variations de motif et des respirations de huit mesures gardent du contraste. Les changements de palette ne recréent pas les sources.
+
+Le signal percussif utilise un trajet sec filtré vers le compresseur, sans traverser la longue réverbération des nappes. Les instruments sont légèrement atténués sur le temps avec une enveloppe progressive. Les arrêts des loops et de la basse ont un fondu ; les sources et enveloppes sont déconnectées à leur fin. Silence, pause, sortie et démontage continuent de nettoyer le moteur existant.
+
+La phase musicale arrive aux shaders depuis l’horloge audio à chaque frame : plis ondulants, vagues locales déphasées entre les membranes, courants de particules plus rapides, pigments plus contrastés et plus colorés. La passe optique existante accueille une légère distorsion périphérique et une dérive chromatique lente. Le centre reste stable ; pas de roulis, de flash global, de stroboscope, de particules supplémentaires ou de passe GPU ajoutée. Les budgets mobiles et les solutions de secours sont conservés.
+
+Validation : build et seize tests ciblés réussis (rendu des shaders, physique pigmentaire, interpolation, effets caméra, décodage réel des boucles, période des quatre mesures, signal audio non nul, phase/grille, basse bornée, pause/reprise et erreurs). La simulation de partition ne mesure pas le rendu musical en écoute prolongée ; aucune validation physique Android/iOS ni garantie de 60 FPS.
+
+L’atmosphère s’approfondit avec l’énergie musicale et les voiles accueillent une irisation lente, sans ajout de texture ou de passe. Après ce dernier ajustement, huit tests ciblés (douze météos, shaders, effets caméra, rythmes) ont passé. Le build de production a également été rechargé hors ligne : quinze assets audio en cache, musique et voyage actifs, aucune erreur JavaScript détectée.
+
+### Identités spatiales et séquences
+
+`UniverseIdentity` centralise douze partitions artistiques complètes : corolles solaires, cathédrale des pluies, tresses du vent, archipel incertain, spirale des encres, portes du jour, ponts prismatiques, strates de cristal, forêt d’aurores, chambres lunaires, alvéoles du ciel et courants croisés. Chaque partition définit sa topologie, sa répartition 3D, sa palette, son ciel, sa masse, ses réserves, sa vitesse, ses instruments, sa progression harmonique et son mix de drums.
+
+Sept rencontres possèdent une topologie et une atmosphère spécifiques : soleil/pluie, vent/orage, brume/lune, vent/neige, lune/soleil, lune/pluie et orage/arc-en-ciel. Un troisième choix modifie encore les couleurs, les proportions et l’orchestration. Le premier émoji choisi donne l’ancrage ; l’ordre détermine une graine et un sens spatial, et infléchit l’écriture musicale. La liste sauvegardée conserve cet ordre. Les drapeaux météo physiques restent canoniques pour les effets existants.
+
+Les voiles changent de géométrie dans le shader à partir des mêmes grilles : corolles, colonnes, tresses, îlots, spirales, arcs, strates et enveloppes ajourées. Les lavis de fond sont redistribués selon la partition. Le skydome, les accents et les encres de la simulation utilisent la même palette. Aucun modèle externe ni appel de rendu supplémentaire ; les limites de particules, de tessellation et de simulation sont conservées.
+
+L’orchestre partage les mêmes ressources locales mais change de registre, de progression, de densité et de poids instrumentaux. Les loops électro ont des proportions propres à chaque partition. Les notes de tous les pupitres sont transposées ensemble ; la basse se replie par octaves pour préserver la tonalité. Ces correspondances restent artistiques et ne prétendent pas inférer un état psychologique.
+
+Vérification : quinze tests de navigation, shaders, musique et identité réussis, dont rendu réel des dix-neuf topologies avec dix-neuf empreintes de pixels distinctes, conservation des trois choix, variation selon l’ordre et maintien du budget GPU. Des captures de plusieurs aperçus ont été inspectées. Les performances sur appareil physique restent à évaluer.
+
+Les autres associations mêlent aussi leurs familles géométriques, et le troisième choix conserve une famille propre même lorsqu’une rencontre dédiée existe. Les matières et effets suivent l’ordre sélectionné ; la pause est appliquée immédiatement au rendu et à l’audio. Après ces ajustements, le build et les six derniers contrôles d’identité/topologie/météo ont passé, ainsi que les six contrôles précédents de rendu mobile et d’harmonie.
+
+### Volutes d’encre
+
+`CalligraphicInk` ajoute une mémoire visuelle éphémère, sans historique accumulé :
+12 courbes sur mobile (18 sur ordinateur), fines lignes noires natives d’un pixel,
+et quatre grains par courbe. Les lignes s’écrivent puis s’estompent. Les grains
+se détachent de leur trajectoire et diffusent en taches étirées, texturées avec
+l’atlas aquarelle partagé, à symétrie partielle et contours doux.
+
+La seed ordonnée, les proportions, la vitesse et la famille spatiale de
+`UniverseIdentity` composent cette encre. Le signal musical déjà lissé module
+localement ses courbures ; aucune analyse psychologique n’est effectuée.
+Deux appels de rendu supplémentaires seulement en immersion (13–14 au total,
+9 inchangés en aperçu), buffers fixes, aucune nouvelle texture ni allocation
+par image. La pause fige aussi cette couche ; `dispose()` libère ses géométries
+et matériaux sans détruire l’atlas partagé. Sur les fonds nocturnes, le noir
+reste volontairement discret. Le contrôle sur téléphone physique reste à faire.
+
+### Palette de visages expressifs
+
+Les douze entrées sont désormais Joie 😊, Tristesse 😢, Peur 😨, Dégoût 🤢,
+Colère 😠, Tendresse 🥰, Émerveillement 🤩, Surprise 😮, Confusion 😕,
+Fatigue 😴, Sérénité 😌 et Nostalgie 🥹. Ce vocabulaire ouvert mêle émotions,
+sentiments et sensations ; il ne prétend pas classifier exhaustivement
+l'expérience humaine. Les associations de un à trois visages permettent
+l'ambivalence sans interprétation automatique. Labels accessibles et titres
+explicitent les visages. Les identifiants internes restent stables pour
+préserver les compositions sauvegardées et leurs rendus.
+
+### Résonances des visages — direction artistique actuelle
+
+Les descriptions météo des étapes précédentes constituent l’historique du projet.
+Les scores de `UniverseIdentity` sont désormais composés pour les visages :
+
+| Visage | Matière et mouvement | Écriture musicale |
+|---|---|---|
+| Joie | Corolles or, corail et rose, ouverture ascendante | Piano et bois, pentatonique majeure, élans rythmiques |
+| Tristesse | Rivières bleues et mauves, voiles descendants | Motifs descendants, cordes, mineur, respirations |
+| Peur | Lisières gris-vert, espaces réservés, petites hésitations | Motifs retenus, résonances frottées, réponses espacées |
+| Dégoût | Replis olive et violine, matières qui gardent leurs distances | Bois filtré, contre-mouvements, registre assombri |
+| Colère | Remous carmin et terre cuite, torsions plus amples | Percussions syncopées, basse plus présente, motifs contrastés |
+| Tendresse | Entrelacs rose poudré et pêche | Piano et cordes, arcs mélodiques, percussion discrète |
+| Émerveillement | Ponts turquoise, orchidée et or, grande profondeur | Ouvertures harmoniques, marimba et résonances |
+| Surprise | Éclosions ambre et turquoise, anneaux pigmentaires | Motifs avec paliers et sauts, réponses inattendues |
+| Confusion | Méandres entrecroisés, plusieurs directions | Motifs bifurquants et progression moins prévisible |
+| Fatigue | Strates basses, lavis gris-lilas, mouvements très lents | Longs intervalles, timbres feutrés, rythme presque absent |
+| Sérénité | Alvéoles sauge et céladon, ondes amples | Motifs stables, harmonie lente, cordes enveloppantes |
+| Nostalgie | Boucles vieux rose et bleu patiné | Motifs récurrents transformés, piano et violoncelles |
+
+Ce sont des propositions artistiques modifiables, pas une correspondance
+psychologique universelle. Les mélanges conservent leurs deux ou trois couleurs,
+leurs familles géométriques et leurs orchestrations. L’ordre donne l’ancrage
+harmonique ; le ciel mélange les teintes des choix. Les sept rencontres dédiées
+portent maintenant des noms et une palette cohérents avec ces visages.
+
+Les 117 fragments ont été réécrits dans le même vocabulaire ouvert. Les anciennes
+étoiles de neige de « Surprise » deviennent des éclosions et anneaux ; les flux de
+« Nostalgie » se recourbent plutôt que de produire une deuxième pluie. Les volutes
+noires suivent aussi les replis et la lenteur de ces compositions.
+
+Le niveau des drumloops et des basses, le nombre de mesures d’arpèges et le
+sidechain varient avec la présence rythmique : fatigue, tendresse et sérénité ne
+subissent plus le pompage du même beat électro. Tempo partagé de 104 BPM pour
+préserver la continuité des boucles. Aucun nouveau sample, texture ou appel de
+rendu ; budget géométrique et navigation conservés.
+
+Vérifications de cette évolution : build de production réussi ; 13 derniers
+contrôles passent (navigation mobile simulée, gyro simulé, restauration WebGL,
+rendus distincts, encre, harmonie des douze scores, lecture réelle des samples,
+pause/reprise et erreur réseau). La série précédente de 13 contrôles a également
+validé les fragments, les boucles rythmiques et les douze rendus complets. Les
+captures Joie et Tristesse ont été inspectées. Pas de validation sur téléphone
+physique ni d’écoute qualitative comparative prétendue par ces tests.
+
+### Réaction-diffusion aquarellée — première intégration
+
+`ReactionDiffusion.ts` calcule un champ Gray–Scott persistant dans le contexte
+Three.js existant. Deux cibles RGBA half-float de 128² pixels sur mobile ou 192²
+sur ordinateur alternent, sans profondeur ni mipmaps. Cela représente environ
+256 Kio / 576 Kio de mémoire de couleur GPU, hors surcoût du pilote. Aucun
+readback ni nouveau contexte WebGL dans la boucle. L’initialisation est différée
+jusqu’à l’entrée dans l’univers.
+
+`ReactionDiffusionProfiles.ts` définit trois régimes : îlots (joie, tendresse,
+sérénité…), rivières (tristesse, fatigue, nostalgie) et méandres (colère, peur,
+confusion, dégoût). Un mélange de deux ou trois choix conserve ses régimes dans
+des zones du champ avec transitions étroites ; les paramètres ne sont pas
+moyennés sur tout le voile. Ces correspondances sont artistiques.
+
+À cadence fixe de 20 mises à jour/s, quatre petits pas bornés font évoluer le
+champ. La qualité réduite passe à 12 mises à jour/s et deux pas. Ce sont des
+passes GPU supplémentaires, même si le nombre d’appels de rendu de la scène
+reste identique. Leur coût réel sur téléphone reste à mesurer.
+
+Le signal audio existant est lissé : l’énergie module légèrement l’évolution,
+les graves la taille des dépôts, les aigus leur intensité. Les attaques peuvent
+ensemencer la matière au maximum une fois toutes les 1,2 secondes. Sans musique,
+la simulation diffuse à partir de ses dépôts initiaux sans nouvelles graines.
+La pause et la sortie vers la palette suspendent les calculs. Le changement de
+palette conserve la matière. Une restauration du contexte réinitialise
+explicitement le champ ; son histoire GPU n’est pas sauvegardée sur disque.
+
+`AbstractResonances` utilise ce champ uniquement sur la première membrane :
+concentration pigmentaire, réserves et bordures teintées, en combinaison avec
+l’atlas aquarelle et Pigment Drift. Les cinq autres membranes, l’audio, les
+commandes et la navigation restent inchangés. Les grains calligraphiques
+existants ne déposent pas encore de graines par collision : ce branchement
+spatial est une extension ultérieure, pas simulée dans cette version.
+
+Retour arrière immédiat : définir `ENABLE_REACTION_DIFFUSION = false` dans
+`src/simple/ReactionDiffusion.ts`, puis reconstruire. Aucun calcul ni cible GPU
+n’est alors créé pour la réaction-diffusion. Si WebGL2, les cibles half-float ou
+leur framebuffer ne sont pas disponibles, le rendu aquarelle existant demeure.
+`dispose()` libère cibles, géométrie et matériau.
+
+Validation de cette première intégration : build TypeScript/Vite réussi ; les
+12 derniers tests passent (champ GPU réel, graines musicales bornées, évolution
+en silence, gel en pause, changement de palette conservant le champ, nettoyage
+des cibles, mode désactivé, fallback, restauration, Pigment Drift et identités
+d’univers). La série précédente a aussi validé la navigation et le gyro simulés.
+Le test d’intégration attend l’état de pause confirmé avant de lire les compteurs,
+pour ne pas confondre une ancienne capture de diagnostic et une simulation active.
+Pas de mesure sur téléphone physique ni de test longue durée.
+
+### Réaction-diffusion centrale — visibilité renforcée
+
+La version précédente ne modulait que faiblement une membrane et ses petits
+semis étaient difficiles à repérer. La réaction-diffusion pilote maintenant
+les **six membranes** : concentration et opacité des pigments, réserves,
+bordures plus contrastées et léger relief calculé depuis le même champ. Chaque
+voile utilise une projection stable différente du champ partagé. Les lavis,
+le grain de papier et Pigment Drift restent les couches complémentaires.
+
+Les 34 dépôts initiaux sont plus larges, irréguliers et à l’échelle UV identique
+sur mobile et ordinateur. Ils sont visibles immédiatement, sans salve de calculs
+de préchauffage. Le champ continue réellement à réagir, diffuser et recevoir les
+graines musicales ; ce ne sont pas des textures précalculées.
+
+Toujours une seule simulation, deux render targets et les mêmes géométries et
+appels de rendu. Le shader des six voiles effectue désormais une lecture du
+champ au sommet et trois lectures par fragment concerné : ce coût augmente
+par rapport à la première intégration, sans multiplier les simulations.
+
+Build réussi et neuf tests ciblés passent. Un nouveau contrôle GPU compare
+séparément les six membranes avec et sans champ : chacune présente plus de
+1 200 pixels significativement modifiés dans un rendu 256², sans appel de scène
+supplémentaire. Captures avant/après inspectées. Validation physique mobile
+et mesure longue durée restent à effectuer. Le déploiement de main n’est pas
+modifié : utiliser une prévisualisation construite depuis feature/cosmo-simple.
+
+### Composition projective — masses, détails et découverte
+
+`ProjectiveComposition.ts` organise six champs en trois groupes qui se recouvrent,
+avec des centres asymétriques dérivant lentement. Les arcs, cercles et spirales
+prédéfinis des membranes sont remplacés par de grandes nappes pliées. Les choix
+gardent leurs couleurs, proportions et dynamiques propres sans dessiner une
+figure imposée. Aucun visage ou objet caché n’est ajouté.
+
+Le shader combine trois échelles : lobes et réserves asymétriques, ramifications
+de réaction-diffusion, puis grain de papier fin. Certaines réserves se découvrent
+et se referment à des rythmes déphasés. Les nuages secondaires reculent ; les
+accents utilisent 35 % de leurs particules (22 % en qualité réduite), l’atmosphère
+50 % (30 % en qualité réduite). Les anneaux et symboles météo des accents cèdent
+la place à des grains pigmentaires. Le nombre de ressources GPU reste borné.
+
+Les voisinages sont calculés entre enveloppes 3D des champs, pas à partir d’un
+croisement à l’écran. Leur milieu produit une influence locale : migration de
+couleur, réserve et courbure de la texture. Une rencontre soutenue peut déposer
+une graine persistante dans le champ partagé, au plus toutes les cinq secondes,
+avec le plafond global de dépôt à 1,2 seconde. La projection vers les UV est une
+approximation de la membrane de référence. Il ne s’agit ni d’une intersection
+exacte de triangles ni d’une simulation de mélange physique des fluides.
+
+Les notes sélectionnent un voile pour une réponse douce et décroissante ; les
+autres ne gardent qu’une faible modulation de fond. Les notes répétées peuvent
+réensemencer une même zone du champ. La musique et ses samples sont conservés.
+
+`TravelPath` alterne une vue d’ensemble, une approche et un passage rapproché,
+sur un parcours continu fermé d’environ 224 secondes avant modulation de vitesse
+par l’univers. Le pilotage tactile demeure indépendant. Le résidu de décélération
+est arrêté à très faible vitesse pour rendre la contemplation vraiment immobile.
+Le délai d’absence de capteur gyro commence après la transition d’entrée.
+
+Les 117 fragments sont plus courts et ouverts. Douze secondes de découverte sans
+texte précèdent la première apparition ; chaque cycle laisse ensuite 32 secondes
+sans texte après un fondu d’entrée, une lecture et un fondu de sortie de 16 secondes
+au total. Un seul fragment est visible ; l’alternative en mouvement réduit reste
+statique. Les halos scintillants sont remplacés par une réserve discrète.
+
+Aucune interprétation psychologique, nouvelle API ou dépendance n’est introduite.
+La pertinence projective et la qualité d’usage restent à apprécier avec les
+participants ; les contrôles techniques ne démontrent pas d’effet psychologique.
+
+Validation : build TypeScript/Vite réussi ; onze contrôles de matière, de champ
+GPU et d’identités ont passé, puis dix contrôles de navigation, gyro simulé,
+rencontres et trajet après correction de la dérive et du délai de capteur. Les
+tests de fragments, de dépôt persistant aux rencontres et de musique réelle ont
+aussi passé pendant cette évolution. Les trois contrôles de composition ont été
+réexécutés avec capture après la fin de la transition d’entrée. Capture mobile
+inspectée ; pas de validation sur appareil physique ni de test prolongé annoncé.
+
+### Rétablissement du concept auteur
+
+Le réglage normal est à nouveau `MONUMENTAL_STUDY = false`. La palette de douze
+visages, la sélection ordonnée de un à trois choix, l’aperçu vivant et l’entrée
+dans l’univers sont restaurés. Les sélections alimentent directement les scores
+visuels, les pigments et les profils musicaux ; le profil fixe de l’étude unique
+n’est plus appliqué. Les sauvegardes existantes restent accessibles.
+
+Les masses asymétriques, détails à trois échelles, réaction-diffusion, rencontres
+spatiales, fragments rares et améliorations de navigation du parcours composé
+sont conservés. L’étude indigo/terre reste dans le code comme essai, sans être
+créée dans la scène active et sans ressource GPU supplémentaire. Les tests UI
+de cette étude sont explicitement ignorés lorsqu’elle est inactive ; ses tests
+isolés de matériau et de trajet restent disponibles.
+
+`tests/emoji-flow.spec.js` vérifie le retour effectif du rôle d’auteur : palette,
+minimum d’un choix, plafond de trois, changement d’identité et d’ordre, entrée,
+lecture musicale, pause, retour et persistance après rechargement.
+
+Validation de ce rétablissement : build TypeScript/Vite réussi ; 13 tests actifs
+passent (parcours auteur, limites de sélection, sauvegardes, gyro simulé,
+restauration WebGL, diversité des rendus et harmonie, lecture/volume/silence/reprise
+audio et gestion d’erreur). Deux tests isolés de l’étude passent ; ses deux tests
+UI sont explicitement ignorés car ce mode est inactif. Pas de validation sur
+appareil mobile physique annoncée.

@@ -11,15 +11,15 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await expect(page.locator(".simple-nuance")).toHaveCount(12);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-renderer", "simple-silk");
-  expect(Number(await canvas.getAttribute("data-calls"))).toBe(9);
-  await expect(canvas).toHaveAttribute("data-streams", "12");
-  expect(Number(await canvas.getAttribute("data-accents"))).toBeGreaterThan(0);
-  expect(Number(await canvas.getAttribute("data-accents"))).toBeLessThanOrEqual(
+  expect(Number(await canvas.getAttribute("data-calls"))).toBe(3);
+  await expect(canvas).toHaveAttribute("data-streams", "0");
+  expect(Number(await canvas.getAttribute("data-clouds"))).toBeGreaterThan(0);
+  expect(Number(await canvas.getAttribute("data-clouds"))).toBeLessThanOrEqual(
     384,
   );
-  await page.getByRole("button", { name: "Orage", exact: true }).click();
+  await page.getByRole("button", { name: "Colère", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Orage", exact: true }),
+    page.getByRole("button", { name: "Colère", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({ path: "test-results/simple-palette.png" });
   await page.getByRole("button", { name: "Entrer dans mon ciel" }).click();
@@ -30,8 +30,10 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await page.mouse.move(270, 350, { steps: 6 });
   await page.mouse.up();
   await page.waitForTimeout(600);
-  expect(await canvas.getAttribute("data-position")).toBe(position);
-  await page.getByRole("button", { name: "Voyager", exact: true }).click();
+  expect(await canvas.getAttribute("data-position")).not.toBe(position);
+  await expect(
+    page.getByRole("button", { name: "Contempler", exact: true }),
+  ).toBeVisible();
   await expect
     .poll(() => canvas.getAttribute("data-position"))
     .not.toBe(position);
@@ -45,7 +47,7 @@ test("mobile palette, bounded voyage, pause and persistent choices", async ({
   await page.getByRole("button", { name: "Revenir à la palette" }).click();
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "Orage", exact: true }),
+    page.getByRole("button", { name: "Colère", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(errors).toEqual([]);
 });
@@ -148,7 +150,7 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
   });
   await page.goto("/");
   const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-sky", "watercolor");
+  await expect(canvas).toHaveAttribute("data-sky", "atmosphere");
   const bounds = await page.locator(".simple-nuance").evaluateAll((buttons) =>
     buttons.map((b) => {
       const r = b.getBoundingClientRect();
@@ -174,14 +176,16 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
       ).toBe(true);
     }
   const before = await canvas.screenshot();
-  await page.getByRole("button", { name: "Arc-en-ciel", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Émerveillement", exact: true })
+    .click();
   await page.waitForTimeout(150);
   expect(before.equals(await canvas.screenshot())).toBe(false);
   const selected = await page
     .locator(".simple-nuance[aria-pressed=true]")
     .count();
   expect(selected).toBe(3);
-  await page.getByRole("button", { name: "Aurore", exact: true }).click();
+  await page.getByRole("button", { name: "Confusion", exact: true }).click();
   expect(await page.locator(".simple-nuance[aria-pressed=true]").count()).toBe(
     3,
   );
@@ -195,9 +199,9 @@ test("twelve emotions fit a small phone and all three choices tint the paused sk
   ).toBeLessThanOrEqual(480);
   expect(
     Number(await canvas.getAttribute("data-calls")),
-  ).toBeGreaterThanOrEqual(10);
+  ).toBeGreaterThanOrEqual(2);
   expect(Number(await canvas.getAttribute("data-calls"))).toBeLessThanOrEqual(
-    11,
+    3,
   );
   expect(errors).toEqual([]);
 });

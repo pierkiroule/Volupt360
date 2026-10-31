@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/sgossner/VCSL",
+  "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+  "license": "CC0-1.0",
+  "adaptations": "mono 32 kHz Vorbis, maximum 10 seconds, final fade; peak normalized to -3 dBFS before encoding",
+  "files": {
+    "piano-low": "Chordophones/Zithers/Grand Piano, Kawai - Legacy/Sustains/GrandPno_Main_Sus_C3_v1_rr1.wav",
+    "piano-mid": "Chordophones/Zithers/Grand Piano, Kawai - Legacy/Sustains/GrandPno_Main_Sus_D4_v1_rr1.wav",
+    "piano-high": "Chordophones/Zithers/Grand Piano, Kawai - Legacy/Sustains/GrandPno_Main_Sus_C5_v1_rr1.wav",
+    "wood-low": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_C2_soft_01.wav",
+    "wood-mid": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_F3_soft_01.wav",
+    "wood-high": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_C4_soft_01.wav",
+    "bow-low": "Idiophones/Struck Idiophones/Vibraphone/Bowed/Vibes_bowed_E3_rr1_Main.wav",
+    "bow-mid": "Idiophones/Struck Idiophones/Vibraphone/Bowed/Vibes_bowed_G3_rr1_Main.wav",
+    "bow-high": "Idiophones/Struck Idiophones/Vibraphone/Bowed/Vibes_bowed_D4_rr1_Main.wav"
+  }
+}

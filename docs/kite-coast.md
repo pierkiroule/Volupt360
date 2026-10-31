@@ -1,0 +1,9 @@
+# ÉmoCiel — Le cerf-volant
+
+Le parcours garde les choix de une à trois émotions, leur météo et la musique locale. Les trois rencontres abstraites sont retirées du rendu actif et remplacées par un cerf-volant au bord de mer. La caméra reste à une position fixe sur le rivage ; seul un très léger suivi horizontal du regard accompagne le cerf-volant. Le mode voyage et le bouton gyro sont retirés de l’interface, pour réserver le glissement au pilotage.
+
+`KiteCoast.ts` produit localement une toile losange déformée par le vent, un fil souple, une queue continue et une mer procédurale avec plage claire. Les choix déterminent les pigments, le dessin de la toile, la couleur de la queue et l’agitation de la toile. Ces associations restent artistiques et ne mesurent aucune émotion. La toile est un shader léger, pas une simulation complète de tissu.
+
+Le doigt vise une zone bornée de dix unités de large et six de haut. Le mouvement est amorti et le roulis accompagne les virages. Relâcher, annuler le geste ou perdre la capture rend le cerf-volant au vent sans saut. Un seul pointeur primaire est pris en compte. La queue est une chaîne de cent points intégrée à pas fixe 60 Hz, avec inertie, gravité douce, vent et contraintes de longueur. Un ruban unique suit sa tangente. Les buffers sont réutilisés, aucune texture réseau ou nouvelle boucle de rendu. La pause fige le mouvement. Les ressources sont libérées au démontage.
+
+Validation automatisée : pilotage borné et progressif, relâchement, pause, coordonnées finies après dix secondes simulées, caméra sans translation, absence de bouton voyage, parcours des choix conservé, capture mobile simulée et absence d’erreur JavaScript/WebGL. Build de production exécuté. Téléphone physique et stabilité prolongée à vérifier. Les anciennes classes de navigation et de résonance restent disponibles dans le dépôt mais ne pilotent pas l’expérience active.
