@@ -1,3 +1,4 @@
+import { loadArtworks, type Artwork } from "./ArtCollection";
 import { useEffect, useRef, useState } from "react";
 import { NUANCES, readPalette, SIMPLE_KEY } from "./palette";
 import { SimpleWorld } from "./SimpleWorld";
@@ -7,6 +8,10 @@ import { requestGyroscope } from "../scene/gyroOrientation";
 import "./simple.css";
 
 export default function SimpleApp() {
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [artStatus, setArtStatus] = useState("Chargement des œuvres…");
+  const [revealedArt, setRevealedArt] = useState<Artwork | null>(null);
+  const [sources, setSources] = useState(false);
   const [selected, setSelected] = useState(readPalette);
   const [inside, setInside] = useState(false);
   const [travel, setTravel] = useState(false);
@@ -25,6 +30,29 @@ export default function SimpleApp() {
   const [volume, setVolume] = useState(0.55);
   const musicWanted = useRef(false);
   const resumeMusic = useRef(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    setArtworks([]);
+    setRevealedArt(null);
+    setArtStatus("Chargement des œuvres…");
+    loadArtworks(selected, controller.signal)
+      .then((items) => {
+        if (!controller.signal.aborted) {
+          setArtworks(items);
+          setArtStatus("");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setArtStatus(
+            "Œuvres momentanément indisponibles. Le ciel reste accessible.",
+          );
+      });
+    return () => controller.abort();
+  }, [selected]);
+  useEffect(() => {
+    world.current?.artBubbles.setWorks(artworks);
+  }, [artworks, retry]);
   useEffect(
     () => () => {
       musicWanted.current = false;
@@ -100,6 +128,8 @@ export default function SimpleApp() {
         if (message.startsWith("Pas de signal")) setGyro(false);
       });
       scene.setPalette(current.current.selected);
+      scene.artBubbles.onEncounter = setRevealedArt;
+      scene.artBubbles.setWorks(artworks);
       scene.setAudioSource(() => music.current?.readSignal());
       scene.inside = current.current.inside;
       scene.travel = current.current.travel;
@@ -425,6 +455,68 @@ export default function SimpleApp() {
             </small>
           </div>
         </details>
+      )}
+      {inside && (
+        <button
+          className="art-sources-toggle"
+          onClick={() => setSources(!sources)}
+          aria-label="Œuvres et sources"
+        >
+          Œuvres · {artworks.length}/3
+        </button>
+      )}
+      {inside && sources && (
+        <aside className="art-sources">
+          <button
+            onClick={() => setSources(false)}
+            aria-label="Fermer les sources"
+          >
+            ×
+          </button>
+          <p>
+            Trois invitations artistiques, sans interprétation psychologique.
+          </p>
+          {artStatus && <p role="status">{artStatus}</p>}
+          {artworks.map((a) => (
+            <p key={a.id}>
+              <a href={a.source} target="_blank" rel="noopener noreferrer">
+                {a.role} — {a.title}
+              </a>
+              <small>
+                {a.artist} · Art Institute of Chicago · domaine public / CC0
+              </small>
+              <button
+                onClick={() => {
+                  setRevealedArt(a);
+                  setSources(false);
+                }}
+              >
+                Regarder
+              </button>
+            </p>
+          ))}
+        </aside>
+      )}
+      {inside && revealedArt && (
+        <section className="art-revelation" aria-label="Œuvre rencontrée">
+          <button
+            onClick={() => setRevealedArt(null)}
+            aria-label="Refermer l’œuvre"
+          >
+            ×
+          </button>
+          <img src={revealedArt.image} alt={revealedArt.title} />
+          <p>
+            {revealedArt.role} — {revealedArt.title}
+          </p>
+          <a
+            href={revealedArt.source}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {revealedArt.artist} · AIC · CC0
+          </a>
+        </section>
       )}
       {notice && (
         <p className="simple-notice" role="status">

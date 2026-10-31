@@ -1,3 +1,4 @@
+import { ArtBubbles } from "./ArtBubbles";
 import { WeatherAtmosphere, ATMOSPHERIC_WEATHER } from "./WeatherAtmosphere";
 import { universeIdentity } from "./UniverseIdentity";
 import { FlightSteering } from "./FlightSteering";
@@ -47,6 +48,7 @@ export class SimpleWorld {
   private texture = ATMOSPHERIC_WEATHER
     ? new THREE.Texture()
     : makeWatercolorAtlas();
+  readonly artBubbles = new ArtBubbles();
   private weather = ATMOSPHERIC_WEATHER
     ? new WeatherAtmosphere(this.mobile)
     : null;
@@ -255,6 +257,7 @@ export class SimpleWorld {
       this.resonances.mesh,
       this.ink.group,
       ...(this.study ? [this.study.group] : []),
+      this.artBubbles.group,
       ...(this.weather ? [this.weather.group] : []),
     );
     this.observer = new ResizeObserver(this.resize);
@@ -662,6 +665,8 @@ export class SimpleWorld {
         !this.gyro,
       this.paused,
     );
+    this.artBubbles.group.visible = this.inside;
+    this.artBubbles.update(this.camera, this.inside && !this.paused);
     this.cameraPoetics.render(this.renderer, this.scene, this.camera);
     if (now - this.debugAt > 120) {
       this.debugAt = now;
@@ -745,6 +750,7 @@ export class SimpleWorld {
     this.reaction.dispose();
     this.study?.dispose();
     this.weather?.dispose();
+    this.artBubbles.dispose();
     this.words.dispose();
     this.accents.dispose();
     this.renderer.dispose();
